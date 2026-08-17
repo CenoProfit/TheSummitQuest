@@ -8,7 +8,7 @@ Pick a region from the overworld map and it opens into a full game world for tha
 
 | Region | Drive times from | Locations | Bosses |
 | --- | --- | --- | --- |
-| Western North Carolina | Hendersonville | 57 | 7 |
+| Western North Carolina | Hendersonville | 58 | 7 |
 | Northern Virginia | Fairfax | 57 | 7 |
 
 **Western North Carolina** covers Pisgah and DuPont, the Great Smokies, Linville Gorge and Grandfather, Panthertown and the Jocassee Gorges, Roan Highlands, and upstate South Carolina. Mountainous edge to edge.
