@@ -311,10 +311,13 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
 .w-search{flex:1;min-width:180px;background:#060a10;border:2px solid var(--edge2);color:var(--ink);
  font-family:var(--body);font-size:12px;padding:7px 9px;letter-spacing:1px}
 .w-search::placeholder{color:#5d6b7d}
-.w-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(240px,1fr);gap:11px;align-items:start}
+.w-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,1.05fr);gap:11px;align-items:start}
 @media (max-width:840px){.w-body{grid-template-columns:1fr}}
-.w-mapwrap{position:relative;background:#030509;border:2px solid var(--edge);padding:5px;overflow:hidden}
-#worldMap{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer}
+.w-mapwrap{position:relative;background:#030509;border:2px solid var(--edge);padding:5px;
+ overflow:hidden;display:flex;justify-content:center}
+/* the map is taller than it is wide, so height leads and width follows */
+#worldMap{display:block;max-height:74vh;max-width:100%;width:auto;height:auto;
+ image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer}
 #wTip{position:absolute;pointer-events:none;background:#060a10;border:2px solid var(--gold);
  padding:6px 8px;font-family:var(--pix);font-size:8px;color:var(--ink);white-space:nowrap;
  z-index:20;display:none;box-shadow:3px 3px 0 rgba(0,0,0,.75)}
@@ -1110,118 +1113,97 @@ function pickRegion(){
    scales to whatever the frame gives it. Regions are addressed by hash, which
    makes each one linkable and means switching regions is a clean reload with no
    chance of one world's state bleeding into the next. */
+/* Projection over the eastern seaboard. The aspect follows the real geography
+   (the eastern US is taller than it is wide at this latitude) rather than the
+   shape of the panel, so the continent is not stretched. */
 const WLON0=-90.5,WLON1=-66.5,WLAT0=45.6,WLAT1=24.6;
-const WTS=4,WTW=150,WTH=132;          /* tile grid, then scaled up by css */
+const WTS=3,WTW=170,WTH=182;
 const wpx=l=>(l-WLON0)/(WLON1-WLON0)*WTW, wpy=l=>(WLAT0-l)/(WLAT0-WLAT1)*WTH;
-/* Atlantic seaboard, then Gulf, then a straight western cut and back along the
-   Canadian border. Coarse on purpose: this is a signpost, not an atlas. */
+/* Atlantic seaboard, then the Gulf, then a straight western cut and back along
+   the Canadian border. Coarse on purpose: this is a signpost, not an atlas. */
 const COAST=[
- /* Atlantic seaboard, Maine down to the Keys */
  [-67.1,44.6],[-68.2,44.3],[-69.1,43.8],[-70.2,43.4],[-70.8,42.9],[-70.6,42.2],[-70.9,41.6],
  [-71.4,41.5],[-72.2,41.3],[-73.2,41.1],[-73.9,40.6],[-74.1,40.2],[-74.3,39.5],[-74.9,38.9],
  [-75.3,38.4],[-75.6,37.6],[-75.9,37.1],[-76.3,36.6],[-75.9,36.0],[-75.6,35.2],[-76.6,34.7],
  [-77.6,34.2],[-78.6,33.8],[-79.5,33.2],[-80.5,32.3],[-81.2,31.4],[-81.4,30.5],[-81.0,29.2],
  [-80.4,27.6],[-80.1,26.3],[-80.6,25.2],[-81.4,25.2],[-82.1,26.7],[-82.7,27.8],[-83.1,29.1],
  [-83.9,29.9],[-85.0,29.6],[-86.2,30.3],[-87.5,30.3],[-88.5,30.2],[-89.3,29.1],[-89.9,29.3],
- /* west edge of frame, then the northern border back to Maine */
  [-90.4,29.9],[-90.4,44.9],[-88.0,44.6],[-86.5,43.8],[-84.6,43.4],[-83.4,43.9],[-82.5,42.9],
  [-81.2,42.3],[-79.2,42.8],[-78.9,43.3],[-76.8,43.3],[-75.3,44.6],[-73.4,45.0],[-71.5,45.1],
  [-70.3,45.4],[-69.2,45.2],[-67.8,45.1]];
-/* Erie, Ontario, and the foot of Michigan/Huron trimmed by the frame */
+/* Chesapeake and Delaware bays, carved out of the land mask so the mid-Atlantic
+   reads correctly instead of as solid coast */
+const WBAYS=[
+ [[-76.02,37.00],[-76.30,37.60],[-76.35,38.20],[-76.50,38.70],[-76.10,39.35],[-76.40,39.20],
+  [-76.55,38.60],[-76.60,38.00],[-76.35,37.35]],
+ [[-75.55,38.60],[-75.35,39.20],[-75.55,39.55],[-75.20,39.35],[-75.05,38.90],[-75.20,38.55]]];
 const GLAKES=[[-81.4,42.3,7,2.4],[-77.4,43.6,5.5,1.8],[-84.4,44.6,5.5,4.2],[-87.2,44.4,4,5.0]];
-const SPINE=[[-84.6,34.4],[-83.5,35.5],[-82.4,36.5],[-81.3,37.4],[-80.2,38.3],[-79.0,39.2],
- [-77.8,40.2],[-76.3,41.2],[-74.5,42.3],[-72.8,43.4],[-71.2,44.3]];
-const WSTATES=[["MAINE",-69.3,45.0],["N.Y.",-75.4,42.9],["PA",-77.6,41.0],["OHIO",-82.6,40.3],
- ["W.VA",-80.6,38.8],["VA",-78.4,37.5],["N.C.",-79.4,35.5],["S.C.",-81.0,34.0],
- ["GA",-83.4,32.7],["ALA",-86.8,32.6],["TENN",-86.0,35.7],["KY",-85.4,37.5],
- ["FLA",-81.8,28.4],["MD",-76.6,39.2]];
+/* Three roughly parallel Appalachian belts: the Blue Ridge in front, Valley and
+   Ridge behind it, the Allegheny Plateau behind that. Drawing them separately is
+   what gives the range its banded grain instead of one smooth hump. */
+const WRANGES=[
+ {p:[[-84.3,34.6],[-83.4,35.5],[-82.3,36.3],[-81.2,37.2],[-80.0,38.2],[-78.8,39.0],[-77.5,39.9],[-76.0,40.9],[-74.6,41.9]],h:.34,w:4.0},
+ {p:[[-85.5,34.4],[-84.6,35.3],[-83.6,36.2],[-82.4,37.2],[-81.2,38.2],[-80.0,39.2],[-78.6,40.2],[-77.2,41.2],[-75.8,42.0]],h:.26,w:4.4},
+ {p:[[-86.6,34.9],[-85.4,36.0],[-84.0,37.4],[-82.4,38.8],[-80.8,40.2],[-79.2,41.4]],h:.13,w:4.8},
+ /* northern New England highlands */
+ {p:[[-73.2,43.2],[-72.9,43.9],[-72.6,44.6]],h:.24,w:3.2},
+ {p:[[-71.6,43.8],[-71.3,44.3],[-71.0,44.8]],h:.28,w:3.0},
+ {p:[[-74.8,43.6],[-74.2,44.1],[-73.7,44.4]],h:.26,w:4.0},
+ {p:[[-74.6,42.0],[-74.2,42.3]],h:.17,w:2.8},
+ /* a hint of the Ozarks at the western cut */
+ {p:[[-90.3,36.2],[-90.3,37.0]],h:.12,w:3.0}];
 function wRand(seed){let a=seed;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function drawWorldMap(){
- const c=document.getElementById('worldMap');
- c.width=WTW*WTS;c.height=WTH*WTS;
- const g=c.getContext('2d');
- g.imageSmoothingEnabled=false;
- const rnd=wRand(70141);
- const noise=new Float32Array(WTW*WTH);
- for(let i=0;i<WTW*WTH;i++)noise[i]=rnd();
- /* ocean */
- g.fillStyle="#071426";g.fillRect(0,0,c.width,c.height);
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  const n=noise[y*WTW+x];
-  if(n>.90){g.fillStyle="#0d2340";g.fillRect(x*WTS,y*WTS,WTS,WTS);}}
- /* land mask from the coastline polygon, minus the lakes */
- const poly=COAST.map(([lo,la])=>[wpx(lo),wpy(la)]);
- const inPoly=(x,y)=>{let inside=false;
-  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
-   const[xi,yi]=poly[i],[xj,yj]=poly[j];
-   if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;}
-  return inside;};
- const land=new Uint8Array(WTW*WTH);
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  if(!inPoly(x+.5,y+.5))continue;
-  let ok=1;
-  for(const[lo,la,rw,rh]of GLAKES){
-   const dx=(x-wpx(lo))/rw,dy=(y-wpy(la))/rh;
-   if(dx*dx+dy*dy<=1){ok=0;break;}}
-  land[y*WTW+x]=ok;}
- /* elevation: distance from the Appalachian spine drives the green ramp */
- const spine=[];
- for(let i=0;i<SPINE.length-1;i++){
-  const[x0,y0]=[wpx(SPINE[i][0]),wpy(SPINE[i][1])];
-  const[x1,y1]=[wpx(SPINE[i+1][0]),wpy(SPINE[i+1][1])];
-  const steps=Math.max(2,Math.hypot(x1-x0,y1-y0)|0);
-  for(let s=0;s<=steps;s++)spine.push([x0+(x1-x0)*s/steps,y0+(y1-y0)*s/steps]);}
- const LO=["#123018","#17381d","#1d4423","#245026","#2b5c2d","#347036","#3f8340","#4d954a"];
- const HI=["#4a5a44","#5a6a4e","#6d7a5a","#828a66","#979878","#aca68c"];
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  if(!land[y*WTW+x])continue;
-  let d=99;
-  for(const[sx,sy]of spine){const dd=Math.hypot(x-sx,y-sy);if(dd<d)d=dd;}
-  const n=noise[y*WTW+x];
-  /* narrow band so the Appalachians read as a range rather than a snowfield */
-  const ridge=Math.max(0,1-d/4.2)*(.7+n*.55);
-  let col;
-  if(ridge>.70)col=HI[Math.min(HI.length-1,((ridge-.70)*14+n*1.2)|0)];
-  else col=LO[Math.min(LO.length-1,(ridge*6.5+n*1.8)|0)];
-  g.fillStyle=col;g.fillRect(x*WTS,y*WTS,WTS,WTS);}
- /* one-pixel shoreline so the continent reads as a shape */
- g.fillStyle="#d9e8f2";
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  if(!land[y*WTW+x])continue;
-  const edge=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{
-   const nx=x+dx,ny=y+dy;
-   return nx<0||nx>=WTW||ny<0||ny>=WTH||!land[ny*WTW+nx];});
-  if(edge)g.fillRect(x*WTS,y*WTS,WTS,WTS);}
- /* state names in the bitmap font the rest of the game uses */
- WSTATES.forEach(([t,lo,la])=>{
-  const x=wpx(lo)*WTS,y=wpy(la)*WTS;
-  wtxt(g,t,Math.round(x-wtw(t)/2),Math.round(y),"rgba(255,255,255,.46)");});
- wtxt(g,"ATLANTIC",Math.round(wpx(-73.4)*WTS),Math.round(wpy(37.4)*WTS),"rgba(150,200,235,.40)");
- return g;
+function wNoise(w,h,rnd){const g=new Float32Array(w*h);for(let i=0;i<w*h;i++)g[i]=rnd();return{g,w,h};}
+function wSmp(N,u,v){
+ const fx=u*(N.w-1),fy=v*(N.h-1);
+ let x0=fx|0,y0=fy|0;if(x0<0)x0=0;if(y0<0)y0=0;
+ const x1=Math.min(x0+1,N.w-1),y1=Math.min(y0+1,N.h-1);
+ let tx=fx-x0,ty=fy-y0;tx=tx*tx*(3-2*tx);ty=ty*ty*(3-2*ty);
+ const a=N.g[y0*N.w+x0],b=N.g[y0*N.w+x1],c=N.g[y1*N.w+x0],d=N.g[y1*N.w+x1];
+ const t=a+(b-a)*tx;return t+((c+(d-c)*tx)-t)*ty;
 }
-/* the launcher reuses the game's glyph atlas idea at 1x, kept local so the
-   launcher does not depend on any of the engine below */
-const WFONT={};
-function wglyph(ch){
- if(WFONT[ch]!==undefined)return WFONT[ch];
- const rows=(LFONT[ch]||"").split("|");
- return WFONT[ch]=rows;
-}
-function wtxt(g,str,x,y,col){
- let cx=x;
- for(const ch of str.toUpperCase()){
-  if(ch===" "){cx+=4;continue;}
-  const rows=wglyph(ch);
-  if(!rows.length){cx+=4;continue;}
-  rows.forEach((r,ry)=>{for(let rx=0;rx<r.length;rx++){
-   if(r[rx]==="1"){g.fillStyle="rgba(0,0,0,.55)";g.fillRect(cx+rx+1,y+ry+1,1,1);
-    g.fillStyle=col;g.fillRect(cx+rx,y+ry,1,1);}}});
-  cx+=(rows[0]?rows[0].length:3)+1;}
-}
-function wtw(str){let w=0;for(const ch of str.toUpperCase()){
- if(ch===" "){w+=4;continue;}const r=wglyph(ch);w+=(r[0]?r[0].length:3)+1;}return w-1;}
-/* a compact 5x7 subset, enough for state abbreviations */
+/* State and provincial boundaries. Simplified polylines: the long straight
+   surveyed lines are exact, the river borders (Ohio, Potomac, Savannah,
+   Mississippi) are traced loosely. */
+const WBORDERS=[
+ [[-79.48,39.72],[-75.79,39.72]],                                        /* Mason-Dixon */
+ [[-79.76,42.00],[-75.36,42.00]],                                        /* PA / NY */
+ [[-75.36,42.00],[-75.13,41.24],[-74.70,41.36]],                         /* Delaware R. */
+ [[-80.52,42.00],[-80.52,40.64]],                                        /* PA / OH */
+ [[-80.52,40.64],[-80.85,39.60],[-81.75,39.10],[-82.20,38.42]],          /* WV / OH */
+ [[-82.20,38.42],[-82.60,38.42],[-83.00,38.70],[-83.95,38.78],[-84.82,39.10]], /* KY / OH */
+ [[-84.82,39.10],[-84.82,41.70]],                                        /* OH / IN */
+ [[-84.82,39.10],[-85.90,38.28],[-86.80,38.00],[-87.60,37.90],[-88.03,37.80],[-89.17,37.07]], /* Ohio R. */
+ [[-89.17,37.07],[-89.50,36.50],[-89.60,36.00],[-90.30,35.10]],          /* Mississippi R. */
+ [[-90.30,36.50],[-89.60,36.50],[-88.05,36.50]],                         /* KY / TN west */
+ [[-88.05,36.50],[-84.78,36.60],[-83.68,36.60],[-81.97,36.60]],          /* KY / TN */
+ [[-81.97,36.60],[-81.68,36.34],[-82.60,35.98],[-83.68,35.56],[-84.32,34.99]], /* TN / VA / NC */
+ [[-88.47,34.99],[-84.32,34.99]],                                        /* TN south */
+ [[-83.68,36.55],[-75.87,36.55]],                                        /* VA / NC */
+ [[-82.20,38.42],[-81.65,37.20],[-80.90,37.30],[-80.30,37.50],[-79.50,38.05],[-78.40,39.15],[-77.72,39.32]], /* WV / VA */
+ [[-79.48,39.72],[-78.35,39.32],[-77.72,39.32],[-77.25,39.00],[-77.04,38.79],[-76.55,38.30]], /* Potomac */
+ [[-75.79,39.72],[-75.79,38.45],[-75.05,38.45]],                         /* DE / MD */
+ [[-83.11,35.00],[-82.35,35.20],[-81.03,35.16],[-79.67,34.80],[-78.55,33.87]], /* NC / SC */
+ [[-83.35,34.99],[-82.90,34.49],[-82.25,34.00],[-81.50,33.10],[-80.90,32.10]], /* Savannah R. */
+ [[-85.61,34.99],[-85.35,33.20],[-85.05,32.10],[-84.90,31.00],[-85.00,30.62]], /* GA / AL */
+ [[-85.00,30.62],[-82.05,30.62],[-81.44,30.71]],                         /* GA / FL */
+ [[-88.47,34.99],[-88.47,30.35]],                                        /* AL / MS */
+ [[-74.70,41.36],[-73.90,40.99],[-73.90,40.50]],                         /* NY / NJ */
+ [[-73.35,45.01],[-73.35,42.05]],                                        /* NY / VT-MA */
+ [[-73.49,42.05],[-71.80,42.05]],                                        /* MA / CT */
+ [[-71.80,42.05],[-71.38,41.80],[-71.38,41.40]],                         /* MA / RI */
+ [[-72.55,45.01],[-72.40,43.60],[-72.20,42.73]],                         /* VT / NH */
+ [[-71.08,45.30],[-70.95,44.20],[-70.80,43.10]],                         /* NH / ME */
+ [[-74.72,45.01],[-73.35,45.01]],                                        /* NY / Canada */
+ [[-71.50,45.10],[-70.30,45.40]]];                                       /* ME / Canada */
+const WSTATES=[["MAINE",-69.4,44.9,0],["N.H.",-71.6,43.6,1],["VT",-72.7,43.9,1],
+ ["MASS",-72.0,42.4,1],["CONN",-72.7,41.6,1],["N.Y.",-75.4,42.9,0],["PA",-77.7,41.0,0],
+ ["N.J.",-74.6,40.1,1],["DEL",-75.4,38.9,1],["MD",-76.9,39.3,1],["W.VA",-80.6,38.8,0],
+ ["VA",-78.6,37.6,0],["N.C.",-79.4,35.6,0],["S.C.",-81.0,34.0,0],["GA",-83.4,32.7,0],
+ ["FLA",-81.8,28.6,0],["ALA",-86.6,32.6,0],["MISS",-89.4,32.6,0],["TENN",-86.2,35.8,0],
+ ["KY",-85.2,37.6,0],["OHIO",-82.8,40.3,0],["IND",-86.2,39.6,1],["ILL",-89.2,39.6,1]];
+/* A compact 5x7 subset, enough for state abbreviations */
 const LFONT={
 A:"01110|10001|10001|11111|10001|10001|10001",B:"11110|10001|11110|10001|10001|10001|11110",
 C:"01110|10001|10000|10000|10000|10001|01110",D:"11110|10001|10001|10001|10001|10001|11110",
@@ -1237,6 +1219,177 @@ U:"10001|10001|10001|10001|10001|10001|01110",V:"10001|10001|10001|10001|10001|0
 W:"10001|10001|10001|10001|10101|11011|10001",X:"10001|10001|01010|00100|01010|10001|10001",
 Y:"10001|10001|01010|00100|00100|00100|00100",Z:"11111|00001|00010|00100|01000|10000|11111",
 ".":"00000|00000|00000|00000|00000|00000|00100"};
+function wtxt(g,str,x,y,col,sc){
+ sc=sc||1;let cx=x;
+ for(const ch of str.toUpperCase()){
+  if(ch===" "){cx+=4*sc;continue;}
+  const rows=(LFONT[ch]||"").split("|");
+  if(!LFONT[ch]){cx+=4*sc;continue;}
+  rows.forEach((r,ry)=>{for(let rx=0;rx<r.length;rx++){
+   if(r[rx]==="1"){
+    g.fillStyle="rgba(0,0,0,.6)";g.fillRect(x===cx?cx+sc:cx+sc,y+ry*sc+sc,sc,sc);
+    g.fillStyle=col;g.fillRect(cx+rx*sc,y+ry*sc,sc,sc);}}});
+  cx+=(rows[0].length+1)*sc;}
+}
+function wtw(str,sc){sc=sc||1;let w=0;
+ for(const ch of str.toUpperCase()){
+  if(ch===" "||!LFONT[ch]){w+=4*sc;continue;}
+  w+=(LFONT[ch].split("|")[0].length+1)*sc;}
+ return w-sc;}
+
+/* ── terrain is expensive, so it is built once into an offscreen canvas and
+      blitted on every repaint; only the pins are redrawn on hover ── */
+let WCACHE=null;
+function buildWorldTerrain(){
+ const c=document.createElement('canvas');
+ c.width=WTW*WTS;c.height=WTH*WTS;
+ const g=c.getContext('2d');
+ const rnd=wRand(70141);
+ const N1=wNoise(9,10,rnd),N2=wNoise(19,21,rnd),N3=wNoise(40,44,rnd),
+       N4=wNoise(82,88,rnd),NB=wNoise(13,15,rnd),NF=wNoise(26,28,rnd);
+
+ /* ── ocean ── */
+ g.fillStyle="#071426";g.fillRect(0,0,c.width,c.height);
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  const n=wSmp(N4,x/WTW,y/WTH);
+  if(n>.72){g.fillStyle="#0a1c33";g.fillRect(x*WTS,y*WTS,WTS,WTS);}
+  else if(n<.30){g.fillStyle="#051020";g.fillRect(x*WTS,y*WTS,WTS,WTS);}}
+
+ /* ── land mask ── */
+ const poly=COAST.map(([lo,la])=>[wpx(lo),wpy(la)]);
+ const inPoly=(pts,x,y)=>{let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+   const[xi,yi]=pts[i],[xj,yj]=pts[j];
+   if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;}
+  return inside;};
+ const bays=WBAYS.map(b=>b.map(([lo,la])=>[wpx(lo),wpy(la)]));
+ const land=new Uint8Array(WTW*WTH);
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  if(!inPoly(poly,x+.5,y+.5))continue;
+  let ok=1;
+  for(const[lo,la,rw,rh]of GLAKES){
+   const dx=(x-wpx(lo))/rw,dy=(y-wpy(la))/rh;
+   if(dx*dx+dy*dy<=1){ok=0;break;}}
+  if(ok)for(const b of bays)if(inPoly(b,x+.5,y+.5)){ok=0;break;}
+  land[y*WTW+x]=ok;}
+
+ /* ── distance from the sea, for the coastal plain ── */
+ const dist=new Int16Array(WTW*WTH).fill(-1);
+ const q=[];
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  const i=y*WTW+x;
+  if(land[i])continue;
+  dist[i]=0;q.push(i);}
+ for(let qi=0;qi<q.length;qi++){
+  const i=q[qi],x=i%WTW,y=(i/WTW)|0;
+  for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+   const nx=x+dx,ny=y+dy;
+   if(nx<0||nx>=WTW||ny<0||ny>=WTH)continue;
+   const j=ny*WTW+nx;
+   if(dist[j]<0){dist[j]=dist[i]+1;q.push(j);}}}
+
+ /* ── elevation ── */
+ const elev=new Float32Array(WTW*WTH);
+ const belts=WRANGES.map(R=>{
+  const pts=[];
+  for(let i=0;i<R.p.length-1;i++){
+   const x0=wpx(R.p[i][0]),y0=wpy(R.p[i][1]);
+   const x1=wpx(R.p[i+1][0]),y1=wpy(R.p[i+1][1]);
+   const steps=Math.max(2,Math.hypot(x1-x0,y1-y0)|0);
+   for(let s=0;s<=steps;s++)pts.push([x0+(x1-x0)*s/steps,y0+(y1-y0)*s/steps]);}
+  return{pts,h:R.h,w:R.w};});
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  const i=y*WTW+x;
+  if(!land[i])continue;
+  const u=x/WTW,v=y/WTH;
+  let e=.10+wSmp(N1,u,v)*.15+wSmp(N2,u,v)*.10+wSmp(N3,u,v)*.06+wSmp(N4,u,v)*.035;
+  for(const B of belts){
+   let d=1e9;
+   for(const[sx,sy]of B.pts){const dd=(x-sx)*(x-sx)+(y-sy)*(y-sy);if(dd<d)d=dd;}
+   d=Math.sqrt(d);
+   if(d<B.w){
+    /* wobble along the crest so ridges have high points and saddles */
+    const k=Math.pow(1-d/B.w,1.35)*(.72+wSmp(NF,u,v)*.56);
+    e+=B.h*k;}}
+  /* coastal plain: flatten and drop the last dozen tiles before the sea */
+  const dc=dist[i];
+  if(dc>=0&&dc<14)e-=(1-dc/14)*.13;
+  elev[i]=e;}
+
+ /* ── colour ──
+    Two axes: elevation decides how grey and bright the ground gets, and a
+    low-frequency band decides green forest against beige open country, so the
+    interior breaks up into patches instead of reading as one flat fill. */
+ const GREEN=["#1b3a1f","#204526","#26512b","#2d5d31","#356937","#3e763e","#488246","#548f4f"];
+ const BEIGE=["#3f4526","#4c522c","#5a6033","#6a6f3c","#7b7f48","#8d9055","#9fa065","#b0af76"];
+ const GREY =["#5d5b4e","#6b6859","#7a7666","#8a8574","#9a9483","#aaa392","#bcb4a3","#cfc7b6"];
+ const SANDY=["#8a8058","#9a8f66","#a89c74","#b6aa84"];
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  const i=y*WTW+x;
+  if(!land[i])continue;
+  const u=x/WTW,v=y/WTH;
+  const e=elev[i],n=wSmp(N4,u,v),band=wSmp(NB,u,v);
+  let col;
+  if(e>.40){
+   /* high ground: rock and bare ridge */
+   const t=Math.min(1,(e-.40)/.28);
+   col=GREY[Math.min(GREY.length-1,(t*7+n*1.4)|0)];
+  }else{
+   const t=Math.min(1,Math.max(0,e/.40));
+   const idx=Math.min(7,(t*7.4+n*1.4)|0);
+   /* the band decides green or open country; the deep south and the northern
+      forests stay green, the piedmont and the interior lowland go beige */
+   const dry=band*.74+n*.26;
+   col=(dry>.60)?BEIGE[idx]:GREEN[idx];
+  }
+  /* the immediate shore is sand, not forest */
+  const dc=dist[i];
+  if(dc>=0&&dc<=2&&e<.30)col=SANDY[Math.min(SANDY.length-1,(dc+(n*1.6|0)))];
+  g.fillStyle=col;g.fillRect(x*WTS,y*WTS,WTS,WTS);}
+
+ /* ── state lines, drawn at pixel resolution so they stay hairline ── */
+ g.lineWidth=1;g.lineJoin="round";g.lineCap="round";
+ const drawBorders=(col,off)=>{
+  g.strokeStyle=col;
+  WBORDERS.forEach(seg=>{
+   g.beginPath();
+   seg.forEach(([lo,la],k)=>{
+    const x=wpx(lo)*WTS+off,y=wpy(la)*WTS+off;
+    k?g.lineTo(x,y):g.moveTo(x,y);});
+   g.stroke();});};
+ drawBorders("rgba(0,0,0,.45)",1.5);      /* drop shadow keeps them legible on pale ground */
+ drawBorders("rgba(232,242,250,.50)",.5);
+
+ /* ── shoreline ── */
+ g.fillStyle="#e2eef6";
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  if(!land[y*WTW+x])continue;
+  const edge=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{
+   const nx=x+dx,ny=y+dy;
+   return nx<0||nx>=WTW||ny<0||ny>=WTH||!land[ny*WTW+nx];});
+  if(edge)g.fillRect(x*WTS,y*WTS,WTS,WTS);}
+
+ /* ── labels ── */
+ WSTATES.forEach(([t,lo,la,small])=>{
+  const sc=small?1:1;
+  const x=wpx(lo)*WTS,y=wpy(la)*WTS;
+  wtxt(g,t,Math.round(x-wtw(t,sc)/2),Math.round(y-3),
+   small?"rgba(255,255,255,.40)":"rgba(255,255,255,.54)",sc);});
+ wtxt(g,"ATLANTIC OCEAN",Math.round(wpx(-73.2)*WTS),Math.round(wpy(36.6)*WTS),"rgba(150,200,235,.42)",1);
+ wtxt(g,"GULF OF MEXICO",Math.round(wpx(-87.6)*WTS),Math.round(wpy(27.6)*WTS),"rgba(150,200,235,.38)",1);
+ wtxt(g,"APPALACHIANS",Math.round(wpx(-81.6)*WTS),Math.round(wpy(38.0)*WTS),"rgba(255,240,200,.34)",1);
+ WCACHE=c;
+ return c;
+}
+function paintWorld(){
+ const c=document.getElementById('worldMap');
+ c.width=WTW*WTS;c.height=WTH*WTS;
+ const g=c.getContext('2d');
+ g.imageSmoothingEnabled=false;
+ g.drawImage(WCACHE||buildWorldTerrain(),0,0);
+ drawPins(g);
+ return g;
+}
 let wHot=null;
 function pinAt(id){const rg=REGIONS[id];return[wpx(rg.pin.lon)*WTS,wpy(rg.pin.lat)*WTS];}
 function drawPins(g){
@@ -1264,8 +1417,7 @@ function drawPins(g){
   g.fillRect(x-4,y-2,10,3);g.fillRect(x-6,y+1,14,3);});
 }
 function renderWorld(){
- const g=drawWorldMap();
- drawPins(g);
+ paintWorld();
  /* lifetime rollup across every region */
  const stats=RIDS.map(regionStat);
  const sum=k=>stats.reduce((s,v)=>s+v[k],0);
@@ -1301,8 +1453,8 @@ function renderCards(){
   '</button>';}).join('');
  [...el.querySelectorAll('.w-card')].forEach(b=>{
   b.onclick=()=>enterRegion(b.dataset.id);
-  b.onmouseenter=()=>{wHot=b.dataset.id;const g=drawWorldMap();drawPins(g);};
-  b.onmouseleave=()=>{wHot=null;const g=drawWorldMap();drawPins(g);};});
+  b.onmouseenter=()=>{wHot=b.dataset.id;paintWorld();};
+  b.onmouseleave=()=>{wHot=null;paintWorld();};});
  document.getElementById('wFoot').textContent=
   rows.length+' OF '+RIDS.length+' REGIONS · PICK A PIN OR A CARD TO DROP IN';
 }
@@ -1323,14 +1475,14 @@ function wireLauncher(){
   return[(e.clientX-r.left)*(c.width/r.width),(e.clientY-r.top)*(c.height/r.height)];};
  c.onmousemove=e=>{
   const[mx,my]=toCanvas(e),id=hitPin(mx,my);
-  if(id!==wHot){wHot=id;const g=drawWorldMap();drawPins(g);}
+  if(id!==wHot){wHot=id;paintWorld();}
   if(id){const st=regionStat(id),r=c.getBoundingClientRect();
    tip.innerHTML=st.rg.name+'<span class="tt-sub">'+st.done+'/'+st.total+' cleared · LV '+(st.lvl+1)+'</span>';
    tip.style.display='block';
    tip.style.left=Math.min(r.width-140,Math.max(4,e.clientX-r.left+12))+'px';
    tip.style.top=Math.max(4,e.clientY-r.top-38)+'px';
   }else tip.style.display='none';};
- c.onmouseleave=()=>{tip.style.display='none';if(wHot){wHot=null;const g=drawWorldMap();drawPins(g);}};
+ c.onmouseleave=()=>{tip.style.display='none';if(wHot){wHot=null;paintWorld();}};
  c.onclick=e=>{const[mx,my]=toCanvas(e),id=hitPin(mx,my);if(id)enterRegion(id);};
  document.getElementById('wSearch').addEventListener('input',renderCards);
  document.getElementById('wSearch').addEventListener('keydown',e=>{
@@ -1341,8 +1493,18 @@ function showLauncher(){
  document.getElementById('gameTitle').textContent='★ SUMMIT ★';
  document.getElementById('gameSub').textContent=
   RIDS.length+' Regions · '+RIDS.reduce((s,id)=>s+REGIONS[id].quests.length,0)+' Locations';
- document.getElementById('loader').style.display='none';
- renderWorld();wireLauncher();
+ /* the continent takes about a second to generate, so keep the loader up for it
+    rather than showing an empty frame; after this it is cached and repaints are
+    effectively free, which is what makes pin hover cheap.
+
+    A timer rather than requestAnimationFrame: rAF is suspended in a background
+    tab, which would leave the launcher blank until the tab was focused. */
+ const l=document.getElementById('loader');
+ if(l&&l.firstChild)l.firstChild.textContent='CHARTING THE COAST…';
+ setTimeout(()=>{
+  try{buildWorldTerrain();}finally{
+   l.style.display='none';
+   renderWorld();wireLauncher();}},16);
 }
 
 /* the launcher writes its choice here before the engine runs */

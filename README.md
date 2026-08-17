@@ -49,7 +49,11 @@ Terrain is generated at runtime rather than loaded as an image. A seeded PRNG fe
 
 Each region's seed is fixed, so its map renders identically every time.
 
-The overworld map is drawn the same way, from a coarse eastern-US coastline outline and the Appalachian spine, with one pin per region.
+The overworld map is drawn the same way, from a coarse eastern-US coastline, the Chesapeake and Delaware bays, the Great Lakes, and three roughly parallel Appalachian belts — Blue Ridge, Valley and Ridge, Allegheny Plateau — which is what gives the range its banded grain instead of one smooth hump. A distance-from-the-sea pass creates the coastal plain.
+
+Ground colour runs on two axes: elevation decides how grey and bright it gets, and a low-frequency band decides green forest against beige open country, so the interior breaks into patches rather than reading as one flat fill. The mix lands near 68% green, 21% beige, 5% grey ridge and 5% coastal sand. State and provincial lines are drawn over the top as hairlines; the long surveyed borders are exact and the river borders (Ohio, Potomac, Savannah, Mississippi) are traced loosely.
+
+The continent takes about a second to generate, so it is built once into an offscreen canvas behind the loader and then blitted. Repainting for pin hover costs about a third of a millisecond instead of regenerating the whole map.
 
 ## Stack
 
