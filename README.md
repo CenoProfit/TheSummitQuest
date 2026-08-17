@@ -36,6 +36,19 @@ The seed is fixed, so the map renders identically every time.
 
 Roughly bounded by 83.76 W to 81.58 W and 36.38 N to 34.52 N: Pisgah and DuPont, the Great Smokies, Linville Gorge and Grandfather, Panthertown and the Jocassee Gorges, Roan Highlands, and upstate South Carolina.
 
+## Saving progress
+
+Progress saves automatically to the browser's `localStorage` on every change: completions, boss kills, badges, and the date each hike was logged. Close the tab and come back and it is all still there.
+
+That store is per-browser and disappears with site data, so the toolbar also has a real door out:
+
+- **EXPORT** writes a small `blue-ridge-quest-YYYY-MM-DD.json` file
+- **IMPORT** reads one back, on this machine or any other
+
+Import asks for confirmation before replacing anything, and validates as it goes: unknown locations, unparseable dates, and boss kills with no matching completion are dropped rather than trusted, and it tells you how many entries it skipped. A file that is not a save is refused without touching what you already have.
+
+If the browser refuses storage entirely (private browsing, storage disabled, a full quota), the game says so up front rather than pretending to save, and EXPORT still works.
+
 ## Stack
 
-Vanilla HTML, CSS, and JavaScript in one file. Canvas for rendering. `Press Start 2P` from Google Fonts, with a monospace fallback. Progress is held in memory during the session.
+Vanilla HTML, CSS, and JavaScript in one file. Canvas for rendering. `Press Start 2P` from Google Fonts, with a monospace fallback. No build step and no dependencies.

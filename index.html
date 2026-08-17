@@ -350,7 +350,10 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
     <button class="btn" id="labelBtn">LABELS: ON</button>
     <button class="btn" id="pinBtn">PINS: ON</button>
     <button class="btn on" id="sndBtn">SND: ON</button>
+    <button class="btn" id="exportBtn">EXPORT</button>
+    <button class="btn" id="importBtn">IMPORT</button>
     <button class="btn" id="resetBtn">RESET</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden>
   </div>
   <div class="map-shell" id="mapShell">
     <div class="frame map-wrap" id="mapWrap">
@@ -3097,7 +3100,7 @@ async function victory(){
   <b>${p.n}</b> cleared · <span class="heal">+${p.xp} XP</span> · turn ${BT.turn}`);
  queueToast("☠ BOSS DEFEATED ☠",BT.name);
  if(after>before)queueToast("LEVEL UP!","▶ "+LEVELS[after].n);
- renderMenu();updHUD();render();checkAch();renderLog();refreshCatalog();bestBuilt=false;layoutRails();await save();
+ renderMenu();render();checkAch();updHUD();renderLog();refreshCatalog();bestBuilt=false;layoutRails();await save();
 }
 function defeat(){
  if(!BT)return;
@@ -3151,13 +3154,159 @@ function queueToast(a,b){toastQ.push([a,b]);if(toastQ.length===1)runQ();}
 function runQ(){if(!toastQ.length)return;const[a,b]=toastQ[0];toast(a,b);
  setTimeout(()=>{toastQ.shift();runQ();},3100);}
 /* ═══════════════ 15. STORAGE ═══════════════ */
-async function save(){try{await window.storage.set('brq3',JSON.stringify(S));}catch(e){}}
-async function load(){try{const r=await window.storage.get('brq3');
- if(r){const d=JSON.parse(r.value);S={done:d.done||{},slain:d.slain||{},badges:d.badges||{}};}}catch(e){}}
+const SKEY='brq3';
+/* Backend is picked once. window.storage is the sandboxed-host API this was first
+   written against; localStorage is what a plain browser or GitHub Pages gives us.
+   MEM is the last resort so the game still plays when both are unavailable
+   (private browsing, storage disabled) — it just will not outlive the tab. */
+const STORE=(()=>{
+ const host=window.storage;
+ if(host&&typeof host.get==='function'&&typeof host.set==='function')
+  return{kind:'host',
+   get:async()=>{const r=await host.get(SKEY);return r&&r.value!=null?r.value:null;},
+   set:async v=>{await host.set(SKEY,v);}};
+ /* Read capability is tested separately from write capability. A full quota
+    makes setItem throw while getItem still works, and falling back to memory
+    on that would hide a perfectly good save behind an empty map. */
+ let canRead=false;
+ try{localStorage.getItem(SKEY);canRead=true;}catch(e){}
+ if(canRead)
+  return{kind:'local',
+   get:async()=>localStorage.getItem(SKEY),
+   set:async v=>{localStorage.setItem(SKEY,v);}};
+ let MEM=null;
+ return{kind:'memory',get:async()=>MEM,set:async v=>{MEM=v;}};
+})();
+
+const VALID_ID=new Set(P.map(p=>p.id));
+const BOSS_ID=new Set(P.filter(p=>p.c==="multi").map(p=>p.id));
+const VALID_ACH=new Set(ACHS.map(A=>A.id));
+
+/* An ISO string that survives `new Date(x).toISOString()`. Anything else is
+   dropped: a NaN date would throw when the detail panel formats it, and it
+   would quietly poison the date-window achievements. */
+function cleanStamp(v){
+ if(typeof v!=='string')return null;
+ const t=Date.parse(v);
+ if(!Number.isFinite(t))return null;
+ return new Date(t).toISOString();
+}
+/* Counts what it threw away, so a save that is half-readable can say so instead
+   of quietly presenting itself as complete and then being written back short. */
+function cleanMap(src,allowed,tally){
+ const out={};
+ if(!src||typeof src!=='object'){
+  if(src!=null)tally.dropped++;
+  return out;
+ }
+ for(const k of Object.keys(src)){
+  const s=allowed.has(k)?cleanStamp(src[k]):null;
+  if(s)out[k]=s;else tally.dropped++;
+ }
+ return out;
+}
+/* Boss kills are pinned to quests actually marked done — a slain boss with no
+   completion is not a state the game can produce, so a save claiming one has
+   been tampered with or predates a data change.
+
+   Badges are carried over as written rather than re-derived from done/slain.
+   That is deliberate: the game only ever adds badges, never revokes them, so
+   undoing a hike keeps the badge it earned. Re-deriving here would strip those,
+   which matters more than the fact that a hand-edited file can claim a badge
+   it never earned — this is a single-player log with nobody to cheat. */
+function normalize(d,tally){
+ const t=tally||{dropped:0};
+ if(!d||typeof d!=='object')return{done:{},slain:{},badges:{}};
+ const done=cleanMap(d.done,VALID_ID,t);
+ const slain=cleanMap(d.slain,BOSS_ID,t);
+ for(const k of Object.keys(slain))if(!done[k]){delete slain[k];t.dropped++;}
+ return{done,slain,badges:cleanMap(d.badges,VALID_ACH,t)};
+}
+/* A file is save-shaped if it is an object carrying at least one of the three
+   maps. An empty-but-valid save (what EXPORT writes right after RESET) has to
+   pass, or EXPORT/IMPORT is not a round trip. */
+function isSaveShaped(d){
+ return !!d&&typeof d==='object'&&!Array.isArray(d)&&
+  ['done','slain','badges'].some(k=>d[k]&&typeof d[k]==='object');
+}
+
+let saveWarned=false;
+async function save(){
+ try{
+  await STORE.set(JSON.stringify({v:1,done:S.done,slain:S.slain,badges:S.badges}));
+ }catch(e){
+  if(!saveWarned){
+   saveWarned=true;
+   queueToast("⚠ PROGRESS NOT SAVED","Browser storage is unavailable — use EXPORT");
+  }
+ }
+}
+async function load(){
+ try{
+  const raw=await STORE.get();
+  if(raw){
+   const t={dropped:0};
+   S=normalize(JSON.parse(raw),t);
+   if(t.dropped)queueToast("SAVE PARTLY UNREADABLE",
+    t.dropped+" entr"+(t.dropped===1?"y was":"ies were")+" dropped");
+  }
+ }catch(e){S={done:{},slain:{},badges:{}};}
+ if(STORE.kind==='memory'&&!saveWarned){
+  saveWarned=true;
+  queueToast("⚠ PROGRESS NOT SAVED","Browser storage is unavailable — use EXPORT");
+ }
+}
+
+/* localStorage is per-browser and dies with site data, so give progress a door
+   out to a real file that can move between machines. */
+function exportSave(){
+ const blob=new Blob([JSON.stringify({v:1,exported:new Date().toISOString(),
+  done:S.done,slain:S.slain,badges:S.badges},null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;a.download='blue-ridge-quest-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ queueToast("SAVE EXPORTED",tot()+" cleared · "+totalXP()+" XP");
+}
+const MAX_SAVE_BYTES=2*1024*1024;   /* a full 57-quest save is under 5 KB */
+async function importSave(file){
+ try{
+  if(file.size>MAX_SAVE_BYTES){
+   queueToast("IMPORT FAILED","That file is far too large to be a save");return;}
+  const raw=JSON.parse(await file.text());
+  if(!isSaveShaped(raw)){
+   queueToast("IMPORT FAILED","That file is not a Blue Ridge Quest save");return;}
+  const t={dropped:0};
+  const d=normalize(raw,t);
+  /* Import replaces everything and writes it straight through, so it is at
+     least as destructive as RESET and gets the same confirmation. */
+  const now=tot(),next=Object.keys(d.done).length;
+  if(now&&!confirm("Replace your current progress ("+now+" cleared) with this file ("+next+" cleared)?\n\nThis cannot be undone."))
+   return;
+  S=d;selId=null;
+  /* checkAch() before save() — it awards the badges implied by the imported
+     done/slain, and those mutations have to be in S before it is serialized.
+     Quiet, because a full save derives all 20 at once and the per-badge toast
+     queue would bury the import confirmation for a minute. */
+  const gained=checkAch(true);
+  updHUD();render();showDetail(null);renderBadges();renderLog();refreshCatalog();
+  bestBuilt=false;layoutRails();
+  await save();
+  queueToast("SAVE IMPORTED",tot()+" cleared · "+totalXP()+" XP"+
+   (gained?" · "+gained+" badge"+(gained===1?"":"s"):""));
+  if(t.dropped)queueToast("SOME ENTRIES SKIPPED",
+   t.dropped+" unreadable entr"+(t.dropped===1?"y":"ies")+" in that file");
+ }catch(e){queueToast("IMPORT FAILED","That file is not a valid save");}
+}
 /* ═══════════════ 16. ACHIEVEMENTS / LOG ═══════════════ */
-function checkAch(){ACHS.forEach(A=>{if(!S.badges[A.id]&&A.f()){
- S.badges[A.id]=new Date().toISOString();queueToast("★ BADGE UNLOCKED ★",A.ic+" "+A.n);fanfare();}});
- renderBadges();}
+/* Returns how many badges it awarded. `quiet` suppresses the per-badge toast and
+   jingle, for bulk paths like IMPORT where 20 of them would queue up. */
+function checkAch(quiet){let n=0;
+ ACHS.forEach(A=>{if(!S.badges[A.id]&&A.f()){
+  S.badges[A.id]=new Date().toISOString();n++;
+  if(!quiet){queueToast("★ BADGE UNLOCKED ★",A.ic+" "+A.n);fanfare();}}});
+ renderBadges();return n;}
 function renderBadges(){const el=document.getElementById('badgeGrid');el.innerHTML='';
  ACHS.forEach(A=>{const got=!!S.badges[A.id];const d=document.createElement('div');
   d.className='badge'+(got?' got':'');
@@ -3177,6 +3326,12 @@ function renderLog(){const el=document.getElementById('logList');
 /* ═══════════════ 17. DETAIL PANEL ═══════════════ */
 const detail=document.getElementById('detail');
 const fmtDate=i=>new Date(i).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+/* The <input type="date"> value has to be the LOCAL calendar day, because the
+   change handler reads it back as local time. Filling it from toISOString()
+   instead put an evening hike on the next UTC day, so re-picking the date the
+   input already showed pushed the stamp forward 24h on every edit. */
+const inputDay=i=>{const d=new Date(i);
+ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 function showDetail(p){
  if(!p){detail.innerHTML='<div class="d-empty">▼ ▼ ▼<br>SELECT A LOCATION<br>▲ ▲ ▲</div>';return;}
  const col=CATS[p.c].color,dn=!!S.done[p.id],boss=p.c==="multi";
@@ -3211,21 +3366,27 @@ function showDetail(p){
    ${boss&&!dn?`<span class="small-link" id="skipb">skip battle — I already hiked it</span>`:''}
   </div>
   ${dn?`<div class="datelog">📅 LOGGED
-   <input type="date" id="dlog" value="${new Date(S.done[p.id]).toISOString().slice(0,10)}">
+   <input type="date" id="dlog" value="${inputDay(S.done[p.id])}">
    <span style="color:#f5c651">${fmtDate(S.done[p.id])}</span></div>`:''}`;
  document.getElementById('cbtn').onclick=()=>{if(boss&&!dn)startBattle(p);else toggle(p);};
  const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>toggle(p);
  const dl=document.getElementById('dlog');
- if(dl)dl.onchange=async e=>{const old=new Date(S.done[p.id]);
+ if(dl)dl.onchange=async e=>{
+  /* Clearing the field fires change with an empty value; without this the stamp
+     built below is Invalid Date and toISOString() throws. */
+  if(!e.target.value){showDetail(p);return;}
+  const old=new Date(S.done[p.id]);
   const nd=new Date(e.target.value+"T"+String(old.getHours()).padStart(2,'0')+":00:00");
-  S.done[p.id]=nd.toISOString();await save();checkAch();renderLog();showDetail(p);};
+  if(isNaN(nd.getTime())){showDetail(p);return;}
+  S.done[p.id]=nd.toISOString();
+  checkAch();updHUD();renderLog();showDetail(p);await save();};
 }
 async function toggle(p){
  const before=lvlFor(totalXP());
  if(S.done[p.id]){delete S.done[p.id];delete S.slain[p.id];unblip();}
  else{S.done[p.id]=new Date().toISOString();const after=lvlFor(totalXP());
   if(after>before){fanfare();queueToast("LEVEL UP!","▶ "+LEVELS[after].n);}else blip();}
- updHUD();render();showDetail(p);checkAch();renderLog();refreshCatalog();bestBuilt=false;layoutRails();await save();
+ render();showDetail(p);checkAch();updHUD();renderLog();refreshCatalog();bestBuilt=false;layoutRails();await save();
 }
 /* ═══════════════ 18. SCREENS ═══════════════ */
 function setScreen(s){
@@ -3334,7 +3495,14 @@ document.getElementById('sndBtn').onclick=e=>{sound=!sound;
 document.getElementById('resetBtn').onclick=async()=>{
  if(confirm("Wipe ALL progress, badges, and boss kills?")){
   S={done:{},slain:{},badges:{}};selId=null;await save();
-  updHUD();render();showDetail(null);renderBadges();renderLog();}};
+  updHUD();render();showDetail(null);renderBadges();renderLog();
+  refreshCatalog();bestBuilt=false;layoutRails();}};
+document.getElementById('exportBtn').onclick=()=>exportSave();
+const importFile=document.getElementById('importFile');
+document.getElementById('importBtn').onclick=()=>{importFile.click();};
+importFile.onchange=async e=>{const f=e.target.files&&e.target.files[0];
+ if(f)await importSave(f);
+ e.target.value='';};
 
 /* ═══════════════ 21. CATALOG ═══════════════ */
 const DIFF_ORDER={"Easy":0,"Easy-Mod":1,"Mod":2,"Mod-Hard":3,"Hard":4,"Extreme":5};
