@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BLUE RIDGE QUEST III</title>
+<title>SUMMIT</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 :root{
@@ -297,6 +297,41 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  .btn{font-size:6px;padding:9px 7px}
  .title{letter-spacing:0}
 }
+/* ── LAUNCHER ── */
+#world{display:none}
+body.launcher #world{display:block}
+body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!important}
+.w-profile{padding:11px 13px;margin-bottom:9px}
+.wp-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.wp-name{font-family:var(--pix);font-size:clamp(8px,2.3vw,13px);color:var(--xp);
+ text-shadow:2px 2px 0 rgba(0,0,0,.75);letter-spacing:1px;flex:1;min-width:130px}
+.w-frame{padding:11px 13px}
+.w-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.w-title{font-family:var(--pix);font-size:10px;color:var(--gold);letter-spacing:1px}
+.w-search{flex:1;min-width:180px;background:#060a10;border:2px solid var(--edge2);color:var(--ink);
+ font-family:var(--body);font-size:12px;padding:7px 9px;letter-spacing:1px}
+.w-search::placeholder{color:#5d6b7d}
+.w-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(240px,1fr);gap:11px;align-items:start}
+@media (max-width:840px){.w-body{grid-template-columns:1fr}}
+.w-mapwrap{position:relative;background:#030509;border:2px solid var(--edge);padding:5px;overflow:hidden}
+#worldMap{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer}
+#wTip{position:absolute;pointer-events:none;background:#060a10;border:2px solid var(--gold);
+ padding:6px 8px;font-family:var(--pix);font-size:8px;color:var(--ink);white-space:nowrap;
+ z-index:20;display:none;box-shadow:3px 3px 0 rgba(0,0,0,.75)}
+.w-list{display:flex;flex-direction:column;gap:8px;max-height:62vh;overflow:auto}
+.w-card{background:var(--panel2);border:2px solid var(--edge2);padding:10px;cursor:pointer;
+ box-shadow:3px 3px 0 rgba(0,0,0,.55);text-align:left;font-family:var(--body);color:var(--ink)}
+.w-card:hover,.w-card.hot{border-color:var(--gold);background:#20304a}
+.w-card:active{transform:translate(2px,2px);box-shadow:none}
+.w-card .wc-n{font-family:var(--pix);font-size:9px;color:var(--gold);letter-spacing:1px;line-height:1.5}
+.w-card .wc-t{font-size:10px;color:var(--dim);margin-top:5px;letter-spacing:1px}
+.w-card .wc-lv{font-family:var(--pix);font-size:8px;color:var(--xp);margin-top:7px;letter-spacing:1px}
+.w-card .wc-bar{height:9px;background:#060a10;border:2px solid var(--edge2);margin-top:6px;position:relative;overflow:hidden}
+.w-card .wc-fill{height:100%;background:repeating-linear-gradient(90deg,#8bf05f 0 4px,#4fbf35 4px 8px)}
+.w-card .wc-st{font-size:10px;color:var(--dim);margin-top:6px;letter-spacing:1px}
+.w-card .wc-st b{color:var(--ink)}
+.w-none{font-size:11px;color:var(--dim);text-align:center;padding:22px 8px;letter-spacing:1px}
+.w-foot{font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:10px;text-align:center}
 /* short screens (iPhone SE and landscape phones) */
 @media (max-height:720px){
  #battleCanvas{max-height:30vh}
@@ -316,14 +351,38 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 <body>
 <div class="loading" id="loader"><div>GENERATING WORLD…</div><div class="lbar"><div class="lfill" id="lfill"></div></div></div>
 
-<div class="title">★ BLUE RIDGE QUEST III ★</div>
-<div class="subtitle">Hendersonville Region · 57 Locations · 7 Bosses</div>
+<div class="title" id="gameTitle">★ SUMMIT ★</div>
+<div class="subtitle" id="gameSub">Select a region</div>
 
-<div class="frame hud">
+<!-- ── LAUNCHER: the overworld. Shown when no region is chosen. ── -->
+<div id="world">
+  <div class="frame w-profile">
+    <div class="wp-row">
+      <div class="lvl-badge" id="wpTotal">0 CLEARED</div>
+      <div class="wp-name">LIFETIME PROGRESS</div>
+      <div class="hud-stats"><b id="wpXP">0</b> XP · <b id="wpBadges">0</b> ★ · <b id="wpSlain">0</b> ☠</div>
+    </div>
+  </div>
+  <div class="frame w-frame">
+    <div class="w-head">
+      <span class="w-title">◈ CHOOSE YOUR REGION</span>
+      <input id="wSearch" class="w-search" placeholder="search regions, states, ranges…" autocomplete="off">
+    </div>
+    <div class="w-body">
+      <div class="w-mapwrap"><canvas id="worldMap"></canvas>
+        <div id="wTip"></div>
+      </div>
+      <div class="w-list" id="wList"></div>
+    </div>
+    <div class="w-foot" id="wFoot">MORE REGIONS COMING · PICK A PIN OR A CARD TO DROP IN</div>
+  </div>
+</div>
+
+<div class="frame hud" id="hudBox">
   <div class="hud-top">
     <div class="lvl-badge" id="lvlBadge">LV 1</div>
     <div class="lvl-name" id="lvlName">COUCH POTATO</div>
-    <div class="hud-stats"><b id="doneCount">0</b>/57 · <b id="badgeCount">0</b>/20 ★</div>
+    <div class="hud-stats"><b id="doneCount">0</b>/<span id="doneTot">0</span> · <b id="badgeCount">0</b>/<span id="badgeTot">0</span> ★</div>
   </div>
   <div class="xp-row">
     <span class="xp-label">XP</span>
@@ -333,7 +392,8 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
   <div class="next-lvl" id="nextLvl"></div>
 </div>
 
-<div class="toolbar">
+<div class="toolbar" id="navBar">
+  <button class="btn" id="navWorld">◀ REGIONS</button>
   <button class="btn on" id="navMap">MAP</button>
   <button class="btn" id="navLog">LOGBOOK</button>
   <button class="btn" id="navBadge">BADGES</button>
@@ -447,7 +507,139 @@ const CATS={
 };
 const DIFF_XP={"Easy":10,"Easy-Mod":15,"Mod":20,"Mod-Hard":30,"Hard":45,"Extreme":65};
 const CAT_BONUS={water:0,short:0,view:0,mod:0,hard:0,long:20,multi:60};
-const P=[
+/* ═══════════════ 1b. REGIONS ═══════════════
+   Each region carries its own bounds, terrain features, quest list, bosses and
+   level titles. The engine below reads whichever one the launcher selected, so
+   adding a third region is a data change, not an engine change. */
+const REGIONS={};
+/* ── WESTERN NORTH CAROLINA ── drive times measured from Hendersonville */
+REGIONS.wnc={
+ id:"wnc",name:"WESTERN NORTH CAROLINA",short:"W. NORTH CAROLINA",home:"Hendersonville",
+ tagline:"Blue Ridge, Smokies and the escarpment",
+ pin:{lon:-82.55,lat:35.50},
+ lon0:-83.76,lon1:-81.58,lat0:36.38,lat1:34.52,tw:104,th:78,seed:20260816,
+ crestRoad:"BLUE RIDGE PARKWAY",
+ ridges:[
+ {p:[[-83.66,35.44],[-83.52,35.56],[-83.40,35.66],[-83.26,35.74],[-83.14,35.78]],h:1.16,w:4.6,n:"smoky"},
+ {p:[[-83.30,35.30],[-83.20,35.42],[-83.08,35.54],[-82.98,35.62]],h:.98,w:3.8,n:"balsam"},
+ {p:[[-83.16,35.44],[-83.06,35.50],[-82.96,35.48]],h:.92,w:3.2,n:"plott"},
+ {p:[[-83.02,35.26],[-82.90,35.32],[-82.80,35.38],[-82.70,35.45],[-82.60,35.52]],h:1.05,w:3.6,n:"pisgahledge"},
+ {p:[[-82.38,35.64],[-82.32,35.72],[-82.27,35.80],[-82.22,35.88]],h:1.18,w:3.2,n:"black"},
+ {p:[[-82.48,35.62],[-82.41,35.68],[-82.34,35.72]],h:.94,w:2.6,n:"craggy"},
+ {p:[[-83.14,34.96],[-82.98,35.06],[-82.80,35.14],[-82.62,35.20],[-82.44,35.24],[-82.26,35.30]],h:.86,w:3.4,n:"escarp"},
+ {p:[[-81.98,35.70],[-81.92,35.82],[-81.88,35.94],[-81.84,36.06],[-81.78,36.16]],h:1.02,w:3.0,n:"linville"},
+ {p:[[-82.34,36.02],[-82.20,36.10],[-82.06,36.16],[-81.94,36.20]],h:1.06,w:3.2,n:"roan"},
+ {p:[[-82.98,35.86],[-82.82,35.94],[-82.66,36.00],[-82.50,36.04]],h:.90,w:3.0,n:"baldmtn"},
+ {p:[[-83.56,35.08],[-83.44,35.18],[-83.34,35.28],[-83.24,35.36]],h:.94,w:3.2,n:"nantahala"},
+ {p:[[-82.44,35.18],[-82.32,35.26],[-82.20,35.32],[-82.08,35.36]],h:.72,w:2.4,n:"saluda"},
+ {p:[[-83.50,34.68],[-83.40,34.78],[-83.30,34.88],[-83.22,34.98]],h:.80,w:2.8,n:"chattooga"},
+ {p:[[-82.92,35.36],[-82.86,35.42],[-82.80,35.48]],h:1.00,w:2.4,n:"shining"},
+ {p:[[-83.62,35.86],[-83.50,35.94],[-83.38,36.00]],h:.86,w:2.8,n:"tnridge"},
+ {p:[[-82.76,34.96],[-82.66,34.88],[-82.56,34.80]],h:.66,w:2.4,n:"scridge"},
+ {p:[[-81.86,35.52],[-81.78,35.60],[-81.72,35.70]],h:.70,w:2.4,n:"southmtn"}],
+ peaks:[[-83.50,35.63,1.14,12],[-83.16,35.50,1.00,8],[-83.05,35.33,.86,7],[-82.96,35.79,.78,6],
+ [-82.87,35.34,1.06,7],[-82.75,35.42,.92,6],[-82.95,35.08,.80,7],[-82.70,35.03,.68,5],
+ [-82.30,35.76,1.12,7],[-82.40,35.70,.86,5],[-81.83,36.08,1.06,6],[-82.10,36.10,.98,6],
+ [-81.92,35.92,.84,5],[-82.25,35.44,.70,4],[-82.28,35.28,.55,4],[-82.52,35.14,.62,6],
+ [-83.40,34.76,.66,6],[-82.37,35.46,.60,3],[-83.30,35.05,.68,6],[-82.62,35.66,.48,4],
+ [-83.60,35.94,.76,6],[-82.15,35.66,.60,4],[-81.74,35.86,.55,4],[-83.64,35.20,.64,5],
+ [-82.02,35.50,.50,4],[-83.22,35.72,.70,5],[-81.78,36.30,.66,5],[-83.44,35.42,.72,5],
+ [-82.60,35.22,.46,3],[-83.10,35.62,.74,5],[-81.96,36.24,.60,4],[-82.72,35.86,.62,5]],
+ vals:[[-82.55,35.59,.62,6],[-82.46,35.32,.56,5],[-82.73,35.23,.42,4],[-82.99,35.49,.42,4],
+ [-82.40,34.80,.86,12],[-81.66,35.20,.84,11],[-83.34,35.45,.40,4],[-81.98,35.72,.44,4],
+ [-82.86,34.66,.76,9],[-83.68,35.60,.38,4],[-82.20,35.20,.40,4]],
+ rivers:[
+ [[-82.55,35.00],[-82.48,35.20],[-82.46,35.32],[-82.52,35.45],[-82.55,35.59],[-82.68,35.77],[-82.83,35.94],[-82.91,36.20]],
+ [[-82.88,35.36],[-82.95,35.51],[-83.02,35.67],[-83.09,35.84],[-83.14,36.08]],
+ [[-83.13,35.13],[-83.25,35.30],[-83.40,35.42],[-83.60,35.47]],
+ [[-81.94,36.02],[-81.91,35.86],[-81.88,35.74],[-81.86,35.62],[-81.75,35.53]],
+ [[-82.42,35.31],[-82.32,35.28],[-82.20,35.29],[-82.04,35.31],[-81.88,35.30]],
+ [[-82.36,35.53],[-82.26,35.44],[-82.16,35.35],[-82.02,35.22]],
+ [[-83.04,35.02],[-83.12,34.88],[-83.18,34.74],[-83.26,34.56]],
+ [[-82.24,35.94],[-82.13,36.04],[-81.99,36.16]],
+ [[-82.66,34.94],[-82.56,34.78],[-82.46,34.60]],
+ [[-83.46,35.72],[-83.54,35.84],[-83.62,36.02]],
+ [[-82.90,35.20],[-82.80,35.10],[-82.72,34.98]]],
+ lakes:[[-82.20,35.43,3.0,1.7],[-82.93,34.97,4.0,3.2],[-83.66,35.43,5.0,1.5],[-83.14,35.17,2.3,2.0],
+ [-81.90,35.72,4.2,1.8],[-82.42,35.25,1.6,1.1],[-82.90,34.83,3.2,3.8],[-83.44,34.79,2.3,1.5],
+ [-82.62,35.55,1.3,1.0],[-81.68,35.58,2.7,1.8],[-82.75,34.72,2.2,1.8]],
+ parkway:[[-81.68,36.28],[-81.82,36.09],[-81.92,35.98],[-82.02,35.88],[-82.14,35.80],[-82.26,35.75],
+ [-82.38,35.70],[-82.48,35.62],[-82.56,35.55],[-82.66,35.47],[-82.75,35.41],[-82.84,35.34],
+ [-82.94,35.30],[-83.05,35.32],[-83.14,35.46],[-83.24,35.50],[-83.40,35.53]],
+ roads:[
+ [[-82.46,35.32],[-82.50,35.42],[-82.55,35.55]],
+ [[-82.46,35.32],[-82.60,35.26],[-82.73,35.24]],
+ [[-82.46,35.32],[-82.36,35.24],[-82.28,35.18]],
+ [[-82.55,35.59],[-82.70,35.55],[-82.86,35.52],[-82.99,35.49]],
+ [[-82.55,35.59],[-82.42,35.62],[-82.28,35.65],[-82.16,35.64]],
+ [[-82.73,35.24],[-82.85,35.18],[-82.99,35.14],[-83.13,35.13]],
+ [[-81.92,35.98],[-81.84,35.86],[-81.80,35.74]]],
+ canyons:[
+ {p:[[-81.96,36.02],[-81.92,35.90],[-81.89,35.79],[-81.87,35.68]],d:.62,r:.48,w:2.6},
+ {p:[[-82.40,35.31],[-82.30,35.28],[-82.17,35.29]],d:.34,r:.32,w:1.9},
+ {p:[[-82.36,35.53],[-82.26,35.44],[-82.15,35.36]],d:.38,r:.36,w:2.0},
+ {p:[[-83.09,34.92],[-83.15,34.80],[-83.21,34.68]],d:.40,r:.34,w:2.0},
+ {p:[[-82.98,35.11],[-82.94,35.02],[-82.99,34.93]],d:.36,r:.34,w:2.0},
+ {p:[[-83.02,35.68],[-83.08,35.79],[-83.13,35.90]],d:.32,r:.28,w:1.7}],
+ structs:[
+ {lo:-82.459,la:35.318,t:"city",lab:"HENDERSONVILLE"},
+ {lo:-82.554,la:35.595,t:"city",lab:"ASHEVILLE"},
+ {lo:-82.744,la:35.233,t:"town",lab:"BREVARD"},
+ {lo:-82.988,la:35.489,t:"town",lab:"WAYNESVILLE"},
+ {lo:-81.848,la:36.216,t:"town",lab:"BOONE"},
+ {lo:-83.006,la:35.114,t:"vil",lab:"CASHIERS"},
+ {lo:-82.348,la:35.238,t:"vil",lab:"SALUDA"},
+ {lo:-82.180,la:35.628,t:"vil",lab:"OLD FORT"},
+ {lo:-82.158,la:36.014,t:"vil",lab:"BAKERSVILLE"},
+ {lo:-83.310,la:35.475,t:"vil",lab:"CHEROKEE"},
+ {lo:-83.512,la:35.712,t:"vil",lab:"GATLINBURG"},
+ {lo:-82.250,la:35.436,t:"vil",lab:"CHIMNEY ROCK"},
+ {lo:-82.836,la:35.238,t:"vil",lab:"ROSMAN"},
+ {lo:-83.196,la:35.310,t:"vil",lab:"SYLVA"},
+ {lo:-81.958,la:36.152,t:"vil",lab:"BANNER ELK"},
+ {lo:-82.070,la:35.740,t:"vil",lab:"MARION"},
+ {lo:-82.578,la:35.802,t:"vil",lab:"MARS HILL"},
+ {lo:-83.006,la:34.816,t:"vil",lab:"WALHALLA"},
+ {lo:-82.640,la:34.878,t:"vil",lab:"PICKENS"},
+ {lo:-83.386,la:34.868,t:"vil",lab:"CLAYTON GA"},
+ {lo:-82.394,la:35.586,t:"tower",lab:"CRAGGY"},
+ {lo:-82.888,la:35.336,t:"tower",lab:"BLACK BALSAM"},
+ {lo:-81.834,la:36.100,t:"cabin",lab:"GRANDFATHER"},
+ {lo:-82.700,la:35.030,t:"cabin",lab:"TABLE ROCK"},
+ {lo:-82.754,la:35.404,t:"tower",lab:"MT PISGAH"},
+ {lo:-82.265,la:35.765,t:"tower",lab:"MT MITCHELL"},
+ {lo:-83.440,la:35.653,t:"cabin",lab:"LECONTE LODGE"},
+ {lo:-82.617,la:35.208,t:"bridge",lab:""},
+ {lo:-81.809,la:36.096,t:"bridge",lab:""},
+ {lo:-82.249,la:35.432,t:"mono",lab:""}],
+ labels:[
+ {t:"GREAT SMOKY MTNS",pri:0,lo:-83.46,la:35.80,s:1,c:"#f2f6ff"},
+ {t:"NATIONAL PARK",pri:2,lo:-83.46,la:35.765,s:1,c:"#c8d4e4"},
+ {t:"PISGAH NATIONAL FOREST",pri:0,lo:-82.86,la:35.27,s:1,c:"#eaf5e0"},
+ {t:"DUPONT STATE FOREST",pri:1,lo:-82.60,la:35.155,s:1,c:"#dff0d0"},
+ {t:"LINVILLE GORGE",pri:0,lo:-81.905,la:35.985,s:1,c:"#ffe0c8"},
+ {t:"ROAN HIGHLANDS",pri:0,lo:-82.13,la:36.21,s:1,c:"#e8f4d8"},
+ {t:"BLACK MOUNTAINS",pri:0,lo:-82.30,la:35.88,s:1,c:"#e6ecf4"},
+ {t:"GRANDFATHER MTN",pri:2,lo:-81.86,la:36.145,s:1,c:"#e6ecf4"},
+ {t:"NANTAHALA",pri:0,lo:-83.52,la:35.20,s:1,c:"#dff0d0"},
+ {t:"JOCASSEE GORGES",pri:0,lo:-82.99,la:34.90,s:1,c:"#cfeaf5"},
+ {t:"SHINING ROCK",pri:1,lo:-82.86,la:35.44,s:1,c:"#f4f8ff"},
+ {t:"WILDERNESS",pri:2,lo:-82.86,la:35.415,s:1,c:"#c8d4e4"},
+ {t:"PANTHERTOWN",pri:1,lo:-83.03,la:35.205,s:1,c:"#dff0d0"},
+ {t:"NORTH CAROLINA",pri:0,lo:-81.80,la:35.34,s:2,c:"rgba(255,255,255,.42)"},
+ {t:"SOUTH CAROLINA",pri:0,lo:-82.30,la:34.72,s:2,c:"rgba(255,255,255,.42)"},
+ {t:"GEORGIA",pri:0,lo:-83.46,la:34.62,s:2,c:"rgba(255,255,255,.42)"},
+ {t:"TENNESSEE",pri:0,lo:-83.60,la:36.10,s:2,c:"rgba(255,255,255,.42)"},
+ {t:"BLUE RIDGE PARKWAY",pri:1,lo:-82.60,la:35.51,s:1,c:"#ffe9a8"},
+ {t:"LAKE JOCASSEE",pri:2,lo:-82.93,la:34.965,s:1,c:"#bfe8ff"},
+ {t:"LAKE LURE",pri:2,lo:-82.20,la:35.428,s:1,c:"#bfe8ff"},
+ {t:"FONTANA LAKE",pri:2,lo:-83.66,la:35.428,s:1,c:"#bfe8ff"},
+ {t:"LAKE JAMES",pri:2,lo:-81.90,la:35.718,s:1,c:"#bfe8ff"}],
+ levels:[{n:"COUCH POTATO",xp:0},{n:"PARKING LOT PIONEER",xp:50},{n:"TRAILHEAD TOURIST",xp:120},
+ {n:"HOMETOWN EXPLORER",xp:220},{n:"WATERFALL WANDERER",xp:350},{n:"LOCAL ADVENTURER",xp:500},
+ {n:"RIDGELINE RUNNER",xp:680},{n:"BALD BAGGER",xp:880},{n:"GORGE STALKER",xp:1100},
+ {n:"SUMMIT SEEKER",xp:1350},{n:"BLUE RIDGE VETERAN",xp:1620},{n:"MOUNTAIN LEGEND",xp:1910}],
+ quests:[
 {id:"w1",c:"water",n:"Hooker Falls",lat:35.202,lon:-82.619,drive:"35 min",dm:35,d:"Easy",mi:"0.8 mi RT",t:"30 min",hi:"Wide swimming hole right below the falls. The easiest waterfall to reach in DuPont — flat, wide trail the whole way.",food:"Hobnob Restaurant, Cedar Mountain"},
 {id:"w2",c:"water",n:"Triple Falls",lat:35.199,lon:-82.617,drive:"35 min",dm:35,d:"Easy",mi:"1.2 mi RT",t:"45 min",hi:"Three-tiered cascade with flat rock ledges. Wade the pools above the top tier. Steep stair climb back up.",food:"Hobnob Restaurant, Cedar Mountain"},
 {id:"w3",c:"water",n:"Bridal Veil Falls",lat:35.184,lon:-82.616,drive:"40 min",dm:40,d:"Mod",mi:"4.4 mi RT",t:"2.5 hr",hi:"Walk right up onto the sloping rock slab beside the falling water. Classic cliff-jump and slide spot — scout depth first.",food:"Hobnob Restaurant, Cedar Mountain"},
@@ -504,15 +696,8 @@ const P=[
 {id:"x4",c:"multi",n:"Panthertown Backpack Loop",lat:35.150,lon:-83.005,drive:"1 hr",dm:60,d:"Mod",mi:"12-15 mi",t:"2 days",hi:"The easiest entry into overnight backpacking here — established sites near waterfalls, flat valley floor, water everywhere.",food:"Cashiers Farmers Market Cafe",boss:"panther"},
 {id:"x5",c:"multi",n:"Linville Gorge Loop",lat:35.860,lon:-81.905,drive:"1.5 hr",dm:90,d:"Hard",mi:"14-18 mi",t:"2-3 days",hi:"Rim-and-river loop through the 'Grand Canyon of the East.' Permits required on weekends May–Oct. Navigation is serious.",food:"Famous Louise's Rock House, Linville",boss:"golem"},
 {id:"x6",c:"multi",n:"Roan Highlands Traverse",lat:36.090,lon:-82.070,drive:"2 hr",dm:120,d:"Mod",mi:"15 mi one-way",t:"2 days",hi:"Carvers Gap to Hughes Gap along the AT with shelters spaced out. Bald-to-bald ridge camping with zero tree cover.",food:"Bakersville General Store Cafe",boss:"titan"},
-{id:"x7",c:"multi",n:"Shining Rock Backpack Loop",lat:35.380,lon:-82.850,drive:"1 hr",dm:60,d:"Hard",mi:"18 mi loop",t:"2-3 days",hi:"Art Loeb sections stitched with connectors for a full wilderness immersion. Water sources are scarce on the ridge.",food:"The Bear's Smokehouse, Waynesville",boss:"quartz"}];
-P.forEach(p=>p.xp=DIFF_XP[p.d]+CAT_BONUS[p.c]);
-
-const LEVELS=[{n:"COUCH POTATO",xp:0},{n:"PARKING LOT PIONEER",xp:50},{n:"TRAILHEAD TOURIST",xp:120},
- {n:"HOMETOWN EXPLORER",xp:220},{n:"WATERFALL WANDERER",xp:350},{n:"LOCAL ADVENTURER",xp:500},
- {n:"RIDGELINE RUNNER",xp:680},{n:"BALD BAGGER",xp:880},{n:"GORGE STALKER",xp:1100},
- {n:"SUMMIT SEEKER",xp:1350},{n:"BLUE RIDGE VETERAN",xp:1620},{n:"MOUNTAIN LEGEND",xp:1910}];
-
-const BOSSES={
+{id:"x7",c:"multi",n:"Shining Rock Backpack Loop",lat:35.380,lon:-82.850,drive:"1 hr",dm:60,d:"Hard",mi:"18 mi loop",t:"2-3 days",hi:"Art Loeb sections stitched with connectors for a full wilderness immersion. Water sources are scarce on the ridge.",food:"The Bear's Smokehouse, Waynesville",boss:"quartz"}],
+ bosses:{
  wyrm:{name:"THE LONG RIDGE WYRM",hp:380,atk:22,rec:4,arch:"wyrm",biome:"forest",
   pal:["#132a13","#255222","#3d8236","#5fb44c","#95e07a","#c8f5a8"],eye:"#ffdd44",accent:"#f2932c",
   moves:[["TAIL LASH",.95,"LIGHT"],["RIDGE COIL",1.3,"HEAVY"],["THIRTY-MILE ROAR",1.65,"DEVASTATING"]],
@@ -540,7 +725,640 @@ const BOSSES={
  quartz:{name:"THE QUARTZ COLOSSUS",hp:485,atk:28,rec:6,arch:"golem",biome:"bald",
   pal:["#1e1b2e","#36314f","#5a5384","#8b82b6","#c0b8e4","#f7f3ff"],eye:"#ff3d8f",accent:"#9cf2ff",
   moves:[["SHARD VOLLEY",1.0,"LIGHT"],["WILDERNESS MAZE",1.32,"HEAVY"],["SHINING ROCK RADIANCE",1.72,"DEVASTATING"]],
-  intro:"White quartz erupts from the ridge and assembles itself into a shape."}};
+  intro:"White quartz erupts from the ridge and assembles itself into a shape."}},
+ landmarks:[
+  {id:"a13",ic:"🏔",n:"SIX-THOUSANDER",d:"Summit Mitchell and LeConte",need:["l1","l2"]},
+  {id:"a14",ic:"🪨",n:"GORGE RAT",d:"Every Linville Gorge location",need:["v2","h4","h5","l5","x5"]},
+  {id:"a15",ic:"🌾",n:"BALD BAGGER",d:"Black Balsam, Sam Knob, Max Patch, Craggy, Roan",need:["m2","m3","m4","s5","l7"]},
+  {id:"a16",ic:"🌫",n:"SMOKY SIGNAL",d:"Every Great Smoky Mountains location",need:["w6","h3","l2","l3","x3"]}]
+};
+/* ── NORTHERN VIRGINIA ──
+   Drive times are measured from Fairfax: the population centre of Northern
+   Virginia, and the point that keeps the Potomac Gorge inside half an hour
+   while still holding all of Shenandoah, Massanutten and the Harpers Ferry
+   confluence inside a two-hour radius. */
+REGIONS.nova={
+ id:"nova",name:"NORTHERN VIRGINIA",short:"NORTHERN VIRGINIA",home:"Fairfax",
+ tagline:"Piedmont, Blue Ridge and the Potomac",
+ /* where the pin sits on the eastern-US launcher map */
+ pin:{lon:-77.9,lat:38.8},
+ lon0:-79.20,lon1:-76.85,lat0:39.66,lat1:37.80,tw:112,th:78,seed:20260904,
+ crestRoad:"SKYLINE DRIVE",
+ /* Blue Ridge in the west, piedmont through the middle, tidal flat in the east */
+ tilt:{ax:.71,ay:.50,t0:.46,t1:.92,w:.16,e:-.20,damp:.60},
+ /* the terrain runs in three bands: Blue Ridge and Massanutten in the west,
+    rolling piedmont through the middle, tidal flatland in the east */
+ ridges:[
+  {p:[[-78.90,38.00],[-78.75,38.20],[-78.60,38.38],[-78.45,38.55],[-78.30,38.72],[-78.15,38.88],[-78.00,39.02],[-77.85,39.18],[-77.72,39.32]],h:1.02,w:3.4,n:"blueridge"},
+  {p:[[-78.72,38.42],[-78.66,38.58],[-78.60,38.74],[-78.54,38.88],[-78.48,38.96]],h:.92,w:2.6,n:"massanutten"},
+  {p:[[-78.80,38.52],[-78.75,38.68],[-78.70,38.84],[-78.63,38.94]],h:.84,w:2.1,n:"massanuttenw"},
+  {p:[[-79.10,38.35],[-79.02,38.55],[-78.92,38.75],[-78.82,38.95],[-78.74,39.12]],h:.96,w:3.0,n:"greatnorth"},
+  {p:[[-79.16,38.05],[-79.06,38.18],[-78.98,38.30]],h:.94,w:2.6,n:"elliott"},
+  {p:[[-79.16,37.86],[-79.06,37.94],[-78.97,38.04]],h:1.00,w:2.6,n:"priest"},
+  /* the piedmont ridges are real but small — isolated rises out of farmland,
+     not ranges, so they stay low enough to read as hills */
+  {p:[[-77.82,39.08],[-77.74,39.20],[-77.64,39.32]],h:.42,w:1.5,n:"shorthill"},
+  {p:[[-77.76,38.80],[-77.71,38.90],[-77.65,39.02]],h:.34,w:1.3,n:"bullrunmtn"},
+  {p:[[-77.56,39.38],[-77.48,39.50],[-77.42,39.60]],h:.38,w:1.4,n:"catoctin"},
+  {p:[[-78.12,38.28],[-78.04,38.40],[-77.96,38.52]],h:.40,w:1.5,n:"swmtn"},
+  {p:[[-78.30,38.16],[-78.20,38.24],[-78.12,38.34]],h:.38,w:1.4,n:"southpiedmont"}],
+ peaks:[[-78.390,38.556,1.06,7],[-78.383,38.593,1.00,6],[-78.317,38.552,.94,5],
+  [-78.320,38.641,.86,5],[-78.263,38.720,.80,5],[-78.190,38.790,.82,5],
+  [-78.152,38.830,.72,4],[-78.740,38.222,.80,5],[-78.680,38.260,.76,5],
+  [-78.530,38.350,.78,5],[-78.552,38.930,.84,5],[-78.601,38.582,.80,4],
+  [-78.583,38.660,.78,4],[-78.633,38.980,.86,5],[-78.750,38.880,.74,4],
+  [-79.150,38.130,.98,6],[-79.081,37.851,1.00,6],[-79.020,37.900,.96,5],
+  [-77.393,39.264,.40,3],[-77.700,38.900,.34,3],[-78.797,38.139,.72,4],
+  [-78.622,38.302,.74,4],[-78.340,38.570,.84,4],[-78.300,38.780,.70,4],
+  [-77.722,39.325,.62,3],[-77.846,39.132,.66,4],[-78.322,38.933,.64,3],
+  [-78.420,38.900,.70,4],[-78.470,38.462,.76,4],[-78.860,38.560,.70,4]],
+ /* the tilt above sets the regional trend, so these only carve the local
+    hollows: the Shenandoah Valley trough and the river lowlands */
+ vals:[[-78.55,38.75,.60,9],[-78.70,38.35,.56,8],[-78.46,38.66,.40,5],
+  [-77.60,38.60,.30,12],[-77.35,38.32,.32,12],[-77.05,38.88,.34,10],
+  [-76.98,38.28,.36,13],[-77.72,38.24,.30,10],[-77.45,38.30,.30,9],
+  [-77.30,39.10,.26,9],[-78.20,39.30,.48,7]],
+ rivers:[
+  [[-77.98,39.52],[-77.86,39.42],[-77.73,39.32],[-77.54,39.28],[-77.40,39.16],[-77.30,39.06],[-77.25,38.997],[-77.12,38.94],[-77.04,38.88],[-77.03,38.70],[-77.10,38.50],[-76.98,38.34],[-76.92,38.16]],
+  [[-78.72,38.42],[-78.60,38.58],[-78.48,38.72],[-78.32,38.85],[-78.19,38.92]],
+  [[-78.90,38.72],[-78.78,38.85],[-78.60,38.95],[-78.40,38.98],[-78.19,38.92]],
+  [[-78.19,38.92],[-78.05,39.05],[-77.90,39.18],[-77.73,39.32]],
+  [[-78.10,38.55],[-77.90,38.48],[-77.70,38.40],[-77.50,38.34],[-77.30,38.28],[-77.10,38.24]],
+  [[-78.30,38.40],[-78.10,38.34],[-77.90,38.30],[-77.72,38.28]],
+  [[-77.78,38.90],[-77.64,38.82],[-77.50,38.74],[-77.38,38.66],[-77.26,38.62]],
+  [[-77.88,39.06],[-77.74,38.99],[-77.58,38.95]],
+  [[-77.42,39.60],[-77.38,39.44],[-77.42,39.26]],
+  [[-77.56,38.48],[-77.42,38.42],[-77.30,38.38]],
+  [[-78.66,39.20],[-78.58,39.06],[-78.52,38.92]]],
+ lakes:[[-77.32,38.70,3.2,1.4],[-77.62,38.79,2.0,1.3],[-77.58,39.02,1.6,1.1],
+  [-78.12,39.05,1.4,1.0],[-77.29,38.76,1.2,.9],[-77.90,38.06,3.6,2.1],
+  [-78.45,38.62,1.2,.9],[-76.92,38.26,4.4,3.2],[-77.05,38.44,2.0,1.4],
+  [-78.02,38.86,1.1,.8]],
+ /* Skyline Drive: the crest road through Shenandoah, and the exact analogue of
+    the Blue Ridge Parkway in the Carolina map */
+ parkway:[[-78.86,38.03],[-78.78,38.13],[-78.70,38.24],[-78.62,38.32],[-78.54,38.42],
+  [-78.46,38.50],[-78.40,38.58],[-78.34,38.66],[-78.27,38.74],[-78.21,38.83],[-78.15,38.90]],
+ /* far denser than the Carolina map: this is a metro region with mountains
+    on one edge, not a mountain region with towns in it */
+ roads:[
+  [[-78.19,38.92],[-77.90,38.88],[-77.70,38.85],[-77.52,38.83],[-77.30,38.87],[-77.10,38.89]],
+  [[-77.04,38.88],[-77.15,38.72],[-77.28,38.58],[-77.40,38.42],[-77.46,38.30]],
+  [[-77.10,38.98],[-77.21,38.93],[-77.24,38.82],[-77.16,38.74],[-77.04,38.78]],
+  [[-77.05,38.90],[-77.30,38.88],[-77.55,38.92],[-77.78,38.98],[-77.96,39.00],[-78.19,38.95]],
+  [[-77.10,38.92],[-77.35,38.80],[-77.55,38.72],[-77.75,38.62],[-77.95,38.50],[-78.10,38.42]],
+  [[-78.52,39.20],[-78.58,39.02],[-78.66,38.82],[-78.76,38.60],[-78.86,38.40],[-78.96,38.20]],
+  [[-77.73,39.32],[-77.90,39.15],[-78.05,39.02],[-78.19,38.92],[-78.32,38.78],[-78.44,38.66]],
+  [[-78.19,38.92],[-78.30,38.72],[-78.42,38.63],[-78.58,38.60]],
+  [[-78.34,38.35],[-78.50,38.35],[-78.66,38.38]],
+  [[-77.04,38.78],[-77.08,38.90],[-77.16,38.97],[-77.26,39.01]],
+  [[-77.10,38.92],[-77.35,39.02],[-77.56,39.11],[-77.78,39.15],[-78.00,39.19]],
+  [[-77.48,38.75],[-77.62,38.81],[-77.74,38.87]]],
+ canyons:[
+  {p:[[-77.34,39.03],[-77.27,39.00],[-77.19,38.96]],d:.42,r:.36,w:2.0},
+  {p:[[-78.37,38.57],[-78.34,38.54],[-78.31,38.50]],d:.40,r:.34,w:1.8},
+  {p:[[-78.62,38.48],[-78.58,38.64],[-78.54,38.80],[-78.52,38.92]],d:.38,r:.34,w:2.0},
+  {p:[[-78.76,38.28],[-78.71,38.24],[-78.67,38.19]],d:.34,r:.30,w:1.7},
+  {p:[[-77.79,39.27],[-77.73,39.32],[-77.67,39.37]],d:.44,r:.36,w:2.0},
+  {p:[[-78.44,38.53],[-78.40,38.49],[-78.37,38.45]],d:.32,r:.28,w:1.6}],
+ structs:[
+  {lo:-77.307,la:38.846,t:"city",lab:"FAIRFAX"},
+  {lo:-77.037,la:38.895,t:"city",lab:"WASHINGTON"},
+  {lo:-77.087,la:38.880,t:"city",lab:"ARLINGTON"},
+  {lo:-77.047,la:38.805,t:"city",lab:"ALEXANDRIA"},
+  {lo:-77.475,la:38.751,t:"city",lab:"MANASSAS"},
+  {lo:-77.460,la:38.302,t:"city",lab:"FREDERICKSBURG"},
+  {lo:-78.163,la:39.186,t:"city",lab:"WINCHESTER"},
+  {lo:-77.564,la:39.116,t:"town",lab:"LEESBURG"},
+  {lo:-77.357,la:38.958,t:"town",lab:"RESTON"},
+  {lo:-77.265,la:38.901,t:"town",lab:"VIENNA"},
+  {lo:-77.429,la:38.840,t:"town",lab:"CENTREVILLE"},
+  {lo:-77.250,la:38.652,t:"town",lab:"WOODBRIDGE"},
+  {lo:-77.795,la:38.714,t:"town",lab:"WARRENTON"},
+  {lo:-78.194,la:38.918,t:"town",lab:"FRONT ROYAL"},
+  {lo:-77.996,la:38.473,t:"town",lab:"CULPEPER"},
+  {lo:-77.386,la:38.970,t:"town",lab:"HERNDON"},
+  {lo:-78.505,la:38.881,t:"town",lab:"WOODSTOCK"},
+  {lo:-78.359,la:38.989,t:"town",lab:"STRASBURG"},
+  {lo:-77.735,la:38.968,t:"vil",lab:"MIDDLEBURG"},
+  {lo:-77.714,la:39.137,t:"vil",lab:"PURCELLVILLE"},
+  {lo:-77.739,la:39.325,t:"vil",lab:"HARPERS FERRY"},
+  {lo:-77.859,la:39.289,t:"vil",lab:"CHARLES TOWN"},
+  {lo:-77.803,la:39.430,t:"vil",lab:"SHEPHERDSTOWN"},
+  {lo:-78.459,la:38.665,t:"vil",lab:"LURAY"},
+  {lo:-78.226,la:38.653,t:"vil",lab:"SPERRYVILLE"},
+  {lo:-78.159,la:38.713,t:"vil",lab:"WASHINGTON VA"},
+  {lo:-77.858,la:38.864,t:"vil",lab:"MARSHALL"},
+  {lo:-77.637,la:38.812,t:"vil",lab:"HAYMARKET"},
+  {lo:-77.293,la:38.522,t:"vil",lab:"QUANTICO"},
+  {lo:-77.260,la:38.684,t:"vil",lab:"OCCOQUAN"},
+  {lo:-77.981,la:39.152,t:"vil",lab:"BERRYVILLE"},
+  {lo:-77.771,la:38.862,t:"vil",lab:"THE PLAINS"},
+  {lo:-77.640,la:38.630,t:"vil",lab:"DUMFRIES"},
+  {lo:-78.390,la:38.556,t:"tower",lab:"HAWKSBILL"},
+  {lo:-78.633,la:38.980,t:"tower",lab:"BIG SCHLOSS"},
+  {lo:-78.552,la:38.930,t:"tower",lab:"SIGNAL KNOB"},
+  {lo:-78.437,la:38.517,t:"cabin",lab:"BIG MEADOWS"},
+  {lo:-78.383,la:38.596,t:"cabin",lab:"SKYLAND"},
+  {lo:-77.855,la:39.116,t:"cabin",lab:"BEARS DEN"},
+  {lo:-77.252,la:38.997,t:"bridge",lab:""},
+  {lo:-77.739,la:39.326,t:"bridge",lab:""},
+  {lo:-78.317,la:38.552,t:"mono",lab:""},
+  {lo:-77.393,la:39.264,t:"mono",lab:""}],
+ labels:[
+  {t:"SHENANDOAH",pri:0,lo:-78.52,la:38.46,s:1,c:"#eaf5e0"},
+  {t:"NATIONAL PARK",pri:2,lo:-78.52,la:38.428,s:1,c:"#c8d4e4"},
+  {t:"SKYLINE DRIVE",pri:1,lo:-78.33,la:38.60,s:1,c:"#ffe9a8"},
+  {t:"GEORGE WASHINGTON NF",pri:0,lo:-78.98,la:38.62,s:1,c:"#dff0d0"},
+  {t:"MASSANUTTEN MTN",pri:1,lo:-78.66,la:38.72,s:1,c:"#e6ecf4"},
+  {t:"SHENANDOAH VALLEY",pri:0,lo:-78.72,la:39.10,s:1,c:"#f2f6ff"},
+  {t:"POTOMAC GORGE",pri:1,lo:-77.30,la:39.02,s:1,c:"#cfeaf5"},
+  {t:"GREAT FALLS",pri:2,lo:-77.252,la:38.982,s:1,c:"#bfe8ff"},
+  {t:"PRINCE WILLIAM",pri:1,lo:-77.38,la:38.58,s:1,c:"#dff0d0"},
+  {t:"FOREST PARK",pri:2,lo:-77.38,la:38.556,s:1,c:"#c8d4e4"},
+  {t:"SKY MEADOWS",pri:2,lo:-77.966,la:39.005,s:1,c:"#e8f4d8"},
+  {t:"BULL RUN MTNS",pri:2,lo:-77.70,la:38.94,s:1,c:"#e6ecf4"},
+  {t:"MANASSAS BATTLEFIELD",pri:1,lo:-77.52,la:38.83,s:1,c:"#ffe0c8"},
+  {t:"HARPERS FERRY",pri:1,lo:-77.742,la:39.348,s:1,c:"#ffe0c8"},
+  {t:"CATOCTIN MTN",pri:2,lo:-77.47,la:39.46,s:1,c:"#e6ecf4"},
+  {t:"THE PIEDMONT",pri:1,lo:-77.76,la:38.54,s:1,c:"#f4f8ff"},
+  {t:"TIDAL POTOMAC",pri:2,lo:-76.95,la:38.40,s:1,c:"#bfe8ff"},
+  {t:"OCCOQUAN RES",pri:2,lo:-77.32,la:38.706,s:1,c:"#bfe8ff"},
+  {t:"LAKE ANNA",pri:2,lo:-77.90,la:38.072,s:1,c:"#bfe8ff"},
+  {t:"VIRGINIA",pri:0,lo:-77.86,la:38.16,s:2,c:"rgba(255,255,255,.42)"},
+  {t:"MARYLAND",pri:0,lo:-77.22,la:39.44,s:2,c:"rgba(255,255,255,.42)"},
+  {t:"WEST VIRGINIA",pri:0,lo:-78.98,la:39.38,s:2,c:"rgba(255,255,255,.42)"}],
+ levels:[{n:"BELTWAY BOUND",xp:0},{n:"TOWPATH TOURIST",xp:50},{n:"PIEDMONT PROSPECT",xp:120},
+  {n:"BATTLEFIELD WALKER",xp:220},{n:"HOLLOW CHASER",xp:350},{n:"SKYLINE ROOKIE",xp:500},
+  {n:"GAP RUNNER",xp:680},{n:"TALUS HOPPER",xp:880},{n:"SCRAMBLE SPECIALIST",xp:1100},
+  {n:"SUMMIT SEEKER",xp:1350},{n:"SHENANDOAH VETERAN",xp:1620},{n:"BLUE RIDGE LEGEND",xp:1910}],
+ quests:[
+ {id:"w1",c:"water",n:"Great Falls Overlooks",lat:38.997,lon:-77.252,drive:"25 min",dm:25,d:"Easy",mi:"1.5 mi RT",t:"1 hr",hi:"The Potomac drops 76 feet through Mather Gorge in a series of jagged ledges. Three railed overlooks, and the roar carries to the parking lot. No swimming — this stretch kills people every year.",food:"Old Brogue, Great Falls"},
+ {id:"w2",c:"water",n:"Whiteoak Canyon Falls",lat:38.545,lon:-78.348,drive:"1.5 hr",dm:90,d:"Mod",mi:"4.6 mi RT",t:"3 hr",hi:"Six waterfalls stacked down one hemlock gorge, the tallest 86 feet. Deep green pools between each drop. The bottom-up approach from Berry Hollow is the shorter climb.",food:"Thornton River Grille, Sperryville"},
+ {id:"w3",c:"water",n:"Cedar Run Falls",lat:38.538,lon:-78.340,drive:"1.5 hr",dm:90,d:"Mod-Hard",mi:"3.5 mi RT",t:"2.5 hr",hi:"A natural waterslide into a chest-deep chute, plus a 34-foot falls above it. Rockier and steeper than Whiteoak next door, and usually quieter.",food:"Thornton River Grille, Sperryville"},
+ {id:"w4",c:"water",n:"Dark Hollow Falls",lat:38.523,lon:-78.437,drive:"1.5 hr",dm:95,d:"Easy-Mod",mi:"1.4 mi RT",t:"1 hr",hi:"The closest waterfall to Skyline Drive and the busiest in the park. Seventy feet of cascade over greenstone. Steep on the way back out.",food:"Big Meadows Wayside"},
+ {id:"w5",c:"water",n:"Rose River Falls",lat:38.532,lon:-78.412,drive:"1.5 hr",dm:95,d:"Mod",mi:"4 mi loop",t:"2.5 hr",hi:"A 67-foot double drop on a loop that also passes an old copper mine and a stretch of Skyline's best hemlock. Far fewer people than Dark Hollow.",food:"Big Meadows Wayside"},
+ {id:"w6",c:"water",n:"Lewis Spring Falls",lat:38.512,lon:-78.443,drive:"1.5 hr",dm:95,d:"Mod",mi:"3.3 mi RT",t:"2 hr",hi:"An 81-foot falls over columnar basalt, reached from Big Meadows. Pair it with the Blackrock viewpoint on the return for the best half-day in the central district.",food:"Big Meadows Wayside"},
+ {id:"w7",c:"water",n:"Overall Run Falls",lat:38.786,lon:-78.318,drive:"1.25 hr",dm:80,d:"Mod-Hard",mi:"6.5 mi RT",t:"4 hr",hi:"The tallest waterfall in the park at 93 feet, with a rock ledge that looks straight down it. Runs thin by August — go in spring or after rain.",food:"Element, Front Royal"},
+ {id:"w8",c:"water",n:"South River Falls",lat:38.363,lon:-78.512,drive:"1.75 hr",dm:105,d:"Mod",mi:"4.5 mi RT",t:"3 hr",hi:"Third-tallest in Shenandoah at 83 feet. The observation platform is good, but the spur to the base is where the swimming is.",food:"Elkton Diner, Elkton"},
+ {id:"w9",c:"water",n:"Jones Run & Doyles River Falls",lat:38.243,lon:-78.723,drive:"2 hr",dm:120,d:"Mod",mi:"6.6 mi loop",t:"4 hr",hi:"Four waterfalls on one loop in the quiet south district. Wading pools at the base of the 42-foot Jones Run drop, and almost nobody on the trail midweek.",food:"Blue Mountain Brewery, Afton"},
+ {id:"w10",c:"water",n:"Scott's Run Falls",lat:38.958,lon:-77.204,drive:"25 min",dm:25,d:"Easy",mi:"1.8 mi RT",t:"1 hr",hi:"A creek drops over a rock shelf straight into the Potomac. Twenty-five minutes from Tysons and it feels like the mountains. Swimming is banned and enforced.",food:"Chesapeake Bagel, McLean"},
+ {id:"w11",c:"water",n:"Passage Creek, Elizabeth Furnace",lat:38.925,lon:-78.334,drive:"1.25 hr",dm:75,d:"Easy",mi:"riverside",t:"1-2 hr",hi:"Clear shallow pools along Fort Valley's creek, with flat rock to lie on and an 1836 iron furnace beside the picnic area. The easiest cold-water afternoon in the region.",food:"Woodstock Cafe, Woodstock"},
+ {id:"w12",c:"water",n:"Crabtree Falls",lat:37.851,lon:-79.079,drive:"2.5 hr",dm:150,d:"Mod",mi:"3 mi RT",t:"2 hr",hi:"Five major cascades totalling 1,200 feet, the tallest series east of the Mississippi. Paved to the first overlook, then stairs and switchbacks. People have died stepping onto the wet rock.",food:"Devils Backbone, Roseland"},
+ {id:"w13",c:"water",n:"Shenandoah Confluence, Harpers Ferry",lat:39.323,lon:-77.729,drive:"1.25 hr",dm:75,d:"Easy",mi:"1 mi RT",t:"1 hr",hi:"Where the Shenandoah meets the Potomac between two states. Wade the rocks off Virginius Island, or put in with an outfitter and float the whole confluence.",food:"Potomac Grille, Harpers Ferry"},
+ {id:"s1",c:"short",n:"Bearfence Mountain Scramble",lat:38.462,lon:-78.470,drive:"1.6 hr",dm:95,d:"Easy-Mod",mi:"1.2 mi RT",t:"1 hr",hi:"A short hands-on rock scramble to a genuine 360-degree view — the only unobstructed full circle in the park. Not for anyone uneasy with exposure.",food:"Big Meadows Wayside"},
+ {id:"s2",c:"short",n:"Compton Peak Columnar Basalt",lat:38.830,lon:-78.152,drive:"1.25 hr",dm:75,d:"Easy-Mod",mi:"2.4 mi RT",t:"1.5 hr",hi:"Two spurs from one summit: north for the view, south for a wall of hexagonal basalt columns left by a lava flow 570 million years ago. Take the south one.",food:"Element, Front Royal"},
+ {id:"s3",c:"short",n:"Little Stony Man",lat:38.601,lon:-78.374,drive:"1.5 hr",dm:90,d:"Easy",mi:"0.9 mi RT",t:"45 min",hi:"The best view-per-step ratio on Skyline Drive. Nine tenths of a mile to open cliffs above the Shenandoah Valley. Elite sunset with almost no commitment.",food:"Skyland Dining Room"},
+ {id:"s4",c:"short",n:"Stony Man Summit",lat:38.593,lon:-78.383,drive:"1.5 hr",dm:90,d:"Easy",mi:"1.6 mi RT",t:"1 hr",hi:"Second-highest peak in the park at 4,011 feet on a gentle graded trail. Peregrine falcons work the cliffs below the summit rocks.",food:"Skyland Dining Room"},
+ {id:"s5",c:"short",n:"Blackrock Summit",lat:38.222,lon:-78.740,drive:"2 hr",dm:120,d:"Easy",mi:"1 mi RT",t:"45 min",hi:"A flat mile ends at a jumbled field of quartzite talus you scramble over for a wide south-district view. Absurdly good for the effort.",food:"Blue Mountain Brewery, Afton"},
+ {id:"s6",c:"short",n:"Turk Mountain",lat:38.139,lon:-78.797,drive:"2 hr",dm:125,d:"Easy-Mod",mi:"2.2 mi RT",t:"1.5 hr",hi:"Short descent then a climb to a talus summit facing west over the Shenandoah Valley. One of the quietest views in the park.",food:"Blue Mountain Brewery, Afton"},
+ {id:"s7",c:"short",n:"Sugarloaf Mountain",lat:39.264,lon:-77.393,drive:"1 hr",dm:60,d:"Easy-Mod",mi:"2.5 mi RT",t:"1.5 hr",hi:"An isolated Maryland monadnock standing 800 feet above flat farmland. Privately owned, free to enter, quartzite outcrops all over the summit ridge.",food:"Comus Inn, Dickerson"},
+ {id:"s8",c:"short",n:"Bears Den Overlook",lat:39.116,lon:-77.855,drive:"1 hr",dm:60,d:"Easy",mi:"0.5 mi RT",t:"30 min",hi:"A quarter mile from the parking area to a west-facing rock pile on the Appalachian Trail. The classic Loudoun sunset, and the hostel behind it sells ice cream.",food:"Horseshoe Curve, Bluemont"},
+ {id:"v1",c:"view",n:"Hogback Overlook",lat:38.720,lon:-78.263,drive:"1.25 hr",dm:80,d:"Easy",mi:"roadside",t:"20 min",hi:"The widest pullout view on Skyline Drive, looking down on seven bends of the Shenandoah River. Best in the last hour of light.",food:"Element, Front Royal"},
+ {id:"v2",c:"view",n:"Range View Overlook",lat:38.796,lon:-78.213,drive:"1.25 hr",dm:78,d:"Easy",mi:"roadside",t:"20 min",hi:"Straight down the spine of the Blue Ridge with Hogback, Marshall and Compton stacked in a row. The name is exactly accurate.",food:"Element, Front Royal"},
+ {id:"v3",c:"view",n:"Maryland Heights",lat:39.325,lon:-77.722,drive:"1.25 hr",dm:78,d:"Mod",mi:"4.5 mi RT",t:"3 hr",hi:"The photograph of Harpers Ferry — the town on its wedge of rock with two rivers closing around it. Steep climb, Civil War stone fortifications on the way up.",food:"Potomac Grille, Harpers Ferry"},
+ {id:"v4",c:"view",n:"Raven Rocks",lat:39.132,lon:-77.846,drive:"1 hr",dm:62,d:"Mod-Hard",mi:"5 mi RT",t:"3.5 hr",hi:"Four hard climbs on the Appalachian Trail section thru-hikers call the Roller Coaster, ending on cliffs above the Shenandoah Valley. Deceptively tough for an hour from home.",food:"Horseshoe Curve, Bluemont"},
+ {id:"v5",c:"view",n:"Buzzard Rock",lat:38.933,lon:-78.322,drive:"1.25 hr",dm:75,d:"Mod",mi:"4.4 mi RT",t:"2.5 hr",hi:"A narrow rock fin on Massanutten's north end with drops on both sides and vultures riding the thermals at eye level. Exposed ridge walking most of the way.",food:"Woodstock Cafe, Woodstock"},
+ {id:"v6",c:"view",n:"Big Schloss",lat:38.980,lon:-78.633,drive:"1.75 hr",dm:105,d:"Mod",mi:"4.4 mi RT",t:"3 hr",hi:"A sandstone castle on the Virginia-West Virginia line, reached by a wooden footbridge across a gap in the rock. Schloss is German for castle and the settlers were not exaggerating.",food:"Woodstock Cafe, Woodstock"},
+ {id:"v7",c:"view",n:"Piedmont Overlook, Sky Meadows",lat:39.003,lon:-77.966,drive:"1 hr",dm:60,d:"Easy-Mod",mi:"1.8 mi RT",t:"1 hr",hi:"A steep pasture climb to a bench looking east over the whole Piedmont. Stone walls, grazing cattle and hang gliders off Ashby Gap. Best picnic hill in Virginia.",food:"Ashby Inn, Paris"},
+ {id:"m1",c:"mod",n:"Mary's Rock via Meadow Spring",lat:38.641,lon:-78.320,drive:"1.5 hr",dm:88,d:"Mod",mi:"2.9 mi RT",t:"2 hr",hi:"The short brutal way up to a granite outcrop above Thornton Gap, with a 360 that takes in Luray, the valley and the Blue Ridge running north. Half the distance of the Panorama route.",food:"Thornton River Grille, Sperryville"},
+ {id:"m2",c:"mod",n:"Hawksbill Summit Loop",lat:38.556,lon:-78.391,drive:"1.5 hr",dm:92,d:"Mod",mi:"2.9 mi loop",t:"2 hr",hi:"The highest point in Shenandoah at 4,051 feet, with a stone observation platform and balsam fir that has no business this far south. Loop it up the Lower Hawksbill and down the AT.",food:"Skyland Dining Room"},
+ {id:"m3",c:"mod",n:"Bull Run-Occoquan Trail",lat:38.800,lon:-77.520,drive:"35 min",dm:35,d:"Mod",mi:"5 mi",t:"2.5 hr",hi:"Follows the creek through bottomland forest. In the second week of April the floodplain turns solid blue with the largest Virginia bluebell bloom in the state.",food:"Blue Arbor Cafe, Manassas"},
+ {id:"m4",c:"mod",n:"Prince William Forest South Valley",lat:38.578,lon:-77.375,drive:"40 min",dm:40,d:"Mod",mi:"5.5 mi loop",t:"3 hr",hi:"Fifteen thousand acres of second-growth piedmont forest twenty minutes off I-95. Abandoned pyrite mine workings and CCC cabin camps hidden in the woods.",food:"Bistro L'Hermitage, Woodbridge"},
+ {id:"m5",c:"mod",n:"Manassas Battlefield Double Loop",lat:38.813,lon:-77.522,drive:"30 min",dm:30,d:"Easy-Mod",mi:"6.2 mi loop",t:"3 hr",hi:"Both battles walked in one go: Henry Hill, the Stone Bridge, Chinn Ridge and Deep Cut. Open field walking with interpretive markers and the Stone House still standing.",food:"Blue Arbor Cafe, Manassas"},
+ {id:"m6",c:"mod",n:"Cunningham Falls & Hog Rock",lat:39.626,lon:-77.455,drive:"1.25 hr",dm:75,d:"Mod",mi:"4.5 mi loop",t:"2.5 hr",hi:"Maryland's tallest cascading falls at 78 feet, looped with a rock overlook above the Monocacy valley. Catoctin's other claim to fame is Camp David, which you will not be visiting.",food:"Cozy Cafe, Thurmont"},
+ {id:"m7",c:"mod",n:"High Knob & Elizabeth Furnace Loop",lat:38.900,lon:-78.340,drive:"1.3 hr",dm:78,d:"Mod",mi:"5.5 mi loop",t:"3 hr",hi:"A steady climb out of Fort Valley to a ridge view, then down past the furnace ruins. Good early-season legs-builder before the Massanutten scrambles.",food:"Woodstock Cafe, Woodstock"},
+ {id:"m8",c:"mod",n:"Billy Goat Trail Section A",lat:38.985,lon:-77.245,drive:"35 min",dm:35,d:"Mod",mi:"4.7 mi RT",t:"3 hr",hi:"A blue-blazed boulder scramble along the Maryland lip of Mather Gorge, including the Traverse — a slanted rock face with the river a long way below. Single file and busy.",food:"Old Angler's Inn, Potomac"},
+ {id:"h1",c:"hard",n:"Old Rag Mountain",lat:38.552,lon:-78.317,drive:"1.6 hr",dm:95,d:"Hard",mi:"9.4 mi loop",t:"6 hr",hi:"The most famous hike in Virginia and the most technical: a half mile of granite chute scrambling through boulder tunnels and up chimneys. Ticketed entry March to November, and it still fills.",food:"Thornton River Grille, Sperryville"},
+ {id:"h2",c:"hard",n:"Strickler Knob",lat:38.582,lon:-78.601,drive:"1.75 hr",dm:105,d:"Hard",mi:"8.5 mi RT",t:"5.5 hr",hi:"A spine of tilted quartzite you scramble along to a pinnacle over Fort Valley. The final half mile is unmarked and easy to lose — follow the rock, not the ground.",food:"Woodstock Cafe, Woodstock"},
+ {id:"h3",c:"hard",n:"Duncan Knob",lat:38.660,lon:-78.583,drive:"1.75 hr",dm:105,d:"Mod-Hard",mi:"5.8 mi RT",t:"3.5 hr",hi:"Ends with a straight hands-and-feet haul up a talus cone to a boulder summit. Short, steep and genuinely fun. Sisters to Strickler across the hollow.",food:"Woodstock Cafe, Woodstock"},
+ {id:"h4",c:"hard",n:"Robertson Mountain",lat:38.570,lon:-78.340,drive:"1.6 hr",dm:95,d:"Hard",mi:"7.5 mi loop",t:"5 hr",hi:"The steepest sustained climb in the central district and almost nobody on it, because everyone next door is queuing for Old Rag. Limited view, serious legs.",food:"Thornton River Grille, Sperryville"},
+ {id:"h5",c:"hard",n:"Three Ridges",lat:37.900,lon:-79.020,drive:"2.5 hr",dm:150,d:"Hard",mi:"13 mi loop",t:"8 hr",hi:"A 3,000-foot Appalachian Trail classic over Chimney Rock and Hanging Rock with the Priest staring back across the gap. One of the two hardest day loops in the state.",food:"Devils Backbone, Roseland"},
+ {id:"h6",c:"hard",n:"The Priest",lat:37.851,lon:-79.081,drive:"2.5 hr",dm:152,d:"Hard",mi:"9 mi RT",t:"6 hr",hi:"Three thousand feet of climbing in four miles with no relief. Thru-hikers write confessions in the shelter register at the top. The view is worth the penance.",food:"Devils Backbone, Roseland"},
+ {id:"h7",c:"hard",n:"Mount Marshall via Bluff Trail",lat:38.790,lon:-78.190,drive:"1.25 hr",dm:80,d:"Mod-Hard",mi:"7 mi RT",t:"4.5 hr",hi:"A long circuit on the quiet north-district side slopes, crossing several streams before the climb. Bear country — this stretch has the highest density in the park.",food:"Element, Front Royal"},
+ {id:"l1",c:"long",n:"Whiteoak & Cedar Run Loop",lat:38.545,lon:-78.348,drive:"1.5 hr",dm:90,d:"Hard",mi:"8.2 mi loop",t:"6 hr",hi:"The Shenandoah waterfall grand slam: eight named drops down one gorge and up the next, with swimming holes the whole way. The single best day hike in the park.",food:"Thornton River Grille, Sperryville"},
+ {id:"l2",c:"long",n:"Old Rag, Robertson & Corbin Hollow",lat:38.555,lon:-78.325,drive:"1.6 hr",dm:95,d:"Hard",mi:"12 mi",t:"8 hr",hi:"Links the famous scramble with the mountain nobody climbs and an old mountaineer hollow between them. A full day with 4,000 feet of gain.",food:"Thornton River Grille, Sperryville"},
+ {id:"l3",c:"long",n:"Signal Knob Loop",lat:38.930,lon:-78.552,drive:"1.4 hr",dm:85,d:"Hard",mi:"10.3 mi loop",t:"6.5 hr",hi:"Massanutten's north end, where Confederate signalmen watched the whole valley. Rocky ridge walking with views both east and west. Carry all your water — there is none up there.",food:"Woodstock Cafe, Woodstock"},
+ {id:"l4",c:"long",n:"Riprap & Wildcat Ridge Loop",lat:38.155,lon:-78.766,drive:"2 hr",dm:125,d:"Hard",mi:"9.8 mi loop",t:"6.5 hr",hi:"Ridge views, a rock outcrop over Chimney Rock hollow, and a genuine swimming hole in Riprap Run at the low point. Best loop in the south district.",food:"Blue Mountain Brewery, Afton"},
+ {id:"l5",c:"long",n:"Big Run Loop",lat:38.245,lon:-78.706,drive:"2 hr",dm:122,d:"Hard",mi:"9.5 mi loop",t:"6 hr",hi:"The largest watershed in the park, dropping 2,000 feet into a wide wild basin and climbing back out on Rockytop. Trout water at the bottom and hardly anyone anywhere.",food:"Blue Mountain Brewery, Afton"},
+ {id:"l6",c:"long",n:"Rocky Mount & Gap Run",lat:38.302,lon:-78.622,drive:"1.9 hr",dm:115,d:"Hard",mi:"9.8 mi loop",t:"6.5 hr",hi:"Down before up, which means the hard climbing is at the end. Burn-scarred ridge with open views and no water source. Wilderness — no blazes past the first mile.",food:"Elkton Diner, Elkton"},
+ {id:"l7",c:"long",n:"Tuscarora: Elizabeth Furnace Circuit",lat:38.925,lon:-78.334,drive:"1.3 hr",dm:80,d:"Hard",mi:"11 mi loop",t:"7 hr",hi:"Stitches the Tuscarora and Massanutten trails around Fort Valley's north end over both flanking ridges. Long, rocky and rarely walked in one push.",food:"Woodstock Cafe, Woodstock"},
+ {id:"x1",c:"multi",n:"Shenandoah AT Thru-Hike",lat:38.500,lon:-78.450,drive:"1.5 hr",dm:90,d:"Hard",mi:"105 mi one-way",t:"8-10 days",hi:"The whole park end to end on the Appalachian Trail, Rockfish Gap to Front Royal. Waysides and huts spaced for resupply, which makes it the friendliest long thru-hike in the mid-Atlantic.",food:"Big Meadows Wayside",boss:"wyrm"},
+ {id:"x2",c:"multi",n:"Massanutten Trail Loop",lat:38.700,lon:-78.600,drive:"1.6 hr",dm:100,d:"Hard",mi:"71 mi loop",t:"5-6 days",hi:"A complete circuit of the mountain that sits inside the Shenandoah Valley, ringing Fort Valley on both ridges. Relentlessly rocky and famously hard on feet. Water is the whole problem.",food:"Woodstock Cafe, Woodstock",boss:"titan"},
+ {id:"x3",c:"multi",n:"Tuscarora Trail: North Section",lat:38.950,lon:-78.400,drive:"1.3 hr",dm:80,d:"Hard",mi:"40 mi",t:"3 days",hi:"The old alternate route to the AT, running the western ridges through Virginia into West Virginia. Poorly travelled, sparsely marked, and completely empty most weekends.",food:"Woodstock Cafe, Woodstock",boss:"frost"},
+ {id:"x4",c:"multi",n:"Potomac Heritage Section",lat:38.980,lon:-77.240,drive:"30 min",dm:30,d:"Mod",mi:"18 mi",t:"2 days",hi:"Follows the Virginia bank from Theodore Roosevelt Island up past Great Falls, with the river always to your right. The only overnight here that starts inside the Beltway.",food:"Old Brogue, Great Falls",boss:"leviathan"},
+ {id:"x5",c:"multi",n:"Old Rag & Central District Backpack",lat:38.560,lon:-78.340,drive:"1.6 hr",dm:95,d:"Hard",mi:"22 mi",t:"2-3 days",hi:"The scramble, the waterfall gorges and the high AT ridge linked into one overnight with a backcountry permit. The best two nights in the park, and the hardest to get a site for.",food:"Skyland Dining Room",boss:"golem"},
+ {id:"x6",c:"multi",n:"Big Run & Riprap Overnight",lat:38.200,lon:-78.740,drive:"2 hr",dm:122,d:"Mod-Hard",mi:"16 mi",t:"2 days",hi:"The gentlest way into backpacking here: established sites, reliable trout streams, a swimming hole at Riprap, and a south district that stays empty even on holiday weekends.",food:"Blue Mountain Brewery, Afton",boss:"panther"},
+ {id:"x7",c:"multi",n:"Great North Mountain Traverse",lat:38.980,lon:-78.633,drive:"1.75 hr",dm:108,d:"Hard",mi:"26 mi",t:"2-3 days",hi:"The Virginia-West Virginia border ridge past Big Schloss and Half Moon, on trail that sees a fraction of Shenandoah's traffic. Dry camping on sandstone with enormous sunsets.",food:"Woodstock Cafe, Woodstock",boss:"quartz"}],
+ bosses:{
+  wyrm:{name:"THE SKYLINE WYRM",hp:380,atk:22,rec:4,arch:"wyrm",biome:"forest",
+   pal:["#132a13","#255222","#3d8236","#5fb44c","#95e07a","#c8f5a8"],eye:"#ffdd44",accent:"#f2932c",
+   moves:[["TAIL LASH",.95,"LIGHT"],["SWITCHBACK COIL",1.3,"HEAVY"],["HUNDRED-MILE ROAR",1.65,"DEVASTATING"]],
+   intro:"A hundred and five miles of ridgeline uncoils and turns to face you."},
+  leviathan:{name:"THE POTOMAC LEVIATHAN",hp:445,atk:24,rec:5,arch:"wyrm",biome:"water",
+   pal:["#04162a","#0a3053","#125d8e","#2494c2","#5ecae6","#a6ecf8"],eye:"#ff5a3c",accent:"#57dcf4",
+   moves:[["UNDERTOW",.95,"LIGHT"],["MATHER GORGE SURGE",1.32,"HEAVY"],["GREAT FALLS CATARACT",1.7,"DEVASTATING"]],
+   intro:"Something enormous shoulders up out of the gorge where the river folds."},
+  frost:{name:"THE TUSCARORA HOARFROST",hp:460,atk:26,rec:6,arch:"titan",biome:"snow",
+   pal:["#0b1a2c","#17334c","#2a5f82","#4c90b2","#86c4dc","#d6eefa"],eye:"#24e2ff",accent:"#4f9dc0",
+   moves:[["RIME GRIP",.95,"LIGHT"],["RIDGELINE GALE",1.3,"HEAVY"],["FORGOTTEN TRAIL WHITEOUT",1.68,"DEVASTATING"]],
+   intro:"The abandoned route remembers every hiker who quit on it. All of them are here."},
+  panther:{name:"THE BIG RUN PANTHER",hp:320,atk:21,rec:3,arch:"beast",biome:"forest",
+   pal:["#0a070d","#171021","#291d38","#3f2d52","#5d456f","#8a6ea0"],eye:"#74e84f",accent:"#b98ae0",
+   moves:[["POUNCE",1.0,"LIGHT"],["HOLLOW AMBUSH",1.28,"HEAVY"],["WATERSHED SCREAM",1.55,"DEVASTATING"]],
+   intro:"Two thousand feet down in the basin, something has been pacing your camp."},
+  golem:{name:"THE OLD RAG GOLEM",hp:520,atk:27,rec:7,arch:"golem",biome:"canyon",
+   pal:["#1f1b18","#3a332c","#5c5245","#7e7263","#a2947f","#c9bca4"],eye:"#ffb020",accent:"#ff7a2c",
+   moves:[["BOULDER TUNNEL",1.0,"LIGHT"],["CHIMNEY CRUSH",1.33,"HEAVY"],["BILLION-YEAR GRANITE",1.75,"DEVASTATING"]],
+   intro:"The scramble closes its walls. A billion years of granite stands up in the chute."},
+  titan:{name:"THE MASSANUTTEN WARDEN",hp:395,atk:22,rec:5,arch:"titan",biome:"bald",
+   pal:["#16210f","#2b3f1a","#47692a","#6c9a3e","#9bc95f","#d2f096"],eye:"#ff7ad0",accent:"#ffd85a",
+   moves:[["SCREE SNARE",.95,"LIGHT"],["FORT VALLEY VICE",1.28,"HEAVY"],["SEVENTY-ONE MILE GRIND",1.62,"DEVASTATING"]],
+   intro:"The mountain inside the valley closes its ring, and the ring has a keeper."},
+  quartz:{name:"THE SCHLOSS COLOSSUS",hp:485,atk:28,rec:6,arch:"golem",biome:"bald",
+   pal:["#1e1b2e","#36314f","#5a5384","#8b82b6","#c0b8e4","#f7f3ff"],eye:"#ff3d8f",accent:"#9cf2ff",
+   moves:[["SHARD VOLLEY",1.0,"LIGHT"],["BORDER RIDGE MAZE",1.32,"HEAVY"],["SANDSTONE CASTLE FALL",1.72,"DEVASTATING"]],
+   intro:"The sandstone castle on the state line finishes building itself, and steps off."}},
+ /* four region-flavoured badges; the rest are generated by the engine */
+ landmarks:[
+  {id:"a13",ic:"🪨",n:"OLD RAG ROYALTY",d:"Old Rag, Robertson, and the Corbin Hollow circuit",need:["h1","h4","l2"]},
+  {id:"a14",ic:"💦",n:"HOLLOW SWEEP",d:"Whiteoak, Cedar Run, Dark Hollow, and Rose River",need:["w2","w3","w4","w5"]},
+  {id:"a15",ic:"⛰",n:"MASSANUTTEN COMPLETE",d:"Signal Knob, Strickler, Duncan, and the full loop",need:["l3","h2","h3","x2"]},
+  {id:"a16",ic:"🌊",n:"POTOMAC PATROL",d:"Great Falls, Scott's Run, Billy Goat, and Maryland Heights",need:["w1","w10","m8","v3"]}]
+};
+
+/* xp is derived, so compute it for every region up front: the launcher needs it
+   to total lifetime XP without booting a world. */
+Object.values(REGIONS).forEach(rg=>rg.quests.forEach(p=>p.xp=DIFF_XP[p.d]+CAT_BONUS[p.c]));
+/* ═══════════════ 1a. TOAST ═══════════════ */
+const toastEl=document.getElementById('toast');let tT=null,toastQ=[];
+function toast(a,b){toastEl.querySelector('.t1').textContent=a;toastEl.querySelector('.t2').textContent=b||"";
+ toastEl.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>toastEl.classList.remove('show'),2900);}
+function queueToast(a,b){toastQ.push([a,b]);if(toastQ.length===1)runQ();}
+function runQ(){if(!toastQ.length)return;const[a,b]=toastQ[0];toast(a,b);
+ setTimeout(()=>{toastQ.shift();runQ();},3100);}
+
+/* ═══════════════ 1c. SAVE FILE ═══════════════
+   One file for the whole game, with a slot per region. v1 saves were a single
+   flat {done,slain,badges} from when there was only Western North Carolina, so
+   they migrate into that slot. */
+const SKEY='brq3';
+const RIDS=Object.keys(REGIONS);
+const STORE=(()=>{
+ const host=window.storage;
+ if(host&&typeof host.get==='function'&&typeof host.set==='function')
+  return{kind:'host',
+   get:async()=>{const r=await host.get(SKEY);return r&&r.value!=null?r.value:null;},
+   set:async v=>{await host.set(SKEY,v);}};
+ /* read capability is tested separately from write capability: a full quota
+    makes setItem throw while getItem still works, and falling back to memory
+    on that would hide a perfectly good save behind an empty map */
+ let canRead=false;
+ try{localStorage.getItem(SKEY);canRead=true;}catch(e){}
+ if(canRead)
+  return{kind:'local',
+   get:async()=>localStorage.getItem(SKEY),
+   set:async v=>{localStorage.setItem(SKEY,v);}};
+ let MEM=null;
+ return{kind:'memory',get:async()=>MEM,set:async v=>{MEM=v;}};
+})();
+const blank=()=>({done:{},slain:{},badges:{}});
+function cleanStamp(v){
+ if(typeof v!=='string')return null;
+ const t=Date.parse(v);
+ if(!Number.isFinite(t))return null;
+ return new Date(t).toISOString();
+}
+function cleanMap(src,allowed,tally){
+ const out={};
+ if(!src||typeof src!=='object'){if(src!=null)tally.dropped++;return out;}
+ for(const k of Object.keys(src)){
+  const s=allowed.has(k)?cleanStamp(src[k]):null;
+  if(s)out[k]=s;else tally.dropped++;
+ }
+ return out;
+}
+/* Boss kills are pinned to quests actually marked done. Badges are carried over
+   as written rather than re-derived, because the game only ever adds a badge and
+   never revokes one, so undoing a hike keeps the badge it earned. */
+function normalizeSlot(d,rg,tally){
+ const t=tally||{dropped:0};
+ if(!d||typeof d!=='object')return blank();
+ const ids=new Set(rg.quests.map(p=>p.id));
+ const bossIds=new Set(rg.quests.filter(p=>p.c==="multi").map(p=>p.id));
+ const achIds=new Set(['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10','a11','a12',
+   'a17','a18','a19','a20'].concat(rg.landmarks.map(l=>l.id)));
+ const done=cleanMap(d.done,ids,t);
+ const slain=cleanMap(d.slain,bossIds,t);
+ for(const k of Object.keys(slain))if(!done[k]){delete slain[k];t.dropped++;}
+ return{done,slain,badges:cleanMap(d.badges,achIds,t)};
+}
+function isSaveShaped(d){
+ if(!d||typeof d!=='object'||Array.isArray(d))return false;
+ if(d.regions&&typeof d.regions==='object')return true;
+ return ['done','slain','badges'].some(k=>d[k]&&typeof d[k]==='object');
+}
+/* v1 -> v2: a flat save predates regions and can only be Western NC */
+function normalizeFile(raw,tally){
+ const t=tally||{dropped:0},out={v:2,regions:{}};
+ const src=(raw&&raw.regions&&typeof raw.regions==='object')?raw.regions:{wnc:raw};
+ RIDS.forEach(id=>{out.regions[id]=normalizeSlot(src[id],REGIONS[id],t);});
+ return out;
+}
+let FILE={v:2,regions:{}};
+RIDS.forEach(id=>FILE.regions[id]=blank());
+let saveWarned=false;
+function warnNoSave(){
+ if(saveWarned)return;
+ saveWarned=true;
+ queueToast("\u26a0 PROGRESS NOT SAVED","Browser storage is unavailable \u2014 use EXPORT");
+}
+async function writeFile(){
+ try{await STORE.set(JSON.stringify(FILE));}catch(e){warnNoSave();}
+}
+async function readFile(){
+ try{
+  const raw=await STORE.get();
+  if(raw){
+   const t={dropped:0};
+   FILE=normalizeFile(JSON.parse(raw),t);
+   if(t.dropped)queueToast("SAVE PARTLY UNREADABLE",
+    t.dropped+" entr"+(t.dropped===1?"y was":"ies were")+" dropped");
+  }
+ }catch(e){FILE={v:2,regions:{}};RIDS.forEach(id=>FILE.regions[id]=blank());}
+ if(STORE.kind==='memory')warnNoSave();
+}
+/* per-region rollups the launcher shows without generating a world */
+const xpOf=(rg,slot)=>rg.quests.reduce((s,p)=>s+(slot.done[p.id]?p.xp:0),0);
+const lvlOf=(rg,xp)=>{let i=0;rg.levels.forEach((Lv,k)=>{if(xp>=Lv.xp)i=k;});return i;};
+function regionStat(id){
+ const rg=REGIONS[id],slot=FILE.regions[id]||blank(),xp=xpOf(rg,slot);
+ return{id,rg,slot,xp,lvl:lvlOf(rg,xp),
+  done:Object.keys(slot.done).length,total:rg.quests.length,
+  badges:Object.keys(slot.badges).length,
+  slain:Object.keys(slot.slain).length,
+  bosses:rg.quests.filter(p=>p.c==="multi").length};
+}
+/* ── which region is loaded: the hash, so a region is linkable and reloadable ── */
+function pickRegion(){
+ const h=(location.hash||'').replace(/^#/,'');
+ return REGIONS[h]?h:null;
+}
+
+/* ═══════════════ 1d. LAUNCHER (the overworld) ═══════════════
+   A pixel map of the eastern United States with one pin per region. Drawn from a
+   coarse coastline outline rather than image data, so it stays a single file and
+   scales to whatever the frame gives it. Regions are addressed by hash, which
+   makes each one linkable and means switching regions is a clean reload with no
+   chance of one world's state bleeding into the next. */
+const WLON0=-90.5,WLON1=-66.5,WLAT0=45.6,WLAT1=24.6;
+const WTS=4,WTW=150,WTH=132;          /* tile grid, then scaled up by css */
+const wpx=l=>(l-WLON0)/(WLON1-WLON0)*WTW, wpy=l=>(WLAT0-l)/(WLAT0-WLAT1)*WTH;
+/* Atlantic seaboard, then Gulf, then a straight western cut and back along the
+   Canadian border. Coarse on purpose: this is a signpost, not an atlas. */
+const COAST=[
+ /* Atlantic seaboard, Maine down to the Keys */
+ [-67.1,44.6],[-68.2,44.3],[-69.1,43.8],[-70.2,43.4],[-70.8,42.9],[-70.6,42.2],[-70.9,41.6],
+ [-71.4,41.5],[-72.2,41.3],[-73.2,41.1],[-73.9,40.6],[-74.1,40.2],[-74.3,39.5],[-74.9,38.9],
+ [-75.3,38.4],[-75.6,37.6],[-75.9,37.1],[-76.3,36.6],[-75.9,36.0],[-75.6,35.2],[-76.6,34.7],
+ [-77.6,34.2],[-78.6,33.8],[-79.5,33.2],[-80.5,32.3],[-81.2,31.4],[-81.4,30.5],[-81.0,29.2],
+ [-80.4,27.6],[-80.1,26.3],[-80.6,25.2],[-81.4,25.2],[-82.1,26.7],[-82.7,27.8],[-83.1,29.1],
+ [-83.9,29.9],[-85.0,29.6],[-86.2,30.3],[-87.5,30.3],[-88.5,30.2],[-89.3,29.1],[-89.9,29.3],
+ /* west edge of frame, then the northern border back to Maine */
+ [-90.4,29.9],[-90.4,44.9],[-88.0,44.6],[-86.5,43.8],[-84.6,43.4],[-83.4,43.9],[-82.5,42.9],
+ [-81.2,42.3],[-79.2,42.8],[-78.9,43.3],[-76.8,43.3],[-75.3,44.6],[-73.4,45.0],[-71.5,45.1],
+ [-70.3,45.4],[-69.2,45.2],[-67.8,45.1]];
+/* Erie, Ontario, and the foot of Michigan/Huron trimmed by the frame */
+const GLAKES=[[-81.4,42.3,7,2.4],[-77.4,43.6,5.5,1.8],[-84.4,44.6,5.5,4.2],[-87.2,44.4,4,5.0]];
+const SPINE=[[-84.6,34.4],[-83.5,35.5],[-82.4,36.5],[-81.3,37.4],[-80.2,38.3],[-79.0,39.2],
+ [-77.8,40.2],[-76.3,41.2],[-74.5,42.3],[-72.8,43.4],[-71.2,44.3]];
+const WSTATES=[["MAINE",-69.3,45.0],["N.Y.",-75.4,42.9],["PA",-77.6,41.0],["OHIO",-82.6,40.3],
+ ["W.VA",-80.6,38.8],["VA",-78.4,37.5],["N.C.",-79.4,35.5],["S.C.",-81.0,34.0],
+ ["GA",-83.4,32.7],["ALA",-86.8,32.6],["TENN",-86.0,35.7],["KY",-85.4,37.5],
+ ["FLA",-81.8,28.4],["MD",-76.6,39.2]];
+function wRand(seed){let a=seed;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+ t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function drawWorldMap(){
+ const c=document.getElementById('worldMap');
+ c.width=WTW*WTS;c.height=WTH*WTS;
+ const g=c.getContext('2d');
+ g.imageSmoothingEnabled=false;
+ const rnd=wRand(70141);
+ const noise=new Float32Array(WTW*WTH);
+ for(let i=0;i<WTW*WTH;i++)noise[i]=rnd();
+ /* ocean */
+ g.fillStyle="#071426";g.fillRect(0,0,c.width,c.height);
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  const n=noise[y*WTW+x];
+  if(n>.90){g.fillStyle="#0d2340";g.fillRect(x*WTS,y*WTS,WTS,WTS);}}
+ /* land mask from the coastline polygon, minus the lakes */
+ const poly=COAST.map(([lo,la])=>[wpx(lo),wpy(la)]);
+ const inPoly=(x,y)=>{let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+   const[xi,yi]=poly[i],[xj,yj]=poly[j];
+   if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;}
+  return inside;};
+ const land=new Uint8Array(WTW*WTH);
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  if(!inPoly(x+.5,y+.5))continue;
+  let ok=1;
+  for(const[lo,la,rw,rh]of GLAKES){
+   const dx=(x-wpx(lo))/rw,dy=(y-wpy(la))/rh;
+   if(dx*dx+dy*dy<=1){ok=0;break;}}
+  land[y*WTW+x]=ok;}
+ /* elevation: distance from the Appalachian spine drives the green ramp */
+ const spine=[];
+ for(let i=0;i<SPINE.length-1;i++){
+  const[x0,y0]=[wpx(SPINE[i][0]),wpy(SPINE[i][1])];
+  const[x1,y1]=[wpx(SPINE[i+1][0]),wpy(SPINE[i+1][1])];
+  const steps=Math.max(2,Math.hypot(x1-x0,y1-y0)|0);
+  for(let s=0;s<=steps;s++)spine.push([x0+(x1-x0)*s/steps,y0+(y1-y0)*s/steps]);}
+ const LO=["#123018","#17381d","#1d4423","#245026","#2b5c2d","#347036","#3f8340","#4d954a"];
+ const HI=["#4a5a44","#5a6a4e","#6d7a5a","#828a66","#979878","#aca68c"];
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  if(!land[y*WTW+x])continue;
+  let d=99;
+  for(const[sx,sy]of spine){const dd=Math.hypot(x-sx,y-sy);if(dd<d)d=dd;}
+  const n=noise[y*WTW+x];
+  /* narrow band so the Appalachians read as a range rather than a snowfield */
+  const ridge=Math.max(0,1-d/4.2)*(.7+n*.55);
+  let col;
+  if(ridge>.70)col=HI[Math.min(HI.length-1,((ridge-.70)*14+n*1.2)|0)];
+  else col=LO[Math.min(LO.length-1,(ridge*6.5+n*1.8)|0)];
+  g.fillStyle=col;g.fillRect(x*WTS,y*WTS,WTS,WTS);}
+ /* one-pixel shoreline so the continent reads as a shape */
+ g.fillStyle="#d9e8f2";
+ for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
+  if(!land[y*WTW+x])continue;
+  const edge=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{
+   const nx=x+dx,ny=y+dy;
+   return nx<0||nx>=WTW||ny<0||ny>=WTH||!land[ny*WTW+nx];});
+  if(edge)g.fillRect(x*WTS,y*WTS,WTS,WTS);}
+ /* state names in the bitmap font the rest of the game uses */
+ WSTATES.forEach(([t,lo,la])=>{
+  const x=wpx(lo)*WTS,y=wpy(la)*WTS;
+  wtxt(g,t,Math.round(x-wtw(t)/2),Math.round(y),"rgba(255,255,255,.46)");});
+ wtxt(g,"ATLANTIC",Math.round(wpx(-73.4)*WTS),Math.round(wpy(37.4)*WTS),"rgba(150,200,235,.40)");
+ return g;
+}
+/* the launcher reuses the game's glyph atlas idea at 1x, kept local so the
+   launcher does not depend on any of the engine below */
+const WFONT={};
+function wglyph(ch){
+ if(WFONT[ch]!==undefined)return WFONT[ch];
+ const rows=(LFONT[ch]||"").split("|");
+ return WFONT[ch]=rows;
+}
+function wtxt(g,str,x,y,col){
+ let cx=x;
+ for(const ch of str.toUpperCase()){
+  if(ch===" "){cx+=4;continue;}
+  const rows=wglyph(ch);
+  if(!rows.length){cx+=4;continue;}
+  rows.forEach((r,ry)=>{for(let rx=0;rx<r.length;rx++){
+   if(r[rx]==="1"){g.fillStyle="rgba(0,0,0,.55)";g.fillRect(cx+rx+1,y+ry+1,1,1);
+    g.fillStyle=col;g.fillRect(cx+rx,y+ry,1,1);}}});
+  cx+=(rows[0]?rows[0].length:3)+1;}
+}
+function wtw(str){let w=0;for(const ch of str.toUpperCase()){
+ if(ch===" "){w+=4;continue;}const r=wglyph(ch);w+=(r[0]?r[0].length:3)+1;}return w-1;}
+/* a compact 5x7 subset, enough for state abbreviations */
+const LFONT={
+A:"01110|10001|10001|11111|10001|10001|10001",B:"11110|10001|11110|10001|10001|10001|11110",
+C:"01110|10001|10000|10000|10000|10001|01110",D:"11110|10001|10001|10001|10001|10001|11110",
+E:"11111|10000|10000|11110|10000|10000|11111",F:"11111|10000|10000|11110|10000|10000|10000",
+G:"01110|10001|10000|10111|10001|10001|01110",H:"10001|10001|10001|11111|10001|10001|10001",
+I:"11111|00100|00100|00100|00100|00100|11111",J:"00111|00010|00010|00010|00010|10010|01100",
+K:"10001|10010|10100|11000|10100|10010|10001",L:"10000|10000|10000|10000|10000|10000|11111",
+M:"10001|11011|10101|10001|10001|10001|10001",N:"10001|11001|10101|10011|10001|10001|10001",
+O:"01110|10001|10001|10001|10001|10001|01110",P:"11110|10001|10001|11110|10000|10000|10000",
+Q:"01110|10001|10001|10001|10101|10010|01101",R:"11110|10001|10001|11110|10100|10010|10001",
+S:"01111|10000|10000|01110|00001|00001|11110",T:"11111|00100|00100|00100|00100|00100|00100",
+U:"10001|10001|10001|10001|10001|10001|01110",V:"10001|10001|10001|10001|10001|01010|00100",
+W:"10001|10001|10001|10001|10101|11011|10001",X:"10001|10001|01010|00100|01010|10001|10001",
+Y:"10001|10001|01010|00100|00100|00100|00100",Z:"11111|00001|00010|00100|01000|10000|11111",
+".":"00000|00000|00000|00000|00000|00000|00100"};
+let wHot=null;
+function pinAt(id){const rg=REGIONS[id];return[wpx(rg.pin.lon)*WTS,wpy(rg.pin.lat)*WTS];}
+function drawPins(g){
+ RIDS.forEach(id=>{
+  const st=regionStat(id),[x,y]=pinAt(id),hot=wHot===id;
+  const done=st.done>0;
+  /* stem */
+  g.fillStyle="rgba(0,0,0,.6)";g.fillRect(x-1,y-16,4,18);
+  g.fillStyle=hot?"#fff5cc":"#33445c";g.fillRect(x-2,y-17,4,18);
+  /* flag */
+  const w=18,h=13,fx=x+2,fy=y-30;
+  g.fillStyle="rgba(0,0,0,.6)";g.fillRect(fx+2,fy+2,w,h);
+  g.fillStyle=hot?"#f7d472":(done?"#e0a92c":"#1a2432");
+  g.fillRect(fx,fy,w,h);
+  g.fillStyle=hot?"#fff5cc":"#5a7392";
+  g.fillRect(fx,fy,w,2);g.fillRect(fx,fy+h-2,w,2);
+  g.fillRect(fx,fy,2,h);g.fillRect(fx+w-2,fy,2,h);
+  /* a tiny mountain glyph inside the flag */
+  g.fillStyle=(hot||done)?"#1a1206":"#8695a8";
+  [[7,8],[6,9],[8,9],[5,10],[9,10],[4,11],[10,11]].forEach(([mx,my])=>g.fillRect(fx+mx,fy+my-2,2,1));
+  g.fillStyle=(hot||done)?"#fffdf2":"#e9f0f6";
+  [[7,6],[6,7],[8,7]].forEach(([mx,my])=>g.fillRect(fx+mx,fy+my-2,2,1));
+  /* base */
+  g.fillStyle=hot?"#ffe9a8":"#e9f0f6";
+  g.fillRect(x-4,y-2,10,3);g.fillRect(x-6,y+1,14,3);});
+}
+function renderWorld(){
+ const g=drawWorldMap();
+ drawPins(g);
+ /* lifetime rollup across every region */
+ const stats=RIDS.map(regionStat);
+ const sum=k=>stats.reduce((s,v)=>s+v[k],0);
+ document.getElementById('wpTotal').textContent=sum('done')+" CLEARED";
+ document.getElementById('wpXP').textContent=sum('xp');
+ document.getElementById('wpBadges').textContent=sum('badges');
+ document.getElementById('wpSlain').textContent=sum('slain');
+ renderCards();
+}
+function cardMatches(st,q){
+ if(!q)return true;
+ const hay=[st.rg.name,st.rg.short,st.rg.home,st.rg.tagline,st.id,
+  ...st.rg.labels.map(l=>l.t),...st.rg.structs.map(s=>s.lab)].join(" ").toLowerCase();
+ return hay.includes(q);
+}
+function renderCards(){
+ const q=(document.getElementById('wSearch').value||'').trim().toLowerCase();
+ const el=document.getElementById('wList');
+ const rows=RIDS.map(regionStat).filter(st=>cardMatches(st,q));
+ if(!rows.length){el.innerHTML='<div class="w-none">NO REGION MATCHES<br>TRY ANOTHER SEARCH</div>';
+  document.getElementById('wFoot').textContent='NO MATCHES';return;}
+ el.innerHTML=rows.map(st=>{
+  const nx=st.rg.levels[st.lvl+1];
+  const pct=Math.round(st.done/st.total*100);
+  return '<button class="w-card" data-id="'+st.id+'">'+
+   '<div class="wc-n">'+st.rg.name+'</div>'+
+   '<div class="wc-t">'+st.rg.tagline+' &middot; from '+st.rg.home+'</div>'+
+   '<div class="wc-lv">LV '+(st.lvl+1)+' &middot; '+st.rg.levels[st.lvl].n+'</div>'+
+   '<div class="wc-bar"><div class="wc-fill" style="width:'+pct+'%"></div></div>'+
+   '<div class="wc-st"><b>'+st.done+'</b>/'+st.total+' cleared &middot; <b>'+st.xp+'</b> XP &middot; '+
+    '<b>'+st.badges+'</b> badges &middot; <b>'+st.slain+'</b>/'+st.bosses+' bosses'+
+   (nx?'<br>'+(nx.xp-st.xp)+' XP to '+nx.n:'<br>max level reached')+'</div>'+
+  '</button>';}).join('');
+ [...el.querySelectorAll('.w-card')].forEach(b=>{
+  b.onclick=()=>enterRegion(b.dataset.id);
+  b.onmouseenter=()=>{wHot=b.dataset.id;const g=drawWorldMap();drawPins(g);};
+  b.onmouseleave=()=>{wHot=null;const g=drawWorldMap();drawPins(g);};});
+ document.getElementById('wFoot').textContent=
+  rows.length+' OF '+RIDS.length+' REGIONS · PICK A PIN OR A CARD TO DROP IN';
+}
+function enterRegion(id){
+ if(!REGIONS[id])return;
+ location.hash=id;
+ location.reload();
+}
+function hitPin(mx,my){
+ for(const id of RIDS){
+  const[x,y]=pinAt(id);
+  if(mx>=x-8&&mx<=x+22&&my>=y-32&&my<=y+6)return id;}
+ return null;
+}
+function wireLauncher(){
+ const c=document.getElementById('worldMap'),tip=document.getElementById('wTip');
+ const toCanvas=e=>{const r=c.getBoundingClientRect();
+  return[(e.clientX-r.left)*(c.width/r.width),(e.clientY-r.top)*(c.height/r.height)];};
+ c.onmousemove=e=>{
+  const[mx,my]=toCanvas(e),id=hitPin(mx,my);
+  if(id!==wHot){wHot=id;const g=drawWorldMap();drawPins(g);}
+  if(id){const st=regionStat(id),r=c.getBoundingClientRect();
+   tip.innerHTML=st.rg.name+'<span class="tt-sub">'+st.done+'/'+st.total+' cleared · LV '+(st.lvl+1)+'</span>';
+   tip.style.display='block';
+   tip.style.left=Math.min(r.width-140,Math.max(4,e.clientX-r.left+12))+'px';
+   tip.style.top=Math.max(4,e.clientY-r.top-38)+'px';
+  }else tip.style.display='none';};
+ c.onmouseleave=()=>{tip.style.display='none';if(wHot){wHot=null;const g=drawWorldMap();drawPins(g);}};
+ c.onclick=e=>{const[mx,my]=toCanvas(e),id=hitPin(mx,my);if(id)enterRegion(id);};
+ document.getElementById('wSearch').addEventListener('input',renderCards);
+ document.getElementById('wSearch').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const first=document.querySelector('.w-card');if(first)enterRegion(first.dataset.id);}});
+}
+function showLauncher(){
+ document.body.classList.add('launcher');
+ document.getElementById('gameTitle').textContent='★ SUMMIT ★';
+ document.getElementById('gameSub').textContent=
+  RIDS.length+' Regions · '+RIDS.reduce((s,id)=>s+REGIONS[id].quests.length,0)+' Locations';
+ document.getElementById('loader').style.display='none';
+ renderWorld();wireLauncher();
+}
+
+/* the launcher writes its choice here before the engine runs */
+function runGame(ACTIVE){
+const RG=REGIONS[ACTIVE];
+
+/* ── active-region aliases: the engine below is written against these names ── */
+const P=RG.quests,LEVELS=RG.levels,BOSSES=RG.bosses;
+const RIDGES=RG.ridges,PEAKS=RG.peaks,VALS=RG.vals,RIVERS=RG.rivers,LAKES=RG.lakes,
+      PARKWAY=RG.parkway,ROADS=RG.roads,CANYONS=RG.canyons,STRUCTS=RG.structs,RLABELS=RG.labels;
+const TW=RG.tw,TH=RG.th,TS=12,W=TW*TS,H=TH*TS;
+const LON0=RG.lon0,LON1=RG.lon1,LAT0=RG.lat0,LAT1=RG.lat1;
+const RNG=mul32(RG.seed);
+
+
+
 
 let S={done:{},slain:{},badges:{}};
 const tot=()=>Object.keys(S.done).length;
@@ -548,36 +1366,32 @@ const nDone=c=>P.filter(p=>p.c===c&&S.done[p.id]).length;
 const allOf=c=>P.filter(p=>p.c===c).length===nDone(c);
 const has=(...i)=>i.every(k=>S.done[k]);
 const ach=(id,ic,n,d,f)=>({id,ic,n,d,f});
+const cnt=c=>P.filter(p=>p.c===c).length;
+const NB=cnt("multi");
 const ACHS=[
  ach("a1","👟","FIRST STEPS","Clear your first location",()=>tot()>=1),
  ach("a2","🥾","TRAIL LEGS","Clear 10 locations",()=>tot()>=10),
  ach("a3","🏔","CENTURY CLUB","Clear 25 locations",()=>tot()>=25),
- ach("a4","👑","THE FULL MAP","Clear all 57 locations",()=>tot()>=57),
- ach("a5","💦","WATERFALL SWEEP","All 14 waterfalls & swim holes",()=>allOf("water")),
- ach("a6","⚡","QUICK FEET","All 8 short hikes",()=>allOf("short")),
- ach("a7","🔭","ROOM WITH A VIEW","All 6 scenic overlooks",()=>allOf("view")),
- ach("a8","🧭","MIDDLE GROUND","All 8 moderate hikes",()=>allOf("mod")),
- ach("a9","🔥","QUAD DESTROYER","All 7 steep & difficult hikes",()=>allOf("hard")),
- ach("a10","🦵","IRON LEGS","All 7 long day hikes",()=>allOf("long")),
+ ach("a4","👑","THE FULL MAP","Clear all "+P.length+" locations",()=>tot()>=P.length),
+ ach("a5","💦","WATERFALL SWEEP","All "+cnt("water")+" waterfalls & swim holes",()=>allOf("water")),
+ ach("a6","⚡","QUICK FEET","All "+cnt("short")+" short hikes",()=>allOf("short")),
+ ach("a7","🔭","ROOM WITH A VIEW","All "+cnt("view")+" scenic overlooks",()=>allOf("view")),
+ ach("a8","🧭","MIDDLE GROUND","All "+cnt("mod")+" moderate hikes",()=>allOf("mod")),
+ ach("a9","🔥","QUAD DESTROYER","All "+cnt("hard")+" steep & difficult hikes",()=>allOf("hard")),
+ ach("a10","🦵","IRON LEGS","All "+cnt("long")+" long day hikes",()=>allOf("long")),
  ach("a11","⚔️","GIANT SLAYER","Defeat your first boss",()=>Object.keys(S.slain).length>=1),
- ach("a12","🗡","TITAN BANE","Defeat all 7 bosses",()=>Object.keys(S.slain).length>=7),
- ach("a13","🏔","SIX-THOUSANDER","Summit Mitchell and LeConte",()=>has("l1","l2")),
- ach("a14","🪨","GORGE RAT","Every Linville Gorge location",()=>has("v2","h4","h5","l5","x5")),
- ach("a15","🌾","BALD BAGGER","Black Balsam, Sam Knob, Max Patch, Craggy, Roan",()=>has("m2","m3","m4","s5","l7")),
- ach("a16","🌫","SMOKY SIGNAL","Every Great Smoky Mountains location",()=>has("w6","h3","l2","l3","x3")),
- ach("a17","🏠","HOMETOWN HERO","Clear 5 spots within 40 min of home",()=>P.filter(p=>p.dm<=40&&S.done[p.id]).length>=5),
+ ach("a12","🗡","TITAN BANE","Defeat all "+NB+" bosses",()=>Object.keys(S.slain).length>=NB),
+ ...RG.landmarks.map(Lm=>ach(Lm.id,Lm.ic,Lm.n,Lm.d,()=>has(...Lm.need))),
+ ach("a17","🏠","HOMETOWN HERO","Clear 5 spots within 40 min of "+RG.home,()=>P.filter(p=>p.dm<=40&&S.done[p.id]).length>=5),
  ach("a18","🦉","NIGHT OWL","Log a hike between 8pm and 5am",()=>Object.values(S.done).some(d=>{const h=new Date(d).getHours();return h>=20||h<5;})),
  ach("a19","📅","DOUBLE HEADER","Log two hikes on the same day",()=>{const m={};for(const d of Object.values(S.done)){const k=d.slice(0,10);m[k]=(m[k]||0)+1;if(m[k]>=2)return true;}return false;}),
  ach("a20","🚀","BIG WEEK","Log 5 hikes within any 7-day window",()=>{const a=Object.values(S.done).map(d=>+new Date(d)).sort((x,y)=>x-y);for(let i=0;i+4<a.length;i++)if(a[i+4]-a[i]<=6048e5)return true;return false;})];
 /* ═══════════════ 2. WORLD GEN ═══════════════ */
-const TW=104,TH=78,TS=12,W=TW*TS,H=TH*TS;
-const LON0=-83.76,LON1=-81.58,LAT0=36.38,LAT1=34.52;
 const px=l=>(l-LON0)/(LON1-LON0)*W, py=l=>(LAT0-l)/(LAT0-LAT1)*H;
 const ptx=l=>px(l)/TS, pty=l=>py(l)/TS;
 
 function mul32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const RNG=mul32(20260816);
 function ng(w,h,r){const g=new Float32Array(w*h);for(let i=0;i<w*h;i++)g[i]=r();return{g,w,h};}
 function smp(N,u,v){const fx=u*(N.w-1),fy=v*(N.h-1);
  let x0=fx|0,y0=fy|0; if(x0<0)x0=0; if(y0<0)y0=0;
@@ -588,73 +1402,32 @@ function smp(N,u,v){const fx=u*(N.w-1),fy=v*(N.h-1);
 const N1=ng(10,8,RNG),N2=ng(21,16,RNG),N3=ng(42,32,RNG),N4=ng(84,64,RNG),N5=ng(166,126,RNG),NF=ng(26,20,RNG),NV=ng(15,11,RNG);
 
 /* linear ridge systems — these build actual RANGES, not blobs */
-const RIDGES=[
- {p:[[-83.66,35.44],[-83.52,35.56],[-83.40,35.66],[-83.26,35.74],[-83.14,35.78]],h:1.16,w:4.6,n:"smoky"},
- {p:[[-83.30,35.30],[-83.20,35.42],[-83.08,35.54],[-82.98,35.62]],h:.98,w:3.8,n:"balsam"},
- {p:[[-83.16,35.44],[-83.06,35.50],[-82.96,35.48]],h:.92,w:3.2,n:"plott"},
- {p:[[-83.02,35.26],[-82.90,35.32],[-82.80,35.38],[-82.70,35.45],[-82.60,35.52]],h:1.05,w:3.6,n:"pisgahledge"},
- {p:[[-82.38,35.64],[-82.32,35.72],[-82.27,35.80],[-82.22,35.88]],h:1.18,w:3.2,n:"black"},
- {p:[[-82.48,35.62],[-82.41,35.68],[-82.34,35.72]],h:.94,w:2.6,n:"craggy"},
- {p:[[-83.14,34.96],[-82.98,35.06],[-82.80,35.14],[-82.62,35.20],[-82.44,35.24],[-82.26,35.30]],h:.86,w:3.4,n:"escarp"},
- {p:[[-81.98,35.70],[-81.92,35.82],[-81.88,35.94],[-81.84,36.06],[-81.78,36.16]],h:1.02,w:3.0,n:"linville"},
- {p:[[-82.34,36.02],[-82.20,36.10],[-82.06,36.16],[-81.94,36.20]],h:1.06,w:3.2,n:"roan"},
- {p:[[-82.98,35.86],[-82.82,35.94],[-82.66,36.00],[-82.50,36.04]],h:.90,w:3.0,n:"baldmtn"},
- {p:[[-83.56,35.08],[-83.44,35.18],[-83.34,35.28],[-83.24,35.36]],h:.94,w:3.2,n:"nantahala"},
- {p:[[-82.44,35.18],[-82.32,35.26],[-82.20,35.32],[-82.08,35.36]],h:.72,w:2.4,n:"saluda"},
- {p:[[-83.50,34.68],[-83.40,34.78],[-83.30,34.88],[-83.22,34.98]],h:.80,w:2.8,n:"chattooga"},
- {p:[[-82.92,35.36],[-82.86,35.42],[-82.80,35.48]],h:1.00,w:2.4,n:"shining"},
- {p:[[-83.62,35.86],[-83.50,35.94],[-83.38,36.00]],h:.86,w:2.8,n:"tnridge"},
- {p:[[-82.76,34.96],[-82.66,34.88],[-82.56,34.80]],h:.66,w:2.4,n:"scridge"},
- {p:[[-81.86,35.52],[-81.78,35.60],[-81.72,35.70]],h:.70,w:2.4,n:"southmtn"}];
-const PEAKS=[[-83.50,35.63,1.14,12],[-83.16,35.50,1.00,8],[-83.05,35.33,.86,7],[-82.96,35.79,.78,6],
- [-82.87,35.34,1.06,7],[-82.75,35.42,.92,6],[-82.95,35.08,.80,7],[-82.70,35.03,.68,5],
- [-82.30,35.76,1.12,7],[-82.40,35.70,.86,5],[-81.83,36.08,1.06,6],[-82.10,36.10,.98,6],
- [-81.92,35.92,.84,5],[-82.25,35.44,.70,4],[-82.28,35.28,.55,4],[-82.52,35.14,.62,6],
- [-83.40,34.76,.66,6],[-82.37,35.46,.60,3],[-83.30,35.05,.68,6],[-82.62,35.66,.48,4],
- [-83.60,35.94,.76,6],[-82.15,35.66,.60,4],[-81.74,35.86,.55,4],[-83.64,35.20,.64,5],
- [-82.02,35.50,.50,4],[-83.22,35.72,.70,5],[-81.78,36.30,.66,5],[-83.44,35.42,.72,5],
- [-82.60,35.22,.46,3],[-83.10,35.62,.74,5],[-81.96,36.24,.60,4],[-82.72,35.86,.62,5]];
-const VALS=[[-82.55,35.59,.62,6],[-82.46,35.32,.56,5],[-82.73,35.23,.42,4],[-82.99,35.49,.42,4],
- [-82.40,34.80,.86,12],[-81.66,35.20,.84,11],[-83.34,35.45,.40,4],[-81.98,35.72,.44,4],
- [-82.86,34.66,.76,9],[-83.68,35.60,.38,4],[-82.20,35.20,.40,4]];
-const RIVERS=[
- [[-82.55,35.00],[-82.48,35.20],[-82.46,35.32],[-82.52,35.45],[-82.55,35.59],[-82.68,35.77],[-82.83,35.94],[-82.91,36.20]],
- [[-82.88,35.36],[-82.95,35.51],[-83.02,35.67],[-83.09,35.84],[-83.14,36.08]],
- [[-83.13,35.13],[-83.25,35.30],[-83.40,35.42],[-83.60,35.47]],
- [[-81.94,36.02],[-81.91,35.86],[-81.88,35.74],[-81.86,35.62],[-81.75,35.53]],
- [[-82.42,35.31],[-82.32,35.28],[-82.20,35.29],[-82.04,35.31],[-81.88,35.30]],
- [[-82.36,35.53],[-82.26,35.44],[-82.16,35.35],[-82.02,35.22]],
- [[-83.04,35.02],[-83.12,34.88],[-83.18,34.74],[-83.26,34.56]],
- [[-82.24,35.94],[-82.13,36.04],[-81.99,36.16]],
- [[-82.66,34.94],[-82.56,34.78],[-82.46,34.60]],
- [[-83.46,35.72],[-83.54,35.84],[-83.62,36.02]],
- [[-82.90,35.20],[-82.80,35.10],[-82.72,34.98]]];
-const LAKES=[[-82.20,35.43,3.0,1.7],[-82.93,34.97,4.0,3.2],[-83.66,35.43,5.0,1.5],[-83.14,35.17,2.3,2.0],
- [-81.90,35.72,4.2,1.8],[-82.42,35.25,1.6,1.1],[-82.90,34.83,3.2,3.8],[-83.44,34.79,2.3,1.5],
- [-82.62,35.55,1.3,1.0],[-81.68,35.58,2.7,1.8],[-82.75,34.72,2.2,1.8]];
-const PARKWAY=[[-81.68,36.28],[-81.82,36.09],[-81.92,35.98],[-82.02,35.88],[-82.14,35.80],[-82.26,35.75],
- [-82.38,35.70],[-82.48,35.62],[-82.56,35.55],[-82.66,35.47],[-82.75,35.41],[-82.84,35.34],
- [-82.94,35.30],[-83.05,35.32],[-83.14,35.46],[-83.24,35.50],[-83.40,35.53]];
-const ROADS=[
- [[-82.46,35.32],[-82.50,35.42],[-82.55,35.55]],
- [[-82.46,35.32],[-82.60,35.26],[-82.73,35.24]],
- [[-82.46,35.32],[-82.36,35.24],[-82.28,35.18]],
- [[-82.55,35.59],[-82.70,35.55],[-82.86,35.52],[-82.99,35.49]],
- [[-82.55,35.59],[-82.42,35.62],[-82.28,35.65],[-82.16,35.64]],
- [[-82.73,35.24],[-82.85,35.18],[-82.99,35.14],[-83.13,35.13]],
- [[-81.92,35.98],[-81.84,35.86],[-81.80,35.74]]];
-const CANYONS=[
- {p:[[-81.96,36.02],[-81.92,35.90],[-81.89,35.79],[-81.87,35.68]],d:.62,r:.48,w:2.6},
- {p:[[-82.40,35.31],[-82.30,35.28],[-82.17,35.29]],d:.34,r:.32,w:1.9},
- {p:[[-82.36,35.53],[-82.26,35.44],[-82.15,35.36]],d:.38,r:.36,w:2.0},
- {p:[[-83.09,34.92],[-83.15,34.80],[-83.21,34.68]],d:.40,r:.34,w:2.0},
- {p:[[-82.98,35.11],[-82.94,35.02],[-82.99,34.93]],d:.36,r:.34,w:2.0},
- {p:[[-83.02,35.68],[-83.08,35.79],[-83.13,35.90]],d:.32,r:.28,w:1.7}];
 
 const hM=new Float32Array(TW*TH),wM=new Uint8Array(TW*TH),rM=new Uint8Array(TW*TH),
       pM=new Uint8Array(TW*TH),cM=new Uint8Array(TW*TH);
+/* A region may declare a regional elevation trend along an arbitrary axis.
+   Western North Carolina is mountainous edge to edge and declares none, so it
+   takes the original expression untouched.
+
+   Northern Virginia needs one, and it cannot be a simple west-to-east ramp: the
+   Blue Ridge there runs diagonally southwest to northeast, from Rockfish Gap up
+   to Harpers Ferry, so the high ground crosses most of the map's width. The trend
+   instead runs perpendicular to that spine — (ax,ay) points southeast, away from
+   the mountains — which puts the Blue Ridge at one end, the piedmont in the
+   middle, and the tidal Potomac flatland at the other. `damp` flattens the
+   terrain noise along the same axis so the coastal plain reads as farmland
+   rather than as smaller hills. */
+const TILT=RG.tilt;
 for(let ty=0;ty<TH;ty++)for(let tx=0;tx<TW;tx++){const u=tx/TW,v=ty/TH;
- hM[ty*TW+tx]=.16+smp(N1,u,v)*.23+smp(N2,u,v)*.14+smp(N3,u,v)*.08+smp(N4,u,v)*.045+smp(N5,u,v)*.025;}
+ if(!TILT)
+  hM[ty*TW+tx]=.16+smp(N1,u,v)*.23+smp(N2,u,v)*.14+smp(N3,u,v)*.08+smp(N4,u,v)*.045+smp(N5,u,v)*.025;
+ else{
+  const t=u*TILT.ax+v*TILT.ay;
+  let k=(t-TILT.t0)/(TILT.t1-TILT.t0);
+  k=k<0?0:k>1?1:k;
+  const amp=1-(TILT.damp||0)*k, ramp=TILT.w+(TILT.e-TILT.w)*k;
+  hM[ty*TW+tx]=.16+(smp(N1,u,v)*.23+smp(N2,u,v)*.14+smp(N3,u,v)*.08
+   +smp(N4,u,v)*.045+smp(N5,u,v)*.025)*amp+ramp;}}
 function bump(lo,la,a,rad,sg){const cx=ptx(lo),cy=pty(la);
  const x0=Math.max(0,(cx-rad)|0),x1=Math.min(TW-1,Math.ceil(cx+rad));
  const y0=Math.max(0,(cy-rad)|0),y1=Math.min(TH-1,Math.ceil(cy+rad));
@@ -1507,37 +2280,6 @@ function town(c,cx,cy,size){
    const rc=pick();cottage(c,hx-5,hy-3,rc[0],rc[1],9+((rr()*3)|0),6);}
   if(rr()>.55)barn(c,Math.round(cx)+14,Math.round(cy)+6);}
 }
-const STRUCTS=[
- {lo:-82.459,la:35.318,t:"city",lab:"HENDERSONVILLE"},
- {lo:-82.554,la:35.595,t:"city",lab:"ASHEVILLE"},
- {lo:-82.744,la:35.233,t:"town",lab:"BREVARD"},
- {lo:-82.988,la:35.489,t:"town",lab:"WAYNESVILLE"},
- {lo:-81.848,la:36.216,t:"town",lab:"BOONE"},
- {lo:-83.006,la:35.114,t:"vil",lab:"CASHIERS"},
- {lo:-82.348,la:35.238,t:"vil",lab:"SALUDA"},
- {lo:-82.180,la:35.628,t:"vil",lab:"OLD FORT"},
- {lo:-82.158,la:36.014,t:"vil",lab:"BAKERSVILLE"},
- {lo:-83.310,la:35.475,t:"vil",lab:"CHEROKEE"},
- {lo:-83.512,la:35.712,t:"vil",lab:"GATLINBURG"},
- {lo:-82.250,la:35.436,t:"vil",lab:"CHIMNEY ROCK"},
- {lo:-82.836,la:35.238,t:"vil",lab:"ROSMAN"},
- {lo:-83.196,la:35.310,t:"vil",lab:"SYLVA"},
- {lo:-81.958,la:36.152,t:"vil",lab:"BANNER ELK"},
- {lo:-82.070,la:35.740,t:"vil",lab:"MARION"},
- {lo:-82.578,la:35.802,t:"vil",lab:"MARS HILL"},
- {lo:-83.006,la:34.816,t:"vil",lab:"WALHALLA"},
- {lo:-82.640,la:34.878,t:"vil",lab:"PICKENS"},
- {lo:-83.386,la:34.868,t:"vil",lab:"CLAYTON GA"},
- {lo:-82.394,la:35.586,t:"tower",lab:"CRAGGY"},
- {lo:-82.888,la:35.336,t:"tower",lab:"BLACK BALSAM"},
- {lo:-81.834,la:36.100,t:"cabin",lab:"GRANDFATHER"},
- {lo:-82.700,la:35.030,t:"cabin",lab:"TABLE ROCK"},
- {lo:-82.754,la:35.404,t:"tower",lab:"MT PISGAH"},
- {lo:-82.265,la:35.765,t:"tower",lab:"MT MITCHELL"},
- {lo:-83.440,la:35.653,t:"cabin",lab:"LECONTE LODGE"},
- {lo:-82.617,la:35.208,t:"bridge",lab:""},
- {lo:-81.809,la:36.096,t:"bridge",lab:""},
- {lo:-82.249,la:35.432,t:"mono",lab:""}];
 function drawStructs(){
  STRUCTS.forEach(s=>{const x=px(s.lo),y=py(s.la);
   if(s.t==="city"||s.t==="town"||s.t==="vil")town(bx,x,y,s.t);
@@ -1546,29 +2288,6 @@ function drawStructs(){
   else if(s.t==="mono")monolith(bx,Math.round(x)-6,Math.round(y)-12);
   else if(s.t==="bridge")bridge(bx,Math.round(x)-10,Math.round(y)-4);});
 }
-const REGIONS=[
- {t:"GREAT SMOKY MTNS",pri:0,lo:-83.46,la:35.80,s:1,c:"#f2f6ff"},
- {t:"NATIONAL PARK",pri:2,lo:-83.46,la:35.765,s:1,c:"#c8d4e4"},
- {t:"PISGAH NATIONAL FOREST",pri:0,lo:-82.86,la:35.27,s:1,c:"#eaf5e0"},
- {t:"DUPONT STATE FOREST",pri:1,lo:-82.60,la:35.155,s:1,c:"#dff0d0"},
- {t:"LINVILLE GORGE",pri:0,lo:-81.905,la:35.985,s:1,c:"#ffe0c8"},
- {t:"ROAN HIGHLANDS",pri:0,lo:-82.13,la:36.21,s:1,c:"#e8f4d8"},
- {t:"BLACK MOUNTAINS",pri:0,lo:-82.30,la:35.88,s:1,c:"#e6ecf4"},
- {t:"GRANDFATHER MTN",pri:2,lo:-81.86,la:36.145,s:1,c:"#e6ecf4"},
- {t:"NANTAHALA",pri:0,lo:-83.52,la:35.20,s:1,c:"#dff0d0"},
- {t:"JOCASSEE GORGES",pri:0,lo:-82.99,la:34.90,s:1,c:"#cfeaf5"},
- {t:"SHINING ROCK",pri:1,lo:-82.86,la:35.44,s:1,c:"#f4f8ff"},
- {t:"WILDERNESS",pri:2,lo:-82.86,la:35.415,s:1,c:"#c8d4e4"},
- {t:"PANTHERTOWN",pri:1,lo:-83.03,la:35.205,s:1,c:"#dff0d0"},
- {t:"NORTH CAROLINA",pri:0,lo:-81.80,la:35.34,s:2,c:"rgba(255,255,255,.42)"},
- {t:"SOUTH CAROLINA",pri:0,lo:-82.30,la:34.72,s:2,c:"rgba(255,255,255,.42)"},
- {t:"GEORGIA",pri:0,lo:-83.46,la:34.62,s:2,c:"rgba(255,255,255,.42)"},
- {t:"TENNESSEE",pri:0,lo:-83.60,la:36.10,s:2,c:"rgba(255,255,255,.42)"},
- {t:"BLUE RIDGE PARKWAY",pri:1,lo:-82.60,la:35.51,s:1,c:"#ffe9a8"},
- {t:"LAKE JOCASSEE",pri:2,lo:-82.93,la:34.965,s:1,c:"#bfe8ff"},
- {t:"LAKE LURE",pri:2,lo:-82.20,la:35.428,s:1,c:"#bfe8ff"},
- {t:"FONTANA LAKE",pri:2,lo:-83.66,la:35.428,s:1,c:"#bfe8ff"},
- {t:"LAKE JAMES",pri:2,lo:-81.90,la:35.718,s:1,c:"#bfe8ff"}];
 const labelLayer=document.createElement('canvas');labelLayer.width=W;labelLayer.height=H;
 const lbx=labelLayer.getContext('2d');
 function plate(c,x,y,w,h,edge,fill){
@@ -1622,12 +2341,12 @@ function drawLabels(boost){
  const others=STRUCTS.filter(s=>s.lab&&s.t!=="city"&&(lod>=2||(lod>=1&&s.t==="town")));
  cities.forEach(s=>place(s.lab,px(s.lo),py(s.la)+22,
   Math.max(2,Math.min(3,boost)),"rgba(245,198,81,.92)","rgba(6,11,20,.94)","#ffe9a8",null,false));
- REGIONS.filter(r=>(r.pri===undefined?1:r.pri)<=lod).forEach(r=>place(r.t,px(r.lo),py(r.la),
+ RLABELS.filter(r=>(r.pri===undefined?1:r.pri)<=lod).forEach(r=>place(r.t,px(r.lo),py(r.la),
   Math.max(2,Math.min(3,r.s+boost-2)),"rgba(140,170,205,.80)","rgba(8,14,24,.88)",r.c,r.c,false));
  let dropped=0;
  others.forEach(s=>{if(!place(s.lab,px(s.lo),py(s.la)+(s.t==="tower"?22:20),
   2,"rgba(150,180,215,.76)","rgba(6,11,20,.92)","#eaf2fa",null,true))dropped++;});
- drawLabels.dropped=dropped;drawLabels.total=cities.length+REGIONS.length+others.length;
+ drawLabels.dropped=dropped;drawLabels.total=cities.length+RLABELS.length+others.length;
 }
 function compass(c,cx,cy){
  c.fillStyle="rgba(6,12,20,.80)";c.fillRect(cx-24,cy-28,48,56);
@@ -3116,6 +3835,8 @@ function defeat(){
 const totalXP=()=>P.reduce((s,p)=>s+(S.done[p.id]?p.xp:0),0);
 function lvlFor(xp){let i=0;LEVELS.forEach((L,k)=>{if(xp>=L.xp)i=k;});return i;}
 function updHUD(){
+ document.getElementById('doneTot').textContent=P.length;
+ document.getElementById('badgeTot').textContent=ACHS.length;
  const xp=totalXP(),li=lvlFor(xp),cur=LEVELS[li],nx=LEVELS[li+1];
  document.getElementById('lvlBadge').textContent="LV "+(li+1);
  document.getElementById('lvlName').textContent=cur.n;
@@ -3146,155 +3867,55 @@ const bigSfx=()=>{tone(120,.3,"sawtooth",.09);[660,880,1100].forEach((f,i)=>tone
 const hurtSfx=()=>{tone(210,.13,"sawtooth",.075);tone(130,.2,"sawtooth",.06,.06);};
 const winSfx=()=>[392,523,659,784,1047,1319,1568].forEach((f,i)=>tone(f,.24,"square",.08,i*.11));
 const loseSfx=()=>[440,392,330,262].forEach((f,i)=>tone(f,.32,"triangle",.07,i*.17));
-/* ═══════════════ 14. TOAST ═══════════════ */
-const toastEl=document.getElementById('toast');let tT=null,toastQ=[];
-function toast(a,b){toastEl.querySelector('.t1').textContent=a;toastEl.querySelector('.t2').textContent=b||"";
- toastEl.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>toastEl.classList.remove('show'),2900);}
-function queueToast(a,b){toastQ.push([a,b]);if(toastQ.length===1)runQ();}
-function runQ(){if(!toastQ.length)return;const[a,b]=toastQ[0];toast(a,b);
- setTimeout(()=>{toastQ.shift();runQ();},3100);}
-/* ═══════════════ 15. STORAGE ═══════════════ */
-const SKEY='brq3';
-/* Backend is picked once. window.storage is the sandboxed-host API this was first
-   written against; localStorage is what a plain browser or GitHub Pages gives us.
-   MEM is the last resort so the game still plays when both are unavailable
-   (private browsing, storage disabled) — it just will not outlive the tab. */
-const STORE=(()=>{
- const host=window.storage;
- if(host&&typeof host.get==='function'&&typeof host.set==='function')
-  return{kind:'host',
-   get:async()=>{const r=await host.get(SKEY);return r&&r.value!=null?r.value:null;},
-   set:async v=>{await host.set(SKEY,v);}};
- /* Read capability is tested separately from write capability. A full quota
-    makes setItem throw while getItem still works, and falling back to memory
-    on that would hide a perfectly good save behind an empty map. */
- let canRead=false;
- try{localStorage.getItem(SKEY);canRead=true;}catch(e){}
- if(canRead)
-  return{kind:'local',
-   get:async()=>localStorage.getItem(SKEY),
-   set:async v=>{localStorage.setItem(SKEY,v);}};
- let MEM=null;
- return{kind:'memory',get:async()=>MEM,set:async v=>{MEM=v;}};
-})();
-
-const VALID_ID=new Set(P.map(p=>p.id));
-const BOSS_ID=new Set(P.filter(p=>p.c==="multi").map(p=>p.id));
-const VALID_ACH=new Set(ACHS.map(A=>A.id));
-
-/* An ISO string that survives `new Date(x).toISOString()`. Anything else is
-   dropped: a NaN date would throw when the detail panel formats it, and it
-   would quietly poison the date-window achievements. */
-function cleanStamp(v){
- if(typeof v!=='string')return null;
- const t=Date.parse(v);
- if(!Number.isFinite(t))return null;
- return new Date(t).toISOString();
-}
-/* Counts what it threw away, so a save that is half-readable can say so instead
-   of quietly presenting itself as complete and then being written back short. */
-function cleanMap(src,allowed,tally){
- const out={};
- if(!src||typeof src!=='object'){
-  if(src!=null)tally.dropped++;
-  return out;
- }
- for(const k of Object.keys(src)){
-  const s=allowed.has(k)?cleanStamp(src[k]):null;
-  if(s)out[k]=s;else tally.dropped++;
- }
- return out;
-}
-/* Boss kills are pinned to quests actually marked done — a slain boss with no
-   completion is not a state the game can produce, so a save claiming one has
-   been tampered with or predates a data change.
-
-   Badges are carried over as written rather than re-derived from done/slain.
-   That is deliberate: the game only ever adds badges, never revokes them, so
-   undoing a hike keeps the badge it earned. Re-deriving here would strip those,
-   which matters more than the fact that a hand-edited file can claim a badge
-   it never earned — this is a single-player log with nobody to cheat. */
-function normalize(d,tally){
- const t=tally||{dropped:0};
- if(!d||typeof d!=='object')return{done:{},slain:{},badges:{}};
- const done=cleanMap(d.done,VALID_ID,t);
- const slain=cleanMap(d.slain,BOSS_ID,t);
- for(const k of Object.keys(slain))if(!done[k]){delete slain[k];t.dropped++;}
- return{done,slain,badges:cleanMap(d.badges,VALID_ACH,t)};
-}
-/* A file is save-shaped if it is an object carrying at least one of the three
-   maps. An empty-but-valid save (what EXPORT writes right after RESET) has to
-   pass, or EXPORT/IMPORT is not a round trip. */
-function isSaveShaped(d){
- return !!d&&typeof d==='object'&&!Array.isArray(d)&&
-  ['done','slain','badges'].some(k=>d[k]&&typeof d[k]==='object');
-}
-
-let saveWarned=false;
-async function save(){
- try{
-  await STORE.set(JSON.stringify({v:1,done:S.done,slain:S.slain,badges:S.badges}));
- }catch(e){
-  if(!saveWarned){
-   saveWarned=true;
-   queueToast("⚠ PROGRESS NOT SAVED","Browser storage is unavailable — use EXPORT");
-  }
- }
-}
-async function load(){
- try{
-  const raw=await STORE.get();
-  if(raw){
-   const t={dropped:0};
-   S=normalize(JSON.parse(raw),t);
-   if(t.dropped)queueToast("SAVE PARTLY UNREADABLE",
-    t.dropped+" entr"+(t.dropped===1?"y was":"ies were")+" dropped");
-  }
- }catch(e){S={done:{},slain:{},badges:{}};}
- if(STORE.kind==='memory'&&!saveWarned){
-  saveWarned=true;
-  queueToast("⚠ PROGRESS NOT SAVED","Browser storage is unavailable — use EXPORT");
- }
-}
+/* ═══════════════ 15. STORAGE ═══════════════
+   The file-level save layer lives above the engine; these are the region-scoped
+   views onto this region's slot. */
+function slot(){return FILE.regions[ACTIVE]||(FILE.regions[ACTIVE]=blank());}
+async function save(){FILE.regions[ACTIVE]=S;await writeFile();}
+async function load(){S=slot();}
 
 /* localStorage is per-browser and dies with site data, so give progress a door
-   out to a real file that can move between machines. */
+   out to a real file that can move between machines. Exports carry every region,
+   not just the one on screen, so one file is the whole account. */
 function exportSave(){
- const blob=new Blob([JSON.stringify({v:1,exported:new Date().toISOString(),
-  done:S.done,slain:S.slain,badges:S.badges},null,2)],{type:'application/json'});
+ FILE.regions[ACTIVE]=S;
+ const blob=new Blob([JSON.stringify({v:2,exported:new Date().toISOString(),
+  regions:FILE.regions},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob);
  const a=document.createElement('a');
- a.href=url;a.download='blue-ridge-quest-'+new Date().toISOString().slice(0,10)+'.json';
+ a.href=url;a.download='summit-save-'+new Date().toISOString().slice(0,10)+'.json';
  document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
- queueToast("SAVE EXPORTED",tot()+" cleared · "+totalXP()+" XP");
+ const all=RIDS.reduce((s,id)=>s+Object.keys((FILE.regions[id]||blank()).done).length,0);
+ queueToast("SAVE EXPORTED",all+" cleared across "+RIDS.length+" regions");
 }
-const MAX_SAVE_BYTES=2*1024*1024;   /* a full 57-quest save is under 5 KB */
+const MAX_SAVE_BYTES=2*1024*1024;   /* a full save is a few KB */
 async function importSave(file){
  try{
   if(file.size>MAX_SAVE_BYTES){
    queueToast("IMPORT FAILED","That file is far too large to be a save");return;}
   const raw=JSON.parse(await file.text());
   if(!isSaveShaped(raw)){
-   queueToast("IMPORT FAILED","That file is not a Blue Ridge Quest save");return;}
+   queueToast("IMPORT FAILED","That file is not a Summit save");return;}
   const t={dropped:0};
-  const d=normalize(raw,t);
-  /* Import replaces everything and writes it straight through, so it is at
-     least as destructive as RESET and gets the same confirmation. */
-  const now=tot(),next=Object.keys(d.done).length;
-  if(now&&!confirm("Replace your current progress ("+now+" cleared) with this file ("+next+" cleared)?\n\nThis cannot be undone."))
+  const f=normalizeFile(raw,t);
+  /* import replaces every region and writes straight through, so it is at least
+     as destructive as RESET and gets the same confirmation */
+  const now=RIDS.reduce((s,id)=>s+Object.keys((FILE.regions[id]||blank()).done).length,0);
+  const next=RIDS.reduce((s,id)=>s+Object.keys(f.regions[id].done).length,0);
+  if(now&&!confirm("Replace progress in ALL regions ("+now+" cleared) with this file ("+next+" cleared)?\n\nThis cannot be undone."))
    return;
-  S=d;selId=null;
-  /* checkAch() before save() — it awards the badges implied by the imported
+  FILE=f;S=slot();selId=null;
+  /* checkAch() before save(): it awards the badges implied by the imported
      done/slain, and those mutations have to be in S before it is serialized.
-     Quiet, because a full save derives all 20 at once and the per-badge toast
-     queue would bury the import confirmation for a minute. */
+     Quiet, because a full save derives every badge at once and the per-badge
+     toast queue would bury the import confirmation for a minute. */
   const gained=checkAch(true);
-  updHUD();render();showDetail(null);renderBadges();renderLog();refreshCatalog();
+  render();showDetail(null);renderBadges();renderLog();updHUD();refreshCatalog();
   bestBuilt=false;layoutRails();
   await save();
-  queueToast("SAVE IMPORTED",tot()+" cleared · "+totalXP()+" XP"+
-   (gained?" · "+gained+" badge"+(gained===1?"":"s"):""));
+  queueToast("SAVE IMPORTED",tot()+" cleared here \u00b7 "+totalXP()+" XP"+
+   (gained?" \u00b7 "+gained+" badge"+(gained===1?"":"s"):""));
   if(t.dropped)queueToast("SOME ENTRIES SKIPPED",
    t.dropped+" unreadable entr"+(t.dropped===1?"y":"ies")+" in that file");
  }catch(e){queueToast("IMPORT FAILED","That file is not a valid save");}
@@ -3322,7 +3943,7 @@ function renderLog(){const el=document.getElementById('logList');
    <span class="ld">${dt.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</span>
    <span class="lx">+${p.xp}</span></div>`;}).join('')+
   `<div style="text-align:center;margin-top:14px;font-family:var(--pix);font-size:8px;color:#f5c651;line-height:2">
-   ${rows.length} CLEARED · ${totalXP()} XP<br>${Object.keys(S.slain).length}/7 BOSSES SLAIN</div>`;}
+   ${rows.length} CLEARED · ${totalXP()} XP<br>${Object.keys(S.slain).length}/${NB} BOSSES SLAIN</div>`;}
 /* ═══════════════ 17. DETAIL PANEL ═══════════════ */
 const detail=document.getElementById('detail');
 const fmtDate=i=>new Date(i).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
@@ -3407,6 +4028,7 @@ document.getElementById('helpBtn').onclick=e=>{
  e.target.classList.toggle('on',open);
  e.target.textContent=(open?'\u25BC':'?')+' HOW THE FIGHT WORKS';
  if(open)hb.scrollIntoView({behavior:'smooth',block:'nearest'});};
+document.getElementById('navWorld').onclick=()=>{location.hash='';location.reload();};
 document.getElementById('navMap').onclick=()=>{if(BT&&!BT.over)return;BT=null;setScreen('map');};
 document.getElementById('navLog').onclick=()=>{renderLog();setScreen('log');};
 document.getElementById('navBadge').onclick=()=>{renderBadges();setScreen('badge');};
@@ -3559,7 +4181,7 @@ function renderCatalog(){
  el.querySelectorAll('.cat-row').forEach(r=>r.onclick=()=>jumpTo(r.dataset.id));
  const dn=rows.filter(p=>S.done[p.id]).length;
  document.getElementById('catSum').innerHTML=
-  `SHOWING ${rows.length} OF 57 · ${dn} CLEARED<br>${rows.reduce((s,p)=>s+(S.done[p.id]?0:p.xp),0)} XP REMAINING`;
+  `SHOWING ${rows.length} OF ${P.length} · ${dn} CLEARED<br>${rows.reduce((s,p)=>s+(S.done[p.id]?0:p.xp),0)} XP REMAINING`;
 }
 function jumpTo(id){
  const p=P.find(q=>q.id===id);if(!p)return;
@@ -3618,7 +4240,7 @@ function buildBestiary(){
   row.onclick=()=>jumpTo(q.id);
   el.appendChild(row);});
  document.getElementById('bestFoot').textContent=
-  Object.keys(S.slain).length+" / 7 SLAIN";
+  Object.keys(S.slain).length+" / "+NB+" SLAIN";
  bestBuilt=true;
 }
 function updateRails(){
@@ -3628,9 +4250,9 @@ function updateRails(){
  const pct=nx?((xp-cur.xp)/(nx.xp-cur.xp)*100):100;
  document.getElementById('obeFill').style.height=Math.max(0,Math.min(100,pct))+"%";
  document.getElementById('railStats').innerHTML=
-  `<b>${tot()}</b>/57 CLEARED<br><b>${Object.keys(S.badges).length}</b>/20 BADGES<br><b>${xp}</b> XP`;
+  `<b>${tot()}</b>/${P.length} CLEARED<br><b>${Object.keys(S.badges).length}</b>/${ACHS.length} BADGES<br><b>${xp}</b> XP`;
  if(bestBuilt)document.getElementById('bestFoot').textContent=
-  Object.keys(S.slain).length+" / 7 SLAIN";
+  Object.keys(S.slain).length+" / "+NB+" SLAIN";
 }
 function layoutRails(){
  const wr=document.getElementById('mapWrap');
@@ -3658,8 +4280,9 @@ function loop(ts){requestAnimationFrame(loop);
  if(tick%450===0)updHUD();}
 function step(pc,fn){return new Promise(res=>{setTimeout(()=>{
  fn();document.getElementById('lfill').style.width=pc+"%";res();},12);});}
+/* the crest-road step is named after whichever road this region actually has */
 const LOADMSG=["SURVEYING THE RANGE…","RAISING MOUNTAINS…","CARVING GORGES…",
- "FLOODING THE VALLEYS…","PLANTING FORESTS…","LAYING THE PARKWAY…",
+ "FLOODING THE VALLEYS…","PLANTING FORESTS…","LAYING THE "+(RG.crestRoad||"PARKWAY")+"…",
  "BUILDING SETTLEMENTS…","LIGHTING THE WINDOWS…","DRAWING THE MAP…"];
 function setMsg(i){const l=document.getElementById('loader');
  if(l&&l.firstChild)l.firstChild.textContent=LOADMSG[i]||"READY";}
@@ -3684,6 +4307,22 @@ function setMsg(i){const l=document.getElementById('loader');
  document.getElementById('loader').style.display='none';
  requestAnimationFrame(loop);
 })();
+}
+/* ═══════════════ BOOT ═══════════════
+   Read the save first: the launcher needs it to show lifetime totals, and the
+   engine needs this region's slot before its first paint. */
+(async()=>{
+ await readFile();
+ const id=pickRegion();
+ if(!id){showLauncher();return;}
+ document.getElementById('gameTitle').textContent='★ SUMMIT ★';
+ document.getElementById('gameSub').textContent=
+  REGIONS[id].name+' · '+REGIONS[id].quests.length+' Locations · '+
+  REGIONS[id].quests.filter(p=>p.c==="multi").length+' Bosses';
+ runGame(id);
+})();
+/* the hash is the region, so back/forward between launcher and region works */
+window.addEventListener('hashchange',()=>location.reload());
 </script>
 </body>
 </html>
