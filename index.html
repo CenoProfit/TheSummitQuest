@@ -4384,19 +4384,61 @@ async function victory(){
  spawnParts(112,120,60,BT.accent,4.2);
  spawnParts(112,140,40,"#ffe066",3.4);
  updBattleHUD();
+ winSfx();
+ if(typeof musicMode==='function')musicMode('calm');
  const p=BT.poi;
+ logB(`<b style="color:#8bf05f;font-size:15px">▶ VICTORY</b><br>
+  ${BT.name} collapses back into the ridge it came from.<br><br>
+  Turn ${BT.turn}. <span style="color:var(--dim)">Checking where you are…</span>`);
+ queueToast("☠ BOSS DEFEATED ☠",BT.name);
+ renderMenu();
+ await claimBoss(p);
+}
+/* Winning the fight and having been there are two different claims. The fight
+   is a game, playable from anywhere; the clear is an assertion about the world,
+   and that is what has to be earned on the trail. Gating the battle itself made
+   every boss unreachable from the couch — no demo, no balance testing — while
+   protecting nothing that this does not protect better. */
+async function awardBoss(p){
  S.slain[p.id]=new Date().toISOString();
  const before=lvlFor(totalXP());
  S.done[p.id]=new Date().toISOString();
  const after=lvlFor(totalXP());
- winSfx();
- if(typeof musicMode==='function')musicMode('calm');
- logB(`<b style="color:#8bf05f;font-size:15px">▶ VICTORY</b><br>
-  ${BT.name} collapses back into the ridge it came from.<br><br>
-  <b>${p.n}</b> cleared · <span class="heal">+${p.xp} XP</span> · turn ${BT.turn}`);
- queueToast("☠ BOSS DEFEATED ☠",BT.name);
  if(after>before)queueToast("LEVEL UP!","▶ "+LEVELS[after].n);
- renderMenu();render();checkAch();updHUD();renderLog();refreshCatalog();questBarCount();bestBuilt=false;layoutRails();await save();
+ render();checkAch();updHUD();renderLog();refreshCatalog();questBarCount();bestBuilt=false;layoutRails();await save();
+}
+function bossWon(p,extra){
+ logB(`<b style="color:#8bf05f;font-size:15px">▶ VICTORY</b><br>
+  ${BT?BT.name:'It'} collapses back into the ridge it came from.<br><br>
+  <b>${p.n}</b> cleared · <span class="heal">+${p.xp} XP</span>${extra||''}`);
+ renderMenu();
+}
+async function claimBoss(p){
+ let fix=null,err=null;
+ try{fix=await currentFix();}catch(e){err=e;}
+ if(fix){
+  const d=metresBetween(fix.lat,fix.lon,p.lat,p.lon);
+  if(d<=GEOFENCE_M){await awardBoss(p);bossWon(p);return;}
+  if(fix.acc&&d-fix.acc<=GEOFENCE_M)err={vague:true,d,acc:fix.acc};
+  else err={far:true,d};
+ }
+ /* Beaten but unclaimed. The win is not taken away and the boss does not have
+    to be fought again — the claim is simply left open until it can be made. */
+ const why=err&&err.far?`You read as <b>${fmtDist(err.d)}</b> from ${p.n}, and the check needs ${GEOFENCE_M} m.`
+  :err&&err.vague?`Your device places you <b>${fmtDist(err.d)}</b> away but is only sure to about <b>${fmtDist(err.acc)}</b>, too rough to tell.`
+  :err&&(err.denied||err.code===1)?'Location is switched off for Summit.'
+  :'No location fix here.';
+ logB(`<b style="color:#8bf05f;font-size:15px">▶ VICTORY</b><br>
+  ${BT?BT.name:'It'} collapses back into the ridge it came from.<br><br>
+  <span style="color:#f5c651">Beaten, but not yet claimed.</span> ${why}<br>
+  <span style="color:var(--dim)">The win stands. Claim <b>${p.n}</b> when you are there — you will not have to fight it again.</span><br><br>
+  <button class="btn-go" id="bossRetry" style="width:auto;padding:9px 14px">CHECK AGAIN</button>
+  <span class="small-link" id="bossManual" style="margin-left:10px">claim it by hand</span>`);
+ renderMenu();
+ const r=document.getElementById('bossRetry');
+ if(r)r.onclick=()=>{logB('<span style="color:var(--dim)">Checking where you are…</span>');claimBoss(p);};
+ const m=document.getElementById('bossManual');
+ if(m)m.onclick=async()=>{await awardBoss(p);bossWon(p,' <span style="color:var(--dim)">· logged by hand</span>');};
 }
 function defeat(){
  if(!BT)return;
@@ -4583,8 +4625,9 @@ function showDetail(p){
    <span style="color:#f5c651">${fmtDate(S.done[p.id])}</span></div>`:''}`;
  document.getElementById('cbtn').onclick=()=>{
   if(dn){toggle(p);return;}
-  const n=document.getElementById('chknote');
-  if(boss){if(n)n.dataset.pass='battle';checkIn(p,()=>startBattle(p));}
+  /* The fight is open to anyone anywhere; winning it is what asks where you
+     are. Day hikes still check before they clear. */
+  if(boss)startBattle(p);
   else checkIn(p);};
  const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>checkIn(p);
  const dl=document.getElementById('dlog');
@@ -5207,13 +5250,15 @@ function mPad(ac,f,t,len,vel){
    castle theme ever written leans on. The progression drops to the flat sixth
    and lands on a major five, which is the oldest way there is to make an
    arrival feel like a threat rather than a resolution. */
-const BBEAT=.4,BBAR=BBEAT*4;
+const BBEAT=.6,BBAR=BBEAT*4;
 const HMIN=[57,59,60,62,64,65,68];
+/* An octave below where this started. Weight is mostly register: the same
+   figure at A1 reads as something large moving, where at A2 it read as busy. */
 const BPROG=[
- {root:45,ch:[57,60,64]},
- {root:45,ch:[57,60,64]},
- {root:41,ch:[53,57,60]},
- {root:40,ch:[52,56,59]}];
+ {root:33,ch:[57,60,64]},
+ {root:33,ch:[57,60,63]},
+ {root:29,ch:[53,57,60]},
+ {root:28,ch:[52,56,59]}];
 /* Half a second of noise, made once per context, is every drum here. */
 function noiseBuf(ac){
  if(!ac._noise){
@@ -5228,7 +5273,7 @@ function mKick(ac,t){
  const o=ac.createOscillator(),g=ac.createGain();
  o.type='sine';o.frequency.setValueAtTime(132,t);
  o.frequency.exponentialRampToValueAtTime(44,t+.11);
- g.gain.setValueAtTime(.36,t);g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+ g.gain.setValueAtTime(.36,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);
  o.connect(g);g.connect(mBoss);o.start(t);o.stop(t+.2);
 }
 /* Snare and hat are the same noise burst either side of a highpass. */
@@ -5264,24 +5309,27 @@ function scheduleBossBar(ac,t){
  /* Root, fifth, minor sixth, back down: eight to the bar and always moving.
     The relentlessness is the point — it is what a countdown sounds like. */
  const SHAPE=[0,0,7,0,8,0,7,0];
- for(let i=0;i<8;i++)mPulse(ac,mid(ph.root+SHAPE[i]),t+i*BBEAT/2,.15,.165,'sawtooth');
+ for(let i=0;i<8;i++)mPulse(ac,mid(ph.root+SHAPE[i]),t+i*BBEAT/2,.22,.165,'sawtooth');
  /* Root and fifth held under the whole bar. No fifth-less power chord ever
     sounded threatening, and it keeps the energy up between the staccato hits. */
- [0,7].forEach(iv=>mDrone(ac,mid(ph.root-12+iv),t,BBAR+.05,.055));
+ [0,7].forEach(iv=>mDrone(ac,mid(ph.root+iv),t,BBAR+.05,.06));
  [0,2].forEach(b=>mKick(ac,t+b*BBEAT));
- [1,3].forEach(b=>mHit(ac,t+b*BBEAT,.13,1300,.19));
- for(let i=0;i<8;i++)mHit(ac,t+i*BBEAT/2+BBEAT/4,.03,7000,.05);
+ [1,3].forEach(b=>mHit(ac,t+b*BBEAT,.16,1000,.19));
+ for(let i=0;i<8;i++)mHit(ac,t+i*BBEAT/2+BBEAT/4,.035,5200,.045);
  /* Lead: sixteenths, chord tones on the beat and the scale between them. */
  for(let i=0;i<16;i++){
   if(Math.random()>.58)continue;
   const pool=i%4===0?ph.ch:HMIN;
-  let n=pool[Math.floor(Math.random()*pool.length)]+12;
-  if(Math.random()<.22)n+=12;
-  mPulse(ac,mid(n),t+i*S16,.11,.075,'square');
+  let n=pool[Math.floor(Math.random()*pool.length)];
+  if(Math.random()<.12)n+=12;
+  /* The tritone above the root, used sparingly. It is the interval that will
+     not resolve, and nothing else says "wrong" as economically. */
+  if(Math.random()<.08)n=ph.root+18;
+  mPulse(ac,mid(n),t+i*S16,.16,.075,'square');
  }
  /* Every fourth bar falls off a chromatic edge, so the loop never sits still. */
  if(mBar%BPROG.length===BPROG.length-1)
-  for(let k=0;k<4;k++)mPulse(ac,mid(69-k),t+BBAR-.4+k*.1,.09,.085,'square');
+  for(let k=0;k<4;k++)mPulse(ac,mid(57-k),t+BBAR-.6+k*.15,.14,.085,'square');
  return BBAR;
 }
 /* Switching is a crossfade plus a change of tone: the boss side wants the top
@@ -5297,7 +5345,7 @@ function musicMode(m){
   n.gain.setValueAtTime(n.gain.value,t);
   n.gain.linearRampToValueAtTime(v,t+(v?.35:.7));});
  mLP.frequency.cancelScheduledValues(t);
- mLP.frequency.setTargetAtTime(boss?5600:2600,t,.25);
+ mLP.frequency.setTargetAtTime(boss?3800:2600,t,.25);
  mWet.gain.cancelScheduledValues(t);
  mWet.gain.setTargetAtTime(boss?.14:.5,t,.25);
  /* Restart the grid rather than dropping the new mode into the middle of the
