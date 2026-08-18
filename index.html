@@ -4568,11 +4568,16 @@ function showDetail(p){
    <span class="xp-tag">+${p.xp} XP</span>
    ${boss&&!dn?`<span class="small-link" id="skipb">skip battle — I already hiked it</span>`:''}
   </div>
+  <div id="chknote" style="font-size:11px;line-height:1.6;margin-top:9px"></div>
   ${dn?`<div class="datelog">📅 LOGGED
    <input type="date" id="dlog" value="${inputDay(S.done[p.id])}">
    <span style="color:#f5c651">${fmtDate(S.done[p.id])}</span></div>`:''}`;
- document.getElementById('cbtn').onclick=()=>{if(boss&&!dn)startBattle(p);else toggle(p);};
- const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>toggle(p);
+ document.getElementById('cbtn').onclick=()=>{
+  if(dn){toggle(p);return;}
+  const n=document.getElementById('chknote');
+  if(boss){if(n)n.dataset.pass='battle';checkIn(p,()=>startBattle(p));}
+  else checkIn(p);};
+ const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>checkIn(p);
  const dl=document.getElementById('dlog');
  {const x=document.createElement('button');
   x.className='d-close';x.textContent='✕ CLOSE';
@@ -4588,6 +4593,79 @@ function showDetail(p){
   if(isNaN(nd.getTime())){showDetail(p);return;}
   S.done[p.id]=nd.toISOString();
   checkAch();updHUD();renderLog();showDetail(p);await save();};
+}
+/* ═══════════════ 17b. PROXIMITY CHECK-IN ═══════════════ */
+/* Completion used to be an honour-system button. The whole point of the game is
+   that you actually stood there, so it now asks the device where it is and
+   compares that against the destination's coordinates.
+
+   150 m is deliberately loose. A phone under heavy canopy or down in a gorge —
+   Paradise Falls drops into a slot canyon — routinely reports a fix that far
+   out, and a radius tight enough to feel impressive would make exactly the
+   best hikes unloggable. Tune it after field testing, not before. */
+const GEOFENCE_M=150;
+
+/* Haversine. These distances are a few hundred metres, so treating the earth as
+   a sphere costs far less error than the GPS fix already carries. */
+function metresBetween(lat1,lon1,lat2,lon2){
+ const R=6371000,rad=x=>x*Math.PI/180;
+ const dp=rad(lat2-lat1),dl=rad(lon2-lon1);
+ const h=Math.sin(dp/2)**2+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dl/2)**2;
+ return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+const fmtDist=m=>m<1000?Math.round(m)+' m':(m/1000).toFixed(1)+' km';
+
+/* The Capacitor plugin only exists inside the native shell. The same page is
+   served on the web, so it falls back to the browser API rather than breaking
+   the site. Both reject on denial, which the caller reports as a real outcome
+   instead of a silent failure. */
+async function currentFix(){
+ const opts={enableHighAccuracy:true,timeout:20000,maximumAge:0};
+ const G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
+ if(G){
+  let st=await G.checkPermissions();
+  if(st.location!=='granted')st=await G.requestPermissions();
+  if(st.location!=='granted'){const e=new Error('denied');e.denied=true;throw e;}
+  const r=await G.getCurrentPosition(opts);
+  return{lat:r.coords.latitude,lon:r.coords.longitude,acc:r.coords.accuracy};}
+ if(!navigator.geolocation){const e=new Error('unsupported');e.denied=true;throw e;}
+ const r=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,opts));
+ return{lat:r.coords.latitude,lon:r.coords.longitude,acc:r.coords.accuracy};
+}
+
+/* Failing the check is never a dead end. A fix can be wrong by more than the
+   radius in the terrain this game sends you into, and a hiker who is genuinely
+   standing at the falls must not be told they are not. The override is offered
+   only after a check has actually failed, and it says plainly what it is. */
+function checkNote(p,html){
+ const n=document.getElementById('chknote');if(!n)return;
+ n.innerHTML=html;
+ const m=document.getElementById('manlog');
+ if(m)m.onclick=()=>{const f=n.dataset.pass==='battle'?()=>startBattle(p):()=>toggle(p);f();};
+}
+async function checkIn(p,onPass){
+ const pass=onPass||(()=>toggle(p));
+ const btn=document.getElementById('cbtn');if(!btn)return;
+ const label=btn.textContent;
+ btn.disabled=true;btn.textContent='📡 CHECKING…';
+ checkNote(p,'<span style="color:var(--dim)">Reading your location. This can take a few seconds under tree cover.</span>');
+ let fix;
+ try{fix=await currentFix();}
+ catch(e){
+  btn.disabled=false;btn.textContent=label;
+  checkNote(p,(e&&(e.denied||e.code===1)
+   ?'<span style="color:#ff9a86">Location is switched off for Summit, so the check cannot run. Turn it on in Settings, then try again.</span>'
+   :'<span style="color:#ff9a86">No location fix. Open sky helps — a gorge or a dense canopy can block it entirely.</span>')
+   +'<div style="margin-top:7px"><span class="small-link" id="manlog">log it by hand instead</span></div>');
+  return;}
+ const d=metresBetween(fix.lat,fix.lon,p.lat,p.lon);
+ if(d<=GEOFENCE_M){btn.textContent='✓ YOU ARE HERE';await pass();return;}
+ btn.disabled=false;btn.textContent='TRY AGAIN';
+ checkNote(p,`<span style="color:#ff9a86">You read as <b>${fmtDist(d)}</b> from ${p.n}`
+  +(fix.acc?`, with the fix itself accurate to about ${fmtDist(fix.acc)}`:'')
+  +`. The check needs ${GEOFENCE_M} m.</span>`
+  +'<div style="color:var(--dim);margin-top:6px">If you are standing there, wait a few seconds for the signal to settle and try again.</div>'
+  +'<div style="margin-top:7px"><span class="small-link" id="manlog">log it by hand instead</span></div>');
 }
 async function toggle(p){
  const before=lvlFor(totalXP());
