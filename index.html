@@ -4390,6 +4390,7 @@ async function victory(){
  S.done[p.id]=new Date().toISOString();
  const after=lvlFor(totalXP());
  winSfx();
+ if(typeof musicMode==='function')musicMode('calm');
  logB(`<b style="color:#8bf05f;font-size:15px">▶ VICTORY</b><br>
   ${BT.name} collapses back into the ridge it came from.<br><br>
   <b>${p.n}</b> cleared · <span class="heal">+${p.xp} XP</span> · turn ${BT.turn}`);
@@ -4401,6 +4402,7 @@ function defeat(){
  if(!BT)return;
  BT.over=true;BT.php=0;BT.next=null;BT.busy=false;
  BT.flashCol="#ff3a2a";BT.flashA=.6;updBattleHUD();loseSfx();
+ if(typeof musicMode==='function')musicMode('calm');
  logB(`<b style="color:#ff9a86;font-size:15px">▶ YOU BAILED</b><br>
   You turn around and limp back to the trailhead. Nothing lost but daylight.<br><br>
   <span style="color:#8695a8">You fought at <b>LV ${BT.lvl}</b>. This boss is tuned for <b>LV ${BT.rec}</b>.
@@ -4697,6 +4699,10 @@ function setScreen(s){
  document.getElementById('screen'+mm[s]).classList.add('active');
  /* the battle takes the whole phone screen, so the page chrome steps aside */
  document.body.classList.toggle('fighting',s==='battle');
+ /* Screen state drives the score. Routing it through here rather than through
+    startBattle covers leaving, fleeing and back navigation too, so the music
+    cannot be stranded in the wrong mode. */
+ if(typeof musicMode==='function')musicMode(s==='battle'?'boss':'calm');
  if(s!=='map')closeSheet();
  ['navMap','navLog','navBadge','navAvatar'].forEach(id=>document.getElementById(id).classList.remove('on'));
  if(s==='map')document.getElementById('navMap').classList.add('on');
@@ -5149,14 +5155,20 @@ const PENT=[57,60,62,64,67,69,72,74,76,79];
    guessed: a rendered bar peaks near -18 dBFS here, with headroom to spare when
    several notes and their echoes happen to land together. */
 const MLEVEL=.48;
-let mBus=null,mWet=null,mTimer=null,mBar=0,mNext=0;
+let mBus=null,mWet=null,mLP=null,mCalm=null,mBoss=null,mTimer=null,mBar=0,mNext=0,mMode='calm';
 function musicInit(){
  const ac=audioCtx();if(!ac||mBus)return ac;
  mBus=ac.createGain();mBus.gain.value=musicOn?MLEVEL:.0001;
- const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;
+ mLP=ac.createBiquadFilter();mLP.type='lowpass';mLP.frequency.value=2600;
  const rv=ac.createConvolver();rv.buffer=makeIR(ac,3.0,2.5);
  mWet=ac.createGain();mWet.gain.value=.5;
- mBus.connect(lp);lp.connect(ac.destination);lp.connect(mWet);mWet.connect(rv);rv.connect(ac.destination);
+ mBus.connect(mLP);mLP.connect(ac.destination);mLP.connect(mWet);mWet.connect(rv);rv.connect(ac.destination);
+ /* Each mode owns a sub-bus. Switching cannot simply stop the old voices —
+    nothing holds a reference to notes already scheduled, and a calm pad runs
+    seven seconds — so the outgoing side is faded out underneath the incoming
+    one instead. */
+ mCalm=ac.createGain();mCalm.gain.value=1;mCalm.connect(mBus);
+ mBoss=ac.createGain();mBoss.gain.value=0;mBoss.connect(mBus);
  return ac;
 }
 /* Soft mallet: a triangle through a lowpass with a quick edge and a long tail.
@@ -5165,7 +5177,7 @@ function mNote(ac,f,t,vel,len){
  const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
  o.type='triangle';o.frequency.value=f;o.detune.value=(Math.random()*8-4);
  lp.type='lowpass';lp.frequency.value=1500;lp.Q.value=.6;
- o.connect(lp);lp.connect(g);g.connect(mBus);
+ o.connect(lp);lp.connect(g);g.connect(mCalm);
  g.gain.setValueAtTime(.0001,t);
  g.gain.exponentialRampToValueAtTime(vel,t+.012);
  g.gain.exponentialRampToValueAtTime(.0001,t+len);
@@ -5177,15 +5189,125 @@ function mPad(ac,f,t,len,vel){
  [-5,5].forEach(det=>{
   const o=ac.createOscillator(),g=ac.createGain();
   o.type='sine';o.frequency.value=f;o.detune.value=det;
-  o.connect(g);g.connect(mBus);
+  o.connect(g);g.connect(mCalm);
   g.gain.setValueAtTime(.0001,t);
   g.gain.exponentialRampToValueAtTime(vel,t+1.8);
   g.gain.setValueAtTime(vel,t+len-2.2);
   g.gain.exponentialRampToValueAtTime(.0001,t+len);
   o.start(t);o.stop(t+len+.05);});
 }
+/* ── boss music ──
+   The overworld score is weather; a boss is a threat, and it should not sound
+   like the same piece played faster. This is a different instrument entirely:
+   square and sawtooth voices, a driving bass ostinato, and actual drums, at
+   150 BPM against the overworld's slow six-second bars.
+
+   The menace is in the scale. A harmonic minor holds a minor sixth a semitone
+   under the leading tone, and that augmented second is the interval every
+   castle theme ever written leans on. The progression drops to the flat sixth
+   and lands on a major five, which is the oldest way there is to make an
+   arrival feel like a threat rather than a resolution. */
+const BBEAT=.4,BBAR=BBEAT*4;
+const HMIN=[57,59,60,62,64,65,68];
+const BPROG=[
+ {root:45,ch:[57,60,64]},
+ {root:45,ch:[57,60,64]},
+ {root:41,ch:[53,57,60]},
+ {root:40,ch:[52,56,59]}];
+/* Half a second of noise, made once per context, is every drum here. */
+function noiseBuf(ac){
+ if(!ac._noise){
+  const n=Math.floor(ac.sampleRate*.5),b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+  ac._noise=b;}
+ return ac._noise;
+}
+/* A kick is a sine falling fast enough that the ear reads the drop as impact
+   rather than as a note. */
+function mKick(ac,t){
+ const o=ac.createOscillator(),g=ac.createGain();
+ o.type='sine';o.frequency.setValueAtTime(132,t);
+ o.frequency.exponentialRampToValueAtTime(44,t+.11);
+ g.gain.setValueAtTime(.36,t);g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+ o.connect(g);g.connect(mBoss);o.start(t);o.stop(t+.2);
+}
+/* Snare and hat are the same noise burst either side of a highpass. */
+function mHit(ac,t,dur,cut,vel){
+ const sr=ac.createBufferSource(),g=ac.createGain(),hp=ac.createBiquadFilter();
+ sr.buffer=noiseBuf(ac);hp.type='highpass';hp.frequency.value=cut;
+ sr.connect(hp);hp.connect(g);g.connect(mBoss);
+ g.gain.setValueAtTime(vel,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ sr.start(t);sr.stop(t+dur+.03);
+}
+function mPulse(ac,f,t,dur,vel,type){
+ const o=ac.createOscillator(),g=ac.createGain();
+ o.type=type||'square';o.frequency.value=f;
+ o.connect(g);g.connect(mBoss);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+.006);
+ g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ o.start(t);o.stop(t+dur+.03);
+}
+function mDrone(ac,f,t,len,vel){
+ const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
+ o.type='sawtooth';o.frequency.value=f;o.detune.value=-4;
+ lp.type='lowpass';lp.frequency.value=340;
+ o.connect(lp);lp.connect(g);g.connect(mBoss);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+.05);
+ g.gain.setValueAtTime(vel,t+len-.12);
+ g.gain.exponentialRampToValueAtTime(.0001,t+len);
+ o.start(t);o.stop(t+len+.03);
+}
+function scheduleBossBar(ac,t){
+ const ph=BPROG[mBar%BPROG.length],S16=BBEAT/4;
+ /* Root, fifth, minor sixth, back down: eight to the bar and always moving.
+    The relentlessness is the point — it is what a countdown sounds like. */
+ const SHAPE=[0,0,7,0,8,0,7,0];
+ for(let i=0;i<8;i++)mPulse(ac,mid(ph.root+SHAPE[i]),t+i*BBEAT/2,.15,.165,'sawtooth');
+ /* Root and fifth held under the whole bar. No fifth-less power chord ever
+    sounded threatening, and it keeps the energy up between the staccato hits. */
+ [0,7].forEach(iv=>mDrone(ac,mid(ph.root-12+iv),t,BBAR+.05,.055));
+ [0,2].forEach(b=>mKick(ac,t+b*BBEAT));
+ [1,3].forEach(b=>mHit(ac,t+b*BBEAT,.13,1300,.19));
+ for(let i=0;i<8;i++)mHit(ac,t+i*BBEAT/2+BBEAT/4,.03,7000,.05);
+ /* Lead: sixteenths, chord tones on the beat and the scale between them. */
+ for(let i=0;i<16;i++){
+  if(Math.random()>.58)continue;
+  const pool=i%4===0?ph.ch:HMIN;
+  let n=pool[Math.floor(Math.random()*pool.length)]+12;
+  if(Math.random()<.22)n+=12;
+  mPulse(ac,mid(n),t+i*S16,.11,.075,'square');
+ }
+ /* Every fourth bar falls off a chromatic edge, so the loop never sits still. */
+ if(mBar%BPROG.length===BPROG.length-1)
+  for(let k=0;k<4;k++)mPulse(ac,mid(69-k),t+BBAR-.4+k*.1,.09,.085,'square');
+ return BBAR;
+}
+/* Switching is a crossfade plus a change of tone: the boss side wants the top
+   end the pads did not, and almost none of the reverb, or the sixteenths turn
+   to soup. */
+function musicMode(m){
+ if(mMode===m)return;
+ mMode=m;
+ if(!mBus||!AC)return;
+ const ac=AC,t=ac.currentTime,boss=m==='boss';
+ [[mCalm,boss?0:1],[mBoss,boss?1:0]].forEach(([n,v])=>{
+  n.gain.cancelScheduledValues(t);
+  n.gain.setValueAtTime(n.gain.value,t);
+  n.gain.linearRampToValueAtTime(v,t+(v?.35:.7));});
+ mLP.frequency.cancelScheduledValues(t);
+ mLP.frequency.setTargetAtTime(boss?5600:2600,t,.25);
+ mWet.gain.cancelScheduledValues(t);
+ mWet.gain.setTargetAtTime(boss?.14:.5,t,.25);
+ /* Restart the grid rather than dropping the new mode into the middle of the
+    old one's bar. */
+ if(mTimer){clearTimeout(mTimer);mTimer=null;mBar=0;mNext=ac.currentTime+.12;scheduleBar();}
+}
 function scheduleBar(){
  const ac=audioCtx();if(!ac)return;
+ if(mMode==='boss'){const len=scheduleBossBar(ac,mNext);mBar++;mNext+=len;
+  mTimer=setTimeout(scheduleBar,Math.max(30,(mNext-len*.5-ac.currentTime)*1000));return;}
  const ch=PROG[mBar%PROG.length],t=mNext;
  mPad(ac,mid(ch.bass),t,BAR+1.2,.05);
  ch.pad.forEach(n=>mPad(ac,mid(n),t+.2,BAR+.6,.028));
