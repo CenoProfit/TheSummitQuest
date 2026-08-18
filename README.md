@@ -32,7 +32,7 @@ The climber is global rather than per-region, so the same person walks every map
 Each region keeps its own progress, level, and badges. Level titles are flavoured to their own terrain, so Western North Carolina climbs from COUCH POTATO to MOUNTAIN LEGEND while Northern Virginia goes from BELTWAY BOUND to BLUE RIDGE LEGEND.
 
 - Seven quest categories per region: waterfalls and swim holes, short hikes, scenic overlooks, moderate, steep and difficult, long day hikes, and multi-day boss treks
-- 12 levels across a 1,910 XP curve
+- 12 levels, with the top rank's threshold derived from the region's own quest list so it lands exactly on full completion (1,970 XP in Western North Carolina, 2,050 in Northern Virginia)
 - 20 badges, sixteen shared and four specific to the region's landmarks
 - Turn-based boss encounters gated behind the multi-day treks, each with its own name, palette, move set, and intro
 

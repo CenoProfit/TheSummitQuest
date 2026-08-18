@@ -1187,6 +1187,16 @@ REGIONS.nova={
 /* xp is derived, so compute it for every region up front: the launcher needs it
    to total lifetime XP without booting a world. */
 Object.values(REGIONS).forEach(rg=>rg.quests.forEach(p=>p.xp=DIFF_XP[p.d]+CAT_BONUS[p.c]));
+/* The top rank should land exactly on full completion. Derive its threshold from
+   the region's own quest list rather than hardcoding it, so adding a destination
+   can never again leave max rank reachable with hikes still outstanding. */
+Object.values(REGIONS).forEach(rg=>{
+ const total=rg.quests.reduce((s,p)=>s+p.xp,0);
+ const lv=rg.levels,top=lv[lv.length-1],prev=lv[lv.length-2];
+ /* only ever raise it, and never below the rank beneath it */
+ top.xp=Math.max(total,prev?prev.xp+1:total);
+ if(total<prev.xp)console.warn(rg.id+': level curve outruns its available XP');
+});
 /* ═══════════════ 1a. TOAST ═══════════════ */
 const toastEl=document.getElementById('toast');let tT=null,toastQ=[];
 function toast(a,b){toastEl.querySelector('.t1').textContent=a;toastEl.querySelector('.t2').textContent=b||"";
