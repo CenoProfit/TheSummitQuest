@@ -19,6 +19,12 @@ The two regions are deliberately different to generate. Western North Carolina i
 
 Adding a third region is a data change, not an engine change: a region supplies its own bounds, terrain features, quest list, bosses, level titles, and four landmark badges.
 
+## Sections
+
+**MAP** the region's world map. **LOGBOOK** everything cleared, newest first. **BADGES** the 20 achievements. **AVATAR** your climber: name them, pick a kit colour, and see your lifetime record and rope team. **REGIONS** goes back to the overworld.
+
+The climber is global rather than per-region, so the same person walks every map. Skins, gear and titles are the intended next step there.
+
 ## Progression
 
 Each region keeps its own progress, level, and badges. Level titles are flavoured to their own terrain, so Western North Carolina climbs from COUCH POTATO to MOUNTAIN LEGEND while Northern Virginia goes from BELTWAY BOUND to BLUE RIDGE LEGEND.
@@ -29,6 +35,14 @@ Each region keeps its own progress, level, and badges. Level titles are flavoure
 - Turn-based boss encounters gated behind the multi-day treks, each with its own name, palette, move set, and intro
 
 The overworld map totals lifetime progress across every region.
+
+Category filtering is inclusive: nothing selected shows everything, and clicking a type shows only that type. Click more to add them. The map's filter bar and the catalog's chips are two views of the same selection, so the map and the list never disagree.
+
+## On a phone
+
+The header collapses and the map sits above the fold. Choosing a destination opens it as a bottom sheet over the map rather than a panel below it, so the description and the MARK COMPLETE button are reachable without scrolling — even for a multi-day boss trek, the longest entry there is. A boss fight hides the page chrome and lays the art, party bar, log and action buttons out to fill exactly one screen.
+
+Nothing in either layout depends on a CSS animation finishing. A throttled or backgrounded tab freezes animations mid-flight, and a sheet that animates into place would be left parked off screen with the destination unreachable.
 
 ## Saving progress
 

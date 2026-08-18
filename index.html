@@ -263,14 +263,123 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .loading .lfill{height:100%;width:0%;background:repeating-linear-gradient(90deg,#f5c651 0 4px,#c99a2c 4px 8px);transition:width .2s}
 
 /* ── phones ── */
+
+/* ── segmented zoom control ── */
+.seg{display:flex;gap:0}
+.seg .seg-b{border-right-width:0;box-shadow:none;position:relative}
+.seg .seg-b:last-child{border-right-width:2px;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
+.seg .seg-b:active{transform:none}
+.seg .seg-b.on{z-index:2}
+.maptools{align-items:center}
+/* ── options popover ── */
+.menu-wrap{position:relative}
+.opt-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;display:none;
+ min-width:186px;background:var(--panel);border:3px solid var(--edge2);padding:6px;
+ box-shadow:0 0 0 3px var(--bg),5px 5px 0 3px rgba(0,0,0,.6)}
+.opt-pop.open{display:block}
+.opt-h{font-family:var(--pix);font-size:7px;color:var(--dim);letter-spacing:1px;
+ padding:7px 6px 5px;border-top:1px solid var(--edge);margin-top:4px}
+.opt-h:first-child{border-top:0;margin-top:0;padding-top:3px}
+.opt-i{display:block;width:100%;text-align:left;font-family:var(--pix);font-size:8px;
+ letter-spacing:.5px;background:transparent;color:var(--ink);border:2px solid transparent;
+ padding:8px 7px;cursor:pointer}
+.opt-i:hover{background:var(--panel2);border-color:var(--edge2)}
+.opt-i.on{color:var(--gold)}
+.opt-i.danger{color:#f08a7a}
+.opt-i.danger:hover{background:#3a1512;border-color:#8a3226}
+/* ── filter bar: clicking a category KEEPS it (nothing selected = show all) ── */
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0;align-items:center}
+.leg{cursor:pointer;user-select:none}
+.leg.sel{border-color:var(--gold);background:#2a3346;box-shadow:2px 2px 0 rgba(0,0,0,.55)}
+.leg.dim{opacity:.42}
+.leg-all{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--dim);
+ background:var(--panel2);border:2px solid var(--edge);padding:7px 9px;cursor:pointer}
+.leg-all.on{color:var(--gold);border-color:var(--edge2)}
+.leg-hint{font-size:10px;color:var(--dim);letter-spacing:1px;margin-left:2px}
+/* ── detail sheet ── */
+.sheet-scrim{display:none;position:fixed;inset:0;background:rgba(3,6,12,.66);z-index:70}
+.sheet-scrim.open{display:block}
+.d-close{display:none}
+/* ── avatar ── */
+.av-frame{padding:14px}
+.av-grid{display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:14px;align-items:start}
+.av-stage{background:#060a10;border:2px solid var(--edge2);padding:12px;display:flex;
+ align-items:center;justify-content:center;
+ background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:12px 12px}
+#avCanvas{image-rendering:pixelated;image-rendering:crisp-edges;width:100%;height:auto;max-width:132px}
+.av-h{font-family:var(--pix);font-size:8px;color:var(--gold);letter-spacing:1px;margin:0 0 7px}
+.av-side .av-h{margin-top:14px}
+.av-side .av-h:first-child{margin-top:0}
+.av-input{width:100%;background:#060a10;border:2px solid var(--edge2);color:var(--ink);
+ font-family:var(--pix);font-size:10px;padding:10px 9px;letter-spacing:1px}
+.av-input:focus{outline:none;border-color:var(--gold)}
+.av-input::placeholder{color:#5d6b7d;font-family:var(--body);font-size:12px;letter-spacing:0}
+.av-kits{display:flex;gap:7px;flex-wrap:wrap}
+.av-kit{width:40px;height:58px;border:2px solid var(--edge2);cursor:pointer;padding:3px;
+ background:#060a10;box-shadow:2px 2px 0 rgba(0,0,0,.55);position:relative}
+.av-kit.on{border-color:var(--gold);box-shadow:0 0 0 2px #7a5308,2px 2px 0 2px rgba(0,0,0,.55)}
+.av-kit canvas{width:100%;height:auto;image-rendering:pixelated;display:block}
+.av-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px}
+.av-st{background:var(--panel2);border:2px solid var(--edge);padding:8px 9px}
+.av-st .k{font-size:9px;color:var(--dim);letter-spacing:1px;display:block}
+.av-st .v{font-family:var(--pix);font-size:9px;color:var(--ink);margin-top:5px;display:block;line-height:1.6}
+.av-party{margin-top:14px;border-top:2px solid var(--edge);padding-top:12px}
+.av-party-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.av-mate{background:#060a10;border:2px solid var(--edge);padding:7px;text-align:center}
+.av-mate canvas{image-rendering:pixelated;display:block;width:36px;height:54px}
+.av-mate span{display:block;font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:5px}
+.av-soon{font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:11px;text-align:center}
+
 @media (max-width:640px){
  body{padding:10px 10px 52px}
- .title{font-size:clamp(9px,3.6vw,14px);letter-spacing:1px}
- .subtitle{font-size:9px;letter-spacing:1px;margin-bottom:9px}
+ /* the detail panel becomes a bottom sheet so a destination never needs a scroll */
+ /* Closed is display:none, and open has NO entry animation. The sheet's resting
+    position must never depend on an animation finishing: a throttled or hidden
+    tab freezes CSS animations mid-flight, and anything that parks the panel off
+    screen while it waits leaves the destination unreachable. Appearing instantly
+    in the right place always works. */
+ .detail{position:fixed;left:0;right:0;bottom:0;z-index:80;margin:0;display:none;
+  max-height:82vh;max-height:82dvh;overflow:auto;-webkit-overflow-scrolling:touch;
+  border-width:3px 0 0;box-shadow:0 -6px 0 rgba(0,0,0,.5);
+  padding:14px 14px calc(18px + env(safe-area-inset-bottom))}
+ .detail.open{display:block}
+ .detail .d-empty{display:none}
+ .d-close{display:block;position:sticky;top:0;float:right;margin:-6px -4px 0 8px;
+  font-family:var(--pix);font-size:11px;background:var(--panel2);color:var(--ink);
+  border:2px solid var(--edge2);padding:7px 10px;cursor:pointer;z-index:2}
+ .d-actions{position:sticky;bottom:0;background:var(--panel);padding-top:9px;margin-top:2px}
+ /* battle fills the screen instead of running off the bottom */
+ body.fighting{padding-bottom:10px}
+ body.fighting .title,body.fighting .subtitle,body.fighting #hudBox,
+ body.fighting #navBar,body.fighting .footnote{display:none!important}
+ body.fighting #screenBattle{display:flex;flex-direction:column;
+  height:calc(100vh - 20px);height:calc(100dvh - 20px);gap:6px}
+ body.fighting .bt-frame{margin:0;flex:0 1 auto;min-height:0}
+ body.fighting #battleCanvas{max-height:none;height:100%;width:auto;object-fit:contain}
+ body.fighting .bt-hud{margin:0;flex:0 0 auto}
+ /* the log takes whatever is left between the art and the buttons */
+ body.fighting .bt-log{margin:0;flex:1 1 auto;min-height:0;overflow:auto}
+ body.fighting .bt-menu{margin-top:auto;flex:0 0 auto}
+ body.fighting #helpBtn,body.fighting .help-box{display:none!important}
+ .opt-pop{right:auto;left:0;min-width:210px}
+ .av-grid{grid-template-columns:1fr}
+ .av-stage{padding:16px}
+
+ /* the header is compressed hard on phones so the map is above the fold */
+ .title{font-size:clamp(9px,3.6vw,14px);letter-spacing:1px;margin:2px 0 2px}
+ .subtitle{font-size:8px;letter-spacing:1px;margin-bottom:7px}
+ .hud{padding:8px 9px;margin-bottom:6px}
+ .hud-top{margin-bottom:6px;gap:7px}
+ .xp-track{height:13px}
+ .next-lvl{font-size:9px;margin-top:5px}
+ .toolbar{gap:4px;margin-bottom:6px}
+ #navBar .clock{font-size:9px;margin-left:auto}
+ .map-wrap{max-height:56vh}
  .btn{font-size:7px;padding:10px 9px;letter-spacing:.5px}
  .hud{padding:9px 10px}
  .lvl-badge{font-size:9px;padding:6px 7px}
- .lvl-name{font-size:9px;min-width:100%}
+ .lvl-name{font-size:9px;min-width:0;flex:1 1 auto}
  .frame{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--edge2),3px 3px 0 4px rgba(0,0,0,.55)}
  .cat-panel{width:94%}
  .cat-body{padding:9px}
@@ -400,22 +509,35 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
   <button class="btn on" id="navMap">MAP</button>
   <button class="btn" id="navLog">LOGBOOK</button>
   <button class="btn" id="navBadge">BADGES</button>
+  <button class="btn" id="navAvatar">AVATAR</button>
   <span class="spacer"></span>
   <span class="clock" id="clock">☀ DAY</span>
 </div>
 
 <div class="screen active" id="screenMap">
-  <div class="toolbar">
-    <button class="btn on" id="z1">FIT</button>
-    <button class="btn" id="z2">ZOOM 2&times;</button>
-    <button class="btn" id="z3">ZOOM 4&times;</button>
-    <button class="btn" id="timeBtn">TIME: AUTO</button>
-    <button class="btn" id="labelBtn">LABELS: ON</button>
-    <button class="btn" id="pinBtn">PINS: ON</button>
-    <button class="btn on" id="sndBtn">SND: ON</button>
-    <button class="btn" id="exportBtn">EXPORT</button>
-    <button class="btn" id="importBtn">IMPORT</button>
-    <button class="btn" id="resetBtn">RESET</button>
+  <div class="toolbar maptools">
+    <div class="seg">
+      <button class="btn seg-b on" id="z1">FIT</button>
+      <button class="btn seg-b" id="z2">2&times;</button>
+      <button class="btn seg-b" id="z3">4&times;</button>
+    </div>
+    <button class="btn" id="filterBtn">◈ FILTER</button>
+    <span class="spacer"></span>
+    <div class="menu-wrap">
+      <button class="btn" id="optBtn">⚙ OPTIONS</button>
+      <div class="opt-pop" id="optPop">
+        <div class="opt-h">VIEW</div>
+        <button class="opt-i" id="timeBtn">TIME: AUTO</button>
+        <button class="opt-i" id="labelBtn">LABELS: ON</button>
+        <button class="opt-i" id="pinBtn">PINS: ON</button>
+        <div class="opt-h">SOUND</div>
+        <button class="opt-i on" id="sndBtn">SOUND: ON</button>
+        <div class="opt-h">SAVE DATA</div>
+        <button class="opt-i" id="exportBtn">EXPORT SAVE…</button>
+        <button class="opt-i" id="importBtn">IMPORT SAVE…</button>
+        <button class="opt-i danger" id="resetBtn">RESET THIS REGION</button>
+      </div>
+    </div>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
   </div>
   <div class="map-shell" id="mapShell">
@@ -458,6 +580,7 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
     </div>
   </div>
   <div class="legend" id="legend"></div>
+  <div class="sheet-scrim" id="detailScrim"></div>
   <div class="frame detail" id="detail"><div class="d-empty">▼ ▼ ▼<br>SELECT A LOCATION<br>▲ ▲ ▲</div></div>
 </div>
 
@@ -494,6 +617,28 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
 
 <div class="screen" id="screenBadge"><div class="frame"><div class="badge-grid" id="badgeGrid"></div></div></div>
 <div class="screen" id="screenLog"><div class="frame"><div class="log-list" id="logList"></div></div></div>
+<div class="screen" id="screenAvatar">
+  <div class="frame av-frame">
+    <div class="av-grid">
+      <div class="av-stage">
+        <canvas id="avCanvas" width="132" height="198"></canvas>
+      </div>
+      <div class="av-side">
+        <div class="av-h">CLIMBER NAME</div>
+        <input id="avName" class="av-input" maxlength="18" placeholder="name your climber" autocomplete="off">
+        <div class="av-h">KIT COLOUR</div>
+        <div class="av-kits" id="avKits"></div>
+        <div class="av-h">RECORD</div>
+        <div class="av-stats" id="avStats"></div>
+      </div>
+    </div>
+    <div class="av-party">
+      <div class="av-h">YOUR ROPE TEAM</div>
+      <div class="av-party-row" id="avParty"></div>
+      <div class="av-soon">◈ SKINS, GEAR AND TITLES COMING LATER</div>
+    </div>
+  </div>
+</div>
 
 <div class="footnote" id="foot">DRAG TO PAN · TAP A BANNER TO INSPECT · PINK SKULL BANNERS ARE BOSS TREKS</div>
 <div id="toast"><div class="t1"></div><div class="t2"></div></div>
@@ -1060,16 +1205,28 @@ function normalizeSlot(d,rg,tally){
 function isSaveShaped(d){
  if(!d||typeof d!=='object'||Array.isArray(d))return false;
  if(d.regions&&typeof d.regions==='object')return true;
+ if(d.profile&&typeof d.profile==='object')return true;
  return ['done','slain','badges'].some(k=>d[k]&&typeof d[k]==='object');
 }
 /* v1 -> v2: a flat save predates regions and can only be Western NC */
+/* The climber is global, not per-region: one person walks every map.
+   KIT_COUNT mirrors HPALS, which lives inside the engine — this runs at boot,
+   before the engine exists, so it cannot read HPALS directly. */
+const KIT_COUNT=4;
+function blankProfile(){return{name:'',kit:0};}
+function normalizeProfile(p){
+ if(!p||typeof p!=='object')return blankProfile();
+ const name=(typeof p.name==='string')?p.name.replace(/[\r\n\t]/g,' ').trim().slice(0,18):'';
+ const kit=Number.isInteger(p.kit)&&p.kit>=0&&p.kit<KIT_COUNT?p.kit:0;
+ return{name,kit};
+}
 function normalizeFile(raw,tally){
- const t=tally||{dropped:0},out={v:2,regions:{}};
+ const t=tally||{dropped:0},out={v:3,profile:normalizeProfile(raw&&raw.profile),regions:{}};
  const src=(raw&&raw.regions&&typeof raw.regions==='object')?raw.regions:{wnc:raw};
  RIDS.forEach(id=>{out.regions[id]=normalizeSlot(src[id],REGIONS[id],t);});
  return out;
 }
-let FILE={v:2,regions:{}};
+let FILE={v:3,profile:blankProfile(),regions:{}};
 RIDS.forEach(id=>FILE.regions[id]=blank());
 let saveWarned=false;
 function warnNoSave(){
@@ -1089,7 +1246,7 @@ async function readFile(){
    if(t.dropped)queueToast("SAVE PARTLY UNREADABLE",
     t.dropped+" entr"+(t.dropped===1?"y was":"ies were")+" dropped");
   }
- }catch(e){FILE={v:2,regions:{}};RIDS.forEach(id=>FILE.regions[id]=blank());}
+ }catch(e){FILE={v:3,profile:blankProfile(),regions:{}};RIDS.forEach(id=>FILE.regions[id]=blank());}
  if(STORE.kind==='memory')warnNoSave();
 }
 /* per-region rollups the launcher shows without generating a world */
@@ -2703,7 +2860,12 @@ const stars=[];for(let i=0;i<320;i++)stars.push([Math.random()*W,Math.random()*H
 /* ═══════════════ 8. MAP RENDER ═══════════════ */
 const cv=document.getElementById('map'),cx2=cv.getContext('2d');
 cv.width=W;cv.height=H;cx2.imageSmoothingEnabled=false;
-let zoom=1,jumpPulse=0,showMarkers=true,sound=true,hoverId=null,selId=null,hiddenCats={},showLabels=true,tick=0;
+let zoom=1,jumpPulse=0,showMarkers=true,sound=true,hoverId=null,selId=null,showLabels=true,tick=0;
+/* Category filter. Inclusion, not exclusion: an empty set means show everything,
+   and clicking a category keeps that one. The map legend and the catalog chips
+   are two views of this same set, so the map and the list never disagree. */
+const catSel=new Set();
+const catShown=c=>catSel.size===0||catSel.has(c);
 let zoomIdx=0, zoomMul=1;
 function fitScale(){
  const wr=document.getElementById('mapWrap');
@@ -2794,13 +2956,13 @@ function render(){
  // labels last so lights and tint never wash them out
  if(showLabels)cx2.drawImage(labelLayer,0,0);
  if(!showMarkers)return;
- const vis=P.filter(p=>!hiddenCats[p.c]);
+ const vis=P.filter(p=>catShown(p.c));
  vis.filter(p=>S.done[p.id]).sort((a,b)=>a.y-b.y).forEach(drawMarker);
  vis.filter(p=>!S.done[p.id]&&p.id!==selId&&p.id!==hoverId).sort((a,b)=>a.y-b.y).forEach(drawMarker);
  vis.filter(p=>!S.done[p.id]&&(p.id===hoverId||p.id===selId)).forEach(drawMarker);
 }
 function hit(mx,my){if(!showMarkers)return null;let best=null,bd=1e9;
- for(const p of P){if(hiddenCats[p.c])continue;
+ for(const p of P){if(!catShown(p.c))continue;
   const dx=mx-p.x, dy=my-(p.y-BAN_H/2);
   // keep the tap target ~26 screen px regardless of zoom
   const padX=Math.max(15,20/Math.max(0.12,zoom)), padY=Math.max(BAN_H/2+6,24/Math.max(0.12,zoom));
@@ -3300,6 +3462,7 @@ const HPALS=[
  {a:"#ecd868",b:"#bda428",c:"#f5cba2",d:"#241408",e:"#2c5a34",f:"#357a48",g:"#4fa25f",h:"#e8ac68",i:"#2a3a2c",j:"#3d2c18"},
  {a:"#d4562c",b:"#a03418",c:"#f5cba2",d:"#241408",e:"#3d3462",f:"#5a4a92",g:"#7d6ab8",h:"#e8ac68",i:"#32304c",j:"#3d2c18"}];
 const HEROES=HPALS.map(makeHero);
+if(HPALS.length!==KIT_COUNT)console.warn('KIT_COUNT is out of step with HPALS');
 
 /* ═══════════════ 10. BATTLE SCENE ═══════════════ */
 const bc=document.getElementById('battleCanvas'),bcx=bc.getContext('2d');
@@ -4043,8 +4206,8 @@ async function load(){S=slot();}
    not just the one on screen, so one file is the whole account. */
 function exportSave(){
  FILE.regions[ACTIVE]=S;
- const blob=new Blob([JSON.stringify({v:2,exported:new Date().toISOString(),
-  regions:FILE.regions},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({v:3,exported:new Date().toISOString(),
+  profile:FILE.profile,regions:FILE.regions},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob);
  const a=document.createElement('a');
  a.href=url;a.download='summit-save-'+new Date().toISOString().slice(0,10)+'.json';
@@ -4117,8 +4280,21 @@ const fmtDate=i=>new Date(i).toLocaleDateString(undefined,{month:'short',day:'nu
    input already showed pushed the stamp forward 24h on every edit. */
 const inputDay=i=>{const d=new Date(i);
  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+
+/* ── detail sheet (phones): a destination opens over the map, never below it ── */
+const detailScrim=document.getElementById('detailScrim');
+const isPhone=()=>window.matchMedia('(max-width:640px)').matches;
+function openSheet(){
+ if(!isPhone())return;
+ detail.classList.add('open');detailScrim.classList.add('open');
+}
+function closeSheet(){
+ detail.classList.remove('open');detailScrim.classList.remove('open');
+}
+detailScrim.onclick=()=>{closeSheet();};
+
 function showDetail(p){
- if(!p){detail.innerHTML='<div class="d-empty">▼ ▼ ▼<br>SELECT A LOCATION<br>▲ ▲ ▲</div>';return;}
+ if(!p){detail.innerHTML='<div class="d-empty">▼ ▼ ▼<br>SELECT A LOCATION<br>▲ ▲ ▲</div>';closeSheet();return;}
  const col=CATS[p.c].color,dn=!!S.done[p.id],boss=p.c==="multi";
  const Bs=boss?BOSSES[p.boss]:null,li=lvlFor(totalXP())+1;
  let bb='';
@@ -4156,6 +4332,11 @@ function showDetail(p){
  document.getElementById('cbtn').onclick=()=>{if(boss&&!dn)startBattle(p);else toggle(p);};
  const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>toggle(p);
  const dl=document.getElementById('dlog');
+ {const x=document.createElement('button');
+  x.className='d-close';x.textContent='✕ CLOSE';
+  x.onclick=()=>{closeSheet();selId=null;render();};
+  detail.insertBefore(x,detail.firstChild);}
+ openSheet();
  if(dl)dl.onchange=async e=>{
   /* Clearing the field fires change with an empty value; without this the stamp
      built below is Invalid Date and toISOString() throws. */
@@ -4175,35 +4356,60 @@ async function toggle(p){
 }
 /* ═══════════════ 18. SCREENS ═══════════════ */
 function setScreen(s){
- ['Map','Battle','Badge','Log'].forEach(k=>document.getElementById('screen'+k).classList.remove('active'));
- const mm={map:'Map',battle:'Battle',badge:'Badge',log:'Log'};
+ ['Map','Battle','Badge','Log','Avatar'].forEach(k=>document.getElementById('screen'+k).classList.remove('active'));
+ const mm={map:'Map',battle:'Battle',badge:'Badge',log:'Log',avatar:'Avatar'};
  document.getElementById('screen'+mm[s]).classList.add('active');
- ['navMap','navLog','navBadge'].forEach(id=>document.getElementById(id).classList.remove('on'));
+ /* the battle takes the whole phone screen, so the page chrome steps aside */
+ document.body.classList.toggle('fighting',s==='battle');
+ if(s!=='map')closeSheet();
+ ['navMap','navLog','navBadge','navAvatar'].forEach(id=>document.getElementById(id).classList.remove('on'));
  if(s==='map')document.getElementById('navMap').classList.add('on');
  if(s==='log')document.getElementById('navLog').classList.add('on');
  if(s==='badge')document.getElementById('navBadge').classList.add('on');
+ if(s==='avatar')document.getElementById('navAvatar').classList.add('on');
  document.getElementById('foot').textContent = s==='battle'
   ? "BOSS TELEGRAPHS ITS NEXT MOVE — BRACE ON HEAVY & DEVASTATING"
   : "DRAG TO PAN · TAP A BANNER TO INSPECT · PINK SKULL BANNERS ARE BOSS TREKS";
  window.scrollTo({top:0,behavior:'smooth'});}
-document.getElementById('helpBtn').onclick=e=>{
- const hb=document.getElementById('helpBox');
- const open=hb.classList.toggle('open');
- e.target.classList.toggle('on',open);
- e.target.textContent=(open?'\u25BC':'?')+' HOW THE FIGHT WORKS';
- if(open)hb.scrollIntoView({behavior:'smooth',block:'nearest'});};
 document.getElementById('navWorld').onclick=()=>{location.hash='';location.reload();};
 document.getElementById('navMap').onclick=()=>{if(BT&&!BT.over)return;BT=null;setScreen('map');};
 document.getElementById('navLog').onclick=()=>{renderLog();setScreen('log');};
 document.getElementById('navBadge').onclick=()=>{renderBadges();setScreen('badge');};
+document.getElementById('navAvatar').onclick=()=>{renderAvatar();setScreen('avatar');};
 /* ═══════════════ 19. LEGEND + INPUT ═══════════════ */
 const legend=document.getElementById('legend');
-Object.entries(CATS).forEach(([k,v])=>{const n=P.filter(p=>p.c===k).length;
- const el=document.createElement('div');el.className='leg';
- el.innerHTML=`<i style="background:${v.color}"></i>${v.name} <span class="n">(${n})</span>`;
- el.onclick=()=>{hiddenCats[k]=!hiddenCats[k];el.classList.toggle('off',hiddenCats[k]);
-  if(hiddenCats[k]&&selId&&P.find(p=>p.id===selId)?.c===k){selId=null;showDetail(null);}render();};
- legend.appendChild(el);});
+function buildLegend(){
+ legend.innerHTML='';
+ const all=document.createElement('div');
+ all.className='leg-all'+(catSel.size===0?' on':'');
+ all.textContent='ALL';
+ all.onclick=()=>{catSel.clear();syncFilters();};
+ legend.appendChild(all);
+ Object.entries(CATS).forEach(([k,v])=>{
+  const n=P.filter(p=>p.c===k).length,d=nDone(k);
+  const el=document.createElement('div');
+  el.className='leg'+(catSel.has(k)?' sel':(catSel.size?' dim':''));
+  el.innerHTML=`<i style="background:${v.color}"></i>${v.name} <span class="n">${d}/${n}</span>`;
+  el.onclick=()=>{
+   catSel.has(k)?catSel.delete(k):catSel.add(k);
+   /* deselecting the last one is the same as no filter at all */
+   syncFilters();};
+  legend.appendChild(el);});
+ const hint=document.createElement('span');
+ hint.className='leg-hint';
+ hint.textContent=catSel.size?'showing '+P.filter(p=>catShown(p.c)).length+' of '+P.length
+  :'tap a type to show only that';
+ legend.appendChild(hint);
+}
+/* one place to redraw everything the filter touches */
+function syncFilters(){
+ if(selId){const sp=P.find(p=>p.id===selId);
+  if(sp&&!catShown(sp.c)){selId=null;showDetail(null);}}
+ buildLegend();
+ if(catOpen){buildChips();renderCatalog();}
+ render();
+}
+buildLegend();
 const wrap=document.getElementById('mapWrap'),tip=document.getElementById('tooltip');
 let drag=false,moved=false,sxp=0,syp=0,sl=0,st=0;
 const toLog=e=>{const r=cv.getBoundingClientRect();
@@ -4277,12 +4483,22 @@ document.getElementById('labelBtn').onclick=e=>{showLabels=!showLabels;
  e.target.textContent="LABELS: "+(showLabels?"ON":"OFF");
  e.target.classList.toggle('on',!showLabels);render();};
 document.getElementById('sndBtn').onclick=e=>{sound=!sound;
- e.target.textContent="SND: "+(sound?"ON":"OFF");e.target.classList.toggle('on',sound);if(sound)blip();};
+ e.target.textContent="SOUND: "+(sound?"ON":"OFF");e.target.classList.toggle('on',sound);if(sound)blip();};
 document.getElementById('resetBtn').onclick=async()=>{
  if(confirm("Wipe ALL progress, badges, and boss kills?")){
   S={done:{},slain:{},badges:{}};selId=null;await save();
   updHUD();render();showDetail(null);renderBadges();renderLog();
-  refreshCatalog();bestBuilt=false;layoutRails();}};
+  refreshCatalog();buildLegend();bestBuilt=false;layoutRails();}};
+const optBtn=document.getElementById('optBtn'),optPop=document.getElementById('optPop');
+const closeOpt=()=>{optPop.classList.remove('open');optBtn.classList.remove('on');};
+optBtn.onclick=e=>{e.stopPropagation();
+ const open=!optPop.classList.contains('open');
+ optPop.classList.toggle('open',open);optBtn.classList.toggle('on',open);};
+optPop.addEventListener('click',e=>e.stopPropagation());
+document.addEventListener('click',closeOpt);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOpt();closeSheet();}});
+document.getElementById('filterBtn').onclick=()=>{
+ document.getElementById('legend').scrollIntoView({behavior:'smooth',block:'center'});};
 document.getElementById('exportBtn').onclick=()=>exportSave();
 const importFile=document.getElementById('importFile');
 document.getElementById('importBtn').onclick=()=>{importFile.click();};
@@ -4290,27 +4506,95 @@ importFile.onchange=async e=>{const f=e.target.files&&e.target.files[0];
  if(f)await importSave(f);
  e.target.value='';};
 
+
+/* ═══════════════ 22. AVATAR ═══════════════ */
+const MATE_ROLES=["YOU","PACER","SCOUT","ANCHOR"];
+/* The lead climber wears the chosen kit; the other three keep their own colours,
+   so the rope team still reads as four people. */
+const heroFor=i=>HEROES[i%HEROES.length];
+const leadKit=()=>(FILE.profile&&FILE.profile.kit)||0;
+const climberName=()=>((FILE.profile&&FILE.profile.name)||'').trim()||'UNNAMED CLIMBER';
+function blitHero(cv2,img,scale){
+ const g=cv2.getContext('2d');
+ cv2.width=img.width*scale;cv2.height=img.height*scale;
+ g.imageSmoothingEnabled=false;
+ g.clearRect(0,0,cv2.width,cv2.height);
+ g.drawImage(img,0,0,cv2.width,cv2.height);
+}
+function renderAvatar(){
+ const img=heroFor(leadKit());
+ blitHero(document.getElementById('avCanvas'),img,11);
+ const nameEl=document.getElementById('avName');
+ if(document.activeElement!==nameEl)nameEl.value=(FILE.profile&&FILE.profile.name)||'';
+ /* kit swatches */
+ const kits=document.getElementById('avKits');kits.innerHTML='';
+ HPALS.forEach((_,i)=>{
+  const b=document.createElement('button');
+  b.className='av-kit'+(i===leadKit()?' on':'');
+  b.title='Kit '+(i+1);
+  b.setAttribute('aria-label','Kit '+(i+1));
+  const c=document.createElement('canvas');blitHero(c,heroFor(i),3);
+  b.appendChild(c);
+  b.onclick=async()=>{FILE.profile.kit=i;await writeFile();renderAvatar();};
+  kits.appendChild(b);});
+ /* record: this region, plus the lifetime line across every region */
+ const xp=totalXP(),li=lvlFor(xp);
+ const lifeDone=RIDS.reduce((n,id)=>n+Object.keys((FILE.regions[id]||blank()).done).length,0);
+ const lifeBadge=RIDS.reduce((n,id)=>n+Object.keys((FILE.regions[id]||blank()).badges).length,0);
+ const lifeSlain=RIDS.reduce((n,id)=>n+Object.keys((FILE.regions[id]||blank()).slain).length,0);
+ const st=(k,v)=>`<div class="av-st"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+ document.getElementById('avStats').innerHTML=
+  st('RANK IN '+RG.short,'LV '+(li+1)+' · '+LEVELS[li].n)+
+  st('CLEARED HERE',tot()+' / '+P.length)+
+  st('LIFETIME CLEARED',lifeDone)+
+  st('LIFETIME BADGES',lifeBadge)+
+  st('BOSSES SLAIN',lifeSlain)+
+  st('XP HERE',xp);
+ /* rope team */
+ const row=document.getElementById('avParty');row.innerHTML='';
+ MATE_ROLES.forEach((role,i)=>{
+  const idx=i===0?leadKit():(leadKit()+i)%HEROES.length;
+  const d=document.createElement('div');d.className='av-mate';
+  const c=document.createElement('canvas');blitHero(c,heroFor(idx),3);
+  d.appendChild(c);
+  const sp=document.createElement('span');
+  sp.textContent=i===0?climberName().slice(0,12):role;
+  d.appendChild(sp);
+  row.appendChild(d);});
+}
+{
+ const nameEl=document.getElementById('avName');
+ let nameT=null;
+ nameEl.addEventListener('input',e=>{
+  FILE.profile.name=e.target.value.slice(0,18);
+  clearTimeout(nameT);
+  /* debounced: typing a name should not hammer storage on every keystroke */
+  nameT=setTimeout(async()=>{await writeFile();renderAvatar();},400);});
+ nameEl.addEventListener('blur',async()=>{await writeFile();renderAvatar();});
+}
+
 /* ═══════════════ 21. CATALOG ═══════════════ */
 const DIFF_ORDER={"Easy":0,"Easy-Mod":1,"Mod":2,"Mod-Hard":3,"Hard":4,"Extreme":5};
-let catOpen=false,catQuery="",catSort="cat",catCats={};
+let catOpen=false,catQuery="",catSort="cat";
 function buildChips(){
  const el=document.getElementById('catChips');el.innerHTML='';
- const all=document.createElement('div');all.className='chip';
+ const all=document.createElement('div');
+ all.className='chip'+(catSel.size===0?' on':'');
  all.innerHTML='<b>ALL</b>';
- all.onclick=()=>{catCats={};renderCatalog();buildChips();};
+ all.onclick=()=>{catSel.clear();syncFilters();};
  el.appendChild(all);
  Object.entries(CATS).forEach(([k,v])=>{
   const n=P.filter(q=>q.c===k).length,d=nDone(k);
   const c=document.createElement('div');
-  c.className='chip'+(catCats[k]?' off':'');
+  c.className='chip'+(catSel.has(k)?' on':(catSel.size?' off':''));
   c.innerHTML=`<i style="background:${v.color}"></i>${v.name.split(' ')[0]} <span style="color:#8695a8">${d}/${n}</span>`;
-  c.onclick=()=>{catCats[k]=!catCats[k];buildChips();renderCatalog();};
+  c.onclick=()=>{catSel.has(k)?catSel.delete(k):catSel.add(k);syncFilters();};
   el.appendChild(c);});
 }
 function catRows(){
  const q=catQuery.trim().toLowerCase();
  let rows=P.filter(p=>{
-  if(catCats[p.c])return false;
+  if(!catShown(p.c))return false;
   if(!q)return true;
   return (p.n+" "+p.d+" "+p.drive+" "+p.mi+" "+p.food+" "+CATS[p.c].name+" "+p.hi)
    .toLowerCase().includes(q);});
@@ -4349,7 +4633,7 @@ function renderCatalog(){
 }
 function jumpTo(id){
  const p=P.find(q=>q.id===id);if(!p)return;
- if(hiddenCats[p.c]){hiddenCats[p.c]=false;
+ if(!catShown(p.c)){catSel.add(p.c);syncFilters();
   [...legend.children].forEach(el=>{
    if(el.textContent.includes(CATS[p.c].name))el.classList.remove('off');});}
  selId=p.id;jumpPulse=34;render();showDetail(p);
