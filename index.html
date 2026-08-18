@@ -4661,11 +4661,20 @@ async function checkIn(p,onPass){
  const d=metresBetween(fix.lat,fix.lon,p.lat,p.lon);
  if(d<=GEOFENCE_M){btn.textContent='✓ YOU ARE HERE';await pass();return;}
  btn.disabled=false;btn.textContent='TRY AGAIN';
+ const manual='<div style="margin-top:7px"><span class="small-link" id="manlog">log it by hand instead</span></div>';
+ /* A fix carries its own margin of error, and a reading is only a refusal if it
+    is outside the radius by more than that margin. A laptop geolocating off
+    wifi reports kilometres out with kilometres of error — a reading equally
+    consistent with standing at the falls — and calling that "you are not here"
+    would be a claim the data does not support. Say so instead of accusing. */
+ if(fix.acc&&d-fix.acc<=GEOFENCE_M){
+  checkNote(p,`<span style="color:#f5c651">Cannot confirm this one from here. Your device places you <b>${fmtDist(d)}</b> away but is only sure to about <b>${fmtDist(fix.acc)}</b>, which is too rough to tell whether you are at ${p.n}.</span>`
+   +'<div style="color:var(--dim);margin-top:6px">A phone outdoors will do better than a laptop. If you are there, try again in a few seconds.</div>'+manual);
+  return;}
  checkNote(p,`<span style="color:#ff9a86">You read as <b>${fmtDist(d)}</b> from ${p.n}`
   +(fix.acc?`, with the fix itself accurate to about ${fmtDist(fix.acc)}`:'')
   +`. The check needs ${GEOFENCE_M} m.</span>`
-  +'<div style="color:var(--dim);margin-top:6px">If you are standing there, wait a few seconds for the signal to settle and try again.</div>'
-  +'<div style="margin-top:7px"><span class="small-link" id="manlog">log it by hand instead</span></div>');
+  +'<div style="color:var(--dim);margin-top:6px">If you are standing there, wait a few seconds for the signal to settle and try again.</div>'+manual);
 }
 async function toggle(p){
  const before=lvlFor(totalXP());
