@@ -1,0 +1,33 @@
+{
+  "name": "summit",
+  "version": "0.1.0",
+  "description": "Summit: a location-based hiking RPG.",
+  "scripts": {
+    "build": "rm -rf www && mkdir -p www && cp index.html www/index.html",
+    "sync": "npm run build && npx cap sync",
+    "ios": "npm run sync && npx cap open ios",
+    "android": "npm run sync && npx cap open android",
+    "serve": "npx --yes http-server www -p 8801 -c-1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CenoProfit/TheSummitQuest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/CenoProfit/TheSummitQuest/issues"
+  },
+  "homepage": "https://github.com/CenoProfit/TheSummitQuest#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/camera": "^8.2.2",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/ios": "^8.5.0"
+  },
+  "private": true
+}
