@@ -316,6 +316,9 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .opt-i.on{color:var(--gold)}
 .opt-i.danger{color:#f08a7a}
 .opt-i.danger:hover{background:#3a1512;border-color:#8a3226}
+.mus-standalone{display:inline-block;width:auto;min-width:132px;text-align:center;
+ background:var(--panel2);border-color:var(--edge2);padding:9px 14px}
+.mus-standalone:hover{background:var(--panel)}
 /* ── filter bar: clicking a category KEEPS it (nothing selected = show all) ── */
 .legend{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0;align-items:center}
 .leg{cursor:pointer;user-select:none}
@@ -535,6 +538,9 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
       <div class="w-list" id="wList"></div>
     </div>
     <div class="w-foot" id="wFoot">MORE REGIONS COMING · PICK A PIN OR A CARD TO DROP IN</div>
+    <div style="text-align:center;padding:0 0 12px">
+      <button class="opt-i on mus-toggle mus-standalone" id="musBtnW">MUSIC: ON</button>
+    </div>
   </div>
 </div>
 
@@ -580,6 +586,7 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
         <button class="opt-i" id="pinBtn">PINS: ON</button>
         <div class="opt-h">SOUND</div>
         <button class="opt-i on" id="sndBtn">SOUND: ON</button>
+        <button class="opt-i on mus-toggle" id="musBtn">MUSIC: ON</button>
         <div class="opt-h">SAVE DATA</div>
         <button class="opt-i" id="exportBtn">EXPORT SAVE…</button>
         <button class="opt-i" id="importBtn">IMPORT SAVE…</button>
@@ -4422,7 +4429,7 @@ function updHUD(){
 /* ═══════════════ 13. SOUND ═══════════════ */
 let actx=null;
 function tone(f,d,ty,v,dl){ty=ty||"square";v=v||.06;dl=dl||0;if(!sound)return;
- try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();
+ try{actx=actx||audioCtx();if(!actx)return;
   const o=actx.createOscillator(),g=actx.createGain();o.type=ty;o.frequency.value=f;
   o.connect(g);g.connect(actx.destination);const t=actx.currentTime+dl;
   g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
@@ -5096,6 +5103,141 @@ function setMsg(i){const l=document.getElementById('loader');
  requestAnimationFrame(loop);
 })();
 }
+/* ═══════════════ MUSIC ═══════════════
+   A calm, slow score for the whole game, generated rather than streamed. This
+   project is one HTML file and the build copies only that file, so a .ogg would
+   need a second asset pipeline; more to the point, a loop long enough not to
+   grate would outweigh the entire rest of the game. Web Audio writes it live
+   instead, so it never repeats exactly and costs nothing to ship.
+
+   The idiom is the sparse, wistful ambient that suits wandering a map: soft
+   mallet notes over a slow four-chord turn in A minor, a low root under it, and
+   long reverb tails. Everything is deliberately quiet and slightly detuned —
+   nothing here should compete with the game's own blips. */
+const MKEY='summit.music';
+let musicOn=(()=>{try{return localStorage.getItem(MKEY)!=='off';}catch(e){return true;}})();
+/* SFX and music share one AudioContext. iOS caps how many a page may open, and
+   an engine that quietly stopped making noise after a few would be a miserable
+   bug to chase. */
+let AC=null;
+function audioCtx(){
+ try{return AC=AC||new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}
+}
+const mid=m=>440*Math.pow(2,(m-69)/12);
+/* Convolution needs an impulse; noise under an exponential decay is the cheap
+   standard trick and sounds like a large soft room, which is all this needs. */
+function makeIR(ac,sec,decay){
+ const n=Math.floor(ac.sampleRate*sec),b=ac.createBuffer(2,n,ac.sampleRate);
+ for(let c=0;c<2;c++){const d=b.getChannelData(c);
+  for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay);}
+ return b;
+}
+/* A2/F2/C3/G2 with sevenths stacked above. Four bars, eight seconds each, so a
+   full turn is a little over half a minute — slow enough that the ear stops
+   tracking it and it becomes weather rather than melody. */
+const BAR=8;
+const PROG=[
+ {bass:45,pad:[57,60,64,67]},
+ {bass:41,pad:[53,57,60,64]},
+ {bass:48,pad:[55,60,64,67]},
+ {bass:43,pad:[55,59,62,67]}];
+const PENT=[57,60,62,64,67,69,72,74];
+/* Resting level of the whole score. Quiet enough to sit under the game's own
+   blips, loud enough to survive a phone speaker outdoors. Measured rather than
+   guessed: a rendered bar peaks near -18 dBFS here, with headroom to spare when
+   several notes and their echoes happen to land together. */
+const MLEVEL=.48;
+let mBus=null,mWet=null,mTimer=null,mBar=0,mNext=0;
+function musicInit(){
+ const ac=audioCtx();if(!ac||mBus)return ac;
+ mBus=ac.createGain();mBus.gain.value=musicOn?MLEVEL:.0001;
+ const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;
+ const rv=ac.createConvolver();rv.buffer=makeIR(ac,3.6,2.4);
+ mWet=ac.createGain();mWet.gain.value=.5;
+ mBus.connect(lp);lp.connect(ac.destination);lp.connect(mWet);mWet.connect(rv);rv.connect(ac.destination);
+ return ac;
+}
+/* Soft mallet: a triangle through a lowpass with a quick edge and a long tail.
+   Close enough to a struck wooden bar without a sample. */
+function mNote(ac,f,t,vel,len){
+ const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
+ o.type='triangle';o.frequency.value=f;o.detune.value=(Math.random()*8-4);
+ lp.type='lowpass';lp.frequency.value=1500;lp.Q.value=.6;
+ o.connect(lp);lp.connect(g);g.connect(mBus);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+.012);
+ g.gain.exponentialRampToValueAtTime(.0001,t+len);
+ o.start(t);o.stop(t+len+.05);
+}
+/* The pad is two sines a few cents apart per voice; the beating between them is
+   what stops a held chord sounding like a test tone. */
+function mPad(ac,f,t,len,vel){
+ [-5,5].forEach(det=>{
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type='sine';o.frequency.value=f;o.detune.value=det;
+  o.connect(g);g.connect(mBus);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(vel,t+2.4);
+  g.gain.setValueAtTime(vel,t+len-2.6);
+  g.gain.exponentialRampToValueAtTime(.0001,t+len);
+  o.start(t);o.stop(t+len+.05);});
+}
+function scheduleBar(){
+ const ac=audioCtx();if(!ac)return;
+ const ch=PROG[mBar%PROG.length],t=mNext;
+ mPad(ac,mid(ch.bass),t,BAR+1.2,.05);
+ ch.pad.forEach(n=>mPad(ac,mid(n),t+.2,BAR+.6,.028));
+ /* Eight slots a bar, most of them left empty. The rests are the point: this
+    has to survive being heard for an hour without asking for attention. */
+ for(let i=0;i<8;i++){
+  if(Math.random()>.42)continue;
+  const pool=i%2===0?ch.pad:PENT;
+  let n=pool[Math.floor(Math.random()*pool.length)];
+  if(Math.random()<.18)n+=12;
+  const at=t+i+(Math.random()*.06-.03),v=.05+Math.random()*.035;
+  mNote(ac,mid(n),at,v,2.6+Math.random());
+  /* one soft repeat, the delay that gives this kind of music its space */
+  if(Math.random()<.45)mNote(ac,mid(n),at+.375,v*.38,1.8);
+ }
+ mBar++;mNext+=BAR;
+ mTimer=setTimeout(scheduleBar,Math.max(30,(mNext-BAR*.5-ac.currentTime)*1000));
+}
+function musicStart(){
+ if(!musicOn||mTimer)return;
+ const ac=musicInit();if(!ac)return;
+ if(ac.state==='suspended')ac.resume();
+ mBus.gain.cancelScheduledValues(ac.currentTime);
+ mBus.gain.setValueAtTime(Math.max(.0001,mBus.gain.value),ac.currentTime);
+ mBus.gain.exponentialRampToValueAtTime(MLEVEL,ac.currentTime+2.5);
+ mNext=ac.currentTime+.35;scheduleBar();
+}
+function musicStop(){
+ clearTimeout(mTimer);mTimer=null;
+ if(!mBus||!AC)return;
+ /* Fade rather than cut. Notes already scheduled ring out under the fade. */
+ mBus.gain.cancelScheduledValues(AC.currentTime);
+ mBus.gain.setValueAtTime(Math.max(.0001,mBus.gain.value),AC.currentTime);
+ mBus.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+1.4);
+}
+function setMusic(on){
+ musicOn=on;try{localStorage.setItem(MKEY,on?'on':'off');}catch(e){}
+ on?musicStart():musicStop();
+ [...document.querySelectorAll('.mus-toggle')].forEach(b=>{
+  b.textContent='MUSIC: '+(on?'ON':'OFF');b.classList.toggle('on',on);});
+}
+/* Browsers refuse to start audio until the user has interacted with the page,
+   so the first gesture anywhere is what actually opens the score. */
+function musicKick(){
+ if(AC&&AC.state==='suspended')AC.resume();
+ if(musicOn)musicStart();
+ if(mTimer)['pointerdown','keydown','touchstart'].forEach(e=>window.removeEventListener(e,musicKick));
+}
+['pointerdown','keydown','touchstart'].forEach(e=>window.addEventListener(e,musicKick,{passive:true}));
+/* Both screens carry the same switch: the launcher has no options menu, and
+   music that cannot be silenced from where it starts playing is a trap. */
+[...document.querySelectorAll('.mus-toggle')].forEach(b=>{
+ b.onclick=()=>setMusic(!musicOn);
+ b.textContent='MUSIC: '+(musicOn?'ON':'OFF');b.classList.toggle('on',musicOn);});
 /* ═══════════════ BOOT ═══════════════
    Read the save first: the launcher needs it to show lifetime totals, and the
    engine needs this region's slot before its first paint. */
