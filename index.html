@@ -48,6 +48,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .btn:active{transform:translate(2px,2px);box-shadow:none}
 .btn.on{background:linear-gradient(#f7d472,#e0a92c);color:#1a1206;border-color:#fff5cc}
 .spacer{flex:1}
+.map-wrap.fit{display:flex;align-items:center;justify-content:center}
 .map-wrap{overflow:auto;padding:6px;background:#030509;cursor:grab;max-height:74vh;-webkit-overflow-scrolling:touch}
 .map-wrap.dragging{cursor:grabbing}
 #map{display:block;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:pan-x pan-y}
@@ -171,29 +172,44 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 
 /* ── map shell + floating catalog ── */
 .map-shell{position:relative;margin-bottom:9px}
+.map-wrap.fit{display:flex;align-items:center;justify-content:center}
 .map-wrap{overflow:auto;padding:6px;background:#030509;cursor:grab;-webkit-overflow-scrolling:touch;
  display:flex;justify-content:center;align-items:flex-start}
 .map-wrap.fit .map-holder{margin:0 auto}
-.map-fab{position:absolute;top:14px;left:14px;z-index:30;font-family:var(--pix);font-size:8px;
- transition:opacity .18s ease,transform .18s ease,left .18s ease;
- letter-spacing:1px;background:linear-gradient(#22304a,#141d2c);color:var(--ink);
- border:2px solid var(--edge2);padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;
- box-shadow:3px 3px 0 rgba(0,0,0,.65)}
-.map-fab span{font-size:13px}
-.map-fab:active{transform:translate(2px,2px);box-shadow:none}
-.map-fab.on{background:linear-gradient(#f7d472,#e0a92c);color:#1a1206;border-color:#fff5cc}
-.map-fab.hidden{opacity:0;pointer-events:none;transform:translateX(-14px) scale(.9)}
-.cat-panel{position:absolute;top:0;left:0;bottom:0;width:min(360px,88%);z-index:29;
- background:rgba(11,16,25,.97);border:3px solid var(--edge2);
- box-shadow:8px 0 26px rgba(0,0,0,.7);display:flex;flex-direction:column;
- transform:translateX(-104%);transition:transform .26s cubic-bezier(.3,.9,.4,1);pointer-events:none}
-.cat-panel.open{transform:translateX(0);pointer-events:auto}
+/* The quest list used to be a chunky floating button sitting on top of the map.
+   It is now a full-width bar directly under the map, where it cannot cover
+   terrain and reads as part of the page furniture. */
+.quest-bar{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+ font-family:var(--pix);font-size:9px;letter-spacing:1px;cursor:pointer;
+ background:linear-gradient(#22304a,#161f2f);color:var(--ink);
+ border:3px solid var(--edge2);padding:11px 12px;margin-top:9px;
+ box-shadow:0 0 0 3px var(--bg),3px 3px 0 3px rgba(0,0,0,.5)}
+.quest-bar span{font-size:14px;line-height:1}
+.quest-bar em{font-style:normal;color:var(--dim);font-family:var(--body);
+ font-size:11px;letter-spacing:1px}
+.quest-bar:hover{border-color:var(--gold)}
+.quest-bar:active{transform:translate(2px,2px)}
+.quest-bar.on{background:linear-gradient(#f7d472,#e0a92c);color:#1a1206;border-color:#fff5cc}
+.quest-bar.on em{color:#5a4207}
+.cat-row.active{border-color:var(--gold);background:#20304a}
+.cat-scrim{display:none;position:fixed;inset:0;background:rgba(3,6,12,.62);z-index:88}
+.cat-scrim.open{display:block}
+/* Fixed to the viewport rather than clipped to the map box, so the list is one
+   continuous scroll and sits above the info panel instead of behind it. Closed
+   is display:none — no parked transform that a frozen animation could strand. */
+.cat-panel{position:fixed;top:14px;bottom:14px;left:14px;width:min(392px,calc(100vw - 28px));
+ z-index:90;display:none;flex-direction:column;
+ background:rgba(11,16,25,.98);border:3px solid var(--edge2);
+ box-shadow:0 0 0 3px var(--bg),8px 8px 0 3px rgba(0,0,0,.6)}
+.cat-panel.open{display:flex}
 .cat-head{display:flex;justify-content:space-between;align-items:center;gap:8px;
  padding:11px 12px;background:linear-gradient(#22304a,#141d2c);border-bottom:2px solid var(--edge2);
  font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--gold);flex-shrink:0}
 .cat-x{background:var(--panel2);border:2px solid var(--edge2);color:var(--ink);
  font-family:var(--pix);font-size:9px;padding:5px 8px;cursor:pointer}
-.cat-body{padding:11px;overflow-y:auto;flex:1}
+.cat-body{padding:11px;flex:1;min-height:0;display:flex;flex-direction:column}
+.cat-sticky{flex:0 0 auto}
+.cat-list{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .cat-search{width:100%;background:#060a10;border:2px solid var(--edge2);color:var(--ink);
  font-family:var(--body);font-size:13px;padding:8px 10px;margin-bottom:7px}
 .cat-search::placeholder{color:#5f6d80}
@@ -212,7 +228,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px}
 .chip.off{opacity:.32}
 .chip i{width:9px;height:9px;display:block;border-radius:2px;border:1px solid rgba(0,0,0,.6)}
-.cat-list{max-height:none;overflow-y:auto;border:2px solid var(--edge);background:#0a0f17}
+.cat-list{border:2px solid var(--edge);background:#0a0f17}
 .cat-grp{font-family:var(--pix);font-size:7px;letter-spacing:1px;padding:9px 12px;
  background:var(--panel2);border-bottom:2px solid var(--edge);position:sticky;top:0;z-index:2;
  display:flex;justify-content:space-between;align-items:center}
@@ -232,7 +248,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .cat-row .cr-m b{color:#aebbcc;font-weight:normal}
 .cat-row .cr-b{color:#ff8fd0}
 .cat-none{padding:26px;text-align:center;color:var(--dim);font-family:var(--pix);font-size:9px;line-height:2}
-.cat-sum{font-size:10px;color:var(--dim);margin-top:10px;text-align:center;letter-spacing:1px;line-height:1.7}
+.cat-sum{flex:0 0 auto;font-size:10px;color:var(--dim);margin-top:10px;text-align:center;letter-spacing:1px;line-height:1.7}
 .badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:9px;padding:13px}
 .badge{background:var(--panel2);border:2px solid var(--edge);padding:11px;text-align:center;opacity:.38}
 .badge.got{opacity:1;border-color:var(--gold);background:linear-gradient(#2e2512,#1f1a0c);box-shadow:0 0 0 2px rgba(245,198,81,.2)}
@@ -273,8 +289,12 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .maptools{align-items:center}
 /* ── options popover ── */
 .menu-wrap{position:relative}
-.opt-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;display:none;
- min-width:186px;background:var(--panel);border:3px solid var(--edge2);padding:6px;
+/* Anchored to the button's right edge and capped to the viewport, so it opens
+   inward instead of running off the side and forcing a horizontal pan. */
+.opt-pop{position:absolute;right:0;left:auto;top:calc(100% + 6px);z-index:60;display:none;
+ width:max-content;min-width:186px;max-width:calc(100vw - 30px);
+ max-height:calc(100vh - 130px);overflow-y:auto;
+ background:var(--panel);border:3px solid var(--edge2);padding:6px;
  box-shadow:0 0 0 3px var(--bg),5px 5px 0 3px rgba(0,0,0,.6)}
 .opt-pop.open{display:block}
 .opt-h{font-family:var(--pix);font-size:7px;color:var(--dim);letter-spacing:1px;
@@ -307,7 +327,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  align-items:center;justify-content:center;
  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
   linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:12px 12px}
-#avCanvas{image-rendering:pixelated;image-rendering:crisp-edges;width:100%;height:auto;max-width:132px}
+#avCanvas{image-rendering:pixelated;image-rendering:crisp-edges;width:auto;height:auto;max-width:100%}
 .av-h{font-family:var(--pix);font-size:8px;color:var(--gold);letter-spacing:1px;margin:0 0 7px}
 .av-side .av-h{margin-top:14px}
 .av-side .av-h:first-child{margin-top:0}
@@ -316,10 +336,10 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .av-input:focus{outline:none;border-color:var(--gold)}
 .av-input::placeholder{color:#5d6b7d;font-family:var(--body);font-size:12px;letter-spacing:0}
 .av-kits{display:flex;gap:7px;flex-wrap:wrap}
-.av-kit{width:40px;height:58px;border:2px solid var(--edge2);cursor:pointer;padding:3px;
+.av-kit{border:2px solid var(--edge2);cursor:pointer;padding:4px;line-height:0;
  background:#060a10;box-shadow:2px 2px 0 rgba(0,0,0,.55);position:relative}
 .av-kit.on{border-color:var(--gold);box-shadow:0 0 0 2px #7a5308,2px 2px 0 2px rgba(0,0,0,.55)}
-.av-kit canvas{width:100%;height:auto;image-rendering:pixelated;display:block}
+.av-kit canvas{image-rendering:pixelated;display:block;width:auto;height:auto}
 .av-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px}
 .av-st{background:var(--panel2);border:2px solid var(--edge);padding:8px 9px}
 .av-st .k{font-size:9px;color:var(--dim);letter-spacing:1px;display:block}
@@ -327,7 +347,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .av-party{margin-top:14px;border-top:2px solid var(--edge);padding-top:12px}
 .av-party-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
 .av-mate{background:#060a10;border:2px solid var(--edge);padding:7px;text-align:center}
-.av-mate canvas{image-rendering:pixelated;display:block;width:36px;height:54px}
+.av-mate canvas{image-rendering:pixelated;display:block;width:auto;height:auto}
 .av-mate span{display:block;font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:5px}
 .av-soon{font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:11px;text-align:center}
 
@@ -339,7 +359,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
     tab freezes CSS animations mid-flight, and anything that parks the panel off
     screen while it waits leaves the destination unreachable. Appearing instantly
     in the right place always works. */
- .detail{position:fixed;left:0;right:0;bottom:0;z-index:80;margin:0;display:none;
+ .detail{position:fixed;left:0;right:0;bottom:0;z-index:95;margin:0;display:none;
   max-height:82vh;max-height:82dvh;overflow:auto;-webkit-overflow-scrolling:touch;
   border-width:3px 0 0;box-shadow:0 -6px 0 rgba(0,0,0,.5);
   padding:14px 14px calc(18px + env(safe-area-inset-bottom))}
@@ -362,7 +382,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  body.fighting .bt-log{margin:0;flex:1 1 auto;min-height:0;overflow:auto}
  body.fighting .bt-menu{margin-top:auto;flex:0 0 auto}
  body.fighting #helpBtn,body.fighting .help-box{display:none!important}
- .opt-pop{right:auto;left:0;min-width:210px}
+ .opt-pop{min-width:0;width:calc(100vw - 30px);max-width:270px}
  .av-grid{grid-template-columns:1fr}
  .av-stage{padding:16px}
 
@@ -375,7 +395,23 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  .next-lvl{font-size:9px;margin-top:5px}
  .toolbar{gap:4px;margin-bottom:6px}
  #navBar .clock{font-size:9px;margin-left:auto}
- .map-wrap{max-height:56vh}
+
+ /* ── fill the phone screen ──
+    On a phone the map is width-bound, so FIT leaves it short and the page used
+    to end in a band of empty background. The page becomes a flex column the
+    height of the viewport and the map frame absorbs the slack with the canvas
+    centred in it, so the layout reaches the bottom instead of stopping short. */
+ body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+ .title{font-size:clamp(13px,5.4vw,20px);margin:3px 0 3px}
+ .subtitle{font-size:8.5px;margin-bottom:8px}
+ .screen.active{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+ #screenMap>.map-shell{flex:1 1 auto;min-height:0;display:flex}
+ #screenMap .map-wrap{flex:1 1 auto;max-height:none;height:auto!important;
+  min-height:0;display:flex;align-items:center;justify-content:center}
+ #screenBadge,#screenLog,#screenAvatar{overflow:auto}
+ .footnote{margin-top:auto;padding-top:8px}
+
  .btn{font-size:7px;padding:10px 9px;letter-spacing:.5px}
  .hud{padding:9px 10px}
  .lvl-badge{font-size:9px;padding:6px 7px}
@@ -557,13 +593,14 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
       <div class="bestiary" id="bestiary"></div>
       <div class="rail-foot" id="bestFoot"></div>
     </div>
-    <button class="map-fab" id="catBtn"><span>📋</span>CATALOG</button>
+    <div class="cat-scrim" id="catScrim"></div>
     <div class="cat-panel" id="catalog">
       <div class="cat-head">
-        <span>📋 DESTINATION CATALOG</span>
+        <span>📋 QUESTS</span>
         <button class="cat-x" id="catClose">✕</button>
       </div>
       <div class="cat-body">
+        <div class="cat-sticky">
         <input class="cat-search" id="catSearch" placeholder="Search name, difficulty, town…">
         <select class="cat-sel" id="catSort">
           <option value="cat">BY CATEGORY</option>
@@ -574,11 +611,13 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
           <option value="todo">UNFINISHED FIRST</option>
         </select>
         <div class="cat-chips" id="catChips"></div>
+        </div>
         <div class="cat-list" id="catList"></div>
         <div class="cat-sum" id="catSum"></div>
       </div>
     </div>
   </div>
+  <button class="quest-bar" id="catBtn"><span>📋</span> QUESTS <em id="questCount"></em></button>
   <div class="legend" id="legend"></div>
   <div class="sheet-scrim" id="detailScrim"></div>
   <div class="frame detail" id="detail"><div class="d-empty">▼ ▼ ▼<br>SELECT A LOCATION<br>▲ ▲ ▲</div></div>
@@ -621,7 +660,7 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
   <div class="frame av-frame">
     <div class="av-grid">
       <div class="av-stage">
-        <canvas id="avCanvas" width="132" height="198"></canvas>
+        <canvas id="avCanvas" width="180" height="230"></canvas>
       </div>
       <div class="av-side">
         <div class="av-h">CLIMBER NAME</div>
@@ -2885,9 +2924,13 @@ function applyZoom(){
  const atFit=zoomMul<=1.02;
  wr.classList.toggle('fit',atFit);
  if(atFit){
-  wr.style.height=(H*zoom+16)+"px";wr.style.maxHeight="none";wr.style.overflow="hidden";
+  /* a minimum rather than a fixed height, so a flex parent can stretch the
+     frame to the bottom of the screen with the map centred inside it */
+  wr.style.height="";wr.style.minHeight=(H*zoom+16)+"px";
+  wr.style.maxHeight="none";wr.style.overflow="hidden";
  }else{
-  wr.style.height="";wr.style.maxHeight=Math.round((window.innerHeight||800)*0.62)+"px";
+  wr.style.height="";wr.style.minHeight="";
+  wr.style.maxHeight=Math.round((window.innerHeight||800)*0.62)+"px";
   wr.style.overflow="auto";}
  const near=[1,2,4].findIndex(m=>Math.abs(m-zoomMul)<0.06);
  zoomIdx=near;
@@ -3444,23 +3487,199 @@ function mixEye(a,b,t){const A=parseInt(a.slice(1),16),B=parseInt(b.slice(1),16)
  const bl=Math.round(((A&255))+(((B&255))-((A&255)))*t);
  return `rgb(${r},${g},${bl})`;}
 /* heroes */
-const HERO=["...aaaa...","..aaaaaa..",".abbbbbba.",".abccccba.",".abcddcba.",
- "..bccccb..","...eeee...","..feggef..",".hfggggfh.",".hfggggfh.","..fggggf..",
- "..fggggf..","..iii ii..","..ii..ii..",".jjj..jjj.",".jjj..jjj."];
-function makeHero(pal){const cn=document.createElement('canvas');cn.width=12;cn.height=18;
- const c=cn.getContext('2d');
- HERO.forEach((row,y)=>{for(let x=0;x<row.length;x++){const ch=row[x];
-  if(ch==='.'||ch===' ')continue;const col=pal[ch];if(!col)continue;
-  c.fillStyle="#04060b";c.fillRect(x+1,y+2,1,1);}});
- HERO.forEach((row,y)=>{for(let x=0;x<row.length;x++){const ch=row[x];
-  if(ch==='.'||ch===' ')continue;const col=pal[ch];if(!col)continue;
-  c.fillStyle=col;c.fillRect(x+1,y+1,1,1);}});
- return cn;}
+/* ── The climber sprite ──
+   A Final-Fight-era fighter build: three-quarter view, deep crouch, torso
+   twisted toward the lead hand, back fist cocked at the hip. Kit is trail gear —
+   colour-blocked shell jacket, baggy hiking pants cuffed over trail shoes, and a
+   wraparound shades, a different lens colourway each. Two of the four wear a bandana.
+
+   Four tones per material rather than two, plus explicit fold lines at the
+   elbows, waist and knees, knuckle pixels on both fists, and a shaded face.
+   That is what the detail level costs at this size — flat blocks read as a
+   placeholder, tonal ramps read as drawn.
+
+   Built from primitives: bent joints and shading ramps are far easier to place
+   and revise this way than in an ASCII grid, and the keyline is derived from the
+   silhouette so it can never drift out of step with the art. Limbs are held off
+   the body by a column of transparency — the keyline pass only draws where art
+   meets empty space, and that gap is what stops arms and legs melting into the
+   jacket. */
+const HRW=34,HRH=44;
+function makeHero(pal){
+ const tmp=document.createElement('canvas');tmp.width=HRW;tmp.height=HRH;
+ const c=tmp.getContext('2d');
+ const r=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);};
+ /* mid fill with a shadow column on the left and a highlight on the right */
+ const box=(x,y,w,h,mid,lo,hi)=>{r(x,y,w,h,mid);
+  if(lo)r(x,y,1,h,lo); if(hi)r(x+w-1,y,1,h,hi);};
+
+ /* ── daypack, behind everything ── */
+ box(7,15,6,9,pal.packA,pal.packB,pal.packB);
+ r(7,15,6,2,pal.packHi);
+ r(6,18,1,4,pal.packB);
+ r(8,23,4,1,pal.packB);
+
+ /* ── back leg: driven back, deep bend ── */
+ box(8,26,9,8,pal.pant,pal.pantSh,pal.pantHi);   /* baggy thigh */
+ r(9,29,6,1,pal.pantSh);                          /* fold at the hip crease */
+ r(10,32,5,1,pal.pantSh);
+ box(7,33,6,6,pal.pant,pal.pantSh,pal.pantHi);    /* shin */
+ r(8,35,4,1,pal.pantSh);                          /* fold behind the knee */
+ r(7,38,6,1,pal.cuff);
+ box(3,39,11,4,pal.shoeA,pal.shoeB,pal.shoeB);    /* trail shoe */
+ r(3,42,11,1,pal.shoeB);
+ r(8,39,4,1,pal.shoeHi);                          /* lace flash */
+ r(4,40,2,1,pal.shoeHi);
+
+ /* ── front leg: planted forward, knee driving out ── */
+ box(18,26,9,8,pal.pant,pal.pantSh,pal.pantHi);
+ r(20,29,6,1,pal.pantSh);
+ r(20,32,6,1,pal.pantSh);
+ box(21,33,6,6,pal.pant,pal.pantSh,pal.pantHi);
+ r(22,35,4,1,pal.pantSh);
+ r(21,38,6,1,pal.cuff);
+ box(20,39,11,4,pal.shoeA,pal.shoeB,pal.shoeB);
+ r(20,42,11,1,pal.shoeB);
+ r(23,39,4,1,pal.shoeHi);
+ r(28,40,2,1,pal.shoeHi);
+
+ /* ── jacket ── */
+ box(11,25,13,4,pal.jackSh,pal.jackLo,pal.jack);  /* flared hem over the hips */
+ r(11,28,13,1,pal.jackLo);
+ box(12,14,11,11,pal.jack,pal.jackSh,pal.jackHi);
+ r(12,14,11,1,pal.jackHi);                        /* light along the shoulders */
+ /* Colour block sits high as a chest yoke. It used to run across the middle
+    with a full-height zip through it, which read as a cross rather than a
+    jacket, so the zip now stops at the yoke and stays dark. */
+ box(12,17,11,4,pal.panel,pal.panelSh,pal.panelHi);
+ r(12,20,11,1,pal.panelSh);
+ r(17,21,1,4,pal.zip);                            /* zip below the yoke only */
+ r(17,17,1,4,pal.panelSh);
+ box(13,12,9,3,pal.jackSh,pal.jackLo,pal.jack);   /* stand collar */
+ r(14,12,7,1,pal.jackHi);
+ r(13,17,1,8,pal.strap);                          /* pack strap across the chest */
+ r(13,23,4,1,pal.jackLo);                         /* fold at the waist */
+ r(19,23,4,1,pal.jackLo);
+
+ /* ── back arm: cocked low, fist at the hip ── */
+ box(9,15,3,6,pal.jack,pal.jackSh,pal.jackHi);
+ r(9,18,3,1,pal.jackLo);                          /* elbow fold */
+ box(8,21,4,4,pal.jackSh,pal.jackLo,pal.jack);    /* forearm angled down */
+ r(8,24,4,1,pal.cuffJ);
+ box(7,25,5,4,pal.skin,pal.skinSh,pal.skinHi);    /* fist */
+ r(7,25,5,1,pal.skinHi);
+ r(8,27,1,1,pal.skinSh); r(10,27,1,1,pal.skinSh); /* knuckles */
+ r(7,28,5,1,pal.skinSh);
+
+ /* ── lead arm: guard up and forward, the highest point of the pose ── */
+ box(24,15,3,5,pal.jack,pal.jackSh,pal.jackHi);
+ r(24,17,3,1,pal.jackLo);                         /* elbow fold */
+ box(25,13,5,4,pal.jack,pal.jackSh,pal.jackHi);   /* forearm rising */
+ r(25,13,5,1,pal.jackHi);
+ box(28,11,3,3,pal.cuffJ,pal.jackLo,pal.jackHi);  /* cuff at the wrist */
+ box(28,8,6,4,pal.skin,pal.skinSh,pal.skinHi);    /* lead fist */
+ r(28,8,6,1,pal.skinHi);
+ r(30,10,1,1,pal.skinSh); r(32,10,1,1,pal.skinSh); /* knuckles */
+ r(28,11,6,1,pal.skinSh);
+ r(28,9,1,3,pal.skinSh);                          /* thumb wrapped across */
+
+ /* ── head, turned toward the lead hand ── */
+ box(16,13,4,2,pal.skinSh,pal.skinLo,pal.skin);   /* neck in the collar shadow */
+ box(14,3,9,11,pal.skin,pal.skinSh,pal.skinHi);
+ r(14,13,9,1,pal.skinSh);                         /* jaw shadow */
+ r(22,5,1,6,pal.skinHi);                          /* light down the cheekbone */
+ r(14,3,9,1,pal.skinSh);                          /* brim shadow on the forehead */
+ /* face */
+ r(15,5,8,1,pal.brow);                            /* brow above the shades */
+ r(20,11,1,1,pal.skinSh);                         /* nose */
+ r(21,11,1,1,pal.skinLo);
+ r(17,12,4,1,pal.mouth);
+ r(14,6,1,5,pal.skinLo);                          /* far side of the face falls off */
+
+ /* ── headwear: hair, or a bandana on two of the four ── */
+ if(pal.bandana){
+  box(14,1,9,3,pal.bandA,pal.bandB,pal.bandHi);
+  r(14,1,9,1,pal.bandHi);
+  r(15,3,7,1,pal.bandB);
+  r(12,3,2,2,pal.bandA);                          /* knot at the temple */
+  r(12,3,1,2,pal.bandB);
+  r(10,4,3,2,pal.bandA);                          /* tails trailing back */
+  r(10,4,1,2,pal.bandB);
+  r(9,6,2,1,pal.bandA);
+ }else{
+  box(15,0,7,4,pal.hair,pal.hairSh,pal.hairHi);
+  r(15,0,7,1,pal.hairHi);
+  r(14,2,2,4,pal.hair);                           /* fringe at the temple */
+  r(14,2,1,4,pal.hairSh);
+  r(22,3,1,3,pal.hairSh);
+ }
+ /* ── Oakley-style wraparound shades ──
+    One sweeping lens rather than two round ones, wrapping past the temple on
+    the near side, with a dark brow bar over the top and a specular glint. The
+    eyes underneath are painted over deliberately: hiding them is what makes a
+    shape at this size read as a lens instead of a mask. */
+ r(13,6,11,1,pal.frame);                          /* brow bar */
+ box(13,7,11,2,pal.lensA,pal.lensB,pal.lensHi);
+ r(23,7,2,2,pal.lensB);                           /* wrap past the far temple */
+ r(12,7,1,2,pal.frame);                           /* near temple arm */
+ r(15,7,2,1,pal.lensHi);                          /* glint */
+ r(21,8,1,1,pal.lensHi);
+ r(13,9,12,1,pal.frame);                          /* lower rim */
+
+ /* ── keyline + drop shadow, derived from the silhouette ── */
+ const src=c.getImageData(0,0,HRW,HRH),d=src.data;
+ const solid=(x,y)=>x>=0&&x<HRW&&y>=0&&y<HRH&&d[(y*HRW+x)*4+3]>0;
+ const out=document.createElement('canvas');
+ out.width=HRW+2;out.height=HRH+2;
+ const o=out.getContext('2d');
+ o.fillStyle="rgba(4,6,11,.55)";
+ for(let y=0;y<HRH;y++)for(let x=0;x<HRW;x++)if(solid(x,y))o.fillRect(x+2,y+2,1,1);
+ o.fillStyle=pal.line;
+ for(let y=0;y<HRH;y++)for(let x=0;x<HRW;x++){
+  if(!solid(x,y))continue;
+  if(!solid(x-1,y)||!solid(x+1,y)||!solid(x,y-1)||!solid(x,y+1))o.fillRect(x,y,1,1);}
+ for(let y=0;y<HRH;y++)for(let x=0;x<HRW;x++){
+  if(!solid(x,y))continue;
+  if(!solid(x-1,y)||!solid(x+1,y)||!solid(x,y-1)||!solid(x,y+1))continue;
+  const i=(y*HRW+x)*4;
+  o.fillStyle=`rgb(${d[i]},${d[i+1]},${d[i+2]})`;
+  o.fillRect(x,y,1,1);}
+ return out;
+}
+/* Each kit keeps its old identity: orange, navy, yellow, red. Four tones per
+   material — deep shadow, shadow, mid, highlight — is what the shading ramps
+   need; two tones flatten back out at this size. */
+function kitPal(o){
+ return{
+  jack:o.jack,jackSh:o.jackSh,jackLo:o.jackLo,jackHi:o.jackHi,
+  panel:o.panel,panelSh:o.panelSh,panelHi:o.panelHi,
+  lensA:o.lensA,lensB:o.lensB,lensHi:o.lensHi,frame:"#14181f",
+  bandana:!!o.bandana,
+  bandA:o.bandA||"#d8d2c0",bandB:o.bandB||"#9c9684",bandHi:o.bandHi||"#f2eee0",
+  hair:"#4a3418",hairSh:"#2d1f0d",hairHi:"#6b4d26",
+  skin:"#f0c39a",skinSh:"#c2906a",skinLo:"#96684a",skinHi:"#ffdcbb",
+  eye:"#1b1008",eyeW:"#f7f1e4",brow:"#3d2413",mouth:"#8f5b42",
+  zip:"#8f97a3",zipHi:"#d2d9e2",collar:o.jackSh,cuffJ:o.jackHi,strap:o.panelSh,
+  packA:o.panelSh,packB:o.jackLo,packHi:o.panel,
+  pant:"#646b7a",pantSh:"#454c59",pantHi:"#828b9c",cuff:"#2c323d",
+  shoeA:"#333945",shoeB:"#171b22",shoeHi:o.lensA,
+  line:"#0b0f16"};
+}
 const HPALS=[
- {a:"#e8802c",b:"#b25a14",c:"#f5cba2",d:"#241408",e:"#8a5a2c",f:"#2f5f96",g:"#4d8ac8",h:"#e8ac68",i:"#243044",j:"#3d2c18"},
- {a:"#2a2a3c",b:"#141422",c:"#f5cba2",d:"#241408",e:"#5a2a34",f:"#8a3a4a",g:"#b8505f",h:"#e8ac68",i:"#26263a",j:"#3d2c18"},
- {a:"#ecd868",b:"#bda428",c:"#f5cba2",d:"#241408",e:"#2c5a34",f:"#357a48",g:"#4fa25f",h:"#e8ac68",i:"#2a3a2c",j:"#3d2c18"},
- {a:"#d4562c",b:"#a03418",c:"#f5cba2",d:"#241408",e:"#3d3462",f:"#5a4a92",g:"#7d6ab8",h:"#e8ac68",i:"#32304c",j:"#3d2c18"}];
+ kitPal({jack:"#e8802c",jackSh:"#b25a14",jackLo:"#7d3c07",jackHi:"#f7a457",
+         panel:"#2f5f96",panelSh:"#1c3f68",panelHi:"#4d8ac8",
+         lensA:"#4fc6e8",lensB:"#1d6f92",lensHi:"#b8f0ff"}),
+ kitPal({jack:"#31415e",jackSh:"#1d2740",jackLo:"#111827",jackHi:"#4c6488",
+         panel:"#b8505f",panelSh:"#7d2c39",panelHi:"#d4757f",
+         lensA:"#ff7a4a",lensB:"#a83618",lensHi:"#ffc7a8",bandana:true,
+         bandA:"#d8d2c0",bandB:"#9c9684",bandHi:"#f2eee0"}),
+ kitPal({jack:"#ecd868",jackSh:"#b09b22",jackLo:"#786811",jackHi:"#f7ec9e",
+         panel:"#357a48",panelSh:"#1f5230",panelHi:"#4fa25f",
+         lensA:"#a98ce0",lensB:"#5a3f96",lensHi:"#ded0ff"}),
+ kitPal({jack:"#d4562c",jackSh:"#a03418",jackLo:"#6d200c",jackHi:"#ea7c52",
+         panel:"#5a4a92",panelSh:"#3c3068",panelHi:"#8a76c0",
+         lensA:"#5fd39a",lensB:"#1f7a52",lensHi:"#c4ffe0",bandana:true,
+         bandA:"#2f3540",bandB:"#171b22",bandHi:"#525b6b"})];
 const HEROES=HPALS.map(makeHero);
 if(HPALS.length!==KIT_COUNT)console.warn('KIT_COUNT is out of step with HPALS');
 
@@ -3947,7 +4166,7 @@ function drawBattle(){
   bcx.globalAlpha=BT.bossFlash*.85;bcx.drawImage(spImg,bxp,byp,bw2,bh2);bcx.restore();}
  // heroes
  HPOS.forEach(([hx,hy],i)=>{
-  const img=HEROES[i],s=2,w2=img.width*s,h2=img.height*s;
+  const img=HEROES[i],s=1,w2=img.width*s,h2=img.height*s;
   const bb=Math.sin(BT.t*.085+i*1.5)*1.4;
   const lunge=(BT.heroLunge>0&&i===BT.actor)?BT.heroLunge:0;
   const hurt=(BT.heroHurt>0)?(Math.sin(BT.t*1.5+i)*2.4):0;
@@ -4146,7 +4365,7 @@ async function victory(){
   <b>${p.n}</b> cleared · <span class="heal">+${p.xp} XP</span> · turn ${BT.turn}`);
  queueToast("☠ BOSS DEFEATED ☠",BT.name);
  if(after>before)queueToast("LEVEL UP!","▶ "+LEVELS[after].n);
- renderMenu();render();checkAch();updHUD();renderLog();refreshCatalog();bestBuilt=false;layoutRails();await save();
+ renderMenu();render();checkAch();updHUD();renderLog();refreshCatalog();questBarCount();bestBuilt=false;layoutRails();await save();
 }
 function defeat(){
  if(!BT)return;
@@ -4352,7 +4571,7 @@ async function toggle(p){
  if(S.done[p.id]){delete S.done[p.id];delete S.slain[p.id];unblip();}
  else{S.done[p.id]=new Date().toISOString();const after=lvlFor(totalXP());
   if(after>before){fanfare();queueToast("LEVEL UP!","▶ "+LEVELS[after].n);}else blip();}
- render();showDetail(p);checkAch();updHUD();renderLog();refreshCatalog();bestBuilt=false;layoutRails();await save();
+ render();showDetail(p);checkAch();updHUD();renderLog();refreshCatalog();questBarCount();bestBuilt=false;layoutRails();await save();
 }
 /* ═══════════════ 18. SCREENS ═══════════════ */
 function setScreen(s){
@@ -4488,7 +4707,7 @@ document.getElementById('resetBtn').onclick=async()=>{
  if(confirm("Wipe ALL progress, badges, and boss kills?")){
   S={done:{},slain:{},badges:{}};selId=null;await save();
   updHUD();render();showDetail(null);renderBadges();renderLog();
-  refreshCatalog();buildLegend();bestBuilt=false;layoutRails();}};
+  refreshCatalog();questBarCount();buildLegend();bestBuilt=false;layoutRails();}};
 const optBtn=document.getElementById('optBtn'),optPop=document.getElementById('optPop');
 const closeOpt=()=>{optPop.classList.remove('open');optBtn.classList.remove('on');};
 optBtn.onclick=e=>{e.stopPropagation();
@@ -4523,7 +4742,7 @@ function blitHero(cv2,img,scale){
 }
 function renderAvatar(){
  const img=heroFor(leadKit());
- blitHero(document.getElementById('avCanvas'),img,11);
+ blitHero(document.getElementById('avCanvas'),img,5);
  const nameEl=document.getElementById('avName');
  if(document.activeElement!==nameEl)nameEl.value=(FILE.profile&&FILE.profile.name)||'';
  /* kit swatches */
@@ -4533,7 +4752,7 @@ function renderAvatar(){
   b.className='av-kit'+(i===leadKit()?' on':'');
   b.title='Kit '+(i+1);
   b.setAttribute('aria-label','Kit '+(i+1));
-  const c=document.createElement('canvas');blitHero(c,heroFor(i),3);
+  const c=document.createElement('canvas');blitHero(c,heroFor(i),2);
   b.appendChild(c);
   b.onclick=async()=>{FILE.profile.kit=i;await writeFile();renderAvatar();};
   kits.appendChild(b);});
@@ -4555,7 +4774,7 @@ function renderAvatar(){
  MATE_ROLES.forEach((role,i)=>{
   const idx=i===0?leadKit():(leadKit()+i)%HEROES.length;
   const d=document.createElement('div');d.className='av-mate';
-  const c=document.createElement('canvas');blitHero(c,heroFor(idx),3);
+  const c=document.createElement('canvas');blitHero(c,heroFor(idx),2);
   d.appendChild(c);
   const sp=document.createElement('span');
   sp.textContent=i===0?climberName().slice(0,12):role;
@@ -4626,38 +4845,49 @@ function renderCatalog(){
     <span class="cr-m"><b>${p.d}</b><span>·</span><b>${p.mi}</b><span>·</span><b>🚗 ${p.drive}</b></span>
    </div>`;});
  el.innerHTML=html;
- el.querySelectorAll('.cat-row').forEach(r=>r.onclick=()=>jumpTo(r.dataset.id));
+ el.querySelectorAll('.cat-row').forEach(r=>r.onclick=()=>{
+  jumpTo(r.dataset.id);
+  /* deliberately left open: picking one quest should not cost you your place
+     in the list. The active row is marked so you can see where you are. */
+  el.querySelectorAll('.cat-row').forEach(o=>o.classList.toggle('active',o===r));});
  const dn=rows.filter(p=>S.done[p.id]).length;
  document.getElementById('catSum').innerHTML=
   `SHOWING ${rows.length} OF ${P.length} · ${dn} CLEARED<br>${rows.reduce((s,p)=>s+(S.done[p.id]?0:p.xp),0)} XP REMAINING`;
 }
 function jumpTo(id){
  const p=P.find(q=>q.id===id);if(!p)return;
- if(!catShown(p.c)){catSel.add(p.c);syncFilters();
-  [...legend.children].forEach(el=>{
-   if(el.textContent.includes(CATS[p.c].name))el.classList.remove('off');});}
+ /* if the quest is filtered out, widen the filter rather than silently doing
+    nothing. syncFilters rebuilds the legend, so there is nothing else to touch. */
+ if(!catShown(p.c)){catSel.add(p.c);syncFilters();}
  selId=p.id;jumpPulse=34;render();showDetail(p);
  if(zoomMul>1.02){
   wrap.scrollLeft=p.x*zoom-wrap.clientWidth/2;
   wrap.scrollTop=(p.y-BAN_H/2)*zoom-wrap.clientHeight/2;}
  tone(760,.06,"triangle",.05);tone(1140,.08,"triangle",.045,.06);
- if(window.innerWidth<760)setCatalog(false);
- document.getElementById('mapShell').scrollIntoView({behavior:'smooth',block:'center'});
+ /* The quest list deliberately stays open, on phones too. The detail sheet
+    layers above it, so closing the sheet drops you back where you were in the
+    list instead of at the top of it. */
+ if(!catOpen)document.getElementById('mapShell').scrollIntoView({behavior:'smooth',block:'center'});
 }
 function setCatalog(open){
  catOpen=open;
  document.getElementById('catalog').classList.toggle('open',open);
- const fab=document.getElementById('catBtn');
- fab.classList.toggle('on',open);
- fab.classList.toggle('hidden',open);
+ document.getElementById('catScrim').classList.toggle('open',open);
+ document.getElementById('catBtn').classList.toggle('on',open);
  if(open){buildChips();renderCatalog();}}
+document.getElementById('catScrim').onclick=()=>setCatalog(false);
+/* the bar carries the live count so it says something even while closed */
+function questBarCount(){
+ const el=document.getElementById('questCount');
+ if(el)el.textContent=tot()+' / '+P.length+' cleared';
+}
 document.getElementById('catBtn').onclick=()=>setCatalog(!catOpen);
 document.getElementById('catClose').onclick=()=>setCatalog(false);
 document.getElementById('catSearch').addEventListener('input',e=>{
  catQuery=e.target.value;renderCatalog();});
 document.getElementById('catSort').addEventListener('change',e=>{
  catSort=e.target.value;renderCatalog();});
-function refreshCatalog(){if(catOpen){buildChips();renderCatalog();}}
+function refreshCatalog(){questBarCount();if(catOpen){buildChips();renderCatalog();}}
 
 
 /* ═══════════════ 22. SIDE RAILS ═══════════════ */
@@ -4748,10 +4978,10 @@ function setMsg(i){const l=document.getElementById('loader');
   compass(bx,W-56,58);scalebar(bx,30,H-42);frameArt();drawLabels();});
  await step(100,()=>{});
  await load();
- if((window.innerWidth||1200)<680)zoomMul=3;
- applyZoom();updHUD();render();renderBadges();renderLog();buildChips();renderCatalog();layoutRails();
- if(zoomMul>1.02){wrap.scrollLeft=px(-82.46)*zoom-wrap.clientWidth/2;
-  wrap.scrollTop=py(35.32)*zoom-wrap.clientHeight/2;}
+ /* open on FIT so the whole region is visible first; the player zooms in
+    deliberately from there */
+ zoomMul=1;
+ applyZoom();updHUD();render();renderBadges();renderLog();buildChips();renderCatalog();questBarCount();layoutRails();
  document.getElementById('loader').style.display='none';
  requestAnimationFrame(loop);
 })();

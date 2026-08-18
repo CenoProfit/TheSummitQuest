@@ -21,7 +21,9 @@ Adding a third region is a data change, not an engine change: a region supplies 
 
 ## Sections
 
-**MAP** the region's world map. **LOGBOOK** everything cleared, newest first. **BADGES** the 20 achievements. **AVATAR** your climber: name them, pick a kit colour, and see your lifetime record and rope team. **REGIONS** goes back to the overworld.
+**MAP** the region's world map, with the quest list on a bar beneath it. **LOGBOOK** everything cleared, newest first. **BADGES** the 20 achievements. **AVATAR** your climber: name them, pick a kit, and see your lifetime record and rope team. **REGIONS** goes back to the overworld.
+
+The climber sprites are drawn at runtime from primitives on a 34x44 grid — a fighting-game idle in trail gear: colour-blocked shell jacket, baggy hiking pants cuffed over trail shoes, wraparound shades with a different lens colourway per kit, and a bandana on two of the four. Four tones per material with fold lines at the elbows, waist and knees. The dark keyline is derived from the silhouette rather than drawn, so it cannot fall out of step with the art, and limbs are held off the body by a column of transparency so they read as separate limbs instead of melting into the jacket.
 
 The climber is global rather than per-region, so the same person walks every map. Skins, gear and titles are the intended next step there.
 
@@ -36,11 +38,13 @@ Each region keeps its own progress, level, and badges. Level titles are flavoure
 
 The overworld map totals lifetime progress across every region.
 
-Category filtering is inclusive: nothing selected shows everything, and clicking a type shows only that type. Click more to add them. The map's filter bar and the catalog's chips are two views of the same selection, so the map and the list never disagree.
+Category filtering is inclusive: nothing selected shows everything, and clicking a type shows only that type. Click more to add them. The map's filter bar and the quest list's chips are two views of the same selection, so the map and the list never disagree.
+
+The quest list opens as a full-height scrollable panel above the rest of the UI. Picking a quest keeps the list open and holds your scroll position, marking the row you chose, so you can work through several without starting over each time. On a phone the detail sheet layers over the panel; closing it drops you back where you were.
 
 ## On a phone
 
-The header collapses and the map sits above the fold. Choosing a destination opens it as a bottom sheet over the map rather than a panel below it, so the description and the MARK COMPLETE button are reachable without scrolling — even for a multi-day boss trek, the longest entry there is. A boss fight hides the page chrome and lays the art, party bar, log and action buttons out to fill exactly one screen.
+A region opens on FIT, so the whole map is visible before you zoom into it. The page is a flex column the height of the viewport and the map frame absorbs the slack with the canvas centred in it, so the layout reaches the bottom of the screen rather than ending in a band of empty background. The header collapses and the map sits above the fold. Choosing a destination opens it as a bottom sheet over the map rather than a panel below it, so the description and the MARK COMPLETE button are reachable without scrolling — even for a multi-day boss trek, the longest entry there is. A boss fight hides the page chrome and lays the art, party bar, log and action buttons out to fill exactly one screen.
 
 Nothing in either layout depends on a CSS animation finishing. A throttled or backgrounded tab freezes animations mid-flight, and a sheet that animates into place would be left parked off screen with the destination unreachable.
 
