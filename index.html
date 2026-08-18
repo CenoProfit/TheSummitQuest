@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SUMMIT</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -197,7 +197,8 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 /* Fixed to the viewport rather than clipped to the map box, so the list is one
    continuous scroll and sits above the info panel instead of behind it. Closed
    is display:none — no parked transform that a frozen animation could strand. */
-.cat-panel{position:fixed;top:14px;bottom:14px;left:14px;width:min(392px,calc(100vw - 28px));
+.cat-panel{position:fixed;top:calc(14px + env(safe-area-inset-top));
+ bottom:calc(14px + env(safe-area-inset-bottom));left:calc(14px + env(safe-area-inset-left));width:min(392px,calc(100vw - 28px));
  z-index:90;display:none;flex-direction:column;
  background:rgba(11,16,25,.98);border:3px solid var(--edge2);
  box-shadow:0 0 0 3px var(--bg),8px 8px 0 3px rgba(0,0,0,.6)}
@@ -360,7 +361,8 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .av-soon{font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:11px;text-align:center}
 
 @media (max-width:640px){
- body{padding:10px 10px 52px}
+ body{padding:calc(10px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right))
+   52px calc(10px + env(safe-area-inset-left))}
  /* the detail panel becomes a bottom sheet so a destination never needs a scroll */
  /* Closed is display:none, and open has NO entry animation. The sheet's resting
     position must never depend on an animation finishing: a throttled or hidden
@@ -378,11 +380,12 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
   border:2px solid var(--edge2);padding:7px 10px;cursor:pointer;z-index:2}
  .d-actions{position:sticky;bottom:0;background:var(--panel);padding-top:9px;margin-top:2px}
  /* battle fills the screen instead of running off the bottom */
- body.fighting{padding-bottom:10px}
+ body.fighting{padding-bottom:calc(10px + env(safe-area-inset-bottom))}
  body.fighting .title,body.fighting .subtitle,body.fighting #hudBox,
  body.fighting #navBar,body.fighting .footnote{display:none!important}
  body.fighting #screenBattle{display:flex;flex-direction:column;
-  height:calc(100vh - 20px);height:calc(100dvh - 20px);gap:6px}
+  height:calc(100vh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));gap:6px}
  body.fighting .bt-frame{margin:0;flex:0 1 auto;min-height:0}
  body.fighting #battleCanvas{max-height:none;height:100%;width:auto;object-fit:contain}
  body.fighting .bt-hud{margin:0;flex:0 0 auto}
@@ -410,6 +413,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
     height of the viewport and the map frame absorbs the slack with the canvas
     centred in it, so the layout reaches the bottom instead of stopping short. */
  body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+  padding-top:calc(10px + env(safe-area-inset-top));
   padding-bottom:calc(10px + env(safe-area-inset-bottom))}
  .title{font-size:clamp(13px,5.4vw,20px);margin:3px 0 3px}
  .subtitle{font-size:8.5px;margin-bottom:8px}
