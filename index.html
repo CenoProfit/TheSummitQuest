@@ -232,20 +232,28 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .cat-grp{font-family:var(--pix);font-size:7px;letter-spacing:1px;padding:9px 12px;
  background:var(--panel2);border-bottom:2px solid var(--edge);position:sticky;top:0;z-index:2;
  display:flex;justify-content:space-between;align-items:center}
-.cat-row{display:grid;grid-template-columns:14px 1fr auto;gap:4px 10px;padding:10px 12px;
- cursor:pointer;border-bottom:1px solid rgba(90,115,146,.16);align-items:center}
+/* Row layout: the category dot and the XP badge each span both rows and pin to
+   the edges; the name and its stats share the middle column, so they centre on
+   the same axis rather than drifting apart. */
+.cat-row{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:5px 11px;
+ padding:11px 13px;cursor:pointer;border-bottom:1px solid rgba(90,115,146,.16);
+ align-items:center}
 .cat-row:hover{background:#1b2636}
-.cat-row.done{opacity:.5}
+.cat-row.done{opacity:.55}
 .cat-row.done .cr-n{text-decoration:line-through}
+.cat-row.done .cr-x{color:#8f9aa8;background:#1a2130;border-color:#39404f}
 .cat-row .cr-i{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.65);
  grid-row:1/3;align-self:center}
-.cat-row .cr-n{font-size:13px;font-weight:bold;color:var(--ink);line-height:1.35;
- overflow-wrap:anywhere}
-.cat-row .cr-x{font-family:var(--pix);font-size:7px;color:var(--gold);white-space:nowrap;
- grid-row:1/3;align-self:center;text-align:right}
-.cat-row .cr-m{grid-column:2;font-size:11px;color:var(--dim);display:flex;gap:6px;flex-wrap:wrap;
- line-height:1.4}
+.cat-row .cr-n{grid-column:2;grid-row:1;font-size:13.5px;font-weight:bold;color:var(--ink);
+ line-height:1.4;text-align:center;overflow-wrap:anywhere;letter-spacing:.2px}
+.cat-row .cr-x{grid-column:3;grid-row:1/3;align-self:center;
+ font-family:var(--pix);font-size:7px;color:#f2dda6;white-space:nowrap;
+ background:#2a2413;border:1px solid #6b5410;padding:6px 7px;
+ box-shadow:1px 1px 0 rgba(0,0,0,.5)}
+.cat-row .cr-m{grid-column:2;grid-row:2;font-size:11px;color:var(--dim);
+ display:flex;gap:7px;flex-wrap:wrap;justify-content:center;line-height:1.45}
 .cat-row .cr-m b{color:#aebbcc;font-weight:normal}
+.cat-row .cr-m>span{color:#5a6b7d}
 .cat-row .cr-b{color:#ff8fd0}
 .cat-none{padding:26px;text-align:center;color:var(--dim);font-family:var(--pix);font-size:9px;line-height:2}
 .cat-sum{flex:0 0 auto;font-size:10px;color:var(--dim);margin-top:10px;text-align:center;letter-spacing:1px;line-height:1.7}
