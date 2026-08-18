@@ -5262,7 +5262,12 @@ function musicKick(){
    not ours. Returning to a backgrounded tab counts as a fresh chance, so the
    same attempt runs again on visibility. */
 MGEST.forEach(e=>window.addEventListener(e,musicKick,{passive:true}));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)musicStart();});
+/* Music follows the screen. A hidden tab or a backgrounded app should not go
+   on generating notes into an empty room — it burns battery, and a phone in a
+   pocket playing to nobody is how you get uninstalled. Coming back is a fresh
+   chance at consent, so the same start path runs again. */
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden)musicStop();else musicStart();});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',musicStart);
 else musicStart();
 /* Both screens carry the same switch: the launcher has no options menu, and
