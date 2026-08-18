@@ -5132,16 +5132,18 @@ function makeIR(ac,sec,decay){
   for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay);}
  return b;
 }
-/* A2/F2/C3/G2 with sevenths stacked above. Four bars, eight seconds each, so a
-   full turn is a little over half a minute — slow enough that the ear stops
-   tracking it and it becomes weather rather than melody. */
-const BAR=8;
+/* A2/F2/C3/G2 with sevenths and a ninth stacked above. Four bars of six seconds,
+   so a full turn is around twenty-five seconds: still slow enough to become
+   weather rather than melody, but with enough forward lean to feel like going
+   somewhere rather than sitting still. The ninths are what stop the minor key
+   reading as melancholy — they open the chord upward. */
+const BAR=6;
 const PROG=[
- {bass:45,pad:[57,60,64,67]},
- {bass:41,pad:[53,57,60,64]},
- {bass:48,pad:[55,60,64,67]},
- {bass:43,pad:[55,59,62,67]}];
-const PENT=[57,60,62,64,67,69,72,74];
+ {bass:45,pad:[57,60,64,67,71]},
+ {bass:41,pad:[53,57,60,64,72]},
+ {bass:48,pad:[55,60,64,67,74]},
+ {bass:43,pad:[55,59,62,67,71]}];
+const PENT=[57,60,62,64,67,69,72,74,76,79];
 /* Resting level of the whole score. Quiet enough to sit under the game's own
    blips, loud enough to survive a phone speaker outdoors. Measured rather than
    guessed: a rendered bar peaks near -18 dBFS here, with headroom to spare when
@@ -5152,7 +5154,7 @@ function musicInit(){
  const ac=audioCtx();if(!ac||mBus)return ac;
  mBus=ac.createGain();mBus.gain.value=musicOn?MLEVEL:.0001;
  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;
- const rv=ac.createConvolver();rv.buffer=makeIR(ac,3.6,2.4);
+ const rv=ac.createConvolver();rv.buffer=makeIR(ac,3.0,2.5);
  mWet=ac.createGain();mWet.gain.value=.5;
  mBus.connect(lp);lp.connect(ac.destination);lp.connect(mWet);mWet.connect(rv);rv.connect(ac.destination);
  return ac;
@@ -5177,8 +5179,8 @@ function mPad(ac,f,t,len,vel){
   o.type='sine';o.frequency.value=f;o.detune.value=det;
   o.connect(g);g.connect(mBus);
   g.gain.setValueAtTime(.0001,t);
-  g.gain.exponentialRampToValueAtTime(vel,t+2.4);
-  g.gain.setValueAtTime(vel,t+len-2.6);
+  g.gain.exponentialRampToValueAtTime(vel,t+1.8);
+  g.gain.setValueAtTime(vel,t+len-2.2);
   g.gain.exponentialRampToValueAtTime(.0001,t+len);
   o.start(t);o.stop(t+len+.05);});
 }
@@ -5189,27 +5191,46 @@ function scheduleBar(){
  ch.pad.forEach(n=>mPad(ac,mid(n),t+.2,BAR+.6,.028));
  /* Eight slots a bar, most of them left empty. The rests are the point: this
     has to survive being heard for an hour without asking for attention. */
+ const SLOT=BAR/8;
  for(let i=0;i<8;i++){
-  if(Math.random()>.42)continue;
+  if(Math.random()>.52)continue;
   const pool=i%2===0?ch.pad:PENT;
   let n=pool[Math.floor(Math.random()*pool.length)];
-  if(Math.random()<.18)n+=12;
-  const at=t+i+(Math.random()*.06-.03),v=.05+Math.random()*.035;
-  mNote(ac,mid(n),at,v,2.6+Math.random());
+  if(Math.random()<.26)n+=12;
+  const at=t+i*SLOT+(Math.random()*.05-.025),v=.05+Math.random()*.035;
+  mNote(ac,mid(n),at,v,2.2+Math.random());
+  /* Occasionally the line climbs instead of wandering. A short rising figure is
+     most of what separates "adventure" from "ambient" — it implies a direction.
+     Kept rare so it reads as a lift rather than a hook. */
+  if(Math.random()<.22){
+   const up=ch.pad.filter(x=>x>n).slice(0,2);
+   const climb=up.length?up:[n+3,n+7];
+   climb.forEach((cn,k)=>mNote(ac,mid(cn),at+(k+1)*SLOT*.34,v*.72,1.7));
+  }
   /* one soft repeat, the delay that gives this kind of music its space */
-  if(Math.random()<.45)mNote(ac,mid(n),at+.375,v*.38,1.8);
+  else if(Math.random()<.45)mNote(ac,mid(n),at+SLOT*.5,v*.38,1.6);
  }
  mBar++;mNext+=BAR;
  mTimer=setTimeout(scheduleBar,Math.max(30,(mNext-BAR*.5-ac.currentTime)*1000));
 }
-function musicStart(){
- if(!musicOn||mTimer)return;
- const ac=musicInit();if(!ac)return;
- if(ac.state==='suspended')ac.resume();
+function musicBegin(ac){
+ if(mTimer)return;
  mBus.gain.cancelScheduledValues(ac.currentTime);
  mBus.gain.setValueAtTime(Math.max(.0001,mBus.gain.value),ac.currentTime);
  mBus.gain.exponentialRampToValueAtTime(MLEVEL,ac.currentTime+2.5);
  mNext=ac.currentTime+.35;scheduleBar();
+}
+/* Resuming is asynchronous, so a suspended context cannot simply be woken and
+   played in the same breath: the state is still 'suspended' when resume()
+   returns. Waiting on the promise is what makes one gesture enough. Scheduling
+   against a frozen clock instead would queue a pile of bars that all arrive at
+   once the moment sound is allowed. */
+function musicStart(){
+ if(!musicOn||mTimer)return;
+ const ac=musicInit();if(!ac)return;
+ if(ac.state==='running'){musicBegin(ac);return;}
+ const p=ac.resume();
+ if(p&&p.then)p.then(()=>{if(ac.state==='running')musicBegin(ac);}).catch(()=>{});
 }
 function musicStop(){
  clearTimeout(mTimer);mTimer=null;
@@ -5227,12 +5248,23 @@ function setMusic(on){
 }
 /* Browsers refuse to start audio until the user has interacted with the page,
    so the first gesture anywhere is what actually opens the score. */
+const MGEST=['pointerdown','keydown','touchstart','click'];
 function musicKick(){
- if(AC&&AC.state==='suspended')AC.resume();
- if(musicOn)musicStart();
- if(mTimer)['pointerdown','keydown','touchstart'].forEach(e=>window.removeEventListener(e,musicKick));
+ if(!musicOn)return;
+ musicStart();
+ if(mTimer)MGEST.forEach(e=>window.removeEventListener(e,musicKick));
 }
-['pointerdown','keydown','touchstart'].forEach(e=>window.addEventListener(e,musicKick,{passive:true}));
+/* Start on open. Every browser blocks audible sound until the page has been
+   interacted with, so this asks the context to resume straight away and plays
+   the moment it is allowed to; where consent is withheld the first gesture is
+   the fallback, and the listeners unregister once the score is running. This is
+   the earliest a page is permitted to make noise — the gate is the browser's,
+   not ours. Returning to a backgrounded tab counts as a fresh chance, so the
+   same attempt runs again on visibility. */
+MGEST.forEach(e=>window.addEventListener(e,musicKick,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)musicStart();});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',musicStart);
+else musicStart();
 /* Both screens carry the same switch: the launcher has no options menu, and
    music that cannot be silenced from where it starts playing is a trap. */
 [...document.querySelectorAll('.mus-toggle')].forEach(b=>{
