@@ -316,6 +316,20 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .opt-i.on{color:var(--gold)}
 .opt-i.danger{color:#f08a7a}
 .opt-i.danger:hover{background:#3a1512;border-color:#8a3226}
+.d-photo{margin-top:11px}
+.ph-add{display:block;width:100%;font-family:var(--pix);font-size:8px;letter-spacing:.5px;
+ background:var(--panel2);color:var(--ink);border:2px solid var(--edge2);padding:12px 10px;cursor:pointer}
+.ph-add:hover{background:var(--panel)}
+.ph-wrap img{display:block;width:100%;max-height:230px;object-fit:cover;
+ border:2px solid var(--edge2);cursor:zoom-in}
+.ph-bar{display:flex;gap:7px;margin-top:6px}
+.ph-bar button{flex:1;font-family:var(--pix);font-size:7px;letter-spacing:.5px;
+ background:transparent;color:var(--dim);border:2px solid var(--edge2);padding:8px 6px;cursor:pointer}
+.ph-bar button:hover{background:var(--panel2);color:var(--ink)}
+.ph-note{font-size:10px;color:var(--dim);margin-top:5px}
+.ph-view{position:fixed;inset:0;z-index:200;background:rgba(3,6,12,.94);
+ display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+.ph-view img{max-width:100%;max-height:100%;object-fit:contain}
 .mus-standalone{display:inline-block;width:auto;min-width:132px;text-align:center;
  background:var(--panel2);border-color:var(--edge2);padding:9px 14px}
 .mus-standalone:hover{background:var(--panel)}
@@ -587,6 +601,8 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
         <div class="opt-h">SOUND</div>
         <button class="opt-i on" id="sndBtn">SOUND: ON</button>
         <button class="opt-i on mus-toggle" id="musBtn">MUSIC: ON</button>
+        <div class="opt-h" id="galHead">PHOTOS</div>
+        <button class="opt-i on" id="galBtn">SAVE TO PHOTOS: ON</button>
         <div class="opt-h">SAVE DATA</div>
         <button class="opt-i" id="exportBtn">EXPORT SAVE…</button>
         <button class="opt-i" id="importBtn">IMPORT SAVE…</button>
@@ -1240,7 +1256,136 @@ const STORE=(()=>{
  let MEM=null;
  return{kind:'memory',get:async()=>MEM,set:async v=>{MEM=v;}};
 })();
-const blank=()=>({done:{},slain:{},badges:{}});
+/* ═══════════════ 1c-2. PHOTO STORE ═══════════════
+   Photos never enter the save file. A save is a small JSON string rewritten on
+   every change and pushed through localStorage; one re-encoded hike photo is
+   already larger than the entire save, and a hundred of them would exceed the
+   quota several times over. So the save carries metadata only and the bytes
+   live in a store of their own, keyed by quest id.
+
+   Two implementations behind one interface. The native shell writes files under
+   Documents, which iCloud backs up, so a summer of photos survives a new phone.
+   The web build keeps Blobs in IndexedDB, which is best effort: Safari evicts
+   it after about a week of not visiting, and no API can truly prevent that.
+   Keying by quest id rather than by a generated name is deliberate — when this
+   grows a login and a server, the id is what a row will hang off. */
+const PKEY='summit.gallery';
+let galleryOn=(()=>{try{return localStorage.getItem(PKEY)!=='off';}catch(e){return true;}})();
+const capPlug=n=>(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins[n])||null;
+
+function blobToB64(b){
+ return new Promise((res,rej)=>{const r=new FileReader();
+  r.onload=()=>res(String(r.result).split(',')[1]||'');
+  r.onerror=()=>rej(r.error);r.readAsDataURL(b);});
+}
+function b64ToBlob(b64,type){
+ const bin=atob(b64),u=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+ return new Blob([u],{type:type||'image/jpeg'});
+}
+/* Re-encoding through a canvas is not only about size. It drops every EXIF
+   field on the way, and a photo taken at a waterfall carries the coordinates of
+   that waterfall — which is fine on the device and not fine the first time
+   somebody shares one. */
+async function shrink(blob,max,q){
+ const bmp=await createImageBitmap(blob);
+ const sc=Math.min(1,max/Math.max(bmp.width,bmp.height));
+ const w=Math.max(1,Math.round(bmp.width*sc)),h=Math.max(1,Math.round(bmp.height*sc));
+ const c=document.createElement('canvas');c.width=w;c.height=h;
+ c.getContext('2d').drawImage(bmp,0,0,w,h);
+ if(bmp.close)bmp.close();
+ const out=await new Promise(r=>c.toBlob(r,'image/jpeg',q));
+ return{blob:out||blob,w,h};
+}
+const PHOTOS=(()=>{
+ const DIR='DOCUMENTS',BASE='summit/photos';
+ const FS=()=>capPlug('Filesystem');
+ const native=!!FS();
+ const urls={};
+ const idb=()=>new Promise((res,rej)=>{
+  let q;try{q=indexedDB.open('summit.photos',1);}catch(e){return rej(e);}
+  q.onupgradeneeded=()=>{const db=q.result;
+   if(!db.objectStoreNames.contains('p'))db.createObjectStore('p');};
+  q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
+ /* Resolve on the transaction committing, not on the request succeeding. A
+    request fires success before its transaction commits, so awaiting the
+    request meant a write could be reported done while another connection still
+    could not see it — and, worse, the save could record a photo whose bytes had
+    not landed. */
+ const idbReq=(mode,fn)=>idb().then(db=>new Promise((res,rej)=>{
+  const tx=db.transaction('p',mode),rq=fn(tx.objectStore('p'));
+  let val;
+  if(rq)rq.onsuccess=()=>{val=rq.result;};
+  tx.oncomplete=()=>res(val);
+  tx.onerror=()=>rej(tx.error);
+  tx.onabort=()=>rej(tx.error);}));
+ const file=(id,which)=>`${BASE}/${id}${which==='thumb'?'_t':''}.jpg`;
+ async function put(id,full,thumb){
+  if(native){
+   await FS().writeFile({path:file(id,'full'),data:await blobToB64(full),directory:DIR,recursive:true});
+   await FS().writeFile({path:file(id,'thumb'),data:await blobToB64(thumb),directory:DIR,recursive:true});
+   return;}
+  await idbReq('readwrite',st=>st.put({full,thumb},id));
+ }
+ /* Object URLs are handed out per request and the previous one for that key is
+    revoked, so replacing a photo cannot leak the old blob for the session. */
+ async function url(id,which){
+  if(native){
+   try{const r=await FS().getUri({path:file(id,which),directory:DIR});
+    return window.Capacitor.convertFileSrc?window.Capacitor.convertFileSrc(r.uri):r.uri;}
+   catch(e){return null;}}
+  try{
+   const rec=await idbReq('readonly',st=>st.get(id));
+   const b=rec&&(which==='thumb'?rec.thumb:rec.full);
+   if(!b)return null;
+   const k=id+which;
+   if(urls[k])URL.revokeObjectURL(urls[k]);
+   return urls[k]=URL.createObjectURL(b);
+  }catch(e){return null;}
+ }
+ async function del(id){
+  if(native){
+   for(const w of['full','thumb'])
+    try{await FS().deleteFile({path:file(id,w),directory:DIR});}catch(e){}
+   return;}
+  for(const w of['full','thumb']){const k=id+w;
+   if(urls[k]){URL.revokeObjectURL(urls[k]);delete urls[k];}}
+  try{await idbReq('readwrite',st=>st.delete(id));}catch(e){}
+ }
+ /* Bytes outlive their metadata whenever a save is restored or partly dropped,
+    so anything the save no longer claims is swept at boot rather than kept
+    forever at the user's expense. */
+ async function sweep(keep){
+  try{
+   if(native){
+    const r=await FS().readdir({path:BASE,directory:DIR});
+    for(const f of(r.files||[])){
+     const nm=(f.name!==undefined?f.name:f)+'';
+     const id=nm.replace(/_t\.jpg$|\.jpg$/,'');
+     if(nm&&!keep.has(id))try{await FS().deleteFile({path:BASE+'/'+nm,directory:DIR});}catch(e){}}
+    return;}
+   const ids=await idbReq('readonly',st=>st.getAllKeys());
+   for(const id of(ids||[]))if(!keep.has(id))await idbReq('readwrite',st=>st.delete(id));
+  }catch(e){}
+ }
+ return{native,put,url,del,sweep};
+})();
+/* Native gives base64 straight back; the web falls back to a file input, which
+   on a phone browser still opens the camera. */
+async function pickPhoto(){
+ const C=capPlug('Camera');
+ if(C){
+  const r=await C.getPhoto({quality:88,width:2200,correctOrientation:true,
+   resultType:'base64',source:'PROMPT',saveToGallery:galleryOn});
+  return r&&r.base64String?b64ToBlob(r.base64String,'image/jpeg'):null;}
+ return new Promise(res=>{
+  const i=document.createElement('input');
+  i.type='file';i.accept='image/*';i.setAttribute('capture','environment');
+  i.onchange=()=>res((i.files&&i.files[0])||null);
+  i.oncancel=()=>res(null);
+  i.click();});
+}
+const blank=()=>({done:{},slain:{},badges:{},pics:{}});
 function cleanStamp(v){
  if(typeof v!=='string')return null;
  const t=Date.parse(v);
@@ -1269,7 +1414,20 @@ function normalizeSlot(d,rg,tally){
  const done=cleanMap(d.done,ids,t);
  const slain=cleanMap(d.slain,bossIds,t);
  for(const k of Object.keys(slain))if(!done[k]){delete slain[k];t.dropped++;}
- return{done,slain,badges:cleanMap(d.badges,achIds,t)};
+ return{done,slain,badges:cleanMap(d.badges,achIds,t),pics:cleanPics(d.pics,done,t)};
+}
+/* A photo record is metadata only: when it was taken and how big it is. The
+   bytes are in the photo store, and a record without a cleared hike is dropped
+   the same way a boss kill without one is. */
+function cleanPics(src,done,tally){
+ const out={};
+ if(!src||typeof src!=='object'){if(src!=null)tally.dropped++;return out;}
+ for(const k of Object.keys(src)){
+  const v=src[k],at=v&&cleanStamp(v.at);
+  if(!done[k]||!at){tally.dropped++;continue;}
+  out[k]={at,w:Number(v.w)||0,h:Number(v.h)||0};
+ }
+ return out;
 }
 function isSaveShaped(d){
  if(!d||typeof d!=='object'||Array.isArray(d))return false;
@@ -4620,6 +4778,7 @@ function showDetail(p){
    ${boss&&!dn?`<span class="small-link" id="skipb">skip battle — I already hiked it</span>`:''}
   </div>
   <div id="chknote" style="font-size:11px;line-height:1.6;margin-top:9px"></div>
+  ${dn?`<div class="d-photo" id="dphoto"></div>`:''}
   ${dn?`<div class="datelog">📅 LOGGED
    <input type="date" id="dlog" value="${inputDay(S.done[p.id])}">
    <span style="color:#f5c651">${fmtDate(S.done[p.id])}</span></div>`:''}`;
@@ -4636,6 +4795,7 @@ function showDetail(p){
   x.onclick=()=>{closeSheet();selId=null;render();};
   detail.insertBefore(x,detail.firstChild);}
  openSheet();
+ if(dn)paintPhoto(p);
  if(dl)dl.onchange=async e=>{
   /* Clearing the field fires change with an empty value; without this the stamp
      built below is Invalid Date and toISOString() throws. */
@@ -4728,9 +4888,64 @@ async function checkIn(p,onPass){
   +`. The check needs ${GEOFENCE_M} m.</span>`
   +'<div style="color:var(--dim);margin-top:6px">If you are standing there, wait a few seconds for the signal to settle and try again.</div>'+manual);
 }
+/* A photo is attached after the hike is cleared, never as a way of clearing it:
+   the location check is what proves you were there, and a picture proves only
+   that a picture exists. This is the memory, not the evidence. */
+async function paintPhoto(p){
+ const el=document.getElementById('dphoto');if(!el)return;
+ const meta=S.pics&&S.pics[p.id];
+ const offer=t=>{el.innerHTML=`<button class="ph-add" id="phAdd">${t}</button>`;
+  document.getElementById('phAdd').onclick=()=>attachPhoto(p);};
+ if(!meta)return offer('📷 ADD A PHOTO');
+ const u=await PHOTOS.url(p.id,'thumb');
+ /* Metadata can outlive its bytes — a restored save, or a browser that evicted
+    IndexedDB. Say so plainly rather than rendering a broken frame. */
+ if(!u)return offer('📷 PHOTO MISSING — ADD ANOTHER');
+ el.innerHTML=`<div class="ph-wrap"><img alt="Photo from ${p.n}" src="${u}" id="phImg"></div>
+  <div class="ph-bar"><button id="phRe">REPLACE</button><button id="phDel">REMOVE</button></div>
+  <div class="ph-note">📷 ${fmtDate(meta.at)}</div>`;
+ document.getElementById('phImg').onclick=()=>openPhoto(p);
+ document.getElementById('phRe').onclick=()=>attachPhoto(p);
+ document.getElementById('phDel').onclick=()=>dropPhoto(p);
+}
+async function openPhoto(p){
+ const u=await PHOTOS.url(p.id,'full');if(!u)return;
+ const d=document.createElement('div');
+ d.className='ph-view';
+ const i=document.createElement('img');i.src=u;i.alt='Photo from '+p.n;
+ d.appendChild(i);d.onclick=()=>d.remove();
+ document.body.appendChild(d);
+}
+async function attachPhoto(p){
+ const el=document.getElementById('dphoto');
+ let raw=null;
+ try{raw=await pickPhoto();}catch(e){raw=null;}
+ if(!raw){paintPhoto(p);return;}
+ if(el)el.innerHTML='<div class="ph-note">saving…</div>';
+ try{
+  /* Full size is capped at 1600px: enough to fill any phone screen, a fraction
+     of the four megabytes a camera hands over. The thumbnail is what the list
+     shows, so it is small enough to be cheap to read. */
+  const full=await shrink(raw,1600,.72),thumb=await shrink(raw,320,.6);
+  await PHOTOS.put(p.id,full.blob,thumb.blob);
+  S.pics=S.pics||{};
+  S.pics[p.id]={at:new Date().toISOString(),w:full.w,h:full.h};
+  await save();blip();
+ }catch(e){
+  queueToast("PHOTO NOT SAVED","There was no room, or the file could not be read");
+ }
+ paintPhoto(p);
+}
+async function dropPhoto(p){
+ await PHOTOS.del(p.id);
+ if(S.pics)delete S.pics[p.id];
+ await save();unblip();paintPhoto(p);
+}
 async function toggle(p){
  const before=lvlFor(totalXP());
- if(S.done[p.id]){delete S.done[p.id];delete S.slain[p.id];unblip();}
+ if(S.done[p.id]){delete S.done[p.id];delete S.slain[p.id];
+  if(S.pics&&S.pics[p.id]){delete S.pics[p.id];PHOTOS.del(p.id);}
+  unblip();}
  else{S.done[p.id]=new Date().toISOString();const after=lvlFor(totalXP());
   if(after>before){fanfare();queueToast("LEVEL UP!","▶ "+LEVELS[after].n);}else blip();}
  render();showDetail(p);checkAch();updHUD();renderLog();refreshCatalog();questBarCount();bestBuilt=false;layoutRails();await save();
@@ -4867,6 +5082,17 @@ document.getElementById('pinBtn').onclick=e=>{showMarkers=!showMarkers;
 document.getElementById('labelBtn').onclick=e=>{showLabels=!showLabels;
  e.target.textContent="LABELS: "+(showLabels?"ON":"OFF");
  e.target.classList.toggle('on',!showLabels);render();};
+{const gb=document.getElementById('galBtn'),gh=document.getElementById('galHead');
+ /* Saving a copy to the camera roll is a native idea; on the web the browser
+    already handed us a file it owns, so the switch would promise nothing. */
+ if(!capPlug('Camera')){gb.style.display='none';gh.style.display='none';}
+ else{
+  const paint=()=>{gb.textContent='SAVE TO PHOTOS: '+(galleryOn?'ON':'OFF');
+   gb.classList.toggle('on',galleryOn);};
+  paint();
+  gb.onclick=()=>{galleryOn=!galleryOn;
+   try{localStorage.setItem(PKEY,galleryOn?'on':'off');}catch(e){}
+   paint();blip();};}}
 document.getElementById('sndBtn').onclick=e=>{sound=!sound;
  e.target.textContent="SOUND: "+(sound?"ON":"OFF");e.target.classList.toggle('on',sound);if(sound)blip();};
 document.getElementById('resetBtn').onclick=async()=>{
@@ -5450,6 +5676,11 @@ else musicStart();
    engine needs this region's slot before its first paint. */
 (async()=>{
  await readFile();
+ /* Anything the save no longer claims is dropped, so a restore or a partly
+    unreadable save cannot leave photos on the device forever. */
+ try{const keep=new Set();
+  Object.values(FILE.regions||{}).forEach(r=>Object.keys((r&&r.pics)||{}).forEach(k=>keep.add(k)));
+  PHOTOS.sweep(keep);}catch(e){}
  const id=pickRegion();
  if(!id){showLauncher();return;}
  document.getElementById('gameTitle').textContent='★ SUMMIT ★';
