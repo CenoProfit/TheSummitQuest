@@ -370,7 +370,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 /* ── avatar ── */
 .av-frame{padding:14px}
 .av-grid{display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:14px;align-items:start}
-.av-stage{background:#060a10;border:2px solid var(--edge2);padding:12px;display:flex;
+.av-stage{background:#131b26;border:2px solid var(--edge2);padding:12px;display:flex;
  align-items:center;justify-content:center;
  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
   linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:12px 12px}
@@ -384,7 +384,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .av-input::placeholder{color:#5d6b7d;font-family:var(--body);font-size:12px;letter-spacing:0}
 .av-kits{display:flex;gap:7px;flex-wrap:wrap}
 .av-kit{border:2px solid var(--edge2);cursor:pointer;padding:4px;line-height:0;
- background:#060a10;box-shadow:2px 2px 0 rgba(0,0,0,.55);position:relative}
+ background:#131b26;box-shadow:2px 2px 0 rgba(0,0,0,.55);position:relative}
 .av-kit.on{border-color:var(--gold);box-shadow:0 0 0 2px #7a5308,2px 2px 0 2px rgba(0,0,0,.55)}
 .av-kit canvas{image-rendering:pixelated;display:block;width:auto;height:auto}
 .av-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:6px}
@@ -393,7 +393,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .av-st .v{font-family:var(--pix);font-size:9px;color:var(--ink);margin-top:5px;display:block;line-height:1.6}
 .av-party{margin-top:14px;border-top:2px solid var(--edge);padding-top:12px}
 .av-party-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-.av-mate{background:#060a10;border:2px solid var(--edge);padding:7px;text-align:center}
+.av-mate{background:#131b26;border:2px solid var(--edge);padding:7px;text-align:center}
 .av-mate canvas{image-rendering:pixelated;display:block;width:auto;height:auto}
 .av-mate span{display:block;font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:5px}
 .av-soon{font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:11px;text-align:center}
@@ -4873,8 +4873,8 @@ function showDetail(p){
   </div>
   <div class="d-food">🍖 REFUEL AT — <b>${p.food}</b></div>
   <div class="d-actions">
-   ${boss&&!dn?`<button class="btn-go boss" id="cbtn">⚔ ENTER BATTLE</button>`
-    :`<button class="btn-go ${dn?'done':''}" id="cbtn">${dn?'✓ CLEARED — UNDO':'MARK COMPLETE'}</button>`}
+   ${boss?`<button class="btn-go boss" id="bbtn">${S.slain[p.id]?'⚔ FIGHT AGAIN':'⚔ ENTER BATTLE'}</button>`:''}
+   ${(!boss||dn)?`<button class="btn-go ${dn?'done':''}" id="cbtn">${dn?'✓ CLEARED — UNDO':'MARK COMPLETE'}</button>`:''}
    <span class="xp-tag">+${p.xp} XP</span>
    ${boss&&!dn?`<span class="small-link" id="skipb">skip battle — I already hiked it</span>`:''}
   </div>
@@ -4883,12 +4883,18 @@ function showDetail(p){
   ${dn?`<div class="datelog">📅 LOGGED
    <input type="date" id="dlog" value="${inputDay(S.done[p.id])}">
    <span style="color:#f5c651">${fmtDate(S.done[p.id])}</span></div>`:''}`;
- document.getElementById('cbtn').onclick=()=>{
+ /* The battle button is its own control and is always present on a boss
+    location. It used to share #cbtn with MARK COMPLETE, which meant clearing
+    the hike — by winning, or via the skip link — removed the only way back in,
+    stranding anyone whose location was done but whose boss was still alive. */
+ const cb=document.getElementById('cbtn');
+ if(cb)cb.onclick=()=>{
   if(dn){toggle(p);return;}
   /* The fight is open to anyone anywhere; winning it is what asks where you
      are. Day hikes still check before they clear. */
-  if(boss)startBattle(p);
-  else checkIn(p);};
+  checkIn(p);};
+ const bb2=document.getElementById('bbtn');
+ if(bb2)bb2.onclick=()=>startBattle(p);
  const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>checkIn(p);
  const dl=document.getElementById('dlog');
  {const x=document.createElement('button');
@@ -5231,6 +5237,9 @@ importFile.onchange=async e=>{const f=e.target.files&&e.target.files[0];
 
 /* ═══════════════ 22. AVATAR ═══════════════ */
 const MATE_ROLES=["YOU","PACER","SCOUT","ANCHOR"];
+/* Each rope slot now holds a distinct climber, so the card is labelled with
+   that climber's name rather than a generic role. */
+const heroName=i=>HERO_ART[i%HERO_ART.length].n.replace(/^SUMMIT /,'');
 /* The lead climber wears the chosen kit; the other three keep their own colours,
    so the rope team still reads as four people. */
 const heroFor=i=>HEROES[i%HEROES.length];
@@ -5280,7 +5289,8 @@ function renderAvatar(){
   const c=document.createElement('canvas');blitHero(c,heroFor(idx),2);
   d.appendChild(c);
   const sp=document.createElement('span');
-  sp.textContent=i===0?climberName().slice(0,12):role;
+  const typed=((FILE.profile&&FILE.profile.name)||'').trim();
+  sp.textContent=(i===0&&typed)?typed.slice(0,12):heroName(idx);
   d.appendChild(sp);
   row.appendChild(d);});
 }
