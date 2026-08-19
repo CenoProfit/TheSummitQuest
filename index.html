@@ -48,6 +48,27 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .btn:active{transform:translate(2px,2px);box-shadow:none}
 .btn.on{background:linear-gradient(#f7d472,#e0a92c);color:#1a1206;border-color:#fff5cc}
 .spacer{flex:1}
+/* Full screen rather than a dropdown: the destinations are few and rarely
+   visited, and a row you can hit with a thumb in gloves beats five 7px buttons
+   competing with the map for the top of a phone screen. */
+.nav-sheet{display:none;position:fixed;inset:0;z-index:96;overflow:auto;
+ background:rgba(3,6,12,.93);padding:20px 14px}
+.nav-sheet.open{display:block}
+.ns-panel{max-width:540px;margin:0 auto;background:var(--panel);border:3px solid var(--edge2);
+ box-shadow:0 0 0 3px var(--bg),10px 10px 0 3px rgba(0,0,0,.6);padding:15px}
+.ns-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+ font-family:var(--pix);font-size:9px;color:var(--gold);letter-spacing:1px;margin-bottom:13px}
+.ns-x{font-family:var(--pix);font-size:8px;background:var(--panel2);color:var(--ink);
+ border:2px solid var(--edge2);padding:8px 10px;cursor:pointer;letter-spacing:1px}
+.ns-x:hover{background:var(--panel)}
+.nav-row{display:flex;align-items:center;gap:13px;width:100%;text-align:left;
+ padding:15px 13px;margin-bottom:9px;font-size:10px}
+.ns-i{font-size:21px;line-height:1;width:28px;text-align:center;flex:0 0 auto}
+.ns-t{flex:0 0 auto}
+.ns-sub{margin-left:auto;font-family:var(--body);font-size:11px;color:var(--dim);
+ letter-spacing:0;text-align:right}
+.nav-row.on .ns-sub{color:#5a4a1c}
+.ns-rule{height:2px;background:var(--edge);margin:13px 2px}
 .map-wrap.fit{display:flex;align-items:center;justify-content:center}
 .map-wrap{overflow:auto;padding:6px;background:#030509;cursor:grab;max-height:74vh;-webkit-overflow-scrolling:touch}
 .map-wrap.dragging{cursor:grabbing}
@@ -411,6 +432,10 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  body.fighting .bt-menu{margin-top:auto;flex:0 0 auto}
  body.fighting #helpBtn,body.fighting .help-box{display:none!important}
  .opt-pop{min-width:0;width:calc(100vw - 30px);max-width:270px}
+ .nav-sheet{padding:14px 10px}
+ .nav-row{font-size:9px;padding:14px 11px}
+ .ns-sub{display:none}
+ .ns-i{font-size:19px;width:24px}
  .av-grid{grid-template-columns:1fr}
  .av-stage{padding:16px}
 
@@ -573,13 +598,25 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
 </div>
 
 <div class="toolbar" id="navBar">
-  <button class="btn" id="navWorld">◀ REGIONS</button>
-  <button class="btn on" id="navMap">MAP</button>
-  <button class="btn" id="navLog">LOGBOOK</button>
-  <button class="btn" id="navBadge">BADGES</button>
-  <button class="btn" id="navAvatar">AVATAR</button>
+  <button class="btn" id="menuBtn">☰ MENU</button>
   <span class="spacer"></span>
   <span class="clock" id="clock">☀ DAY</span>
+</div>
+<div class="nav-sheet" id="navSheet">
+  <div class="ns-panel">
+    <div class="ns-head"><span>◆ WHERE TO?</span><button class="ns-x" id="navClose">✕ CLOSE</button></div>
+    <button class="btn nav-row on" id="navMap">
+      <span class="ns-i">🗺</span><span class="ns-t">MAP</span><span class="ns-sub">the region and its pins</span></button>
+    <button class="btn nav-row" id="navLog">
+      <span class="ns-i">📖</span><span class="ns-t">LOGBOOK</span><span class="ns-sub">every hike you have cleared</span></button>
+    <button class="btn nav-row" id="navBadge">
+      <span class="ns-i">🏅</span><span class="ns-t">BADGES</span><span class="ns-sub">what you have earned</span></button>
+    <button class="btn nav-row" id="navAvatar">
+      <span class="ns-i">🧗</span><span class="ns-t">AVATAR</span><span class="ns-sub">your climber and kit</span></button>
+    <div class="ns-rule"></div>
+    <button class="btn nav-row" id="navWorld">
+      <span class="ns-i">🌎</span><span class="ns-t">REGIONS</span><span class="ns-sub">leave for the world map</span></button>
+  </div>
 </div>
 
 <div class="screen active" id="screenMap">
@@ -4430,11 +4467,23 @@ function drawBattle(){
  txt(bcx,"TURN "+BT.turn,170,37,"#8695a8","rgba(0,0,0,.9)",1);
  // telegraph
  if(!BT.over&&BT.next){
-  const TGX=BW-206;
   const sev=BT.next[2];
   const col=sev==="LIGHT"?"#9fe08a":sev==="HEAVY"?"#ffc45a":"#ff6a5a";
-  const label="NEXT: "+BT.next[0]+"  ["+sev+"]";
-  const wpx2=Math.min(BW-TGX-8,txtw(label,1)+14);
+  /* The panel used to start at a fixed offset and the label was drawn straight
+     into it without clipping, so anything longer than about twenty characters
+     ran off the right edge of the canvas: FORGOTTEN TRAIL WHITEOUT overshot by
+     forty pixels and lost its severity tag, which is the part that tells you
+     whether to brace. The box is sized to its text and anchored to the right
+     edge instead, and a name too long even for the full width is trimmed rather
+     than allowed to escape. */
+  const avail=BW-16,fits=t=>txtw(t,1)+14<=avail;
+  let label="NEXT: "+BT.next[0]+"  ["+sev+"]";
+  if(!fits(label)){
+   let nm=BT.next[0];
+   while(nm.length>3&&!fits("NEXT: "+nm+"…  ["+sev+"]"))nm=nm.slice(0,-1);
+   label="NEXT: "+nm+"…  ["+sev+"]";
+  }
+  const wpx2=Math.min(avail,txtw(label,1)+14),TGX=BW-8-wpx2;
   const pul=sev==="LIGHT"?0:Math.sin(BT.t*.2)*.5+.5;
   bcx.fillStyle="rgba(4,8,16,.90)";bcx.fillRect(TGX,8,wpx2,19);
   bcx.fillStyle=col;bcx.globalAlpha=.55+pul*.45;bcx.fillRect(TGX,8,wpx2,2);
@@ -4992,6 +5041,7 @@ function setScreen(s){
     cannot be stranded in the wrong mode. */
  if(typeof musicMode==='function')musicMode(s==='battle'?'boss':'calm');
  if(s!=='map')closeSheet();
+ if(typeof closeNav==='function')closeNav();
  ['navMap','navLog','navBadge','navAvatar'].forEach(id=>document.getElementById(id).classList.remove('on'));
  if(s==='map')document.getElementById('navMap').classList.add('on');
  if(s==='log')document.getElementById('navLog').classList.add('on');
@@ -5001,6 +5051,14 @@ function setScreen(s){
   ? "BOSS TELEGRAPHS ITS NEXT MOVE — BRACE ON HEAVY & DEVASTATING"
   : "DRAG TO PAN · TAP A BANNER TO INSPECT · PINK SKULL BANNERS ARE BOSS TREKS";
  window.scrollTo({top:0,behavior:'smooth'});}
+const navEl=()=>document.getElementById('navSheet');
+function openNav(){const n=navEl();if(n){n.classList.add('open');blip();}}
+function closeNav(){const n=navEl();if(n)n.classList.remove('open');}
+document.getElementById('menuBtn').onclick=openNav;
+document.getElementById('navClose').onclick=closeNav;
+/* Tapping the backdrop closes; tapping the panel must not. */
+navEl().onclick=e=>{if(e.target===navEl())closeNav();};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeNav();});
 document.getElementById('navWorld').onclick=()=>{location.hash='';location.reload();};
 document.getElementById('navMap').onclick=()=>{if(BT&&!BT.over)return;BT=null;setScreen('map');};
 document.getElementById('navLog').onclick=()=>{renderLog();setScreen('log');};
