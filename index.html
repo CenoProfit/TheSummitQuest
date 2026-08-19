@@ -1399,7 +1399,10 @@ async function pickPhoto(){
     and a promise that never settles leaves the button dead until reload. */
  return new Promise(res=>{
   const i=document.createElement('input');
-  i.type='file';i.accept='image/*';i.setAttribute('capture','environment');
+  i.type='file';i.accept='image/*';
+  /* No capture attribute. Setting it forces the camera and takes away the
+     library, and a hike is often logged on the drive home from photos already
+     taken. Without it iOS offers both, which is what the native path does. */
   i.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';
   document.body.appendChild(i);
   let settled=false;
