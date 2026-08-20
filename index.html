@@ -1994,7 +1994,7 @@ function showLauncher(){
  const l=document.getElementById('loader');
  const lm=document.getElementById('loadmsg');
  if(lm)lm.textContent='CHARTING THE COAST…';
- const SPLASH_MIN=2200,t0=Date.now();
+ const SPLASH_MIN=1200,t0=Date.now();
  setTimeout(()=>{
   try{buildWorldTerrain();}finally{
    renderWorld();wireLauncher();paintSplashMap();
