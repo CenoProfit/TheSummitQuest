@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Summit Quest</title>
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAEgUlEQVR42u1aTUgbQRR+GdJSRaW2yIIeCh5KwSAtiEEapZdS8SDtqVITC6U3zUHMvfQeaOkavJRCjIJ4COKhVLxZrSge2voDhRIqVKkVRVpbL4X0EGaZnZ3d7OxMdhbMg7Djzmzwfe9733szm9CfDw+KcI4NwTm3KgBVAKoAVAGoAlAFoMK22ThRZcC5BaC2Kx9oFiA/nA9yKiC/nA8qCMhP54MIAvLb+aCBgFQ4HyQQkCrngwICUul8EEBAqp1XDQIKgvPDyZQyEMK1zbe9PXltzHJrMKXDdDrpGYSMnobNxgmI1kwFmwGD+kWm8+SVN/qkrZ3FgwsAdl6Go05r/AIhVPyWLopE3s7IVOi4mzDGGT1dFpSMnjbmNl7fDAYDeJyXyYSOpx8d17YNLPkAAEPwXAPHmSosswMBOy8CQtkUEIn8dDoJgykdvnxal8IeMh1YTm/P9MgFQBbtWQC0D+XgTQKYOlEOBKeI84KAKu28nX2eTIC+VRrjq0g6eNUEZWeC7UM5SEZKY3yVZTwgIBXRxwzwajV1DdJAQCqcxwww5fZiTgkISIXzpAZ40QGZICAR55ffzghrgKgOiIKARJyP9Q0IMYAufbxpIAMEJEJ7EQawdEDEvIKAvDoe6xsQYgCrF/CiA6IgKH03SPcCMvoBXhCQ37kvqxeQBQJSkfukPaFkwKsQegUhrCr6Jh24VUoFUQ1ggXB2+stxTRgCYNnRBGQB4HCvAAAATS2tvoEQlh19XpaQR2ReTo9EQZCaAl5SZDiZMiJPmx9M4BJBtwzgtdl8HppaWiE1uwK7Oyswm8+DX9WByYCT+jljfPn3fVeRFRHI4WTK1BNEb2gV0xuaCUwGfP96anzcRh4Dhz8yegK71JDJBCSz9tPAiewLZOa/EwhMACJaHI4LJxDR4obzkYeXbKMrozGizwcev8hBpa2mrsG+CvR0jViia+iCZi+QS6vjxrMYLC0GcLDc7HpfgPcGaQjAu0He0kcCx5MSrPOB3Z0VONwrVEwLuDSATgs/zgn90IPQo7FXxUr2/kur46DVdrpej3Mf7w2yowk43CsYIJBjAIDttXfsjU60lznXFu21AkDXfbt+oFwJtFvr9tUY/bYIwPrGiAQAO3i00G1ac/Xee2NMzuH7JAhhO4Gj1f6kfs4RhHIi6fqccNK8Jd5YzDmCcLTQbXKYNHqOtRa5qelea3slzgnd6AFNc/pvSysc0eKm8uWm46PpzvsddjvD9X/WcwGyJ8iOJix0p2lO576dTpQVwa2DKVMVYKWGG33AGqDF9o17ZF+Q0dMw8ozvpebPzZfQ1NJqcY6kud3YogFOpY+OKisVWDlvBqrZ8uwFYpbXebyDvNPpfIpKsgOPaQ0Il6O2F0rTLNFi+46dYPF4HkJX+j391MauAuAyaCeQlhTgoTYrNezmjYj/uF6i/t91x74gdKUfxp/3WFiB7xWP5131ALSRa8l5AwDWP+3U9eHUYLHGCQAnLVBhng9FcWqw6n9Ei5tAIJ130gJQ+VthOtqiPb8fewcZ9h8NaW6jBFz5PwAAAABJRU5ErkJggg==">
-<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 :root{
@@ -309,6 +309,22 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 #toast .t2{font-family:var(--pix);font-size:10px;color:var(--xp);margin-top:12px;letter-spacing:1px;line-height:1.75}
 .footnote{font-size:10px;color:var(--dim);text-align:center;margin-top:14px;line-height:1.85}
 .clock{font-family:var(--pix);font-size:8px;color:var(--gold);letter-spacing:1px}
+#splash{position:fixed;inset:0;z-index:10000;background:var(--bg);
+ display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+#splashMap{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;
+ image-rendering:crisp-edges}
+.splash-scrim{position:absolute;inset:0;background:
+ radial-gradient(ellipse at center,rgba(8,13,20,.62) 0%,rgba(8,13,20,.88) 70%,rgba(8,13,20,.96) 100%)}
+.splash-inner{position:relative;display:flex;align-items:center;justify-content:center;
+ gap:38px;flex-wrap:wrap;padding:24px;text-align:center}
+.splash-inner .splashmark{width:384px;height:174px;margin:0}
+.splash-tap{font-family:var(--pix);font-size:clamp(16px,2.6vw,30px);line-height:1.7;
+ color:var(--gold);letter-spacing:3px;
+ text-shadow:3px 3px 0 #7a5308,6px 6px 0 rgba(0,0,0,.7);animation:tapblink 1.15s steps(1,end) infinite}
+@keyframes tapblink{0%,64%{opacity:1}65%,100%{opacity:.28}}
+@media (prefers-reduced-motion:reduce){.splash-tap{animation:none}}
+@media (max-width:820px){.splash-inner{gap:22px}.splash-inner .splashmark{width:256px;height:116px}}
+@media (max-width:520px){.splash-inner .splashmark{width:192px;height:87px}}
 .loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;
  flex-direction:column;gap:16px;z-index:9999;font-family:var(--pix);font-size:10px;color:var(--gold);letter-spacing:2px}
 .loading .lbar{width:200px;height:14px;border:2px solid var(--edge2);background:#060a10;overflow:hidden}
@@ -557,6 +573,14 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
 </style>
 </head>
 <body>
+<div id="splash">
+ <canvas id="splashMap"></canvas>
+ <div class="splash-scrim"></div>
+ <div class="splash-inner">
+  <img class="splashmark" alt="Summit Quest" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAdCAYAAAAaeWr3AAADnElEQVR42u1ZPUhbURT+EoLE30Xj4BSETMkSLAQRhVLbZCgF7SClOtRmMoooRHCIg2IDLSQUYybrUIU0YM3SIWm1QkQkUHGJkxDSFjoktUOqppRAOoR7c9979+VHk4rGs+See9+7937f/c55570oAGQBQN3chlqyP79/AgBUANDVP4xatIOt9RwBAPB44CEdmB0bAgA4vX7ujTdh/M79EQCAAkC2q3+YEjA7NoTz/UEAQEP3Js73B/H6MDfhpNFP+67zuNPrx/vAB6ECWPD0BgyioXsTk5CZ8BqOi1WhAJBVN7chnUreaMmLx4kCaAgcRYJ0cPy4Bx7dXlkJRW+y/JfEdRQJVmwtAQFk8vHjHnoBIYFdULyBo0gQJ6Fe6vfNNSI8f4a+uUYAoO3w/JlgvNQ2z28170JvsggOjeeT/ckdkCQH6E0WeHRBTD84hetjE9KpJACgvkVDF8ipQ3oKBHAhY8nhAeSRQOYlPgF/sLWuePY2myVz+GwaPFlOgvUB0D6fTcMlQSW3WTYnpFNJ1LdoqDp4JLAbr6aRg3ix/C7bZMz1BVwZCtRolPd5JCh5iyxupOH0+hGNJRCNJeD0+pFOJeHR7aHOFoJHt0cn0pssaDXvVh242KKxhMCP72QK+kQNbJhICDiKBOnJR2MJdNi3AQDPnz6iJPCS0kmoVyBpoghxXzlG7i00x2nYjwkDMDCdF/LhIfB5VUVJmDDIEyIIAR74H6/uwe2wYmphBW6HFU6vH4sbabhaNAJJtpqF4cBTAxvL5fyWk2fiOxlo7+YgDUyrEHBlJG2xKXngtfEZAXhDZzumFlYESuBl3KsysQpG10BPnm3zwoCGAAs+rn0pAB+NJYqScBVG8lOx2C80pmQn67BvC8C7HVbaXw4J4vjntck1pfpiM3S2F1QBC3p0LZ8XZAkQxzwB63ZYAQDa+AyXBB74vrlGybNeri5g45r1C+WCQk+DYqDjOxlBvUAJEINnwdrVPlkSLmM8pZT65CD7YGv8CYMUNPGXovn26ghHAWLwYtlPvvmFv8tmweJTCyv4+v2bbBiUUhmyJ33RWiIaS2ApmgNJQBuNeZ8AZkmQEMCC18ZnUGcLSUiwq33osG9L+nnlbrHTFvddpG5gVXAa9iPgylDQpEIkfsCVoY9C9hrBy1Clja3lq/FWeNmSWvIyVGmrZnlcqdrj9pvg7TfB22+COQV8+bRW298Ea/WPESVq3BS1/t/gP7VzxdfjXh0yAAAAAElFTkSuQmCC">
+  <div class="splash-tap">TAP TO<br>CONTINUE</div>
+ </div>
+</div>
 <div class="loading" id="loader"><img class="splashmark" alt="Summit Quest" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAdCAYAAAAaeWr3AAADnElEQVR42u1ZPUhbURT+EoLE30Xj4BSETMkSLAQRhVLbZCgF7SClOtRmMoooRHCIg2IDLSQUYybrUIU0YM3SIWm1QkQkUHGJkxDSFjoktUOqppRAOoR7c9979+VHk4rGs+See9+7937f/c55570oAGQBQN3chlqyP79/AgBUANDVP4xatIOt9RwBAPB44CEdmB0bAgA4vX7ujTdh/M79EQCAAkC2q3+YEjA7NoTz/UEAQEP3Js73B/H6MDfhpNFP+67zuNPrx/vAB6ECWPD0BgyioXsTk5CZ8BqOi1WhAJBVN7chnUreaMmLx4kCaAgcRYJ0cPy4Bx7dXlkJRW+y/JfEdRQJVmwtAQFk8vHjHnoBIYFdULyBo0gQJ6Fe6vfNNSI8f4a+uUYAoO3w/JlgvNQ2z28170JvsggOjeeT/ckdkCQH6E0WeHRBTD84hetjE9KpJACgvkVDF8ipQ3oKBHAhY8nhAeSRQOYlPgF/sLWuePY2myVz+GwaPFlOgvUB0D6fTcMlQSW3WTYnpFNJ1LdoqDp4JLAbr6aRg3ix/C7bZMz1BVwZCtRolPd5JCh5iyxupOH0+hGNJRCNJeD0+pFOJeHR7aHOFoJHt0cn0pssaDXvVh242KKxhMCP72QK+kQNbJhICDiKBOnJR2MJdNi3AQDPnz6iJPCS0kmoVyBpoghxXzlG7i00x2nYjwkDMDCdF/LhIfB5VUVJmDDIEyIIAR74H6/uwe2wYmphBW6HFU6vH4sbabhaNAJJtpqF4cBTAxvL5fyWk2fiOxlo7+YgDUyrEHBlJG2xKXngtfEZAXhDZzumFlYESuBl3KsysQpG10BPnm3zwoCGAAs+rn0pAB+NJYqScBVG8lOx2C80pmQn67BvC8C7HVbaXw4J4vjntck1pfpiM3S2F1QBC3p0LZ8XZAkQxzwB63ZYAQDa+AyXBB74vrlGybNeri5g45r1C+WCQk+DYqDjOxlBvUAJEINnwdrVPlkSLmM8pZT65CD7YGv8CYMUNPGXovn26ghHAWLwYtlPvvmFv8tmweJTCyv4+v2bbBiUUhmyJ33RWiIaS2ApmgNJQBuNeZ8AZkmQEMCC18ZnUGcLSUiwq33osG9L+nnlbrHTFvddpG5gVXAa9iPgylDQpEIkfsCVoY9C9hrBy1Clja3lq/FWeNmSWvIyVGmrZnlcqdrj9pvg7TfB22+COQV8+bRW298Ea/WPESVq3BS1/t/gP7VzxdfjXh0yAAAAAElFTkSuQmCC"><div class="splashline">THE TRAIL IS THE GAME</div><div id="loadmsg">GENERATING WORLD…</div><div class="lbar"><div class="lfill" id="lfill"></div></div></div>
 
 <div class="title" id="gameTitle"><img class="brandlogo" alt="Summit Quest" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAVCAYAAADRhGlyAAACE0lEQVR42u2Yv0/CQBTHv2cYCC5OaJgIs4sjrgxuEmUw4igTg4TwI5GEyQQS0RBJcGJWGNT4B7Dq6MJMmAgwsUiIy3OAuxxtr+VHYkx6L2nae6/tvXz6vdfXAvZG0GZrW3bwsoOohrgmQA4PEkTS6lzNqBDzEgDiJkGj7CBKGiLgcaRIhPJjSxwzxhbUebf3TgCYWwEye3YzeJ3uCACwH/LjOnkGxhgKMS9KL1O4GZ5tDZThBXJtAMDlxTHKjy3MVrOzfX+cEN/4WI7J56x6rBqrcjDOa5XDunNYwaNSvUnxTI2ygyjFMzUajidiX6o3jTVRCVA1NkJddu9032XnU/lU91PNsWWnvGAvj34lgmoxgfRNA/shP9I3DaMSaRkV/velaKXUZfI2vURkeL3g7QK8TnckIFaLCQGRMWb5Itk+fGN2T+8v4Tidw3NdNW9TDeQ1T4ZXLSaEX4bopESrp7ipIlXLTgVFtRzt8tokR1PN47VwOJ5QdhClQsxr8pfqTdf2hCYFGmuerLic9xkAEOzlTUrUfeBcgcPxZAFeINdGvxIR42oxgcr0HP1KRPSG3L+743NdX2gCGM/UBJRgLw8A+KkfWULkiuX+p/sr1wPc9CeBq79KtK2jmPkXhfhhYLTr5Bl0XB0XfZIv/IrJ5ykevmYXpA5awqfj6rhHOHAKX/gVKSgu0HHLOJs3wXpJrhn/Bax73gFQo2FlAAAAAElFTkSuQmCC"></div>
@@ -1963,7 +1987,7 @@ function showLauncher(){
  const SPLASH_MIN=2200,t0=Date.now();
  setTimeout(()=>{
   try{buildWorldTerrain();}finally{
-   renderWorld();wireLauncher();
+   renderWorld();wireLauncher();paintSplashMap();
    setTimeout(()=>{l.style.display='none';},Math.max(0,SPLASH_MIN-(Date.now()-t0)));}},16);
 }
 
@@ -5820,6 +5844,32 @@ else musicStart();
 })();
 /* the hash is the region, so back/forward between launcher and region works */
 window.addEventListener('hashchange',()=>location.reload());
+</script>
+<script>
+/* The splash is a held title card: it comes up before anything else and waits
+   for a tap. The world generates behind it, so the wait is not dead time.
+   Its backdrop is the overworld map itself, drawn once that map exists. */
+function paintSplashMap(){
+ const sc=document.getElementById('splashMap'),src=document.getElementById('worldMap');
+ if(!sc||!src||!src.width)return;
+ const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
+ sc.width=w;sc.height=h;
+ const g=sc.getContext('2d');g.imageSmoothingEnabled=false;
+ /* whole-number scale only, so the map stays crisp rather than resampled */
+ const s=Math.max(1,Math.ceil(Math.max(w/src.width,h/src.height)));
+ const dw=src.width*s,dh=src.height*s;
+ g.drawImage(src,Math.round((w-dw)/2),Math.round((h-dh)/2),dw,dh);
+}
+(function(){
+ const sp=document.getElementById('splash');if(!sp)return;
+ let gone=false;
+ const dismiss=()=>{if(gone)return;gone=true;sp.style.display='none';
+  window.removeEventListener('keydown',dismiss);};
+ sp.addEventListener('click',dismiss);
+ sp.addEventListener('touchstart',dismiss,{passive:true});
+ window.addEventListener('keydown',dismiss);
+ window.addEventListener('resize',()=>{if(!gone)paintSplashMap();});
+})();
 </script>
 </body>
 </html>
