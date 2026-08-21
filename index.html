@@ -492,7 +492,10 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
   height:calc(100vh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));gap:6px}
  body.fighting .bt-frame{margin:0;flex:0 1 auto;min-height:0}
- body.fighting #battleCanvas{max-height:none;height:100%;width:auto;object-fit:contain}
+ /* sizing is set in whole multiples by fitBattleCanvas */
+ /* never let the flex parent squash it: a squashed canvas distorts every
+    sprite in the scene. If there is not room it overflows and scrolls. */
+ body.fighting #battleCanvas{max-height:none;flex:0 0 auto;align-self:center}
  body.fighting .bt-hud{margin:0;flex:0 0 auto}
  /* the log takes whatever is left between the art and the buttons */
  body.fighting .bt-log{margin:0;flex:1 1 auto;min-height:0;overflow:auto}
@@ -2666,28 +2669,19 @@ function roadStamp(c,pts,wd,grow){
   else c.fillRect(x,y,wd,wd);});}
 function drawRoads(){
  const jobs=[];
+ /* Flat grey, laid into the map rather than raised off it. The earlier tan
+    road had a shadow under it, a lit crown along the top and a dirt verge
+    outside, which together read as a stick lying on the terrain. A road is
+    not an object on the ground, it is the ground being a different colour. */
  ROADS.forEach(r=>jobs.push({pts:roadPts(r,3.2),wd:3,
-   edge:"#5f4e30",body:"#a98d5a",hi:"#c9ae7a",dash:null,dl:0}));
+   edge:"#4a4f56",body:"#7c828c",dash:null,dl:0}));
  PARKWAY_SEGS.forEach(seg=>jobs.push({pts:roadPts(seg,3.6),wd:5,
-   edge:"#54411a",body:"#c9ad62",hi:"#e6d190",dash:"#7d6428",dl:8}));
- /* The translucent passes are stamped onto their own layer at full alpha and
-    composited once. Painting them per point straight onto the map made every
-    place two stamps overlapped darker than its neighbours, which is what read
-    as blotching and chop along the road. */
- const layer=(col,grow,dx,dy,alpha)=>{
-  const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  const c=cv.getContext('2d');c.fillStyle=col;
-  jobs.forEach(o=>roadStamp(c,o.pts,o.wd,grow));
-  bx.save();bx.globalAlpha=alpha;bx.drawImage(cv,dx,dy);bx.restore();};
- layer("#16200f",3,0,2,.20);          // cast shadow
- layer("#6d5c39",2,0,0,.30);          // dry verge, so the asphalt meets grass
- jobs.forEach(o=>{                    // through a transition, not a cut
+   edge:"#454a52",body:"#8b9199",dash:"#c8ccd2",dl:8}));
+ jobs.forEach(o=>{
+  /* one darker edge, no highlight and no cast shadow, so the surface stays
+     flat and the only relief is the join with the terrain */
   bx.fillStyle=o.edge;roadStamp(bx,o.pts,o.wd,1);
   bx.fillStyle=o.body;roadStamp(bx,o.pts,o.wd,0);
-  /* a continuous crown line: the old highlight fired every third sample,
-     which broke the road into dashes */
-  bx.fillStyle=o.hi;
-  o.pts.forEach(([X,Y])=>bx.fillRect(Math.round(X-o.wd/2),Math.round(Y-o.wd/2),o.wd,1));
   if(o.dash)o.pts.forEach(([X,Y],i)=>{
    if((i%(o.dl*2))>=o.dl)return;
    bx.fillStyle=o.dash;bx.fillRect(Math.round(X),Math.round(Y),1,1);});});
@@ -4129,6 +4123,27 @@ if(HPALS.length!==KIT_COUNT)console.warn('KIT_COUNT is out of step with HPALS');
 /* ═══════════════ 10. BATTLE SCENE ═══════════════ */
 const bc=document.getElementById('battleCanvas'),bcx=bc.getContext('2d');
 const BW=440,BH=292;bc.width=BW;bc.height=BH;bcx.imageSmoothingEnabled=false;
+/* The fight art may only be scaled by whole numbers. It used to be sized with
+   height:100% and object-fit:contain, which resolved to a fractional scale and
+   resampled every sprite; that is why the bosses read sharp in the bestiary and
+   soft in the fight. A ResizeObserver rather than a call on open, because the
+   fight layout has no measurable height until it is on screen. */
+let _btK=0;
+function fitBattleCanvas(){
+ const c=document.getElementById('battleCanvas');if(!c)return;
+ const box=c.parentElement;if(!box)return;
+ const availW=box.clientWidth,availH=box.clientHeight;
+ if(!availW||!availH)return;
+ let k=Math.min(Math.floor(availW/BW),Math.floor(availH/BH));
+ if(!isFinite(k)||k<1)k=1;
+ if(k===_btK)return;
+ _btK=k;
+ c.style.width=(BW*k)+'px';c.style.height=(BH*k)+'px';
+}
+{const c=document.getElementById('battleCanvas');
+ if(c&&c.parentElement&&window.ResizeObserver)
+  new ResizeObserver(()=>fitBattleCanvas()).observe(c.parentElement);}
+window.addEventListener('resize',fitBattleCanvas);
 const BIOMES={
  canyon:{sky:["#5e3a2e","#a8624a","#d89468","#f0c furniture"],mt:["rust","sand"],
   haze:"#c8825e",gnd:"#c4885e",gnd2:"#a06a44",gnd3:"#82502f",rock:"#8a5636",
@@ -4553,6 +4568,9 @@ function playerPower(){const li=lvlFor(totalXP())+1;return{atk:15+li*3.4,hp:115+
 function bossNextMove(){const r=Math.random();
  const i=r<.46?0:r<.80?1:2;return BT.moves[i];}
 function startBattle(p){
+ /* The fight layout has no measurable height until it is on screen, and the
+    observer does not fire if the frame's box never changes, so retry briefly. */
+ _btK=0;[0,50,150,400].forEach(ms=>setTimeout(fitBattleCanvas,ms));
  const Bs=BOSSES[p.boss],pw=playerPower();
  BT={poi:p,key:p.boss,name:Bs.name,biome:Bs.biome,accent:Bs.accent,
   bmax:Bs.hp,bhp:Bs.hp,batk:Bs.atk,moves:Bs.moves,rec:Bs.rec,
