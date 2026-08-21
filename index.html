@@ -2638,33 +2638,59 @@ function drawWaterDetail(){
 
 function roadPts(path,wobAmp){
  const out=[];
+ const wob=(X,Y)=>{
+  const w1=(smp(N3,X/W,Y/H)-.5), w2=(smp(N4,X/W,Y/H)-.5);
+  return [X+(w1*wobAmp+w2*wobAmp*0.45), Y+(w2*wobAmp*0.8-w1*wobAmp*0.35)];
+ };
  for(let i=0;i<path.length-1;i++){
   const a=path[i],b=path[i+1];
   const x0=px(a[0]),y0=py(a[1]),x1=px(b[0]),y1=py(b[1]);
-  const len=Math.hypot(x1-x0,y1-y0),steps=Math.max(2,Math.round(len));
+  const len=Math.hypot(x1-x0,y1-y0);
+  /* Two samples per pixel. At one per pixel a diagonal run leaves gaps
+     between stamps, which is most of what made the roads look chopped. */
+  const steps=Math.max(2,Math.round(len*2));
   for(let s=0;s<steps;s++){const t=s/steps;
-   let X=x0+(x1-x0)*t, Y=y0+(y1-y0)*t;
-   const w1=(smp(N3,X/W,Y/H)-.5), w2=(smp(N4,X/W,Y/H)-.5);
-   X+=(w1*wobAmp+w2*wobAmp*0.45);
-   Y+=(w2*wobAmp*0.8-w1*wobAmp*0.35);
-   out.push([X,Y]);}}
+   out.push(wob(x0+(x1-x0)*t, y0+(y1-y0)*t));}}
+ /* the old loop stopped one step short, so every road ended just before the
+    place it was heading for */
+ const e=path[path.length-1];
+ out.push(wob(px(e[0]),py(e[1])));
  return out;}
-function strokeRoad(pts,wd,edge,body,hi,dashCol,dashLen){
- // edge / shadow
- pts.forEach(([X,Y])=>{bx.fillStyle="rgba(18,26,16,.26)";
-  bx.fillRect(Math.round(X-wd/2),Math.round(Y-wd/2)+2,wd,wd);});
- pts.forEach(([X,Y])=>{bx.fillStyle=edge;
-  bx.fillRect(Math.round(X-wd/2)-1,Math.round(Y-wd/2)-1,wd+2,wd+2);});
- pts.forEach(([X,Y])=>{bx.fillStyle=body;
-  bx.fillRect(Math.round(X-wd/2),Math.round(Y-wd/2),wd,wd);});
- pts.forEach(([X,Y],i)=>{if(i%3)return;bx.fillStyle=hi;
-  bx.fillRect(Math.round(X-wd/2),Math.round(Y-wd/2),wd,1);});
- if(dashCol)pts.forEach(([X,Y],i)=>{
-  if((i%(dashLen*2))>=dashLen)return;
-  bx.fillStyle=dashCol;bx.fillRect(Math.round(X),Math.round(Y),1,1);});}
+/* A plus-shaped footprint. Square stamps meeting at their corners are what
+   serrates a diagonal; dropping the corners keeps the edge running smooth. */
+function roadStamp(c,pts,wd,grow){
+ const r=Math.round,h=wd/2,g=grow||0;
+ pts.forEach(([X,Y])=>{
+  const x=r(X-h),y=r(Y-h);
+  if(g){c.fillRect(x-g,y,wd+g*2,wd);c.fillRect(x,y-g,wd,wd+g*2);}
+  else c.fillRect(x,y,wd,wd);});}
 function drawRoads(){
- ROADS.forEach(r=>strokeRoad(roadPts(r,3.2),3,"#5f4e30","#a98d5a","#c9ae7a",null,0));
- PARKWAY_SEGS.forEach(seg=>strokeRoad(roadPts(seg,3.6),5,"#54411a","#c9ad62","#e6d190","#7d6428",4));
+ const jobs=[];
+ ROADS.forEach(r=>jobs.push({pts:roadPts(r,3.2),wd:3,
+   edge:"#5f4e30",body:"#a98d5a",hi:"#c9ae7a",dash:null,dl:0}));
+ PARKWAY_SEGS.forEach(seg=>jobs.push({pts:roadPts(seg,3.6),wd:5,
+   edge:"#54411a",body:"#c9ad62",hi:"#e6d190",dash:"#7d6428",dl:8}));
+ /* The translucent passes are stamped onto their own layer at full alpha and
+    composited once. Painting them per point straight onto the map made every
+    place two stamps overlapped darker than its neighbours, which is what read
+    as blotching and chop along the road. */
+ const layer=(col,grow,dx,dy,alpha)=>{
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const c=cv.getContext('2d');c.fillStyle=col;
+  jobs.forEach(o=>roadStamp(c,o.pts,o.wd,grow));
+  bx.save();bx.globalAlpha=alpha;bx.drawImage(cv,dx,dy);bx.restore();};
+ layer("#16200f",3,0,2,.20);          // cast shadow
+ layer("#6d5c39",2,0,0,.30);          // dry verge, so the asphalt meets grass
+ jobs.forEach(o=>{                    // through a transition, not a cut
+  bx.fillStyle=o.edge;roadStamp(bx,o.pts,o.wd,1);
+  bx.fillStyle=o.body;roadStamp(bx,o.pts,o.wd,0);
+  /* a continuous crown line: the old highlight fired every third sample,
+     which broke the road into dashes */
+  bx.fillStyle=o.hi;
+  o.pts.forEach(([X,Y])=>bx.fillRect(Math.round(X-o.wd/2),Math.round(Y-o.wd/2),o.wd,1));
+  if(o.dash)o.pts.forEach(([X,Y],i)=>{
+   if((i%(o.dl*2))>=o.dl)return;
+   bx.fillStyle=o.dash;bx.fillRect(Math.round(X),Math.round(Y),1,1);});});
 }
 
 /* ═══════════════ 4b. MOUNTAIN RANGE SYSTEM ═══════════════ */
