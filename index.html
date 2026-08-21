@@ -315,9 +315,9 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  image-rendering:crisp-edges}
 .splash-scrim{position:absolute;inset:0;background:
  radial-gradient(ellipse at center,rgba(8,13,20,.62) 0%,rgba(8,13,20,.88) 70%,rgba(8,13,20,.96) 100%)}
-.splash-inner{position:relative;display:flex;align-items:center;justify-content:center;
- gap:38px;flex-wrap:wrap;padding:24px;text-align:center}
-.splash-inner .splashmark{width:384px;height:174px;margin:0}
+.splash-inner{position:relative;display:flex;flex-direction:column;align-items:center;
+ justify-content:center;gap:0;padding:24px;text-align:center}
+.splash-inner .splashmark{width:512px;height:232px;margin:0}
 .splash-block{display:flex;flex-direction:column;align-items:center}
 .splash-sub{font-family:var(--pix);font-size:clamp(9px,1.4vw,13px);letter-spacing:3px;
  color:var(--gold);margin-top:16px;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
@@ -329,8 +329,15 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  text-shadow:3px 3px 0 #7a5308,6px 6px 0 rgba(0,0,0,.7);animation:tapblink 1.15s steps(1,end) infinite}
 @keyframes tapblink{0%,64%{opacity:1}65%,100%{opacity:.28}}
 @media (prefers-reduced-motion:reduce){.splash-tap{animation:none}}
-@media (max-width:820px){.splash-inner{gap:22px}.splash-inner .splashmark{width:256px;height:116px}}
-@media (max-width:520px){.splash-inner .splashmark{width:192px;height:87px}}
+.splash-tap{margin-top:26px}
+/* the plaque is pixel art, so every step is a whole multiple of 64x29 */
+@media (max-width:900px){.splash-inner .splashmark{width:384px;height:174px}}
+@media (max-width:620px){.splash-inner .splashmark{width:256px;height:116px}}
+@media (max-width:440px){.splash-inner .splashmark{width:192px;height:87px}}
+@media (max-height:620px){.splash-inner .splashmark{width:256px;height:116px}
+ .splash-tap{margin-top:16px}}
+@media (max-height:460px){.splash-inner .splashmark{width:192px;height:87px}
+ .splash-quote{display:none}}
 .loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;
  flex-direction:column;gap:16px;z-index:9999;font-family:var(--pix);font-size:10px;color:var(--gold);letter-spacing:2px}
 .loading .lbar{width:200px;height:14px;border:2px solid var(--edge2);background:#060a10;overflow:hidden}
@@ -588,7 +595,7 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
    <div class="splash-sub">THE TRAIL IS THE GAME</div>
    <div class="splash-quote" id="splashQuote"></div>
   </div>
-  <div class="splash-tap">TAP TO<br>CONTINUE</div>
+  <div class="splash-tap">TAP TO CONTINUE</div>
  </div>
 </div>
 <script>
