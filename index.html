@@ -318,6 +318,12 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .splash-inner{position:relative;display:flex;align-items:center;justify-content:center;
  gap:38px;flex-wrap:wrap;padding:24px;text-align:center}
 .splash-inner .splashmark{width:384px;height:174px;margin:0}
+.splash-block{display:flex;flex-direction:column;align-items:center}
+.splash-sub{font-family:var(--pix);font-size:clamp(9px,1.4vw,13px);letter-spacing:3px;
+ color:var(--gold);margin-top:16px;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
+.splash-quote{font-family:var(--body);font-size:clamp(12px,1.6vw,15px);line-height:1.6;
+ color:var(--ink);margin-top:14px;max-width:44ch;text-wrap:balance;
+ text-shadow:1px 1px 0 rgba(0,0,0,.8)}
 .splash-tap{font-family:var(--pix);font-size:clamp(16px,2.6vw,30px);line-height:1.7;
  color:var(--gold);letter-spacing:3px;
  text-shadow:3px 3px 0 #7a5308,6px 6px 0 rgba(0,0,0,.7);animation:tapblink 1.15s steps(1,end) infinite}
@@ -577,7 +583,11 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
  <canvas id="splashMap"></canvas>
  <div class="splash-scrim"></div>
  <div class="splash-inner">
+ <div class="splash-block">
   <img class="splashmark" alt="Summit Quest" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAdCAYAAAAaeWr3AAADnElEQVR42u1ZPUhbURT+EoLE30Xj4BSETMkSLAQRhVLbZCgF7SClOtRmMoooRHCIg2IDLSQUYybrUIU0YM3SIWm1QkQkUHGJkxDSFjoktUOqppRAOoR7c9979+VHk4rGs+See9+7937f/c55570oAGQBQN3chlqyP79/AgBUANDVP4xatIOt9RwBAPB44CEdmB0bAgA4vX7ujTdh/M79EQCAAkC2q3+YEjA7NoTz/UEAQEP3Js73B/H6MDfhpNFP+67zuNPrx/vAB6ECWPD0BgyioXsTk5CZ8BqOi1WhAJBVN7chnUreaMmLx4kCaAgcRYJ0cPy4Bx7dXlkJRW+y/JfEdRQJVmwtAQFk8vHjHnoBIYFdULyBo0gQJ6Fe6vfNNSI8f4a+uUYAoO3w/JlgvNQ2z28170JvsggOjeeT/ckdkCQH6E0WeHRBTD84hetjE9KpJACgvkVDF8ipQ3oKBHAhY8nhAeSRQOYlPgF/sLWuePY2myVz+GwaPFlOgvUB0D6fTcMlQSW3WTYnpFNJ1LdoqDp4JLAbr6aRg3ix/C7bZMz1BVwZCtRolPd5JCh5iyxupOH0+hGNJRCNJeD0+pFOJeHR7aHOFoJHt0cn0pssaDXvVh242KKxhMCP72QK+kQNbJhICDiKBOnJR2MJdNi3AQDPnz6iJPCS0kmoVyBpoghxXzlG7i00x2nYjwkDMDCdF/LhIfB5VUVJmDDIEyIIAR74H6/uwe2wYmphBW6HFU6vH4sbabhaNAJJtpqF4cBTAxvL5fyWk2fiOxlo7+YgDUyrEHBlJG2xKXngtfEZAXhDZzumFlYESuBl3KsysQpG10BPnm3zwoCGAAs+rn0pAB+NJYqScBVG8lOx2C80pmQn67BvC8C7HVbaXw4J4vjntck1pfpiM3S2F1QBC3p0LZ8XZAkQxzwB63ZYAQDa+AyXBB74vrlGybNeri5g45r1C+WCQk+DYqDjOxlBvUAJEINnwdrVPlkSLmM8pZT65CD7YGv8CYMUNPGXovn26ghHAWLwYtlPvvmFv8tmweJTCyv4+v2bbBiUUhmyJ33RWiIaS2ApmgNJQBuNeZ8AZkmQEMCC18ZnUGcLSUiwq33osG9L+nnlbrHTFvddpG5gVXAa9iPgylDQpEIkfsCVoY9C9hrBy1Clja3lq/FWeNmSWvIyVGmrZnlcqdrj9pvg7TfB22+COQV8+bRW298Ea/WPESVq3BS1/t/gP7VzxdfjXh0yAAAAAElFTkSuQmCC">
+   <div class="splash-sub">THE TRAIL IS THE GAME</div>
+   <div class="splash-quote" id="splashQuote"></div>
+  </div>
   <div class="splash-tap">TAP TO<br>CONTINUE</div>
  </div>
 </div>
@@ -586,7 +596,49 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
    or leaving a region calls location.reload(), and a card on each of those is
    noise. sessionStorage holds it to the first load of the tab, so it returns
    when the app is genuinely opened again. */
+/* One quote per day, the same one all day. Indexed by day of the year so it
+   needs no storage and no fetch, and it turns over at local midnight. */
+var SQ_QUOTES=[
+ "The mountain does not care that you are tired.",
+ "Every summit is downhill on the way back.",
+ "There is no bad weather, only regrettable gear choices.",
+ "Blisters are just receipts.",
+ "Two miles in, everyone becomes a philosopher.",
+ "Nobody remembers the flat part.",
+ "If you can still hear the parking lot, keep going.",
+ "The map is not tired.",
+ "Bring the rain jacket you will not use.",
+ "A summit is just a place to turn around.",
+ "Rocks are slippery when wet, and also when dry.",
+ "Your legs will forgive you. Your phone battery will not.",
+ "The last mile is always uphill, whatever the map says.",
+ "Trail mix is permission to eat candy outdoors.",
+ "Start early. Everything else is negotiable.",
+ "The view does not load faster if you hurry.",
+ "Water weighs nothing compared to needing it.",
+ "Switchbacks exist because the mountain won the argument.",
+ "Sunrise is worth the alarm. Once.",
+ "Wear the boots in before the boots wear you down.",
+ "Nobody has ever regretted the extra pair of socks.",
+ "The bear is more surprised than you are.",
+ "Downhill is not rest. It is a different kind of work.",
+ "If it were easy it would be a sidewalk.",
+ "You are closer than you think and further than you hoped.",
+ "Uphill builds character. Downhill builds knees.",
+ "The trail is the same length in both directions. It never feels that way.",
+ "Pace yourself. The overlook is not going anywhere.",
+ "Cotton is a decision you make once.",
+ "Turning back early is still a hike.",
+ "The summit register is the only paperwork worth filling in.",
+ "Mud is just the trail being honest."];
+function sqDailyQuote(){
+ var d=new Date(), y0=new Date(d.getFullYear(),0,0);
+ var day=Math.floor((d-y0)/86400000);
+ return SQ_QUOTES[day%SQ_QUOTES.length];
+}
 (function(){var s=document.getElementById('splash');if(!s)return;
+ var q=document.getElementById('splashQuote');
+ if(q)q.textContent=sqDailyQuote();
  var seen=false;try{seen=sessionStorage.getItem('sq_splash')==='1';}catch(e){}
  if(seen){s.style.display='none';return;}
  try{sessionStorage.setItem('sq_splash','1');}catch(e){}})();
