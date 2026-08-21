@@ -49,7 +49,10 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .next-lvl b{color:var(--gold)}
 .toolbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 /* the nav row reads as one bar across the UI, not a pair of floating buttons */
-#navBar,.maptools{position:relative;overflow:hidden}
+/* No overflow:hidden here. The OPTIONS popover and the filter legend are
+   positioned inside these bars, and clipping the bar clipped them out of
+   existence. The spectrum rule below is inset, so it needs no clipping. */
+#navBar,.maptools{position:relative}
 #navBar{width:100%;box-sizing:border-box;gap:8px;padding:9px 11px 11px;margin-bottom:10px;
  background:linear-gradient(180deg,#1f2b3e,#151e2d 62%,#101825);
  border:2px solid var(--edge);border-left:4px solid var(--gold);
@@ -209,6 +212,19 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .obe-tick.t2{bottom:50%}.obe-tick.t3{bottom:75%}
 .rail-stats{font-size:9px;color:var(--dim);line-height:1.9;text-align:center;flex-shrink:0}
 .rail-stats b{color:var(--ink)}
+.beast-wrap{padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
+.beast{background:var(--panel2);border:2px solid var(--edge);padding:12px;display:flex;gap:12px;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.beast.down{border-color:rgba(245,198,81,.55);background:rgba(42,33,12,.72)}
+.beast canvas{image-rendering:pixelated;flex-shrink:0;align-self:flex-start;display:block}
+.beast .bd{min-width:0;display:flex;flex-direction:column;gap:6px}
+.beast .bn{font-family:var(--pix);font-size:9px;color:var(--ink);letter-spacing:1px;line-height:1.5}
+.beast.down .bn{color:#ffd76e}
+.beast .bi{font-size:12px;line-height:1.6;color:var(--dim)}
+.beast .bs{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.5px}
+.beast .bs b{color:#ff9a86}
+.beast .bw{font-size:11px;color:var(--gold)}
+.legend.collapsed{display:none}
 .bestiary{flex:1;display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0}
 .best-row{display:flex;align-items:center;gap:6px;padding:3px 4px;cursor:pointer;
  border:1px solid rgba(90,115,146,.22);background:rgba(8,13,21,.7)}
@@ -753,6 +769,8 @@ function sqDailyQuote(){
       <span class="ns-i">🏅</span><span class="ns-t">BADGES</span><span class="ns-sub">what you have earned</span></button>
     <button class="btn nav-row" id="navAvatar">
       <span class="ns-i">🧗</span><span class="ns-t">CLIMBERS</span><span class="ns-sub">your rope team and kit</span></button>
+    <button class="btn nav-row" id="navBeasts">
+      <span class="ns-i">🐾</span><span class="ns-t">TRAIL BEASTS</span><span class="ns-sub">every boss and what it guards</span></button>
     <div class="ns-rule"></div>
     <button class="btn nav-row" id="navWorld">
       <span class="ns-i">🌎</span><span class="ns-t">REGIONS</span><span class="ns-sub">leave for the world map</span></button>
@@ -868,6 +886,8 @@ function sqDailyQuote(){
 
 <div class="screen" id="screenBadge"><div class="frame"><div class="badge-grid" id="badgeGrid"></div></div></div>
 <div class="screen" id="screenLog"><div class="frame"><div class="log-list" id="logList"></div></div></div>
+<div class="screen" id="screenBeasts"><div class="frame"><div class="beast-wrap" id="beastList"></div></div></div>
+
 <div class="screen" id="screenAvatar">
   <div class="frame av-frame">
     <div class="av-grid">
@@ -5280,8 +5300,8 @@ async function toggle(p){
 }
 /* ═══════════════ 18. SCREENS ═══════════════ */
 function setScreen(s){
- ['Map','Battle','Badge','Log','Avatar'].forEach(k=>document.getElementById('screen'+k).classList.remove('active'));
- const mm={map:'Map',battle:'Battle',badge:'Badge',log:'Log',avatar:'Avatar'};
+ ['Map','Battle','Badge','Log','Avatar','Beasts'].forEach(k=>document.getElementById('screen'+k).classList.remove('active'));
+ const mm={map:'Map',battle:'Battle',badge:'Badge',log:'Log',avatar:'Avatar',beasts:'Beasts'};
  document.getElementById('screen'+mm[s]).classList.add('active');
  /* the battle takes the whole phone screen, so the page chrome steps aside */
  document.body.classList.toggle('fighting',s==='battle');
@@ -5291,7 +5311,7 @@ function setScreen(s){
  if(typeof musicMode==='function')musicMode(s==='battle'?'boss':'calm');
  if(s!=='map')closeSheet();
  if(typeof closeNav==='function')closeNav();
- ['navMap','navLog','navBadge','navAvatar'].forEach(id=>document.getElementById(id).classList.remove('on'));
+ ['navMap','navLog','navBadge','navAvatar','navBeasts'].forEach(id=>document.getElementById(id).classList.remove('on'));
  if(s==='map')document.getElementById('navMap').classList.add('on');
  if(s==='log')document.getElementById('navLog').classList.add('on');
  if(s==='badge')document.getElementById('navBadge').classList.add('on');
@@ -5313,6 +5333,7 @@ document.getElementById('navMap').onclick=()=>{if(BT&&!BT.over)return;BT=null;se
 document.getElementById('navLog').onclick=()=>{renderLog();setScreen('log');};
 document.getElementById('navBadge').onclick=()=>{renderBadges();setScreen('badge');};
 document.getElementById('navAvatar').onclick=()=>{renderAvatar();setScreen('avatar');};
+document.getElementById('navBeasts').onclick=()=>{renderBeasts();setScreen('beasts');};
 /* ═══════════════ 19. LEGEND + INPUT ═══════════════ */
 const legend=document.getElementById('legend');
 function buildLegend(){
@@ -5449,8 +5470,13 @@ optBtn.onclick=e=>{e.stopPropagation();
 optPop.addEventListener('click',e=>e.stopPropagation());
 document.addEventListener('click',closeOpt);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeOpt();closeSheet();}});
+/* It used to only scroll the legend into view, which looks like a dead button
+   whenever the legend is already on screen. It collapses and expands it now. */
 document.getElementById('filterBtn').onclick=()=>{
- document.getElementById('legend').scrollIntoView({behavior:'smooth',block:'center'});};
+ const lg=document.getElementById('legend'),btn=document.getElementById('filterBtn');
+ const hidden=lg.classList.toggle('collapsed');
+ btn.classList.toggle('on',!hidden);
+ if(!hidden)lg.scrollIntoView({behavior:'smooth',block:'center'});};
 document.getElementById('exportBtn').onclick=()=>exportSave();
 const importFile=document.getElementById('importFile');
 document.getElementById('importBtn').onclick=()=>{importFile.click();};
@@ -5633,6 +5659,37 @@ function refreshCatalog(){questBarCount();if(catOpen){buildChips();renderCatalog
 
 /* ═══════════════ 22. SIDE RAILS ═══════════════ */
 let bestBuilt=false;
+/* The rail is a glance; this is the full page. Unslain beasts stay in
+   silhouette so the reveal on a first kill is still worth something, but the
+   stats and the location it guards are shown either way, because deciding
+   whether to go is the point of the page. */
+function renderBeasts(){
+ const el=document.getElementById('beastList');el.innerHTML='';
+ P.filter(q=>q.c==="multi").forEach(q=>{
+  const B=BOSSES[q.boss],down=!!S.slain[q.id],src=creature(q.boss);
+  const card=document.createElement('div');card.className='beast'+(down?' down':'');
+  /* fit inside a box rather than to height alone: the panther is far wider
+     than it is tall and was squeezing its own text off the card */
+  const sc=Math.min(74/src.height,92/src.width);
+  const W2=Math.max(1,Math.round(src.width*sc)),H2=Math.max(1,Math.round(src.height*sc));
+  const cn=document.createElement('canvas');cn.width=W2;cn.height=H2;
+  const c=cn.getContext('2d');c.imageSmoothingEnabled=false;
+  c.drawImage(src,0,0,W2,H2);
+  if(!down){
+   c.globalCompositeOperation="source-atop";
+   c.fillStyle="rgba(10,14,24,.82)";c.fillRect(0,0,W2,H2);
+   c.globalCompositeOperation="source-over";}
+  cn.style.width=W2+"px";cn.style.height=H2+"px";
+  const bd=document.createElement('div');bd.className='bd';
+  const li=lvlFor(totalXP())+1;
+  bd.innerHTML=
+   '<div class="bn">'+(down?'☠ ':'')+B.name+'</div>'+
+   '<div class="bi">'+B.intro+'</div>'+
+   '<div class="bs">HP <b>'+B.hp+'</b> · ATK <b>'+B.atk+'</b> · REC. RANK <b>LV '+B.rec+'</b></div>'+
+   '<div class="bw">'+(down?'Defeated':(li<B.rec?'⚠ You are LV '+li+'. Losing costs nothing.':'✓ At or above the recommended rank.'))+'</div>'+
+   '<div class="bs">Guards '+q.n+' · '+q.mi+' · '+q.t+'</div>';
+  card.appendChild(cn);card.appendChild(bd);el.appendChild(card);});
+}
 function buildBestiary(){
  const el=document.getElementById('bestiary');
  el.innerHTML='';
