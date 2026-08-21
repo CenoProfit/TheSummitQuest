@@ -410,7 +410,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 /* ── filter bar: clicking a category KEEPS it (nothing selected = show all) ── */
 .legend{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0;align-items:center}
 .leg{cursor:pointer;user-select:none}
-.leg.sel{border-color:var(--gold);background:#2a3346;box-shadow:2px 2px 0 rgba(0,0,0,.55)}
+.leg.sel{box-shadow:2px 2px 0 rgba(0,0,0,.55)}
 .leg.dim{opacity:.42}
 .leg-all{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--dim);
  background:var(--panel2);border:2px solid var(--edge);padding:7px 9px;cursor:pointer}
@@ -880,6 +880,13 @@ const CATS={
  long :{name:"LONG DAY HIKES",color:"#b96ae4",ic:"sun"},
  multi:{name:"MULTI-DAY BOSS TREKS",color:"#e83daa",ic:"skull"}
 };
+/* Blend a category colour toward the panel so a chip can carry its own hue
+   without turning the filter bar into a paint chart. */
+function catTint(hex,amt){
+ const b=[19,27,38],h=hex.replace('#','');
+ const c=[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
+ return 'rgb('+c.map((v,i)=>Math.round(b[i]+(v-b[i])*amt)).join(',')+')';
+}
 const DIFF_XP={"Easy":10,"Easy-Mod":15,"Mod":20,"Mod-Hard":30,"Hard":45,"Extreme":65};
 const CAT_BONUS={water:0,short:0,view:0,mod:0,hard:0,long:20,multi:60};
 /* ═══════════════ 1b. REGIONS ═══════════════
@@ -5225,6 +5232,10 @@ function buildLegend(){
   const el=document.createElement('div');
   el.className='leg'+(catSel.has(k)?' sel':(catSel.size?' dim':''));
   el.innerHTML=`<i style="background:${v.color}"></i>${v.name} <span class="n">${d}/${n}</span>`;
+  const sel=catSel.has(k);
+  el.style.background=catTint(v.color,sel?.30:.13);
+  el.style.borderColor=sel?v.color:catTint(v.color,.52);
+  if(sel)el.style.boxShadow='inset 0 0 0 1px '+catTint(v.color,.55)+',2px 2px 0 rgba(0,0,0,.55)';
   el.onclick=()=>{
    catSel.has(k)?catSel.delete(k):catSel.add(k);
    /* deselecting the last one is the same as no filter at all */
@@ -5438,6 +5449,10 @@ function buildChips(){
   const c=document.createElement('div');
   c.className='chip'+(catSel.has(k)?' on':(catSel.size?' off':''));
   c.innerHTML=`<i style="background:${v.color}"></i>${v.name.split(' ')[0]} <span style="color:#8695a8">${d}/${n}</span>`;
+  const on=catSel.has(k);
+  c.style.background=catTint(v.color,on?.30:.13);
+  c.style.borderColor=on?v.color:catTint(v.color,.52);
+  if(on)c.style.boxShadow='inset 0 0 0 1px '+catTint(v.color,.55)+',2px 2px 0 rgba(0,0,0,.55)';
   c.onclick=()=>{catSel.has(k)?catSel.delete(k):catSel.add(k);syncFilters();};
   el.appendChild(c);});
 }
