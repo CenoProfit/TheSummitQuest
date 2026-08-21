@@ -317,26 +317,32 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  radial-gradient(ellipse at center,rgba(8,13,20,.62) 0%,rgba(8,13,20,.88) 70%,rgba(8,13,20,.96) 100%)}
 .splash-inner{position:relative;display:flex;flex-direction:column;align-items:center;
  justify-content:center;gap:0;padding:24px;text-align:center}
-.splash-inner .splashmark{width:512px;height:232px;margin:0}
+.splash-inner .splashmark{width:256px;height:116px;margin:0}
 .splash-block{display:flex;flex-direction:column;align-items:center}
-.splash-sub{font-family:var(--pix);font-size:clamp(9px,1.4vw,13px);letter-spacing:3px;
+.splash-sub{font-family:var(--pix);font-size:clamp(9px,1.3vw,19px);letter-spacing:3px;
  color:var(--gold);margin-top:16px;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
-.splash-quote{font-family:var(--body);font-size:clamp(12px,1.6vw,15px);line-height:1.6;
+.splash-quote{font-family:var(--body);font-size:clamp(12px,1.4vw,20px);line-height:1.6;
  color:var(--ink);margin-top:14px;max-width:44ch;text-wrap:balance;
  text-shadow:1px 1px 0 rgba(0,0,0,.8)}
-.splash-tap{font-family:var(--pix);font-size:clamp(16px,2.6vw,30px);line-height:1.7;
+.splash-tap{font-family:var(--pix);font-size:clamp(16px,2.6vw,38px);line-height:1.7;
  color:var(--gold);letter-spacing:3px;
  text-shadow:3px 3px 0 #7a5308,6px 6px 0 rgba(0,0,0,.7);animation:tapblink 1.15s steps(1,end) infinite}
 @keyframes tapblink{0%,64%{opacity:1}65%,100%{opacity:.28}}
 @media (prefers-reduced-motion:reduce){.splash-tap{animation:none}}
-.splash-tap{margin-top:26px}
-/* the plaque is pixel art, so every step is a whole multiple of 64x29 */
-@media (max-width:900px){.splash-inner .splashmark{width:384px;height:174px}}
-@media (max-width:620px){.splash-inner .splashmark{width:256px;height:116px}}
-@media (max-width:440px){.splash-inner .splashmark{width:192px;height:87px}}
-@media (max-height:620px){.splash-inner .splashmark{width:256px;height:116px}
- .splash-tap{margin-top:16px}}
-@media (max-height:460px){.splash-inner .splashmark{width:192px;height:87px}
+.splash-tap{margin-top:30px}
+/* The plaque is a 64x29 drawing, so it may only ever be shown at a whole
+   multiple of that. The ladder climbs with the viewport; the height caps come
+   afterwards so a wide but short screen still fits the whole column. */
+@media (min-width:440px){.splash-inner .splashmark{width:384px;height:174px}}
+@media (min-width:620px){.splash-inner .splashmark{width:512px;height:232px}}
+@media (min-width:820px){.splash-inner .splashmark{width:640px;height:290px}}
+@media (min-width:1040px){.splash-inner .splashmark{width:768px;height:348px}}
+@media (min-width:1280px){.splash-inner .splashmark{width:896px;height:406px}}
+@media (min-width:1560px){.splash-inner .splashmark{width:1024px;height:464px}}
+@media (max-height:700px){.splash-inner .splashmark{width:512px;height:232px}}
+@media (max-height:580px){.splash-inner .splashmark{width:384px;height:174px}
+ .splash-tap{margin-top:18px}}
+@media (max-height:470px){.splash-inner .splashmark{width:256px;height:116px}
  .splash-quote{display:none}}
 .loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;
  flex-direction:column;gap:16px;z-index:9999;font-family:var(--pix);font-size:10px;color:var(--gold);letter-spacing:2px}
