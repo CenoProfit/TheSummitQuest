@@ -1922,14 +1922,10 @@ function buildWorldTerrain(){
   if(!land[i])continue;
   const u=x/WTW,v=y/WTH;
   let e=.10+wSmp(N1,u,v)*.15+wSmp(N2,u,v)*.10+wSmp(N3,u,v)*.06+wSmp(N4,u,v)*.035;
-  for(const B of belts){
-   let d=1e9;
-   for(const[sx,sy]of B.pts){const dd=(x-sx)*(x-sx)+(y-sy)*(y-sy);if(dd<d)d=dd;}
-   d=Math.sqrt(d);
-   if(d<B.w){
-    /* wobble along the crest so ridges have high points and saddles */
-    const k=Math.pow(1-d/B.w,1.35)*(.72+wSmp(NF,u,v)*.56);
-    e+=B.h*k;}}
+  /* The ranges no longer raise the ground. They used to add a belt of
+     elevation along each crest, which the colour ramp then turned into a grey
+     streak across the map; the streak is gone with them. WRANGES and the belt
+     maths are left in place for whatever wants them next. */
   /* coastal plain: flatten and drop the last dozen tiles before the sea */
   const dc=dist[i];
   if(dc>=0&&dc<14)e-=(1-dc/14)*.13;
@@ -1968,50 +1964,6 @@ function buildWorldTerrain(){
   if(dc>=0&&dc<=2&&e<.30)col=SANDY[Math.min(SANDY.length-1,(dc+(n*1.6|0)))];
   g.fillStyle=col;g.fillRect(x*WTS,y*WTS,WTS,WTS);}
 
-
- /* ── the ranges, drawn as peaks ──
-    Colouring high tiles grey only ever produced a smear. These are little
-    mountains walked along each crest line, lit from the west like every other
-    sprite in the game, snow-capped on the tallest ranges, and jittered off the
-    line so a range reads as a band of summits rather than a fence. */
- const peakRnd=wRand(20733);
- function worldPeak(cx,by,pw,ph,snowy){
-  const half=pw/2;
-  for(let r=0;r<ph;r++){
-   const yy=by-ph+r+1;
-   const wr=Math.round(((r+1)/ph)*half);
-   for(let dx=-wr;dx<=wr;dx++){
-    const xx=Math.round(cx+dx);
-    if(xx<0||xx>=c.width||yy<0||yy>=c.height)continue;
-    let col;
-    const capRows=Math.max(1,Math.round(ph*.36));
-    if(snowy&&r<capRows) col=(dx<0)?"#eef4fb":"#c3d2e2";
-    else if(dx<-wr*.15)  col="#8a8574";      // west face, lit
-    else if(dx>wr*.35)   col="#4f4d43";      // east face, in shade
-    else                 col="#6b6859";
-    g.fillStyle=col;g.fillRect(xx,yy,1,1);}}
-  /* a darker line where it meets the ground so it sits in the terrain */
-  g.fillStyle="rgba(28,32,24,.55)";
-  g.fillRect(Math.round(cx-half),by,Math.max(1,Math.round(pw)),1);
- }
- belts.forEach(B=>{
-  const big=B.h>=.24;
-  const step=big?7:9;
-  for(let i=0;i<B.pts.length;i+=step){
-   const [sx,sy]=B.pts[i];
-   const rows=big?2:1;
-   for(let k=0;k<rows;k++){
-    const jx=(peakRnd()-.5)*B.w*1.7, jy=(peakRnd()-.5)*B.w*1.5+(k?B.w*.55:0);
-    const tx=Math.round(sx+jx), ty=Math.round(sy+jy);
-    if(tx<1||ty<1||tx>=WTW-1||ty>=WTH-1)continue;
-    if(!land[ty*WTW+tx])continue;
-    const e=elev[ty*WTW+tx];
-    if(e<.30)continue;
-    const scale=(k?.72:1)*(.75+peakRnd()*.5);
-    const pw=Math.max(4,Math.round((big?11:8)*scale));
-    const ph=Math.max(3,Math.round((big?8:6)*scale));
-    worldPeak(tx*WTS+WTS/2, ty*WTS+WTS, pw, ph, B.h>=.30&&e>.52&&peakRnd()>.45);
-   }}});
 
  /* ── state lines, drawn at pixel resolution so they stay hairline ── */
  g.lineWidth=1;g.lineJoin="round";g.lineCap="round";
