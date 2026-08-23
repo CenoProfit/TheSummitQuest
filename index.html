@@ -124,6 +124,18 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .stat{background:var(--panel2);border:2px solid var(--edge);padding:7px 9px}
 .stat .k{font-family:var(--pix);font-size:7px;color:var(--dim);letter-spacing:1px;display:block;margin-bottom:5px}
 .stat .v{font-size:12px;color:var(--ink);font-weight:bold}
+.stat.drive{position:relative;padding-right:34px}
+/* Hub names run to fourteen unbroken characters and the tile is half a phone
+   wide, so the label has to be allowed to break rather than run under the
+   button sitting in its right margin. */
+.stat.drive .k{overflow-wrap:anywhere;word-break:break-word}
+.refix{position:absolute;right:5px;top:50%;transform:translateY(-50%);
+ width:24px;height:24px;line-height:1;display:flex;align-items:center;justify-content:center;
+ background:var(--edge);border:2px solid var(--edge2);color:var(--gold);
+ font-size:12px;cursor:pointer;padding:0}
+.refix:hover{background:var(--edge2);color:#fff8dc}
+.refix:active{transform:translateY(-50%) translate(1px,1px)}
+.refix[disabled]{opacity:.55;cursor:default}
 .d-where{font-size:11px;line-height:1.65;color:var(--dim);border:2px solid var(--edge);
  background:rgba(10,16,24,.5);padding:8px 10px;margin-top:9px}
 .d-where b{color:var(--gold)}
@@ -137,6 +149,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  padding:11px 15px;cursor:pointer;letter-spacing:1px;box-shadow:3px 3px 0 rgba(0,0,0,.6)}
 .btn-go.done{background:var(--edge2);color:var(--ink);border-color:var(--edge)}
 .btn-go.boss{background:linear-gradient(#f2604c,#b8281c);color:#fff;border-color:#ffc0b4}
+.btn-go.nav{background:linear-gradient(#4fa8ec,#2a6fbb);color:#04121f;border-color:#bfe2ff;text-decoration:none;display:inline-block}
 .btn-go:active{transform:translate(3px,3px);box-shadow:none}
 .xp-tag{font-family:var(--pix);font-size:8px;color:var(--gold)}
 .datelog{margin-top:11px;font-size:11px;color:var(--dim);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -4215,7 +4228,10 @@ function frameBox(){
     border is a few pixels of the map clipped off the bottom at FIT. */
  const bdY=(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
  const top=Math.max(0,wr.getBoundingClientRect().top);
- const vh=window.innerHeight||document.documentElement.clientHeight||800;
+ /* clientHeight is the layout viewport, which is what the CSS around this is
+    actually laid out against; innerHeight can disagree inside an embedded or
+    chromed webview. */
+ const vh=document.documentElement.clientHeight||window.innerHeight||800;
  /* A floor. On a laptop the HUD above the map can eat 300px of a 720px window,
     and holding the quest bar on screen as well would leave the map a thumbnail.
     Past this point the map wins and the bar takes the scroll. */
@@ -6037,7 +6053,8 @@ function showDetail(p){
   <div class="d-name">${dn?'★ ':''}${p.n}</div>${bb}
   <div class="d-desc">${p.hi}</div>
   <div class="d-stats">
-   <div class="stat"><span class="k">${usingMyLocation()?'DRIVE FROM YOU':'DRIVE FROM '+RG.home.toUpperCase()}</span><span class="v">${usingMyLocation()?'~':''}${driveText(p)}</span></div>
+   <div class="stat drive"><span class="k">${usingMyLocation()?'DRIVE FROM YOU':'DRIVE FROM '+RG.home.toUpperCase()}</span><span class="v">${usingMyLocation()?'~':''}${driveText(p)}</span>
+    <button class="refix" id="refix" title="${usingMyLocation()?'Update my location':'Use my location for drive times'}">↻</button></div>
    <div class="stat"><span class="k">DIFFICULTY</span><span class="v" style="color:${col}">${p.d}</span></div>
    <div class="stat"><span class="k">DISTANCE</span><span class="v">${p.mi}</span></div>
    <div class="stat"><span class="k">TIME</span><span class="v">${p.t}</span></div>
@@ -6046,9 +6063,11 @@ function showDetail(p){
   ${dn?'':`<div class="d-where">◎ CHECK IN — anywhere within <b>${fmtDist(geofenceFor(p))}</b> of
    <span class="mono">${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</span>
    <a class="d-map" target="_blank" rel="noopener"
-      href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}">open in maps</a>
+      href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}">show the spot</a>
    <span class="d-hintline">The trailhead counts. You do not have to be standing on the exact spot.</span></div>`}
   <div class="d-actions">
+   <a class="btn-go nav" id="navbtn" target="_blank" rel="noopener"
+      href="${directionsURL(p)}">🧭 DIRECTIONS</a>
    ${boss?`<button class="btn-go boss" id="bbtn">${S.slain[p.id]?'⚔ FIGHT AGAIN':'⚔ ENTER BATTLE'}</button>`:''}
    ${(!boss||dn)?`<button class="btn-go ${dn?'done':''}" id="cbtn">${dn?'✓ CLEARED — UNDO':'MARK COMPLETE'}</button>`:''}
    <span class="xp-tag">+${p.xp} XP</span>
@@ -6069,6 +6088,30 @@ function showDetail(p){
   /* The fight is open to anyone anywhere; winning it is what asks where you
      are. Day hikes still check before they clear. */
   checkIn(p);};
+ /* Asking for location has to be reachable without pretending to finish a hike.
+    This is the only other place that prompts, and the player pressed it. */
+ const rf=document.getElementById('refix');
+ if(rf)rf.onclick=async()=>{
+  rf.disabled=true;rf.textContent='…';
+  driveMode='auto';try{localStorage.setItem(DRIVEKEY,'auto');}catch(_){}
+  const f=await pullFix(true);
+  /* refreshDriveUI rebuilds this panel on success, so there is nothing to
+     restore; only the failure path still owns these elements. */
+  if(!f&&document.getElementById('refix')){
+   const r2=document.getElementById('refix');
+   r2.disabled=false;r2.textContent='↻';
+   checkNote(p,'<span style="color:#ff9a86">No location fix, so drive times stay measured from '+RG.home+'. Allow location for this site, then try again.</span>');}
+ };
+ /* WKWebView inside the native shell does not reliably honour target="_blank",
+    so open it explicitly there and leave the anchor's own href as the fallback
+    for the web, where it already works. */
+ const nb=document.getElementById('navbtn');
+ if(nb)nb.onclick=e=>{
+  const u=nb.getAttribute('href');
+  const B=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser;
+  if(B){e.preventDefault();B.open({url:u});return;}
+  if(window.Capacitor){e.preventDefault();window.open(u,'_system')||(location.href=u);}
+ };
  const bb2=document.getElementById('bbtn');
  if(bb2)bb2.onclick=()=>startBattle(p);
  const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>checkIn(p);
@@ -6178,6 +6221,16 @@ function applyDriveTimes(){
   const w=Math.exp(-metresBetween(f.lat,f.lon,RG.hub.lat,RG.hub.lon)/1000/DRIVE_FADE_KM);
   p.udm=Math.max(2,Math.round(driveModelMins(kmYou)*(1+(cal-1)*w)));
   p.udrive=fmtDrive(p.udm);});
+}
+/* Google Maps directions to the trailhead. Coordinates rather than the name,
+   because half of these places either have no address or share a name with
+   somewhere else in the state, and the coordinate is the thing the check-in
+   already trusts. An origin is only sent when the app actually has a fix;
+   without one Maps asks the phone, which is the right answer anyway. */
+function directionsURL(p){
+ const q=['api=1','destination='+p.lat.toFixed(5)+','+p.lon.toFixed(5),'travelmode=driving'];
+ if(USERFIX)q.splice(1,0,'origin='+USERFIX.lat.toFixed(5)+','+USERFIX.lon.toFixed(5));
+ return 'https://www.google.com/maps/dir/?'+q.join('&');
 }
 const driveMins=p=>(p.udm===undefined?p.dm:p.udm);
 const driveText=p=>(p.udrive===undefined?p.drive:p.udrive);
