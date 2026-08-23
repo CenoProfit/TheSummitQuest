@@ -444,6 +444,19 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .opt-i.danger{color:#f08a7a}
 .opt-i.danger:hover{background:#3a1512;border-color:#8a3226}
 .d-photo{margin-top:11px}
+.btn-go.share{background:linear-gradient(#c88ae4,#8a44c0);color:#150520;border-color:#eccffb}
+/* The card is drawn on a transparent canvas, so it is shown on a checker to
+   make the transparency legible rather than reading as a white card. */
+.share-view{position:fixed;inset:0;z-index:130;background:rgba(3,6,12,.94);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}
+.share-view canvas{max-width:min(92vw,420px);max-height:64vh;width:auto;height:auto;
+ image-rendering:pixelated;image-rendering:crisp-edges;
+ background-color:#20242c;
+ background-image:linear-gradient(45deg,#2c313a 25%,transparent 25%,transparent 75%,#2c313a 75%),
+  linear-gradient(45deg,#2c313a 25%,transparent 25%,transparent 75%,#2c313a 75%);
+ background-size:20px 20px;background-position:0 0,10px 10px}
+.share-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.share-hint{font-size:11px;color:var(--dim);text-align:center;max-width:420px;line-height:1.6}
 .ph-add{display:block;width:100%;font-family:var(--pix);font-size:8px;letter-spacing:.5px;
  background:var(--panel2);color:var(--ink);border:2px solid var(--edge2);padding:12px 10px;cursor:pointer}
 .ph-add:hover{background:var(--panel)}
@@ -661,6 +674,61 @@ body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!i
    outside any media query on purpose: the earlier version of this rule was
    nested in the mobile block and never applied on a desktop. */
 body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:auto}
+
+/* ── TUTORIAL ──────────────────────────────────────────────────────────────
+   The sample panels on each page are built from the game's own classes rather
+   than from captured screenshots. They cost nothing to ship, they cannot go
+   stale when the interface moves, and they are legible at any size because
+   they are the interface rather than a picture of it. */
+.splash-tut{font-family:var(--pix);font-size:clamp(13px,1.9vw,22px);letter-spacing:2px;
+ font-weight:bold;margin-top:26px;padding:15px 26px;cursor:pointer;
+ background:linear-gradient(#ffd764,#e0a92c);color:#201604;
+ border:3px solid #fff3c4;box-shadow:4px 4px 0 rgba(0,0,0,.65);
+ text-shadow:1px 1px 0 rgba(255,255,255,.35)}
+.splash-tut:active{transform:translate(4px,4px);box-shadow:none}
+#tutorial{position:fixed;inset:0;z-index:10001;display:none;
+ background:rgba(4,7,13,.95);align-items:center;justify-content:center;padding:14px}
+#tutorial.open{display:flex}
+.tut-card{position:relative;width:min(680px,96vw);max-height:94vh;display:flex;flex-direction:column;
+ background:var(--panel);border:3px solid var(--edge2);
+ box-shadow:0 0 0 3px var(--bg),6px 6px 0 3px rgba(0,0,0,.6)}
+.tut-x{position:absolute;right:8px;top:8px;z-index:3;font-family:var(--pix);font-size:11px;
+ background:var(--panel2);color:var(--ink);border:2px solid var(--edge2);padding:7px 10px;cursor:pointer}
+.tut-body{padding:22px 20px 14px;overflow:auto;flex:1 1 auto;min-height:0}
+.tut-step{font-family:var(--pix);font-size:7px;letter-spacing:2px;color:var(--dim);margin-bottom:9px}
+.tut-h{font-family:var(--pix);font-size:clamp(12px,2.4vw,17px);color:var(--gold);
+ letter-spacing:1px;line-height:1.6;margin-bottom:12px;text-shadow:2px 2px 0 rgba(0,0,0,.7)}
+.tut-p{font-size:13.5px;line-height:1.8;color:#ccd8e6;margin-bottom:12px}
+.tut-p b{color:var(--ink)}
+.tut-shot{background:#070b12;border:2px solid var(--edge);padding:11px;margin:12px 0}
+.tut-shot .stat{margin:0}
+.tut-cap{font-size:11px;color:var(--dim);line-height:1.6;margin-top:8px}
+.tut-foot{display:flex;align-items:center;gap:10px;padding:11px 14px;
+ border-top:2px solid var(--edge);background:var(--panel2)}
+.tut-nav{font-family:var(--pix);font-size:9px;letter-spacing:1px;padding:11px 14px;cursor:pointer;
+ background:var(--edge);color:var(--ink);border:2px solid var(--edge2);box-shadow:2px 2px 0 rgba(0,0,0,.5)}
+.tut-nav.on{background:linear-gradient(#8bf05f,#4fbf35);color:#08200a;border-color:#d8ffc4}
+.tut-nav:disabled{opacity:.35;cursor:default}
+.tut-nav:active{transform:translate(2px,2px);box-shadow:none}
+.tut-dots{flex:1 1 auto;display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
+.tut-dot{width:9px;height:9px;background:var(--edge2);border:1px solid var(--bg)}
+.tut-dot.on{background:var(--gold)}
+/* page one is the pitch, so it gets the logo and room to breathe */
+.tut-open{text-align:center;padding:6px 4px 2px}
+.tut-open img{width:min(320px,74%);height:auto;image-rendering:pixelated;
+ image-rendering:crisp-edges;display:block;margin:0 auto 18px}
+.tut-open p{font-size:14.5px;line-height:1.85;color:#ccd8e6;margin:0 auto 14px;max-width:46ch}
+.tut-kicker{font-family:var(--pix);font-size:clamp(11px,2vw,16px);letter-spacing:3px;
+ color:var(--gold);margin-top:20px;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
+.tut-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.tut-bar{height:15px;background:#060a10;border:2px solid var(--edge2);overflow:hidden}
+.tut-bar i{display:block;height:100%;background:linear-gradient(#8bf05f,#4fbf35)}
+.tut-bar.hp i{background:linear-gradient(#f2604c,#b8281c)}
+@media (max-width:640px){
+ .tut-body{padding:18px 14px 10px}
+ .tut-p{font-size:13px}
+ .tut-card{width:100%;max-height:96vh}
+}
 </style>
 </head>
 <body>
@@ -673,6 +741,7 @@ body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:
    <div class="splash-sub">THE TRAIL IS THE GAME</div>
    <div class="splash-quote" id="splashQuote"></div>
   </div>
+  <button class="splash-tut" id="tutBtn">📖 TUTORIAL</button>
   <div class="splash-tap">TAP TO CONTINUE</div>
  </div>
 </div>
@@ -728,6 +797,17 @@ function sqDailyQuote(){
  if(seen){s.style.display='none';return;}
  try{sessionStorage.setItem('sq_splash','1');}catch(e){}})();
 </script>
+<div id="tutorial" aria-hidden="true">
+ <div class="tut-card" id="tutCard">
+  <button class="tut-x" id="tutX" aria-label="Close tutorial">✕</button>
+  <div class="tut-body" id="tutBody"></div>
+  <div class="tut-foot">
+   <button class="tut-nav" id="tutPrev">◀ BACK</button>
+   <div class="tut-dots" id="tutDots"></div>
+   <button class="tut-nav on" id="tutNext">NEXT ▶</button>
+  </div>
+ </div>
+</div>
 <div class="loading" id="loader"><img class="splashmark" alt="Summit Quest" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAdCAYAAAAaeWr3AAAFCUlEQVR42u2ZX0hbZxTAf0oYFts6sDrmUxAcHcahazYZHYWtrVGQQTdFSmuhLvjQVIaKsiL6UGsdE/Wh6lMaRnVIMEMoBXVrV7CE4ZZWmREKBck2yEBHoZ1/uhHIHq7fl+/e3NvEurkHe17uOec73/m+c+75d5MMIA6QdeAQewme/fkHADaAIyfOshfh/u0xMo3M196PprXZTG439u5EnxlP54C/Dj3UPa3ATG439u5En9UZmUYBI+1pPIen8RzPk9uNvTvRZ3UGQAYQzzpwiOLySgCKnv3Io6x3AXjP+ZZu4w+hnyWuypnx/u29O9Fnxbt/e0xzwJETZ/k98nBPFcDX7Ye5f3tM6wKCsTQ3zcVHR6XQUFEQQEYHwNLcdBK9ufg5G1FN9lhXNiFvKU73AoDEQ95SNqJBuZ4uruoUdK7rHsXllSzNTct7mNHifkYbVLCpRHF5JUNF07RUrDHw7X42n64CsO9gnjzg4qOjDBXpnbARDdLTPwWAKwc2ouu4cqaYeVLDRjSIK2eKjeg6Pf1ThLxXcLoXmL0MrpyAJd/phtnL0NM/hSsHSee67tFSscbVb8Yyzt+Ix8Udxj15nB5eRaUByRv35Jk6wWYVIptPV+kd8Ut838E8GR1mTuhorZJvq4N1y9ATDoGqtPgAM09qJC5eztXhr+L7yzTe5EBMGlpWZk2bOSHT7JI9gU16R/yEl1cIL6/QO+Jn8+kqQ0VBXvHMMFQUlIqKyyvJdd1TIiCwKzkcXl7R0ZG7sefSIhrUNElywNLctHzz4eUVCtruAPDpmY+kE4wgaoCIADUiZi+vv7CBIW+pLrLMYG3WT5MDTrUkAnl+Hr732aQTmhzWDtGlgJnx0b7jDHa6ae72MtjppnfET09gk4GDebq6sa/kC1oq1iTvWFd2UiRovPSfTvfCVkpodWXmSY1cs4LI3Rj2DzSTTrXYmByIJeFGkHOAarw90k7E/qU03lGYT3h5hcFON9e/vsmlC3WyMP4fsDQ3zceNXTgK87l0oQ6Aa2Et14UDfPXwYYNGq7haEHXfAqmMdxTm09zt1aWDMZ92G0R9SpX7z1vLVJUVtN3RGT/Y6Zb87Tgh5C3V5b/IZxUXMkIuFW0ER2G+jjbWAtXohtFEXbB0gDHnhbGDnW4A7JF2UyeYGe90L2z19lKlxQV0uJgdtD6fTItBStDpdoNURkfuxnTzgnSA0XjV2LascUsnmPf5gDIEWV++o7WKjtYq2eeNtNkcoBouokC8iCZHstGCvhZO4L56kwgwGm8M+8+uP+bvYZfu8OZuL7/89qtlGqQC9Y0f68p+4VkivLzCtbBmpDC6rCxBC4NVJyS1QdV4e6QdPFAwDOG+40o6jNPXdlo7VOEb213Ie0XO7bq3bZgQ1elRm/XXt224uPParJ/vQp9Ai032/smBmKRFG2zy2aRjZBv8L34Sc+UE6Gitoqdf+yYwvlUjz4wWesxSYKcdSLTBl5/Dsgu83U5JdS2+emgYhcVbE1JY8N+pm9ApMZM/11nLje4Jub54a4ILNa8CcL72pJQVa9vVl8790jk3/vimvgaUVNdStvV1pT0TdJNDKyAl1bVyfX4euS4uOj+v4T/5a2kYTeh58KBPm93fPKnT7atPyKWvL737pTrXedLgAPVwKyN1B5KorAJ89chqrO5740xbkm4V366+VPdL59ykIvjyJzH74T3550gmexwy9vp/g/8A1L2zAW27HeoAAAAASUVORK5CYII="><div class="splashline">THE TRAIL IS THE GAME</div><div id="loadmsg">GENERATING WORLD…</div><div class="lbar"><div class="lfill" id="lfill"></div></div></div>
 
 <div class="title" id="gameTitle"><img class="brandlogo" alt="Summit Quest" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAVCAYAAADRhGlyAAACvUlEQVR42u2YPYgaQRTH/3NcIRFCSHEJFkGOEFJYXiWpcpBgiogIycV0OasQAsd6kihC4OJe8AM5iVcdKYMXEEklBOyiVUqLkEKWFOJZHQFF0rwUMsvsOrt+LJpCH8h87Lw3f38zbxwXsDfC2mxtww5erBtcQ5wTIIcHASKtd+dsRomwiwAQNwEaxbpBWkMENidSJMLx6bleZ4wZdmfu5lcCwFYVILNnN4LXavcAAL7tLbx9+RSMMSTCLqiVIVYZnu0ZKMLzHNYBAPvPH+P49ByjbJ7iDNBy1G+GqN8MEW+Lz8Qxs9at2lYazPPKNMw7hwweqaUyRZQixbpBiihFurgc6KVaKpvPRKn1myFKhF36h7fFZ7zkX2ZSvzmurG0GNCmOlc5p5ti023leLQ4tm0EhFcXB0Rl821s4ODpDIRXVdyJjzPYMTCoBAIDbX2VJxRr4oNOAWZxdPwColSGza3NftTJkSaVBVnFkOsW23RxjKWyA5zXCa7V7OkRTOkuFuf1Vls7XwHfBf7tOCGlrZel8Del8DYmwi2bRPQaQn3kivEIqqvfPApG0nL6S4kpPe5bYwTDHtV7A9xh0GhM1JJUAkkoAamXIZLqnvsZ4DuvoZHelaZsd1uHV4mghM5bO0p94b4yJK+j2V5l5RXnftKUYk6enLO48GnhMs4+Vn+wKQhGlKE3bVruHQiqKk/3rAADNmzH037h2ZSWvNGMALy4HBnh8R4qwssNn6GR39bvhKkOU7kAOxavFAQB/Sw+lEAEY+j/nX688QKcvCVb3X8mjd/dp3nHL8HUSb5GaNwDAt7dDYmllsnHL8HUSb9GaGa/cunsVv3/+Gd0Fyz/Ypy/fCABePHnARAdxHLdF+gLAvPGm7XOiWRe5d+8Olb//YgDw6k3GsDIfP8Sl45bh6yTeMjQzz+2d9ZtlB/YPEaUc+038Ki0AAAAASUVORK5CYII="></div>
@@ -3433,6 +3513,7 @@ Y:"10001|10001|01010|00100|00100|00100|00100",Z:"11111|00001|00010|00100|01000|1
 "8":"01110|10001|10001|01110|10001|10001|01110","9":"01110|10001|10001|01111|00001|00001|01110",
 ".":"00000|00000|00000|00000|00000|00000|00100","-":"00000|00000|00000|01110|00000|00000|00000",
 "'":"00100|00100|00000|00000|00000|00000|00000","&":"01100|10010|10100|01000|10101|10010|01101",
+"+":"00000|00100|00100|11111|00100|00100|00000","%":"11001|11010|00010|00100|01000|01011|10011",
 "/":"00001|00010|00010|00100|01000|01000|10000",":":"00000|00100|00000|00000|00100|00000|00000"};
 const FCACHE={};
 function fglyph(ch){if(FCACHE[ch])return FCACHE[ch];
@@ -4406,6 +4487,12 @@ let zoom=1,jumpPulse=0,showMarkers=true,sound=true,hoverId=null,selId=null,showL
    are two views of this same set, so the map and the list never disagree. */
 const catSel=new Set();
 const catShown=c=>catSel.size===0||catSel.has(c);
+/* Cleared / still to do is a separate axis from the category, so it is its own
+   state rather than another member of catSel: the two combine, and asking for
+   the waterfalls you have not walked yet is the useful question. */
+let doneSel='all';                                   /* 'all' | 'done' | 'todo' */
+const doneShown=p=>doneSel==='all'||(doneSel==='done'?!!S.done[p.id]:!S.done[p.id]);
+const shown=p=>catShown(p.c)&&doneShown(p);
 let zoomIdx=0, zoomMul=1;
 const ZMIN=1, ZMAX=8;
 /* FIT is 1. Everything above it is a multiple of whatever scale makes the whole
@@ -4550,13 +4637,13 @@ function render(){
  // labels last so lights and tint never wash them out
  if(showLabels)cx2.drawImage(labelLayer,0,0);
  if(!showMarkers)return;
- const vis=P.filter(p=>catShown(p.c));
+ const vis=P.filter(shown);
  vis.filter(p=>S.done[p.id]).sort((a,b)=>a.y-b.y).forEach(drawMarker);
  vis.filter(p=>!S.done[p.id]&&p.id!==selId&&p.id!==hoverId).sort((a,b)=>a.y-b.y).forEach(drawMarker);
  vis.filter(p=>!S.done[p.id]&&(p.id===hoverId||p.id===selId)).forEach(drawMarker);
 }
 function hit(mx,my){if(!showMarkers)return null;let best=null,bd=1e9;
- for(const p of P){if(!catShown(p.c))continue;
+ for(const p of P){if(!shown(p))continue;
   const dx=mx-p.x, dy=my-(p.y-BAN_H/2);
   // keep the tap target ~26 screen px regardless of zoom
   const padX=Math.max(15,20/Math.max(0.12,zoom)), padY=Math.max(BAN_H/2+6,24/Math.max(0.12,zoom));
@@ -6279,6 +6366,7 @@ function showDetail(p){
       href="${directionsURL(p)}">🧭 DIRECTIONS</a>
    ${boss?`<button class="btn-go boss" id="bbtn">${S.slain[p.id]?'⚔ FIGHT AGAIN':'⚔ ENTER BATTLE'}</button>`:''}
    ${(!boss||dn)?`<button class="btn-go ${dn?'done':''}" id="cbtn">${dn?'✓ CLEARED — UNDO':'MARK COMPLETE'}</button>`:''}
+   ${dn?`<button class="btn-go share" id="shbtn">📤 SHARE HIKE</button>`:''}
    <span class="xp-tag">+${p.xp} XP</span>
    ${boss&&!dn?`<span class="small-link" id="skipb">skip battle — I already hiked it</span>`:''}
   </div>
@@ -6321,6 +6409,8 @@ function showDetail(p){
   if(B){e.preventDefault();B.open({url:u});return;}
   if(window.Capacitor){e.preventDefault();window.open(u,'_system')||(location.href=u);}
  };
+ const sh=document.getElementById('shbtn');
+ if(sh)sh.onclick=()=>shareHike(p);
  const bb2=document.getElementById('bbtn');
  if(bb2)bb2.onclick=()=>startBattle(p);
  const sk=document.getElementById('skipb');if(sk)sk.onclick=()=>checkIn(p);
@@ -6544,6 +6634,153 @@ async function checkIn(p,onPass){
 /* A photo is attached after the hike is cleared, never as a way of clearing it:
    the location check is what proves you were there, and a picture proves only
    that a picture exists. This is the memory, not the evidence. */
+/* ═══════════════ SHARE HIKE ═══════════════
+   A transparent PNG to lay over your own photo, rather than a card with the
+   photo baked into it. The photo is the part the hiker cares about and the one
+   the app should not re-compress, crop or claim; all this contributes is the
+   overlay, and keeping it separate means it drops onto whatever they shot,
+   in whatever app they post from.
+
+   Everything is drawn at a whole-number multiple of the 5x7 font so the card is
+   the same pixel art as the rest of the game, and every glyph carries a full
+   black ring rather than a drop shadow: a shadow only protects one side, and an
+   overlay lands on a photo that can be any colour on any side. */
+const CARD_W=1080,CARD_H=1350;
+function ringTxt(g,str,x,y,sc,col,ring){
+ const cells=[];let cx=x;
+ for(const ch of String(str).toUpperCase()){
+  if(ch===' '){cx+=4*sc;continue;}
+  const gy=fglyph(ch);if(!gy){cx+=4*sc;continue;}
+  for(let r=0;r<7;r++)for(let i=0;i<5;i++)if(gy[r][i])cells.push([cx+i*sc,y+r*sc]);
+  cx+=6*sc;}
+ g.fillStyle=ring||'rgba(0,0,0,.92)';
+ cells.forEach(([px,py])=>{for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
+  if(dx||dy)g.fillRect(px+dx*sc,py+dy*sc,sc,sc);});
+ g.fillStyle=col;
+ cells.forEach(([px,py])=>g.fillRect(px,py,sc,sc));
+ return cx-x;
+}
+const ringW=(str,sc)=>{let w=0;
+ for(const ch of String(str).toUpperCase())w+=(ch===' ')?4*sc:6*sc;
+ return w-sc;};
+/* The logo is already in the page as a data URI for the splash, so it is
+   borrowed rather than duplicated. It may not have decoded yet on a cold open,
+   hence the wait. */
+let CARDMARK=null;
+function cardMark(){
+ if(CARDMARK)return CARDMARK;
+ const src=document.querySelector('.splashmark');
+ if(!src)return null;
+ return CARDMARK=new Promise(res=>{
+  const im=new Image();
+  im.onload=()=>res(im);im.onerror=()=>res(null);
+  im.src=src.getAttribute('src');});
+}
+function statBlock(g,x,y,val,lab,sc,col){
+ ringTxt(g,val,x,y,sc,col||'#ffffff');
+ ringTxt(g,lab,x,y+7*sc+Math.round(sc*1.6),Math.max(2,Math.round(sc/2.6)),'#f5c651');
+ return Math.max(ringW(val,sc),ringW(lab,Math.max(2,Math.round(sc/2.6))));
+}
+async function buildShareCard(p){
+ const c=document.createElement('canvas');
+ c.width=CARD_W;c.height=CARD_H;
+ const g=c.getContext('2d');
+ g.imageSmoothingEnabled=false;
+ g.clearRect(0,0,CARD_W,CARD_H);
+ const LEFT=44;
+ /* logo plaque */
+ const mark=await cardMark();
+ if(mark){const ms=7;g.drawImage(mark,LEFT,742,mark.width*ms,mark.height*ms);}
+ /* the hiker, bottom left, with their name over their head */
+ const hero=heroFor(leadKit());
+ const hs=4,hw=hero.width*hs,hh=hero.height*hs;
+ const hx=LEFT,hy=CARD_H-40-hh;
+ const who=climberName().slice(0,16);
+ ringTxt(g,who,hx,hy-Math.round(5*4.6),4,'#eaf2fb');
+ g.drawImage(hero,hx,hy,hw,hh);
+ /* the right column starts clear of the hiker */
+ const COLX=hx+hw+34,AVAIL=CARD_W-COLX-LEFT;
+ /* the name sets its own size: long trail names shrink rather than run off */
+ let ns=11;while(ns>4&&ringW(p.n,ns)>AVAIL)ns--;
+ ringTxt(g,p.n,COLX,1010,ns,'#f5c651');
+ /* stats, laid out left to right with whatever room each one needs */
+ const done=S.done[p.id];
+ const stats=[[String(p.mi).replace(/\s*mi.*$/i,''),'MI'],
+              [String(p.t).replace(/\s+/g,' ').trim(),'TIME'],
+              [p.d.toUpperCase(),'GRADE'],
+              ['+'+p.xp,'XP']];
+ let sx=COLX,ss=9;
+ const gap=()=>Math.round(ss*5);
+ const need=()=>stats.reduce((w,[v])=>w+ringW(v,ss)+gap(),-gap());
+ while(ss>4&&need()>AVAIL)ss--;
+ stats.forEach(([v,l])=>{statBlock(g,sx,1100,v,l,ss);sx+=ringW(v,ss)+gap();});
+ /* rank, and where it came from */
+ const li=lvlFor(totalXP());
+ ringTxt(g,'LV '+(li+1)+'  '+LEVELS[li].n,COLX,1216,4,'#eaf2fb');
+ ringTxt(g,RG.short+(done?'  '+fmtDate(done).toUpperCase():''),COLX,1262,3,'#9fb4cc');
+ ringTxt(g,'SUMMITQUEST.APP',COLX,1300,4,'#f5c651');
+ return c;
+}
+/* Saving to the camera roll is the phone's job, not the page's. The share sheet
+   is the one route that reaches it from a web view, so it is tried first and
+   the rest are fallbacks in decreasing order of how well they land. */
+async function saveShareCard(c,name,btn){
+ const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+ if(!blob)throw new Error('this device could not encode the card');
+ const file=new File([blob],name+'.png',{type:'image/png'});
+ if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
+  try{await navigator.share({files:[file]});return 'shared';}
+  catch(e){if(e&&e.name==='AbortError')return 'cancelled';}
+ }
+ const S2=capPlug('Share'),FS2=capPlug('Filesystem');
+ if(S2&&FS2){
+  try{
+   const path='summit/'+name+'.png';
+   await FS2.writeFile({path,data:await blobToB64(blob),directory:'CACHE',recursive:true});
+   const uri=(await FS2.getUri({path,directory:'CACHE'})).uri;
+   await S2.share({title:name,url:uri});
+   return 'shared';
+  }catch(e){}
+ }
+ const u=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=u;a.download=name+'.png';document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(u),20000);
+ return 'downloaded';
+}
+async function shareHike(p){
+ const card=await buildShareCard(p);
+ const v=document.createElement('div');
+ v.className='share-view';
+ const holder=document.createElement('div');holder.appendChild(card);
+ const row=document.createElement('div');row.className='share-row';
+ const save=document.createElement('button');save.className='btn-go share';save.textContent='💾 SAVE IMAGE';
+ const close=document.createElement('button');close.className='btn-go done';close.textContent='✕ CLOSE';
+ const hint=document.createElement('div');hint.className='share-hint';
+ hint.innerHTML='Transparent PNG, 1080 × 1350. Drop it over your own photo in Instagram, '
+  +'Messages or anywhere else.<br><span style="color:var(--dim)">On a phone you can also '
+  +'press and hold the card above and choose Add to Photos.</span>';
+ row.appendChild(save);row.appendChild(close);
+ v.appendChild(holder);v.appendChild(row);v.appendChild(hint);
+ /* Closing on the backdrop only. Tapping the card itself is how you long-press
+    it, and closing out from under that would make the fallback unusable. */
+ v.onclick=e=>{if(e.target===v)v.remove();};
+ close.onclick=()=>v.remove();
+ save.onclick=async()=>{
+  save.disabled=true;save.textContent='SAVING…';
+  try{
+   const how=await saveShareCard(card,'summit-'+p.id+'-'+RG.id,save);
+   save.textContent=how==='downloaded'?'✓ SAVED TO FILES':how==='cancelled'?'💾 SAVE IMAGE':'✓ SHARED';
+   if(how!=='cancelled')blip();
+  }catch(e){
+   save.textContent='COULD NOT SAVE';
+   hint.innerHTML='<span style="color:#ff9a86">'+((e&&e.message)||'unknown error')
+    +'</span><br>Press and hold the card and choose Add to Photos instead.';
+  }
+  save.disabled=false;
+ };
+ document.body.appendChild(v);
+}
 async function paintPhoto(p){
  const el=document.getElementById('dphoto');if(!el)return;
  const meta=S.pics&&S.pics[p.id];
@@ -6602,7 +6839,7 @@ async function toggle(p){
   unblip();}
  else{S.done[p.id]=new Date().toISOString();const after=lvlFor(totalXP());
   if(after>before){fanfare();queueToast("LEVEL UP!","▶ "+LEVELS[after].n);}else blip();}
- render();showDetail(p);checkAch();updHUD();renderLog();refreshCatalog();questBarCount();bestBuilt=false;layoutRails();await save();
+ render();showDetail(p);checkAch();updHUD();renderLog();buildLegend();refreshCatalog();questBarCount();bestBuilt=false;layoutRails();await save();
 }
 /* ═══════════════ 18. SCREENS ═══════════════ */
 function setScreen(s){
@@ -6645,10 +6882,24 @@ const legend=document.getElementById('legend');
 function buildLegend(){
  legend.innerHTML='';
  const all=document.createElement('div');
- all.className='leg-all'+(catSel.size===0?' on':'');
+ all.className='leg-all'+(catSel.size===0&&doneSel==='all'?' on':'');
  all.textContent='ALL';
- all.onclick=()=>{catSel.clear();syncFilters();};
+ all.onclick=()=>{catSel.clear();doneSel='all';syncFilters();};
  legend.appendChild(all);
+ /* Cleared / to do sits with the category chips because it is the same
+    question — what should be on this map right now — even though it filters on
+    a different axis. Tapping the active one turns it off again. */
+ [['done','✓ CLEARED','#8bf05f'],['todo','○ TO DO','#f5c651']].forEach(([k,lab,col])=>{
+  const n=P.filter(p=>k==='done'?S.done[p.id]:!S.done[p.id]).length;
+  const on=doneSel===k;
+  const el=document.createElement('div');
+  el.className='leg'+(on?' sel':(doneSel!=='all'?' dim':''));
+  el.innerHTML=`<i style="background:${col}"></i>${lab} <span class="n">${n}</span>`;
+  el.style.background=catTint(col,on?.30:.13);
+  el.style.borderColor=on?col:catTint(col,.52);
+  if(on)el.style.boxShadow='inset 0 0 0 1px '+catTint(col,.55)+',2px 2px 0 rgba(0,0,0,.55)';
+  el.onclick=()=>{doneSel=on?'all':k;syncFilters();};
+  legend.appendChild(el);});
  Object.entries(CATS).forEach(([k,v])=>{
   const n=P.filter(p=>p.c===k).length,d=nDone(k);
   const el=document.createElement('div');
@@ -6665,14 +6916,15 @@ function buildLegend(){
   legend.appendChild(el);});
  const hint=document.createElement('span');
  hint.className='leg-hint';
- hint.textContent=catSel.size?'showing '+P.filter(p=>catShown(p.c)).length+' of '+P.length
+ hint.textContent=(catSel.size||doneSel!=='all')
+  ?'showing '+P.filter(shown).length+' of '+P.length
   :'tap a type to show only that';
  legend.appendChild(hint);
 }
 /* one place to redraw everything the filter touches */
 function syncFilters(){
  if(selId){const sp=P.find(p=>p.id===selId);
-  if(sp&&!catShown(sp.c)){selId=null;showDetail(null);}}
+  if(sp&&!shown(sp)){selId=null;showDetail(null);}}
  buildLegend();
  if(catOpen){buildChips();renderCatalog();}
  render();
@@ -6883,10 +7135,21 @@ let catOpen=false,catQuery="",catSort="cat";
 function buildChips(){
  const el=document.getElementById('catChips');el.innerHTML='';
  const all=document.createElement('div');
- all.className='chip'+(catSel.size===0?' on':'');
+ all.className='chip'+(catSel.size===0&&doneSel==='all'?' on':'');
  all.innerHTML='<b>ALL</b>';
- all.onclick=()=>{catSel.clear();syncFilters();};
+ all.onclick=()=>{catSel.clear();doneSel='all';syncFilters();};
  el.appendChild(all);
+ [['done','✓ CLEARED','#8bf05f'],['todo','○ TO DO','#f5c651']].forEach(([k,lab,col])=>{
+  const n=P.filter(p=>k==='done'?S.done[p.id]:!S.done[p.id]).length;
+  const on=doneSel===k;
+  const c=document.createElement('div');
+  c.className='chip'+(on?' on':(doneSel!=='all'?' off':''));
+  c.innerHTML=`<i style="background:${col}"></i>${lab} <span style="color:#8695a8">${n}</span>`;
+  c.style.background=catTint(col,on?.30:.13);
+  c.style.borderColor=on?col:catTint(col,.52);
+  if(on)c.style.boxShadow='inset 0 0 0 1px '+catTint(col,.55)+',2px 2px 0 rgba(0,0,0,.55)';
+  c.onclick=()=>{doneSel=on?'all':k;syncFilters();};
+  el.appendChild(c);});
  Object.entries(CATS).forEach(([k,v])=>{
   const n=P.filter(q=>q.c===k).length,d=nDone(k);
   const c=document.createElement('div');
@@ -6902,7 +7165,7 @@ function buildChips(){
 function catRows(){
  const q=catQuery.trim().toLowerCase();
  let rows=P.filter(p=>{
-  if(!catShown(p.c))return false;
+  if(!shown(p))return false;
   if(!q)return true;
   return (p.n+" "+p.d+" "+p.drive+" "+driveText(p)+" "+p.mi+" "+p.food+" "+CATS[p.c].name+" "+p.hi)
    .toLowerCase().includes(q);});
@@ -6947,7 +7210,10 @@ function jumpTo(id){
  const p=P.find(q=>q.id===id);if(!p)return;
  /* if the quest is filtered out, widen the filter rather than silently doing
     nothing. syncFilters rebuilds the legend, so there is nothing else to touch. */
- if(!catShown(p.c)){catSel.add(p.c);syncFilters();}
+ if(!shown(p)){
+  if(!catShown(p.c))catSel.add(p.c);
+  if(!doneShown(p))doneSel='all';
+  syncFilters();}
  selId=p.id;jumpPulse=34;render();showDetail(p);
  if(wrap.scrollWidth>wrap.clientWidth||wrap.scrollHeight>wrap.clientHeight){
   const cr=cv.getBoundingClientRect(),fr=wrap.getBoundingClientRect();
@@ -7107,7 +7373,7 @@ function setMsg(i){const lm=document.getElementById('loadmsg');
  /* open on FIT so the whole region is visible first; the player zooms in
     deliberately from there */
  zoomMul=1;
- applyZoom();updHUD();render();renderBadges();renderLog();buildChips();renderCatalog();questBarCount();layoutRails();
+ applyZoom();updHUD();render();renderBadges();renderLog();buildLegend();buildChips();renderCatalog();questBarCount();layoutRails();
  syncDriveBtn();pullFix(false);
  /* The first fit runs while the loader is still up and the HUD above the map has
     not finished settling, so it can measure a frame that is not the one the
@@ -7433,6 +7699,229 @@ else musicStart();
 window.addEventListener('hashchange',()=>location.reload());
 </script>
 <script>
+/* ═══════════════ TUTORIAL ═══════════════
+   Nine pages, tap or press to advance. It opens from the splash, before any
+   region has generated, so nothing on these pages may depend on game state:
+   every sample panel is built from the game's own CSS classes with worked
+   example content. That also means the panels cannot drift out of date the way
+   captured screenshots would. */
+const TUT_MARK=(()=>{const m=document.querySelector('.splashmark');
+ return m?m.getAttribute('src'):'';})();
+const TUT_PAGES=[
+{h:'',html:`
+ <div class="tut-open">
+  <img alt="Summit Quest" src="${TUT_MARK}">
+  <p>Somewhere out past the last exit there is a trailhead with your name on it,
+     and a waterfall nobody photographed this week.</p>
+  <p><b>Summit Quest</b> turns the hiking you already do into an adventure with a
+     scoreboard. Nine regions. Hundreds of real trailheads, every one of them a
+     place you can actually stand. Walk one and check in from the trail itself,
+     and the map remembers.</p>
+  <p>Clear enough of them and you climb the ranks, from Couch Potato to something
+     you can say out loud. The long multi-day routes are guarded by pixel beasts
+     that have to be fought and beaten. Nothing here is unlocked by grinding.
+     It is unlocked by <b>going outside</b>.</p>
+  <div class="tut-kicker">THE TRAIL IS THE GAME</div>
+ </div>`},
+{h:'1 · PICK A REGION',html:`
+ <p class="tut-p">The launcher opens on a map of the country with a pin on every region.
+  Tap a pin or a card to drop in. Your progress is kept separately for each one, so
+  you can have a rank in the Blue Ridge and a different rank in the Tetons.</p>
+ <div class="tut-shot">
+  <div class="w-card" style="cursor:default">
+   <div class="wc-name" style="font-family:var(--pix);font-size:11px;color:var(--gold);letter-spacing:1px">WESTERN NORTH CAROLINA</div>
+   <div style="font-size:12px;color:var(--dim);margin:6px 0">Blue Ridge, Smokies and the escarpment · from Hendersonville</div>
+   <div style="font-family:var(--pix);font-size:9px;color:#8bf05f">LV 4 · RIDGELINE RUNNER</div>
+   <div class="tut-bar" style="margin:8px 0"><i style="width:42%"></i></div>
+   <div style="font-size:11px;color:var(--dim)">26/61 cleared · 940 XP · 5 badges · 2/7 bosses</div>
+  </div>
+ </div>
+ <div class="tut-cap">Nine regions, 367 destinations. Search by state, range or town.</div>`},
+{h:'2 · READ THE MAP',html:`
+ <p class="tut-p">Every destination is a banner planted where it really is. The colour is the
+  kind of outing; a <b>pink skull</b> is a multi-day boss trek.</p>
+ <div class="tut-shot">
+  <div class="legend" style="margin:0">
+   <span class="leg"><i style="background:#4fb0e8"></i>WATERFALLS &amp; SWIM HOLES</span>
+   <span class="leg"><i style="background:#6fd44f"></i>SHORT HIKES</span>
+   <span class="leg"><i style="background:#f0c04a"></i>SCENIC OVERLOOKS</span>
+   <span class="leg"><i style="background:#f09040"></i>MODERATE HIKES</span>
+   <span class="leg"><i style="background:#ef5a4a"></i>STEEP &amp; DIFFICULT</span>
+   <span class="leg"><i style="background:#a86ce0"></i>LONG DAY HIKES</span>
+   <span class="leg"><i style="background:#f050b0"></i>MULTI-DAY BOSS TREKS</span>
+  </div>
+ </div>
+ <p class="tut-p"><b>FIT</b> shows the whole region. <b>2×</b> and <b>4×</b> go closer, and so does
+  a double-click, a pinch, or ctrl with the wheel. Drag to pan. <b>FILTER</b> hides
+  every type but the one you tapped.</p>`},
+{h:'3 · PICK A DESTINATION',html:`
+ <p class="tut-p">Tap a banner for the full brief: how far, how hard, how long it takes, and
+  where to eat afterwards.</p>
+ <div class="tut-shot">
+  <div class="d-cat" style="background:#4fb0e8">WATERFALLS &amp; SWIM HOLES</div>
+  <div style="font-family:var(--pix);font-size:12px;color:var(--ink);margin:8px 0 10px">Skinny Dip Falls</div>
+  <div class="d-stats">
+   <div class="stat drive"><span class="k">DRIVE FROM YOU</span><span class="v">~1 hr</span></div>
+   <div class="stat"><span class="k">DIFFICULTY</span><span class="v" style="color:#4fb0e8">Easy</span></div>
+   <div class="stat"><span class="k">DISTANCE</span><span class="v">1.6 mi RT</span></div>
+   <div class="stat"><span class="k">TIME</span><span class="v">1 hr</span></div>
+  </div>
+ </div>
+ <p class="tut-p">Drive times are measured <b>from where you are</b>, not from a fixed town.
+  The <b>↻</b> in that first tile asks for your location and updates them.
+  <b>🧭 DIRECTIONS</b> hands the trailhead straight to Google Maps.</p>`},
+{h:'4 · WALK IT, THEN CHECK IN',html:`
+ <p class="tut-p">This is the part that cannot be faked from the sofa. Stand at the trailhead,
+  open the destination, and press the button. The app reads your location and
+  compares it to the real coordinates.</p>
+ <div class="tut-shot">
+  <div class="d-where" style="margin:0">◎ CHECK IN — anywhere within <b>4.0 km</b> of
+   <span class="mono">35.3230, -82.8470</span>
+   <span class="d-hintline">The trailhead counts. You do not have to be standing on the exact spot.</span></div>
+  <div class="tut-row" style="margin-top:10px">
+   <span class="btn-go" style="cursor:default">MARK COMPLETE</span>
+   <span class="xp-tag">+10 XP</span>
+  </div>
+ </div>
+ <div class="tut-cap">The radius is generous on purpose, and a fix under heavy canopy is
+  allowed to fail gracefully — there is always a way to log it by hand.</div>`},
+{h:'5 · EARN XP, CLIMB THE RANKS',html:`
+ <p class="tut-p">Every destination is worth XP by how hard it is and what kind of outing it
+  is. Twelve ranks per region, and the last one takes most of the map.</p>
+ <div class="tut-shot">
+  <div class="tut-row" style="justify-content:space-between;margin-bottom:8px">
+   <span style="font-family:var(--pix);font-size:10px;background:linear-gradient(#ffd764,#e0a92c);color:#201604;border:2px solid #fff3c4;padding:6px 8px">LV 4</span>
+   <span style="font-family:var(--pix);font-size:11px;color:#8bf05f">RIDGELINE RUNNER</span>
+  </div>
+  <div class="tut-bar"><i style="width:64%"></i></div>
+  <div style="font-size:11px;color:var(--dim);margin-top:7px">— 120 XP to <b style="color:var(--gold)">GORGE WALKER</b></div>
+ </div>
+ <p class="tut-p">Add a photo to anything you have cleared and it stays with the entry, on your
+  device only.</p>`},
+{h:'6 · BEAT THE BOSS TREKS',html:`
+ <p class="tut-p">The seven longest routes in each region are guarded. Walking one is not enough:
+  you have to fight what lives there, in a turn-based battle with your rope team.</p>
+ <div class="tut-shot">
+  <div class="d-cat" style="background:#f050b0">MULTI-DAY BOSS TREKS</div>
+  <div style="font-family:var(--pix);font-size:11px;color:#ffd0c0;margin:9px 0 4px">THE LINVILLE GORGE WYRM</div>
+  <div class="tut-bar hp"><i style="width:78%"></i></div>
+  <div style="font-size:11px;color:#9a8078;margin-top:7px">HP <b style="color:#ff9a86">380</b> · ATK <b style="color:#ff9a86">22</b> · REC. RANK <b style="color:#f5c651">LV 4</b></div>
+ </div>
+ <div class="tut-cap">Losing costs nothing but the walk back. Every beast you put down joins the
+  bestiary.</div>`},
+{h:'7 · COLLECT THE BADGES',html:`
+ <p class="tut-p">Badges are sets, not counters. Clear the right group of destinations and one
+  falls out — every waterfall in the region, all four fourteeners, both hard ways
+  up the same peak.</p>
+ <div class="tut-shot">
+  <div class="tut-row">
+   <span class="leg" style="cursor:default"><i style="background:#4fb0e8"></i>💦 WATERFALL SWEEP</span>
+   <span class="leg" style="cursor:default"><i style="background:#f0c04a"></i>⛰ FOURTEENER CLUB</span>
+   <span class="leg off" style="cursor:default"><i style="background:#a86ce0"></i>🪢 THE EXPOSED ONES</span>
+  </div>
+ </div>
+ <p class="tut-p">Dimmed ones are still open. The badge screen shows exactly which destinations
+  each one is still waiting on.</p>`},
+{h:'8 · SHARE THE HIKE',html:`
+ <p class="tut-p">Anything you have cleared gets a <b>📤 SHARE HIKE</b> button. It builds a
+  transparent card with the trail, your stats, your rank and your climber, and
+  hands it to your phone to save or post.</p>
+ <div class="tut-shot" style="text-align:center">
+  <canvas id="tutCardShot" style="max-width:100%;height:auto;image-rendering:pixelated;background:#20242c;
+   background-image:linear-gradient(45deg,#2c313a 25%,transparent 25%,transparent 75%,#2c313a 75%),
+   linear-gradient(45deg,#2c313a 25%,transparent 25%,transparent 75%,#2c313a 75%);
+   background-size:16px 16px;background-position:0 0,8px 8px"></canvas>
+ </div>
+ <p class="tut-p">The background is transparent on purpose. It goes <b>over your own photo</b>
+  rather than swallowing it, so the picture stays yours.</p>
+ <div class="tut-kicker" style="text-align:center">THE TRAIL IS THE GAME</div>`}];
+(function(){
+ const wrap=document.getElementById('tutorial'),body=document.getElementById('tutBody'),
+       dots=document.getElementById('tutDots'),prev=document.getElementById('tutPrev'),
+       next=document.getElementById('tutNext'),card=document.getElementById('tutCard');
+ if(!wrap)return;
+ let i=0;
+ /* A small stand-in for the share card, drawn here rather than pulled from the
+    game: the tutorial runs before any region exists, so there is nothing real
+    to render yet. */
+ function drawCardShot(){
+  const c=document.getElementById('tutCardShot');if(!c)return;
+  const W2=360,H2=170;c.width=W2;c.height=H2;
+  const g=c.getContext('2d');g.imageSmoothingEnabled=false;
+  g.clearRect(0,0,W2,H2);
+  const ring=(str,x,y,sc,col)=>{
+   const F={A:"01110|10001|10001|11111|10001|10001|10001",B:"11110|10001|11110|10001|10001|10001|11110",
+    C:"01110|10001|10000|10000|10000|10001|01110",D:"11110|10001|10001|10001|10001|10001|11110",
+    E:"11111|10000|10000|11110|10000|10000|11111",F:"11111|10000|10000|11110|10000|10000|10000",
+    G:"01110|10001|10000|10111|10001|10001|01110",H:"10001|10001|10001|11111|10001|10001|10001",
+    I:"11111|00100|00100|00100|00100|00100|11111",K:"10001|10010|10100|11000|10100|10010|10001",
+    L:"10000|10000|10000|10000|10000|10000|11111",M:"10001|11011|10101|10001|10001|10001|10001",
+    N:"10001|11001|10101|10011|10001|10001|10001",O:"01110|10001|10001|10001|10001|10001|01110",
+    P:"11110|10001|10001|11110|10000|10000|10000",R:"11110|10001|10001|11110|10100|10010|10001",
+    S:"01111|10000|10000|01110|00001|00001|11110",T:"11111|00100|00100|00100|00100|00100|00100",
+    U:"10001|10001|10001|10001|10001|10001|01110",V:"10001|10001|10001|10001|10001|01010|00100",
+    W:"10001|10001|10001|10001|10101|11011|10001",Y:"10001|10001|01010|00100|00100|00100|00100",
+    J:"00111|00010|00010|00010|00010|10010|01100",Q:"01110|10001|10001|10001|10101|10010|01101",
+    X:"10001|10001|01010|00100|01010|10001|10001",Z:"11111|00001|00010|00100|01000|10000|11111",
+    "0":"01110|10001|10011|10101|11001|10001|01110","1":"00100|01100|00100|00100|00100|00100|01110",
+    "2":"01110|10001|00001|00010|00100|01000|11111","3":"11110|00001|00001|01110|00001|00001|11110",
+    "4":"10010|10010|10010|11111|00010|00010|00010","5":"11111|10000|11110|00001|00001|10001|01110",
+    "6":"01110|10000|10000|11110|10001|10001|01110","7":"11111|00001|00010|00100|01000|01000|01000",
+    "8":"01110|10001|10001|01110|10001|10001|01110","9":"01110|10001|10001|01111|00001|00001|01110",
+    ".":"00000|00000|00000|00000|00000|00000|00100","+":"00000|00100|00100|11111|00100|00100|00000"};
+   const cells=[];let cx=x;
+   for(const ch of str.toUpperCase()){
+    if(ch===' '||!F[ch]){cx+=4*sc;continue;}
+    const rows=F[ch].split('|');
+    for(let r=0;r<7;r++)for(let k=0;k<5;k++)if(rows[r][k]==='1')cells.push([cx+k*sc,y+r*sc]);
+    cx+=6*sc;}
+   g.fillStyle='rgba(0,0,0,.92)';
+   cells.forEach(([px,py])=>{for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
+    if(dx||dy)g.fillRect(px+dx*sc,py+dy*sc,sc,sc);});
+   g.fillStyle=col;cells.forEach(([px,py])=>g.fillRect(px,py,sc,sc));};
+  const im=new Image();
+  im.onload=()=>{g.drawImage(im,10,14,im.width*2,im.height*2);paint();};
+  im.onerror=paint;
+  im.src=TUT_MARK;
+  function paint(){
+   ring('SKINNY DIP FALLS',10,86,3,'#f5c651');
+   const wof=(t,sc)=>t.length*6*sc-sc;
+   let x=10;
+   [['1.6','MI'],['1 HR','TIME'],['EASY','GRADE'],['+10','XP']].forEach(([v,l])=>{
+    ring(v,x,112,3,'#ffffff');ring(l,x,140,2,'#f5c651');
+    x+=Math.max(wof(v,3),wof(l,2))+16;});}
+ }
+ function render(){
+  const p=TUT_PAGES[i];
+  body.innerHTML=(p.h?`<div class="tut-step">${p.h}</div>`:'')+p.html;
+  body.scrollTop=0;
+  dots.innerHTML=TUT_PAGES.map((_,k)=>`<span class="tut-dot${k===i?' on':''}"></span>`).join('');
+  prev.disabled=i===0;
+  next.textContent=i===TUT_PAGES.length-1?'START CLIMBING ▶':'NEXT ▶';
+  if(i===TUT_PAGES.length-1)drawCardShot();
+ }
+ const open=()=>{i=0;render();wrap.classList.add('open');wrap.setAttribute('aria-hidden','false');};
+ const close=()=>{wrap.classList.remove('open');wrap.setAttribute('aria-hidden','true');};
+ const go=d=>{const n=i+d;if(n<0)return;if(n>=TUT_PAGES.length)return close();i=n;render();};
+ next.onclick=e=>{e.stopPropagation();go(1);};
+ prev.onclick=e=>{e.stopPropagation();go(-1);};
+ document.getElementById('tutX').onclick=e=>{e.stopPropagation();close();};
+ /* Tapping the page advances, which is how the request framed it, but not when
+    the tap landed on the scrollbar or on something inside that scrolls. */
+ card.addEventListener('click',e=>{
+  if(e.target.closest('.tut-foot')||e.target.closest('.tut-x'))return;
+  go(1);});
+ wrap.addEventListener('click',e=>{if(e.target===wrap)close();});
+ window.addEventListener('keydown',e=>{
+  if(!wrap.classList.contains('open'))return;
+  if(e.key==='Escape'){close();e.stopPropagation();}
+  else if(e.key==='ArrowRight'||e.key===' '){go(1);e.preventDefault();e.stopPropagation();}
+  else if(e.key==='ArrowLeft')go(-1);},true);
+ const tb=document.getElementById('tutBtn');
+ if(tb)tb.addEventListener('click',e=>{e.stopPropagation();open();});
+ window.openTutorial=open;
+})();
+
 /* The splash is a held title card: it comes up before anything else and waits
    for a tap. The world generates behind it, so the wait is not dead time.
    Its backdrop is the overworld map itself, drawn once that map exists. */
