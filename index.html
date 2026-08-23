@@ -798,6 +798,7 @@ function sqDailyQuote(){
       <button class="btn" id="optBtn">⚙ OPTIONS</button>
       <div class="opt-pop" id="optPop">
         <div class="opt-h">VIEW</div>
+        <button class="opt-i" id="driveBtn">DRIVE FROM: HUB</button>
         <button class="opt-i" id="timeBtn">TIME: AUTO</button>
         <button class="opt-i" id="labelBtn">LABELS: ON</button>
         <button class="opt-i" id="pinBtn">PINS: ON</button>
@@ -948,7 +949,7 @@ const CAT_BONUS={water:0,short:0,view:0,mod:0,hard:0,long:20,multi:60};
 const REGIONS={};
 /* ── WESTERN NORTH CAROLINA ── drive times measured from Hendersonville */
 REGIONS.wnc={
- id:"wnc",name:"WESTERN NORTH CAROLINA",short:"W. NORTH CAROLINA",home:"Hendersonville",
+ id:"wnc",name:"WESTERN NORTH CAROLINA",short:"W. NORTH CAROLINA",tag:"BLUE RIDGE",home:"Hendersonville",hub:{lon:-82.462,lat:35.319},
  tagline:"Blue Ridge, Smokies and the escarpment",
  pin:{lon:-82.55,lat:35.50},
  lon0:-83.76,lon1:-81.58,lat0:36.38,lat1:34.52,tw:104,th:78,seed:20260816,
@@ -1176,7 +1177,7 @@ REGIONS.wnc={
    while still holding all of Shenandoah, Massanutten and the Harpers Ferry
    confluence inside a two-hour radius. */
 REGIONS.nova={
- id:"nova",name:"NORTHERN VIRGINIA",short:"NORTHERN VIRGINIA",home:"Fairfax",
+ id:"nova",name:"NORTHERN VIRGINIA",short:"NORTHERN VIRGINIA",tag:"SHENANDOAH",home:"Fairfax",hub:{lon:-77.307,lat:38.846},
  tagline:"Piedmont, Blue Ridge and the Potomac",
  /* where the pin sits on the eastern-US launcher map */
  pin:{lon:-77.9,lat:38.8},
@@ -1425,7 +1426,7 @@ REGIONS.nova={
 };
 
 REGIONS.sierra={
- id:"sierra",name:"YOSEMITE & THE HIGH SIERRA",short:"YOSEMITE",home:"Fresno",
+ id:"sierra",name:"YOSEMITE & THE HIGH SIERRA",short:"YOSEMITE",tag:"YOSEMITE",home:"Fresno",hub:{lon:-119.787,lat:36.748},
  tagline:"Granite walls, the Merced and the high country",
  pin:{lon:-119.55,lat:37.75},
  lon0:-120.40,lon1:-118.80,lat0:38.30,lat1:37.10,tw:100,th:80,seed:20260921,
@@ -1578,7 +1579,7 @@ REGIONS.sierra={
   {id:"a16",ic:"🏔",n:"HIGH COUNTRY",d:"Cathedral Lakes, Mount Hoffmann, Gaylor and Mono Pass",need:["m1","h4","m3","l3"]}]};
 
 REGIONS.vermont={
- id:"vermont",name:"VERMONT & THE GREEN MOUNTAINS",short:"VERMONT",home:"Burlington",
+ id:"vermont",name:"VERMONT & THE GREEN MOUNTAINS",short:"VERMONT",tag:"VERMONT",home:"Burlington",hub:{lon:-73.213,lat:44.476},
  tagline:"The Long Trail, the Whites and the Champlain valley",
  pin:{lon:-72.75,lat:44.10},
  lon0:-73.45,lon1:-71.30,lat0:45.02,lat1:42.72,tw:104,th:86,seed:20261005,
@@ -1722,7 +1723,7 @@ REGIONS.vermont={
   {id:"a16",ic:"🥾",n:"LONG TRAIL NORTH",d:"Every Long Trail section in the region, Camel's Hump to the border",need:["x1","x4","x7","l3"]}]};
 
 REGIONS.teton={
- id:"teton",name:"NORTHWEST WYOMING",short:"TETONS & YELLOWSTONE",home:"Jackson",
+ id:"teton",name:"NORTHWEST WYOMING",short:"TETONS & YELLOWSTONE",tag:"TETONS",home:"Jackson",hub:{lon:-110.763,lat:43.479},
  tagline:"The Teton range, Yellowstone and the Wind Rivers",
  pin:{lon:-110.60,lat:43.80},
  lon0:-111.30,lon1:-109.40,lat0:45.10,lat1:42.90,tw:98,th:88,seed:20261019,
@@ -1867,7 +1868,7 @@ REGIONS.teton={
   {id:"a16",ic:"🐻",n:"DEEP COUNTRY",d:"Thorofare, Titcomb Basin and the Sky Rim",need:["x5","x3","l4"]}]};
 
 REGIONS.front={
- id:"front",name:"COLORADO FRONT RANGE",short:"FRONT RANGE",home:"Denver",
+ id:"front",name:"COLORADO FRONT RANGE",short:"FRONT RANGE",tag:"FRONT RANGE",home:"Denver",hub:{lon:-104.990,lat:39.739},
  tagline:"Fourteeners, the Indian Peaks and alpine tundra",
  pin:{lon:-105.60,lat:39.80},
  lon0:-106.60,lon1:-104.80,lat0:40.60,lat1:39.00,tw:100,th:82,seed:20261102,
@@ -2011,7 +2012,7 @@ REGIONS.front={
   {id:"a16",ic:"🪨",n:"THE HARD WAY",d:"Longs by the Keyhole, and again by the Loft",need:["h1","x6"]}]};
 
 REGIONS.glacier={
- id:"glacier",name:"MONTANA",short:"MONTANA",home:"Kalispell",
+ id:"glacier",name:"MONTANA",short:"MONTANA",tag:"GLACIER",home:"Kalispell",hub:{lon:-114.312,lat:48.196},
  tagline:"The Crown of the Continent, the Bob and the Missions",
  pin:{lon:-113.80,lat:48.40},
  lon0:-115.10,lon1:-112.70,lat0:49.00,lat1:47.30,tw:100,th:88,seed:20261103,
@@ -2163,7 +2164,7 @@ REGIONS.glacier={
   {id:"a16",ic:"🐻",n:"THE BOB",d:"The Chinese Wall and the Nyack Coal Creek loop",need:["x2","x5"]}]};
 
 REGIONS.utah={
- id:"utah",name:"SOUTHERN UTAH",short:"S. UTAH",home:"Moab",
+ id:"utah",name:"SOUTHERN UTAH",short:"S. UTAH",tag:"S. UTAH",home:"Moab",hub:{lon:-109.550,lat:38.573},
  tagline:"Slickrock, slot canyons and the Colorado Plateau",
  pin:{lon:-110.90,lat:37.90},
  lon0:-113.60,lon1:-109.00,lat0:38.95,lat1:36.90,tw:112,th:76,seed:20261104,
@@ -2880,29 +2881,54 @@ function paintWorld(){
 }
 let wHot=null;
 function pinAt(id){const rg=REGIONS[id];return[wpx(rg.pin.lon)*WTS,wpy(rg.pin.lat)*WTS];}
+/* A pin has to be found before it can be clicked, and the old one was an 18px
+   dark navy flag on a map that is green in the east and red in the west: it
+   read as terrain. This one is bigger, keylined so it separates from any
+   ground, and carries the region's name on a plaque, which is what actually
+   makes eight of them scannable at a glance. */
+const PIN_W=26,PIN_H=18,PIN_STEM=24;
 function drawPins(g){
+ /* Plaques first, so a neighbouring pin always sits on top of a label rather
+    than under it. */
+ RIDS.forEach(id=>{
+  const rg=REGIONS[id],[x,y]=pinAt(id),hot=wHot===id;
+  const t=rg.tag||rg.short,tw2=wtw(t,1),bx2=Math.round(x-tw2/2)-3,by=y+6;
+  g.fillStyle="rgba(4,8,14,.82)";g.fillRect(bx2-1,by-1,tw2+8,11);
+  g.fillStyle=hot?"#ffe9a8":"rgba(120,140,168,.75)";
+  g.fillRect(bx2-1,by-1,tw2+8,1);g.fillRect(bx2-1,by+9,tw2+8,1);
+  g.fillRect(bx2-1,by-1,1,11);g.fillRect(bx2+tw2+6,by-1,1,11);
+  wtxt(g,t,bx2+3,by+1,hot?"#fff8dc":"#dce6f2",1);});
  RIDS.forEach(id=>{
   const st=regionStat(id),[x,y]=pinAt(id),hot=wHot===id;
-  const done=st.done>0;
+  const started=st.done>0,cleared=st.done>=st.total&&st.total>0;
+  const face=hot?"#fff8dc":cleared?"#8ce07a":started?"#ffc233":"#f2ead4";
+  const ink="#101822";
+  /* anchor: a dark ring under a bright plinth, so the exact spot reads */
+  g.fillStyle="rgba(0,0,0,.55)";g.fillRect(x-9,y-2,20,7);
+  g.fillStyle=face;g.fillRect(x-7,y-1,16,3);g.fillRect(x-5,y+2,12,2);
   /* stem */
-  g.fillStyle="rgba(0,0,0,.6)";g.fillRect(x-1,y-16,4,18);
-  g.fillStyle=hot?"#fff5cc":"#33445c";g.fillRect(x-2,y-17,4,18);
-  /* flag */
-  const w=18,h=13,fx=x+2,fy=y-30;
-  g.fillStyle="rgba(0,0,0,.6)";g.fillRect(fx+2,fy+2,w,h);
-  g.fillStyle=hot?"#f7d472":(done?"#e0a92c":"#1a2432");
-  g.fillRect(fx,fy,w,h);
-  g.fillStyle=hot?"#fff5cc":"#5a7392";
-  g.fillRect(fx,fy,w,2);g.fillRect(fx,fy+h-2,w,2);
-  g.fillRect(fx,fy,2,h);g.fillRect(fx+w-2,fy,2,h);
-  /* a tiny mountain glyph inside the flag */
-  g.fillStyle=(hot||done)?"#1a1206":"#8695a8";
-  [[7,8],[6,9],[8,9],[5,10],[9,10],[4,11],[10,11]].forEach(([mx,my])=>g.fillRect(fx+mx,fy+my-2,2,1));
-  g.fillStyle=(hot||done)?"#fffdf2":"#e9f0f6";
-  [[7,6],[6,7],[8,7]].forEach(([mx,my])=>g.fillRect(fx+mx,fy+my-2,2,1));
-  /* base */
-  g.fillStyle=hot?"#ffe9a8":"#e9f0f6";
-  g.fillRect(x-4,y-2,10,3);g.fillRect(x-6,y+1,14,3);});
+  g.fillStyle=ink;g.fillRect(x-2,y-PIN_STEM,5,PIN_STEM);
+  g.fillStyle=face;g.fillRect(x-1,y-PIN_STEM+1,3,PIN_STEM-2);
+  /* flag, keylined on all four sides */
+  const fx=x+2,fy=y-PIN_STEM-PIN_H+2;
+  g.fillStyle="rgba(0,0,0,.5)";g.fillRect(fx+3,fy+3,PIN_W,PIN_H);
+  g.fillStyle=ink;g.fillRect(fx-2,fy-2,PIN_W+4,PIN_H+4);
+  g.fillStyle=face;g.fillRect(fx,fy,PIN_W,PIN_H);
+  g.fillStyle="rgba(255,255,255,.55)";g.fillRect(fx,fy,PIN_W,2);
+  g.fillStyle="rgba(0,0,0,.16)";g.fillRect(fx,fy+PIN_H-2,PIN_W,2);
+  /* a mountain glyph, drawn from the peak down so it scales with the flag */
+  const cxm=fx+PIN_W/2,base=fy+PIN_H-4;
+  g.fillStyle=ink;
+  for(let r=0;r<7;r++){const half=1+r;
+   g.fillRect(Math.round(cxm-half),base-6+r,half*2,1);}
+  g.fillStyle="#fbfdff";
+  for(let r=0;r<3;r++){const half=1+r;
+   g.fillRect(Math.round(cxm-half),base-6+r,half*2,1);}
+  if(hot){
+   g.fillStyle="rgba(255,233,168,.9)";
+   g.fillRect(fx-5,fy-5,PIN_W+10,2);g.fillRect(fx-5,fy+PIN_H+3,PIN_W+10,2);
+   g.fillRect(fx-5,fy-5,2,PIN_H+10);g.fillRect(fx+PIN_W+3,fy-5,2,PIN_H+10);}
+ });
 }
 function renderWorld(){
  paintWorld();
@@ -2954,7 +2980,7 @@ function enterRegion(id){
 function hitPin(mx,my){
  for(const id of RIDS){
   const[x,y]=pinAt(id);
-  if(mx>=x-8&&mx<=x+22&&my>=y-32&&my<=y+6)return id;}
+  if(mx>=x-10&&mx<=x+PIN_W+6&&my>=y-PIN_STEM-PIN_H-2&&my<=y+18)return id;}
  return null;
 }
 function wireLauncher(){
@@ -4190,10 +4216,11 @@ function frameBox(){
  const bdY=(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
  const top=Math.max(0,wr.getBoundingClientRect().top);
  const vh=window.innerHeight||document.documentElement.clientHeight||800;
- /* A floor, so that a short window or a mid-layout measurement gives a small
-    map rather than a thumbnail. */
+ /* A floor. On a laptop the HUD above the map can eat 300px of a 720px window,
+    and holding the quest bar on screen as well would leave the map a thumbnail.
+    Past this point the map wins and the bar takes the scroll. */
  return {w:Math.max(180,wr.clientWidth-padX),
-         h:Math.max(240,vh-top-reserveBelow()-padY-bdY),padY:padY,bdY:bdY};
+         h:Math.max(360,vh-top-reserveBelow()-padY-bdY),padY:padY,bdY:bdY};
 }
 function fitScale(){const b=frameBox();return Math.max(0.08,Math.min(b.w/W,b.h/H));}
 let lastBoost=null;
@@ -6010,7 +6037,7 @@ function showDetail(p){
   <div class="d-name">${dn?'★ ':''}${p.n}</div>${bb}
   <div class="d-desc">${p.hi}</div>
   <div class="d-stats">
-   <div class="stat"><span class="k">DRIVE</span><span class="v">${p.drive}</span></div>
+   <div class="stat"><span class="k">${usingMyLocation()?'DRIVE FROM YOU':'DRIVE FROM '+RG.home.toUpperCase()}</span><span class="v">${usingMyLocation()?'~':''}${driveText(p)}</span></div>
    <div class="stat"><span class="k">DIFFICULTY</span><span class="v" style="color:${col}">${p.d}</span></div>
    <div class="stat"><span class="k">DISTANCE</span><span class="v">${p.mi}</span></div>
    <div class="stat"><span class="k">TIME</span><span class="v">${p.t}</span></div>
@@ -6092,6 +6119,104 @@ function metresBetween(lat1,lon1,lat2,lon2){
 }
 const fmtDist=m=>m<1000?Math.round(m)+' m':(m/1000).toFixed(1)+' km';
 
+/* ── DRIVE TIMES FROM WHERE YOU ARE ────────────────────────────────────────
+   Every quest carries a hand-checked drive time from its region's hub town.
+   That number is worth keeping rather than replacing: it knows which side of a
+   range the road goes round, and no straight-line estimate ever will. Many
+   Glacier is 50 km from Kalispell as the crow flies and two and a half hours by
+   road, and only the authored number knows that.
+
+   So the authored time is carried rather than discarded. Distance from the hub
+   plus the authored minutes gives a per-quest calibration — how much longer the
+   road is than the crow's flight to this particular place — and that
+   calibration is applied to the straight-line distance from wherever you
+   actually are. Standing at the hub it reproduces the authored number exactly.
+   Standing at the trailhead it falls to nothing. It fades out over a few
+   hundred kilometres, past which one region's back roads say nothing at all
+   about your route.
+
+   The base curve is fitted against all 332 authored times: median error 15%,
+   85% of them inside 40%, and within a few percent on cross-country hauls
+   checked against real routes. It is an estimate and the panel says so. */
+const DRIVE_FADE_KM=400;
+function driveModelMins(km){
+ if(km<=0)return 0;
+ /* A fixed cost for getting out of town that only applies once you have left
+    it, then a rate that eases from back-road to interstate as the trip grows. */
+ return 14*(1-Math.exp(-km/3))+km*(0.66+0.20*Math.exp(-km/1000));
+}
+function fmtDrive(m){
+ if(m<60)return Math.max(5,Math.round(m/5)*5)+" min";
+ if(m<1440){const h=m/60;return (h<10?(Math.round(h*2)/2):Math.round(h))+" hr";}
+ const d=Math.floor(m/1440),h=Math.round((m-d*1440)/60);
+ return d+" d"+(h?" "+h+" hr":"");
+}
+const FIXKEY='sq_fix',DRIVEKEY='sq_drivemode';
+let USERFIX=null,driveMode='auto';          /* 'auto' uses your location, 'hub' does not */
+function loadStoredFix(){
+ /* A week-old fix is still the right city, and it means the app opens with real
+    numbers straight away — or at all, with no signal. */
+ try{const j=JSON.parse(localStorage.getItem(FIXKEY)||'null');
+  if(j&&typeof j.lat==='number'&&Date.now()-(j.t||0)<7*864e5)return j;}catch(e){}
+ return null;
+}
+function storeFix(f){
+ try{localStorage.setItem(FIXKEY,JSON.stringify({lat:f.lat,lon:f.lon,t:Date.now()}));}catch(e){}}
+const usingMyLocation=()=>driveMode!=='hub'&&!!USERFIX&&!!RG.hub;
+function applyDriveTimes(){
+ const f=usingMyLocation()?USERFIX:null;
+ P.forEach(p=>{
+  if(!f){p.udm=p.dm;p.udrive=p.drive;return;}
+  const kmYou=metresBetween(f.lat,f.lon,p.lat,p.lon)/1000;
+  const kmHub=metresBetween(RG.hub.lat,RG.hub.lon,p.lat,p.lon)/1000;
+  const cal=p.dm/Math.max(1,driveModelMins(kmHub));
+  /* How much the hub's road knowledge is still worth is a question about where
+     you are, not about where the trailhead is. At the hub it is worth
+     everything and the authored number comes back exactly. A few hundred
+     kilometres away you are approaching from a different direction entirely and
+     it is worth nothing, so the plain model takes over. */
+  const w=Math.exp(-metresBetween(f.lat,f.lon,RG.hub.lat,RG.hub.lon)/1000/DRIVE_FADE_KM);
+  p.udm=Math.max(2,Math.round(driveModelMins(kmYou)*(1+(cal-1)*w)));
+  p.udrive=fmtDrive(p.udm);});
+}
+const driveMins=p=>(p.udm===undefined?p.dm:p.udm);
+const driveText=p=>(p.udrive===undefined?p.drive:p.udrive);
+/* Opening the app must not fire a permission prompt by itself. The prompt
+   belongs to the check-in button and to this control, both of which the player
+   pressed on purpose. Where permission has already been given, the fix is taken
+   without a word and every drive time on screen is from where you are. */
+async function silentFix(){
+ const opts={enableHighAccuracy:false,timeout:15000,maximumAge:600000};
+ const G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
+ if(G){const st=await G.checkPermissions();
+  if(st.location!=='granted')return null;
+  const r=await G.getCurrentPosition(opts);
+  return{lat:r.coords.latitude,lon:r.coords.longitude};}
+ if(!navigator.geolocation||!navigator.permissions)return null;
+ let st;try{st=await navigator.permissions.query({name:'geolocation'});}catch(e){return null;}
+ if(st.state!=='granted')return null;
+ const r=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,opts));
+ return{lat:r.coords.latitude,lon:r.coords.longitude};
+}
+function syncDriveBtn(){
+ const b=document.getElementById('driveBtn');if(!b)return;
+ const on=usingMyLocation();
+ b.textContent="DRIVE FROM: "+(on?"MY LOCATION":RG.home.toUpperCase());
+ b.classList.toggle('on',on);
+}
+function refreshDriveUI(){
+ applyDriveTimes();syncDriveBtn();
+ if(typeof renderCatalog==='function')renderCatalog();
+ if(selId){const p=P.find(q=>q.id===selId);if(p)showDetail(p);}
+}
+async function pullFix(ask){
+ let f=null;
+ try{f=ask?await currentFix():await silentFix();}catch(e){f=null;}
+ if(f){USERFIX=f;storeFix(f);}
+ refreshDriveUI();
+ return f;
+}
+
 /* The Capacitor plugin only exists inside the native shell. The same page is
    served on the web, so it falls back to the browser API rather than breaking
    the site. Both reject on denial, which the caller reports as a real outcome
@@ -6135,6 +6260,7 @@ async function checkIn(p,onPass){
    :'<span style="color:#ff9a86">No location fix. Open sky helps — a gorge or a dense canopy can block it entirely.</span>')
    +'<div style="margin-top:7px"><span class="small-link" id="manlog">log it by hand instead</span></div>');
   return;}
+ USERFIX={lat:fix.lat,lon:fix.lon};storeFix(USERFIX);refreshDriveUI();
  const d=metresBetween(fix.lat,fix.lon,p.lat,p.lon),RAD=geofenceFor(p);
  if(d<=RAD){btn.textContent='✓ YOU ARE HERE';await pass();return;}
  btn.disabled=false;btn.textContent='TRY AGAIN';
@@ -6305,7 +6431,7 @@ wrap.addEventListener('mousemove',e=>{
  const{x,y}=toLog(e),p=hit(x,y),prev=hoverId;
  hoverId=p?p.id:null;if(prev!==hoverId)render();
  if(p){tip.style.display='block';
-  tip.innerHTML=`${p.c==='multi'?'⚔ ':''}${p.n}<span class="tt-sub">${p.d} · ${p.mi} · ${p.drive}</span>`;
+  tip.innerHTML=`${p.c==='multi'?'⚔ ':''}${p.n}<span class="tt-sub">${p.d} · ${p.mi} · ${driveText(p)}</span>`;
   let lx=p.x*zoom+18,ly=(p.y-24)*zoom;
   if(lx+tip.offsetWidth>W*zoom)lx=p.x*zoom-tip.offsetWidth-18;
   tip.style.left=lx+'px';tip.style.top=Math.max(0,ly)+'px';}
@@ -6353,6 +6479,18 @@ wrap.addEventListener('touchmove',e=>{
   (e.touches[0].clientY+e.touches[1].clientY)/2);
  render();},{passive:false});
 wrap.addEventListener('touchend',e=>{if(e.touches.length<2)pinchD=0;},{passive:true});
+document.getElementById('driveBtn').onclick=async e=>{
+ const b=e.target;
+ if(usingMyLocation()){
+  driveMode='hub';try{localStorage.setItem(DRIVEKEY,'hub');}catch(_){}
+  refreshDriveUI();return;}
+ driveMode='auto';try{localStorage.setItem(DRIVEKEY,'auto');}catch(_){}
+ if(USERFIX){refreshDriveUI();return;}
+ /* The one place the app asks for location for this: the player pressed it. */
+ b.textContent='DRIVE FROM: LOCATING…';
+ const f=await pullFix(true);
+ if(!f)b.textContent='DRIVE FROM: '+RG.home.toUpperCase()+' (NO FIX)';
+};
 const TMODES=["AUTO","DAWN","DAY","DUSK","NIGHT"];
 document.getElementById('timeBtn').onclick=e=>{
  timeMode=TMODES[(TMODES.indexOf(timeMode)+1)%TMODES.length];
@@ -6504,13 +6642,13 @@ function catRows(){
  let rows=P.filter(p=>{
   if(!catShown(p.c))return false;
   if(!q)return true;
-  return (p.n+" "+p.d+" "+p.drive+" "+p.mi+" "+p.food+" "+CATS[p.c].name+" "+p.hi)
+  return (p.n+" "+p.d+" "+p.drive+" "+driveText(p)+" "+p.mi+" "+p.food+" "+CATS[p.c].name+" "+p.hi)
    .toLowerCase().includes(q);});
  if(catSort==="name")      rows.sort((a,b)=>a.n.localeCompare(b.n));
- else if(catSort==="drive")rows.sort((a,b)=>a.dm-b.dm||a.n.localeCompare(b.n));
+ else if(catSort==="drive")rows.sort((a,b)=>driveMins(a)-driveMins(b)||a.n.localeCompare(b.n));
  else if(catSort==="diff") rows.sort((a,b)=>DIFF_ORDER[a.d]-DIFF_ORDER[b.d]||a.n.localeCompare(b.n));
  else if(catSort==="xp")   rows.sort((a,b)=>b.xp-a.xp||a.n.localeCompare(b.n));
- else if(catSort==="todo") rows.sort((a,b)=>(!!S.done[a.id])-(!!S.done[b.id])||a.dm-b.dm);
+ else if(catSort==="todo") rows.sort((a,b)=>(!!S.done[a.id])-(!!S.done[b.id])||driveMins(a)-driveMins(b));
  return rows;
 }
 function renderCatalog(){
@@ -6520,7 +6658,7 @@ function renderCatalog(){
   document.getElementById('catSum').textContent='';return;}
  let html='',lastCat=null;
  const grouped=(catSort==="cat");
- if(grouped)rows.sort((a,b)=>Object.keys(CATS).indexOf(a.c)-Object.keys(CATS).indexOf(b.c)||a.dm-b.dm);
+ if(grouped)rows.sort((a,b)=>Object.keys(CATS).indexOf(a.c)-Object.keys(CATS).indexOf(b.c)||driveMins(a)-driveMins(b));
  rows.forEach(p=>{
   if(grouped&&p.c!==lastCat){lastCat=p.c;
    const tot2=P.filter(q=>q.c===p.c).length,dn2=nDone(p.c);
@@ -6531,7 +6669,7 @@ function renderCatalog(){
     <span class="cr-i" style="background:${dn?'#f5c651':CATS[p.c].color}"></span>
     <span class="cr-n">${dn?'✓ ':''}${p.c==='multi'?'<span class="cr-b">⚔</span> ':''}${p.n}</span>
     <span class="cr-x">+${p.xp}</span>
-    <span class="cr-m"><b>${p.d}</b><span>·</span><b>${p.mi}</b><span>·</span><b>🚗 ${p.drive}</b></span>
+    <span class="cr-m"><b>${p.d}</b><span>·</span><b>${p.mi}</b><span>·</span><b>🚗 ${driveText(p)}</b></span>
    </div>`;});
  el.innerHTML=html;
  el.querySelectorAll('.cat-row').forEach(r=>r.onclick=()=>{
@@ -6698,10 +6836,22 @@ function setMsg(i){const lm=document.getElementById('loadmsg');
   compass(bx,W-56,58);scalebar(bx,30,H-42);frameArt();drawLabels();});
  await step(100,()=>{});
  await load();
+ /* Drive times before the first paint: a stored fix means the numbers on screen
+    are already measured from where you are, with no wait and no signal needed.
+    The live fix is then chased in the background and only lands if permission
+    was already given. */
+ try{driveMode=localStorage.getItem(DRIVEKEY)||'auto';}catch(e){}
+ USERFIX=loadStoredFix();applyDriveTimes();
  /* open on FIT so the whole region is visible first; the player zooms in
     deliberately from there */
  zoomMul=1;
  applyZoom();updHUD();render();renderBadges();renderLog();buildChips();renderCatalog();questBarCount();layoutRails();
+ syncDriveBtn();pullFix(false);
+ /* The first fit runs while the loader is still up and the HUD above the map has
+    not finished settling, so it can measure a frame that is not the one the
+    player ends up looking at. Re-fit once the layout has actually landed. */
+ const settle=()=>{applyZoom();render();layoutRails();};
+ requestAnimationFrame(()=>{settle();setTimeout(settle,140);setTimeout(settle,500);});
  document.getElementById('loader').style.display='none';
  requestAnimationFrame(loop);
 })();
