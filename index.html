@@ -1004,7 +1004,7 @@ function sqDailyQuote(){
       <div class="av-side">
         <div class="av-h">CLIMBER NAME</div>
         <input id="avName" class="av-input" maxlength="18" placeholder="name your climber" autocomplete="off">
-        <div class="av-h">KIT COLOUR</div>
+        <div class="av-h">YOUR CLIMBER</div>
         <div class="av-kits" id="avKits"></div>
         <div class="av-h">RECORD</div>
         <div class="av-stats" id="avStats"></div>
@@ -7837,7 +7837,54 @@ const TUT_PAGES=[
  </div>
  <p class="tut-p">Dimmed ones are still open. The badge screen shows exactly which destinations
   each one is still waiting on.</p>`},
-{h:'8 · SHARE THE HIKE',html:`
+{h:'8 · FIND YOUR WAY AROUND',html:`
+ <p class="tut-p"><b>☰ MENU</b>, top left of every screen, is the way to everything that is not
+  the map. Tap it and pick a room.</p>
+ <div class="tut-shot">
+  <div class="btn nav-row on" style="cursor:default;margin-bottom:6px">
+   <span class="ns-i">🗺</span><span class="ns-t">MAP</span><span class="ns-sub">the region and its pins</span></div>
+  <div class="btn nav-row" style="cursor:default;margin-bottom:6px">
+   <span class="ns-i">📖</span><span class="ns-t">LOGBOOK</span><span class="ns-sub">every hike you have cleared</span></div>
+  <div class="btn nav-row" style="cursor:default;margin-bottom:6px">
+   <span class="ns-i">🏅</span><span class="ns-t">BADGES</span><span class="ns-sub">what you have earned</span></div>
+  <div class="btn nav-row" style="cursor:default;margin-bottom:6px">
+   <span class="ns-i">🧗</span><span class="ns-t">CLIMBERS</span><span class="ns-sub">your rope team and kit</span></div>
+  <div class="btn nav-row" style="cursor:default;margin-bottom:6px">
+   <span class="ns-i">🐾</span><span class="ns-t">TRAIL BEASTS</span><span class="ns-sub">every boss and what it guards</span></div>
+  <div class="ns-rule" style="margin:9px 0"></div>
+  <div class="btn nav-row" style="cursor:default">
+   <span class="ns-i">🌎</span><span class="ns-t">REGIONS</span><span class="ns-sub">leave for the world map</span></div>
+ </div>
+ <p class="tut-p"><b>REGIONS</b> at the bottom takes you back to the country map to start
+  somewhere else. Nothing is lost by leaving: each region keeps its own rank and
+  its own cleared list, waiting for you.</p>
+ <div class="tut-cap">The ⚙ OPTIONS button beside FILTER holds time of day, labels, where drive
+  times are measured from, and exporting your save.</div>`},
+{h:'9 · MAKE YOUR CLIMBER',html:`
+ <p class="tut-p">Open <b>☰ MENU → 🧗 CLIMBERS</b>. Name yourself and pick which of the five
+  climbers you are. Whoever you choose leads the rope team, stands at the front
+  in every fight, and appears on the card when you share a hike.</p>
+ <div class="tut-shot">
+  <div class="av-h">CLIMBER NAME</div>
+  <input class="av-input" value="YASEEN" readonly aria-label="Example climber name"
+   style="pointer-events:none;margin-bottom:12px">
+  <div class="av-h">YOUR CLIMBER</div>
+  <div class="av-kits">
+   <span class="av-kit on" style="cursor:default;padding:9px 12px;line-height:1;
+    font-family:var(--pix);font-size:9px;color:var(--gold)">1</span>
+   <span class="av-kit" style="cursor:default;padding:9px 12px;line-height:1;
+    font-family:var(--pix);font-size:9px;color:var(--dim)">2</span>
+   <span class="av-kit" style="cursor:default;padding:9px 12px;line-height:1;
+    font-family:var(--pix);font-size:9px;color:var(--dim)">3</span>
+   <span class="av-kit" style="cursor:default;padding:9px 12px;line-height:1;
+    font-family:var(--pix);font-size:9px;color:var(--dim)">4</span>
+   <span class="av-kit" style="cursor:default;padding:9px 12px;line-height:1;
+    font-family:var(--pix);font-size:9px;color:var(--dim)">5</span>
+  </div>
+ </div>
+ <p class="tut-p">The same screen carries your record: rank here, cleared here, and the lifetime
+  line across every region you have set foot in.</p>`},
+{h:'10 · SHARE THE HIKE',html:`
  <p class="tut-p">Anything you have cleared gets a <b>📤 SHARE HIKE</b> button. It builds a
   transparent card with the trail, your stats, your rank and your climber, and
   hands it to your phone to save or post.</p>
