@@ -2363,6 +2363,176 @@ REGIONS.utah={
   {id:"a15",ic:"🪢",n:"THE EXPOSED ONES",d:"Angels Landing, Observation Point, the Syncline and Druid Arch",need:["v3","h1","l2","h3"]},
   {id:"a16",ic:"🧗",n:"SLOT COUNTRY",d:"Peekaboo and Spooky, and the Buckskin Gulch",need:["m4","x5"]}]};
 
+REGIONS.sedona={
+ id:"sedona",name:"SEDONA & NORTHERN ARIZONA",short:"N. ARIZONA",tag:"SEDONA",
+ home:"Flagstaff",hub:{lon:-111.651,lat:35.198},
+ tagline:"Red rock, the Mogollon Rim and the Grand Canyon",
+ pin:{lon:-111.760,lat:34.870},
+ lon0:-113.10,lon1:-110.60,lat0:36.95,lat1:34.05,tw:96,th:92,seed:20261105,
+ crestRoad:"OAK CREEK CANYON DRIVE",
+ /* High in the north and low in the south, but not as a ramp: the drop happens
+    at the Mogollon Rim, a 2,000 ft escarpment running two hundred miles across
+    the middle of the state, which is carried as a ridge rather than a gradient.
+    Arid throughout and forested anyway — the largest ponderosa stand on the
+    continent grows on this plateau, so the dry flag runs at a higher density
+    than slickrock country needs. */
+ dry:0.55,
+ rock:["granite","rust",.94],
+ ramp:[
+  [0.00,[216,180,132]],[0.10,[202,150,100]],[0.20,[190,116, 68]],
+  [0.30,[168, 88, 50]],[0.40,[146, 76, 46]],[0.50,[128, 92, 56]],
+  [0.58,[112,104, 62]],[0.66,[ 88,102, 58]],[0.74,[ 66, 92, 52]],
+  [0.82,[ 56, 80, 52]],[0.88,[ 96, 96, 88]],[0.94,[156,152,148]],
+  [0.975,[204,208,212]],[1.00,[240,244,250]]],
+ tilt:{ax:.05,ay:.95,t0:.10,t1:.90,w:.30,e:-.26,damp:.30},
+ ridges:[
+ {p:[[-111.90,34.55],[-111.50,34.40],[-111.10,34.28],[-110.70,34.20]],h:1.00,w:3.4,n:"mogollon"},
+ {p:[[-111.72,35.28],[-111.68,35.35],[-111.62,35.40]],h:1.34,w:3.0,n:"sfpeaks"},
+ {p:[[-111.68,34.90],[-111.66,35.05],[-111.64,35.18]],h:.92,w:2.2,n:"oakcreekrim"},
+ {p:[[-111.90,34.82],[-111.78,34.88],[-111.66,34.92]],h:.86,w:2.4,n:"redrocks"},
+ {p:[[-112.30,36.30],[-112.10,36.22],[-111.90,36.12]],h:1.06,w:2.8,n:"northrim"},
+ {p:[[-112.20,36.50],[-112.10,36.75]],h:1.10,w:3.0,n:"kaibab"},
+ {p:[[-112.20,34.62],[-112.10,34.72]],h:.94,w:2.4,n:"blackhills"},
+ {p:[[-111.55,35.36],[-111.42,35.48]],h:.90,w:2.6,n:"cinders"},
+ {p:[[-111.95,35.30],[-111.85,35.39]],h:1.02,w:2.4,n:"kendrick"}],
+ peaks:[[-111.678,35.346,1.36,10],[-111.690,35.328,1.30,7],[-111.848,35.394,1.10,7],
+ [-111.960,35.320,1.02,6],[-111.596,35.264,1.00,6],[-111.535,35.395,.94,5],
+ [-111.503,35.364,.86,5],[-111.744,34.902,.88,6],[-111.876,34.893,.84,5],
+ [-111.793,34.820,.76,4],[-112.130,34.700,.96,6],[-112.207,35.198,1.00,6],
+ [-112.180,34.780,.90,5],[-111.560,34.720,.84,5],[-112.150,36.600,1.04,7],
+ [-112.100,35.820,.80,4],[-111.300,34.320,.88,5],[-112.560,36.480,.96,6]],
+ vals:[[-111.95,34.68,.46,12],[-111.74,34.95,.34,7],[-111.65,35.20,.30,9],
+  [-112.10,36.10,.62,10],[-112.45,34.85,.40,12],[-111.30,35.30,.36,14]],
+ rivers:[
+  [[-112.90,36.34],[-112.60,36.28],[-112.35,36.18],[-112.10,36.09],[-111.88,36.12],[-111.68,36.42],[-111.55,36.80]],
+  [[-110.70,34.90],[-111.00,35.10],[-111.30,35.35],[-111.55,35.75],[-111.78,36.12]],
+  [[-111.73,35.06],[-111.75,34.95],[-111.78,34.86],[-111.86,34.78],[-111.95,34.72]],
+  [[-111.95,34.72],[-111.90,34.60],[-111.80,34.45],[-111.70,34.28]],
+  [[-112.74,36.14],[-112.70,36.22],[-112.64,36.30]],
+  [[-111.62,34.44],[-111.50,34.38]]],
+ lakes:[[-111.460,34.930,2.0,2.4],[-111.550,35.050,1.0,3.0],[-111.520,34.770,1.0,.9],
+  [-111.450,36.900,2.6,1.2],[-112.470,34.560,.8,.7]],
+ parkway:[[-111.79,34.86],[-111.74,34.95],[-111.73,35.05],[-111.68,35.13],[-111.65,35.20]],
+ roads:[
+  [[-111.65,35.20],[-111.74,34.98],[-111.83,34.72],[-111.90,34.50],[-112.00,34.20]],
+  [[-113.00,35.25],[-112.40,35.22],[-111.95,35.21],[-111.65,35.20],[-111.20,35.19],[-110.70,35.20]],
+  [[-111.65,35.20],[-111.78,35.32],[-111.95,35.60],[-112.05,35.85],[-112.13,36.03]],
+  [[-112.13,36.03],[-111.95,35.98],[-111.83,36.04]],
+  [[-111.76,34.86],[-111.78,34.78],[-111.83,34.72]],
+  [[-111.79,34.86],[-111.95,34.80],[-112.10,34.72],[-112.28,34.68],[-112.47,34.56]],
+  [[-111.90,34.50],[-111.60,34.40],[-111.30,34.28],[-110.95,34.24]],
+  [[-111.65,35.20],[-111.50,35.50],[-111.45,36.00],[-111.42,36.50],[-111.45,36.87]]],
+ canyons:[
+  {p:[[-112.75,36.30],[-112.45,36.20],[-112.20,36.10],[-112.00,36.07],[-111.85,36.16]],d:.78,r:.58,w:3.0},
+  {p:[[-112.14,36.06],[-112.10,36.12]],d:.70,r:.52,w:1.6},
+  {p:[[-111.74,35.06],[-111.75,34.96],[-111.77,34.88]],d:.58,r:.50,w:1.6},
+  {p:[[-112.05,35.10],[-112.02,34.98],[-111.98,34.86]],d:.60,r:.50,w:1.8},
+  {p:[[-112.74,36.14],[-112.68,36.26]],d:.66,r:.52,w:1.4},
+  {p:[[-111.55,35.80],[-111.68,36.00],[-111.78,36.14]],d:.62,r:.50,w:1.6},
+  {p:[[-111.62,34.44],[-111.50,34.38]],d:.54,r:.44,w:1.2},
+  {p:[[-111.72,34.68],[-111.62,34.66]],d:.50,r:.42,w:1.2},
+  {p:[[-111.88,34.91],[-111.80,34.89]],d:.50,r:.44,w:1.2},
+  {p:[[-111.70,34.55],[-111.55,34.52]],d:.54,r:.44,w:1.3}],
+ structs:[
+  {lo:-111.651,la:35.198,t:"city",lab:"FLAGSTAFF"},
+  {lo:-112.468,la:34.540,t:"city",lab:"PRESCOTT"},
+  {lo:-111.760,la:34.870,t:"town",lab:"SEDONA"},
+  {lo:-112.191,la:35.249,t:"town",lab:"WILLIAMS"},
+  {lo:-111.456,la:36.915,t:"town",lab:"PAGE"},
+  {lo:-112.010,la:34.739,t:"town",lab:"COTTONWOOD"},
+  {lo:-112.114,la:34.749,t:"town",lab:"JEROME"},
+  {lo:-111.325,la:34.231,t:"town",lab:"PAYSON"},
+  {lo:-112.126,la:35.977,t:"town",lab:"TUSAYAN"},
+  {lo:-112.137,la:36.057,t:"hut",lab:"GRAND CANYON VILLAGE"},
+  {lo:-112.095,la:36.101,t:"hut",lab:"PHANTOM RANCH"},
+  {lo:-112.690,la:36.232,t:"hut",lab:"SUPAI"}],
+ labels:[
+  {t:"GRAND CANYON",pri:0,lo:-112.24,la:36.16,s:1,c:"#ffe0bc"},
+  {t:"NATIONAL PARK",pri:2,lo:-112.24,la:36.128,s:1,c:"#e0c8a4"},
+  {t:"SEDONA RED ROCKS",pri:1,lo:-111.86,la:34.82,s:1,c:"#ffd0a8"},
+  {t:"OAK CREEK CANYON",pri:1,lo:-111.70,la:35.00,s:1,c:"#ffe0bc"},
+  {t:"SAN FRANCISCO PEAKS",pri:1,lo:-111.78,la:35.38,s:1,c:"#dfe8f4"},
+  {t:"MOGOLLON RIM",pri:1,lo:-111.52,la:34.34,s:1,c:"#e0c8a4"},
+  {t:"COCONINO FOREST",pri:2,lo:-111.38,la:34.92,s:1,c:"#cfe0b4"},
+  {t:"VERDE VALLEY",pri:2,lo:-112.00,la:34.64,s:1,c:"#e0c8a4"},
+  {t:"KAIBAB PLATEAU",pri:2,lo:-112.16,la:36.62,s:1,c:"#cfe0b4"},
+  {t:"HAVASU CANYON",pri:2,lo:-112.78,la:36.20,s:1,c:"#bcd8ea"},
+  {t:"PAINTED DESERT",pri:2,lo:-110.86,la:35.62,s:1,c:"#e8c8a0"}],
+ levels:[{n:"SCENIC DRIVE SITTER",xp:0},{n:"UPTOWN STROLLER",xp:50},{n:"VORTEX SEEKER",xp:120},
+  {n:"SLICKROCK SCRAMBLER",xp:220},{n:"CANYON RIM REGULAR",xp:350},{n:"PONDEROSA RANGER",xp:500},
+  {n:"SWITCHBACK GRINDER",xp:680},{n:"INNER CANYON HIKER",xp:880},{n:"RIM TO RIVER",xp:1100},
+  {n:"TWELVE THOUSAND CLUB",xp:1350},{n:"RED ROCK VETERAN",xp:1620},{n:"ARIZONA LEGEND",xp:1910}],
+ quests:[
+{id:"w1",c:"water",n:"West Fork of Oak Creek",lat:34.9930,lon:-111.7440,drive:"1 hr",dm:60,d:"Mod",mi:"6.9 mi RT",t:"4 hr",hi:"Thirteen creek crossings between walls that close to fifty feet apart. Wet feet are not optional and the parking lot fills before nine.",food:"Indian Gardens Cafe, Oak Creek"},
+{id:"w2",c:"water",n:"Slide Rock State Park",lat:34.9420,lon:-111.7530,drive:"50 min",dm:50,d:"Easy",mi:"0.5 mi RT",t:"1 hr",hi:"A natural chute worn into the sandstone creek bed, on what was an apple farm until 1985. The orchard is still standing.",food:"Indian Gardens Cafe, Oak Creek"},
+{id:"w3",c:"water",n:"Fossil Creek Waterfall",lat:34.4210,lon:-111.5750,drive:"2.5 hr",dm:150,d:"Hard",mi:"8.6 mi RT",t:"6 hr",hi:"Travertine dams holding back water the colour of antifreeze, in the desert. Permit only from April to October, and the road in is rough.",food:"Fargo's Steakhouse, Payson"},
+{id:"w4",c:"water",n:"Wet Beaver Creek: The Crack",lat:34.6710,lon:-111.7080,drive:"1 hr",dm:60,d:"Mod",mi:"7 mi RT",t:"4 hr",hi:"Three flat miles of high desert, then a slot in the rock with a deep swimming hole at the bottom and a ledge people jump from.",food:"Pizzeria Bocce, Sedona"},
+{id:"w5",c:"water",n:"Parsons Trail, Sycamore Canyon",lat:34.9310,lon:-112.1000,drive:"1.5 hr",dm:90,d:"Mod",mi:"7.6 mi RT",t:"4.5 hr",hi:"A spring that turns a dry red canyon green for four miles, then stops. The second largest canyon in the state and almost nobody in it.",food:"Merkin Vineyards, Cottonwood"},
+{id:"s1",c:"short",n:"Cathedral Rock",lat:34.8200,lon:-111.7930,drive:"50 min",dm:50,d:"Hard",mi:"1.2 mi RT",t:"1.5 hr",hi:"Six hundred feet of climbing in half a mile, up a slickrock chute you use your hands for. Short is not the same as easy.",food:"Elote Cafe, Sedona"},
+{id:"s2",c:"short",n:"Devils Bridge",lat:34.9020,lon:-111.8140,drive:"55 min",dm:55,d:"Mod",mi:"4.2 mi RT",t:"2.5 hr",hi:"The largest sandstone arch in the red rock country, and you can walk out on it. Go at sunrise or queue for the photo.",food:"Pizzeria Bocce, Sedona"},
+{id:"s3",c:"short",n:"Bell Rock & Courthouse Butte Loop",lat:34.8000,lon:-111.7660,drive:"55 min",dm:55,d:"Easy",mi:"3.6 mi loop",t:"2 hr",hi:"Flat all the way round two of the most recognisable buttes in Arizona, with an optional scramble up the side of Bell Rock.",food:"Elote Cafe, Sedona"},
+{id:"s4",c:"short",n:"Airport Mesa Loop",lat:34.8560,lon:-111.7900,drive:"50 min",dm:50,d:"Mod",mi:"3.3 mi loop",t:"2 hr",hi:"A mesa in the middle of town that the whole valley is visible from. The sunset overlook is a hundred yards from the car park and packed.",food:"Elote Cafe, Sedona"},
+{id:"s5",c:"short",n:"Sunset Crater Lava Flow",lat:35.3640,lon:-111.5030,drive:"30 min",dm:30,d:"Easy",mi:"1 mi loop",t:"45 min",hi:"Walking on a lava flow from an eruption around 1085 that the people farming here watched happen. The cone itself is closed to climbing.",food:"Diablo Burger, Flagstaff"},
+{id:"v1",c:"view",n:"Grand Canyon: Mather Point & Rim Trail",lat:36.0610,lon:-112.1080,drive:"1.5 hr",dm:90,d:"Easy",mi:"2 mi",t:"1.5 hr",hi:"Ten miles of paved rim with a shuttle running the length of it. A mile deep, ten miles across, and no photograph has ever worked.",food:"Bright Angel Lodge"},
+{id:"v2",c:"view",n:"Desert View Watchtower",lat:36.0430,lon:-111.8260,drive:"2 hr",dm:120,d:"Easy",mi:"0.5 mi RT",t:"45 min",hi:"Mary Colter's 1932 tower at the east end of the park, with Hopi murals inside and the Colorado visible turning south below it.",food:"Cameron Trading Post"},
+{id:"v3",c:"view",n:"Merry-Go-Round Rock, Schnebly Hill",lat:34.8730,lon:-111.7160,drive:"1 hr",dm:60,d:"Easy-Mod",mi:"1 mi RT",t:"1 hr",hi:"Up a rough dirt road onto the rim above Sedona. High clearance strongly advised, and worth every mile of washboard.",food:"Pizzeria Bocce, Sedona"},
+{id:"v4",c:"view",n:"Mogollon Rim: Rim Lakes Vista",lat:34.3350,lon:-111.2600,drive:"2.5 hr",dm:150,d:"Easy",mi:"1.2 mi RT",t:"45 min",hi:"The edge of the Colorado Plateau: two thousand feet down and two hundred miles long. Zane Grey wrote most of his westerns from below it.",food:"Fargo's Steakhouse, Payson"},
+{id:"m1",c:"mod",n:"Boynton Canyon",lat:34.9080,lon:-111.8540,drive:"1 hr",dm:60,d:"Mod",mi:"6.1 mi RT",t:"3.5 hr",hi:"Red walls narrowing to a box canyon with a stand of Douglas fir at the end, four thousand feet lower than fir has any business growing.",food:"Pizzeria Bocce, Sedona"},
+{id:"m2",c:"mod",n:"Soldier Pass & Seven Sacred Pools",lat:34.8880,lon:-111.7900,drive:"55 min",dm:55,d:"Mod",mi:"4.5 mi RT",t:"3 hr",hi:"Past the Devils Kitchen sinkhole, which is still collapsing, to a line of potholes in the rock and a cave above them.",food:"Elote Cafe, Sedona"},
+{id:"m3",c:"mod",n:"Bright Angel to Three-Mile Resthouse",lat:36.0570,lon:-112.1440,drive:"1.5 hr",dm:90,d:"Mod-Hard",mi:"6 mi RT",t:"5 hr",hi:"Twenty one hundred feet below the rim, with water in summer and a roof. Going down is optional. Coming back up is not.",food:"Bright Angel Lodge"},
+{id:"m4",c:"mod",n:"Lockett Meadow & the Inner Basin",lat:35.3540,lon:-111.6180,drive:"45 min",dm:45,d:"Mod",mi:"7 mi RT",t:"4 hr",hi:"Inside the collapsed caldera of the volcano, through the largest aspen stand in the Southwest. The first week of October is the reason to come.",food:"Diablo Burger, Flagstaff"},
+{id:"m5",c:"mod",n:"Kendrick Peak",lat:35.3940,lon:-111.8480,drive:"1 hr",dm:60,d:"Mod-Hard",mi:"8 mi RT",t:"5 hr",hi:"A 10,418 ft volcano standing alone west of the Peaks, with a 1912 lookout cabin on top and no crowd on any day of the year.",food:"Diablo Burger, Flagstaff"},
+{id:"h1",c:"hard",n:"Humphreys Peak",lat:35.3464,lon:-111.6780,drive:"40 min",dm:40,d:"Hard",mi:"10.5 mi RT",t:"8 hr",hi:"12,633 ft, the highest ground in Arizona, with the last mile above treeline on a saddle where the wind does not stop. Storms build by noon.",food:"Diablo Burger, Flagstaff"},
+{id:"h2",c:"hard",n:"South Kaibab to Skeleton Point",lat:36.0530,lon:-112.0830,drive:"1.5 hr",dm:90,d:"Hard",mi:"6 mi RT",t:"5 hr",hi:"The first sight of the Colorado from the trail, two thousand feet down a ridge with no water and no shade on any part of it.",food:"Bright Angel Lodge"},
+{id:"h3",c:"hard",n:"Wilson Mountain",lat:34.9020,lon:-111.7440,drive:"55 min",dm:55,d:"Hard",mi:"11 mi RT",t:"7 hr",hi:"Twenty three hundred feet above Sedona to the highest ground overlooking the red rocks, through a burn and out onto an open plateau.",food:"Elote Cafe, Sedona"},
+{id:"h4",c:"hard",n:"Bear Mountain",lat:34.8930,lon:-111.8760,drive:"1 hr",dm:60,d:"Hard",mi:"4.9 mi RT",t:"4 hr",hi:"Nineteen hundred feet in two and a half miles over four false summits, on ledges and slickrock. The hardest short day in Sedona.",food:"Pizzeria Bocce, Sedona"},
+{id:"h5",c:"hard",n:"Mount Elden Lookout",lat:35.2340,lon:-111.5900,drive:"15 min",dm:15,d:"Hard",mi:"6 mi RT",t:"4 hr",hi:"Twenty four hundred feet straight out of Flagstaff on switchbacks through the 1977 burn, to a lookout still staffed in fire season.",food:"Diablo Burger, Flagstaff"},
+{id:"l1",c:"long",n:"Bright Angel to Plateau Point",lat:36.0570,lon:-112.1440,drive:"1.5 hr",dm:90,d:"Extreme",mi:"12.2 mi RT",t:"10 hr",hi:"Out to a shelf above the Inner Gorge with the river twelve hundred feet below. Three thousand feet back up, and the Park Service asks you not to try it between May and September.",food:"Bright Angel Lodge"},
+{id:"l2",c:"long",n:"Loy Canyon to Secret Mountain",lat:34.9540,lon:-111.9050,drive:"1.5 hr",dm:90,d:"Hard",mi:"10 mi RT",t:"7 hr",hi:"Up the back of the red rocks onto a mesa nobody has ever built a road to. The last mile to the rim gains a thousand feet.",food:"Merkin Vineyards, Cottonwood"},
+{id:"l3",c:"long",n:"Sycamore Rim Trail",lat:35.1160,lon:-111.9720,drive:"1 hr",dm:60,d:"Mod",mi:"11 mi loop",t:"6 hr",hi:"Around the head of Sycamore Canyon past two waterfalls, a sinkhole lake and the grade of a logging railroad that closed in 1930.",food:"Station 66, Williams"},
+{id:"l4",c:"long",n:"Kachina Trail",lat:35.3310,lon:-111.7080,drive:"40 min",dm:40,d:"Mod-Hard",mi:"10 mi RT",t:"6 hr",hi:"Along the flank of the Peaks at nine thousand feet through aspen and old lava, contouring rather than climbing the whole way.",food:"Diablo Burger, Flagstaff"},
+{id:"x1",c:"multi",n:"Havasupai: Havasu, Mooney & Beaver Falls",lat:36.2550,lon:-112.6980,drive:"4 hr",dm:240,d:"Extreme",mi:"20 mi",t:"3 days",hi:"Ten miles in to blue-green water on the Havasupai reservation, with no day hiking allowed. The permit lottery opens in February and sells out in minutes.",food:"Supai Cafe",boss:"leviathan"},
+{id:"x2",c:"multi",n:"Grand Canyon Rim to Rim",lat:36.1980,lon:-112.0530,drive:"1.5 hr",dm:90,d:"Extreme",mi:"24 mi",t:"2 days",hi:"South Kaibab down, North Kaibab up, a vertical mile each way and four billion years of rock in between. The North Rim closes for winter in October.",food:"Phantom Ranch Canteen",boss:"wyrm"},
+{id:"x3",c:"multi",n:"Bright Angel to Phantom Ranch",lat:36.1000,lon:-112.0940,drive:"1.5 hr",dm:90,d:"Extreme",mi:"19 mi",t:"2 days",hi:"To the only lodging below the rim, built in 1922 and still supplied by mule. Beds are a lottery a year out; the campground is easier.",food:"Phantom Ranch Canteen",boss:"golem"},
+{id:"x4",c:"multi",n:"Sycamore Canyon Traverse",lat:34.9800,lon:-112.0500,drive:"1.5 hr",dm:90,d:"Extreme",mi:"22 mi",t:"3 days",hi:"Twenty one miles of canyon with no maintained tread for long stretches and water only where the spring runs. Wilderness since 1935.",food:"Merkin Vineyards, Cottonwood",boss:"panther"},
+{id:"x5",c:"multi",n:"Arizona Trail: Mormon Lake to Flagstaff",lat:34.9500,lon:-111.4600,drive:"45 min",dm:45,d:"Hard",mi:"30 mi",t:"3 days",hi:"Through the ponderosa at seven thousand feet on the stretch of the eight hundred mile Arizona Trail that ends in town.",food:"Diablo Burger, Flagstaff",boss:"titan"},
+{id:"x6",c:"multi",n:"The Highline Trail, Mogollon Rim",lat:34.3400,lon:-111.3200,drive:"2.5 hr",dm:150,d:"Extreme",mi:"51 mi",t:"4 days",hi:"Cut in the 1870s to link the ranches under the Rim, and it still runs the whole way. Two thousand feet of escarpment above you for four days.",food:"Fargo's Steakhouse, Payson",boss:"quartz"},
+{id:"x7",c:"multi",n:"Weatherford Trail & the Inner Basin",lat:35.3300,lon:-111.6900,drive:"45 min",dm:45,d:"Hard",mi:"20 mi",t:"2 days",hi:"A 1920s carriage road that never opened, contouring to the saddle at 11,800 ft. Snow lies in the basin into June.",food:"Diablo Burger, Flagstaff",boss:"frost"}],
+ bosses:{
+  wyrm:{name:"THE RIM-TO-RIM WYRM",hp:415,atk:25,rec:5,arch:"wyrm",biome:"canyon",
+   pal:["#2a1008","#54210e","#8a3c16","#b86428","#dc984c","#f2c98c"],eye:"#3ce0ff",accent:"#ff8a2c",
+   moves:[["TAIL LASH",.95,"LIGHT"],["A VERTICAL MILE",1.34,"HEAVY"],["NO WATER TO THE RIVER",1.7,"DEVASTATING"]],
+   intro:"Twenty four miles and two vertical miles, and it is coiled in the middle of them."},
+  leviathan:{name:"THE HAVASU LEVIATHAN",hp:460,atk:25,rec:5,arch:"wyrm",biome:"water",
+   pal:["#04202a","#0a4650","#12807e","#22b4a4","#5ce0c8","#a8f4e4"],eye:"#ff7a2c",accent:"#4fe0c4",
+   moves:[["TRAVERTINE GRIP",.95,"LIGHT"],["MOONEY DROP",1.34,"HEAVY"],["TEN MILES BACK OUT",1.72,"DEVASTATING"]],
+   intro:"Water this colour has no business being in a desert. Something keeps it that way."},
+  frost:{name:"THE HUMPHREYS HOARFROST",hp:470,atk:27,rec:6,arch:"golem",biome:"snow",
+   pal:["#0c1b2c","#183350","#2e6084","#5292b6","#8ec8dc","#dcf2fc"],eye:"#22e6ff",accent:"#58a8cc",
+   moves:[["RIME GRIP",.95,"LIGHT"],["SADDLE WIND",1.32,"HEAVY"],["TWELVE SIX THIRTY THREE",1.7,"DEVASTATING"]],
+   intro:"The highest ground in the state, and it has been holding it for a while."},
+  panther:{name:"THE SYCAMORE LION",hp:340,atk:22,rec:3,arch:"beast",biome:"forest",
+   pal:["#0c0810","#1a1122","#301f3a","#4a3056","#6c4a74","#9c74a8"],eye:"#8cf055",accent:"#c88ee4",
+   moves:[["POUNCE",1.0,"LIGHT"],["DRY WASH AMBUSH",1.3,"HEAVY"],["NO TRAIL FOR TWENTY MILES",1.6,"DEVASTATING"]],
+   intro:"Wilderness since 1935, and nobody has ever counted what lives in it."},
+  golem:{name:"THE VISHNU GOLEM",hp:545,atk:29,rec:7,arch:"golem",biome:"canyon",
+   pal:["#161018","#2c2230","#4a3a4c","#6c5a68","#93818c","#bdaab0"],eye:"#ff9c20",accent:"#ff6a3c",
+   moves:[["SCHIST SLIDE",1.0,"LIGHT"],["INNER GORGE",1.34,"HEAVY"],["ONE POINT SEVEN BILLION",1.76,"DEVASTATING"]],
+   intro:"The rock at the bottom is older than anything that has ever had a spine. It stood up anyway."},
+  titan:{name:"THE CINDER TITAN",hp:400,atk:23,rec:5,arch:"titan",biome:"bald",
+   pal:["#140f10","#2c2020","#4c3428","#74492c","#a06a38","#d09a58"],eye:"#ff5a2c",accent:"#ffd05a",
+   moves:[["ASH SWEEP",.95,"LIGHT"],["CINDER FALL",1.32,"HEAVY"],["ELEVEN EIGHTY FIVE",1.68,"DEVASTATING"]],
+   intro:"Six hundred cones on this plateau and the newest is a thousand years old. One of them moved."},
+  quartz:{name:"THE MOGOLLON COLOSSUS",hp:495,atk:28,rec:6,arch:"golem",biome:"canyon",
+   pal:["#2a1a14","#4c3020","#7a5030","#a87848","#cfa470",'#eed0a4'],eye:"#ffe23a",accent:"#ff9a5a",
+   moves:[["SCARP FALL",1.0,"LIGHT"],["TWO THOUSAND FEET",1.32,"HEAVY"],["TWO HUNDRED MILES OF EDGE",1.74,"DEVASTATING"]],
+   intro:"The edge of the plateau runs two hundred miles. All of it just turned to face you."}},
+ landmarks:[
+  {id:"a13",ic:"🪨",n:"THE RED ROCKS",d:"Cathedral, Devils Bridge, Bell Rock and Boynton",need:["s1","s2","s3","m1"]},
+  {id:"a14",ic:"💦",n:"CANYON WATER",d:"West Fork, Slide Rock, Fossil Creek and Wet Beaver",need:["w1","w2","w3","w4"]},
+  {id:"a15",ic:"🏜",n:"BELOW THE RIM",d:"Three-Mile, Skeleton Point, Plateau Point and rim to rim",need:["m3","h2","l1","x2"]},
+  {id:"a16",ic:"🏔",n:"THE HIGH COUNTRY",d:"Humphreys, Kendrick and the Inner Basin",need:["h1","m5","m4"]}]};
+
 /* xp is derived, so compute it for every region up front: the launcher needs it
    to total lifetime XP without booting a world. */
 Object.values(REGIONS).forEach(rg=>rg.quests.forEach(p=>p.xp=DIFF_XP[p.d]+CAT_BONUS[p.c]));
@@ -2899,20 +3069,55 @@ function pinAt(id){const rg=REGIONS[id];return[wpx(rg.pin.lon)*WTS,wpy(rg.pin.la
    read as terrain. This one is bigger, keylined so it separates from any
    ground, and carries the region's name on a plaque, which is what actually
    makes eight of them scannable at a glance. */
-const PIN_W=26,PIN_H=18,PIN_STEM=24;
+const PIN_W=26,PIN_H=18,PIN_STEM=24,PLQ_H=11;
+/* Where each name plaque goes. Under the pin reads best and is tried first, but
+   two regions can sit close enough that one pin's flag lands on its neighbour's
+   label — southern Utah and Sedona are fifty pixels apart on a map where a pin
+   is fifty pixels tall. So the plaque falls back to above the flag, then beside
+   it, taking the first spot that is clear of every pin already placed. Laying
+   them out rather than hand-placing them means the next region added does not
+   quietly land on top of an existing one. */
+function pinLayout(){
+ const hard=[],out=[];
+ RIDS.forEach(id=>{
+  const rg=REGIONS[id],[x,y]=pinAt(id);
+  hard.push({x0:x-9,x1:x+30,y0:y-PIN_STEM-PIN_H,y1:y+5});
+  out.push({id,x,y,t:rg.tag||rg.short});});
+ const hit=(a,b)=>Math.min(a.x1,b.x1)>Math.max(a.x0,b.x0)&&Math.min(a.y1,b.y1)>Math.max(a.y0,b.y0);
+ const taken=[];
+ out.forEach(p=>{
+  const w=wtw(p.t,1)+8,ft=p.y-PIN_STEM-PIN_H;
+  const opts=[[p.x-w/2,p.y+6],[p.x+15-w/2,ft-PLQ_H-2],[p.x+32,ft+5],[p.x-11-w,ft+5]];
+  let box=null;
+  for(const [bx,by] of opts){
+   const c={x0:bx,x1:bx+w,y0:by,y1:by+PLQ_H};
+   if(c.x0<2||c.x1>WTW*WTS-2)continue;
+   if(hard.some(h=>hit(c,h))||taken.some(t=>hit(c,t)))continue;
+   box=c;break;}
+  /* Nothing clear anywhere is still better than nothing drawn: fall back to
+     under the pin and let it overlap rather than leave a pin unnamed. */
+  if(!box)box={x0:p.x-w/2,x1:p.x+w/2,y0:p.y+6,y1:p.y+6+PLQ_H};
+  taken.push(box);p.box=box;});
+ return out;
+}
+/* A pin has to be found before it can be clicked, and the old one was an 18px
+   dark navy flag on a map that is green in the east and red in the west: it
+   read as terrain. This one is bigger, keylined so it separates from any
+   ground, and carries the region's name on a plaque, which is what actually
+   makes nine of them scannable at a glance. */
 function drawPins(g){
+ const lay=pinLayout();
  /* Plaques first, so a neighbouring pin always sits on top of a label rather
     than under it. */
- RIDS.forEach(id=>{
-  const rg=REGIONS[id],[x,y]=pinAt(id),hot=wHot===id;
-  const t=rg.tag||rg.short,tw2=wtw(t,1),bx2=Math.round(x-tw2/2)-3,by=y+6;
-  g.fillStyle="rgba(4,8,14,.82)";g.fillRect(bx2-1,by-1,tw2+8,11);
+ lay.forEach(p=>{
+  const hot=wHot===p.id,b=p.box;
+  g.fillStyle="rgba(4,8,14,.82)";g.fillRect(b.x0,b.y0,b.x1-b.x0,PLQ_H);
   g.fillStyle=hot?"#ffe9a8":"rgba(120,140,168,.75)";
-  g.fillRect(bx2-1,by-1,tw2+8,1);g.fillRect(bx2-1,by+9,tw2+8,1);
-  g.fillRect(bx2-1,by-1,1,11);g.fillRect(bx2+tw2+6,by-1,1,11);
-  wtxt(g,t,bx2+3,by+1,hot?"#fff8dc":"#dce6f2",1);});
- RIDS.forEach(id=>{
-  const st=regionStat(id),[x,y]=pinAt(id),hot=wHot===id;
+  g.fillRect(b.x0,b.y0,b.x1-b.x0,1);g.fillRect(b.x0,b.y0+PLQ_H-1,b.x1-b.x0,1);
+  g.fillRect(b.x0,b.y0,1,PLQ_H);g.fillRect(b.x1-1,b.y0,1,PLQ_H);
+  wtxt(g,p.t,Math.round(b.x0+4),Math.round(b.y0+2),hot?"#fff8dc":"#dce6f2",1);});
+ lay.forEach(p=>{
+  const st=regionStat(p.id),x=p.x,y=p.y,hot=wHot===p.id;
   const started=st.done>0,cleared=st.done>=st.total&&st.total>0;
   const face=hot?"#fff8dc":cleared?"#8ce07a":started?"#ffc233":"#f2ead4";
   const ink="#101822";
@@ -3417,6 +3622,10 @@ function shadow(c,x,y,w,h){c.fillStyle="rgba(20,30,20,.26)";
    The farmland, hedgerow and pond decorations are skipped outright: there is
    none of any of it on the plateau. */
 const DRY=!!RG.dry;
+/* dry:true thins the cover to a third, which is right for slickrock. Northern
+   Arizona is arid and holds the largest ponderosa forest on the continent at
+   the same time, so a region may give the multiplier itself. */
+const DRY_DENS=(typeof RG.dry==='number')?RG.dry:0.30;
 function drawDeco(){
  for(let ty=0;ty<TH;ty++)for(let tx=0;tx<TW;tx++){
   const i=ty*TW+tx;if(wM[i])continue;
@@ -3436,7 +3645,7 @@ function drawDeco(){
   if(b===1)dens=.16; else if(b===2)dens=.62; else if(b===3)dens=.88;
   else if(b===4)dens=.82; else if(b===5)dens=.56; else if(b===6)dens=.24; else dens=.05;
   dens*= (0.55+denseNoise*0.9);
-  if(DRY)dens*=0.30;
+  if(DRY)dens*=DRY_DENS;
   const nTrees = a<dens ? (b2<dens*0.75?2:1) : 0;
   if(b>=5){
    if(a<(b>=7?.72:.34))spr(bx,ROCK,b>=7?(DRY?PALS.slick:PALS.snowr):(DRY?PALS.slickD:PALS.rockD),x+1+((c2*3)|0),y+3+((d2*3)|0));
