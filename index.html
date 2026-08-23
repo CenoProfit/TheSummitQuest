@@ -680,12 +680,17 @@ body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:
    than from captured screenshots. They cost nothing to ship, they cannot go
    stale when the interface moves, and they are legible at any size because
    they are the interface rather than a picture of it. */
-.splash-tut{font-family:var(--pix);font-size:clamp(13px,1.9vw,22px);letter-spacing:2px;
- font-weight:bold;margin-top:26px;padding:15px 26px;cursor:pointer;
+/* Pinned to the bottom of the title card rather than sitting in the centred
+   block, so it never competes with the logo and always lands under the thumb. */
+.splash-tut{position:absolute;left:50%;transform:translateX(-50%);
+ bottom:calc(26px + env(safe-area-inset-bottom));z-index:3;
+ font-family:var(--pix);font-size:clamp(13px,1.9vw,22px);letter-spacing:2px;
+ font-weight:bold;padding:15px 26px;cursor:pointer;white-space:nowrap;
  background:linear-gradient(#ffd764,#e0a92c);color:#201604;
  border:3px solid #fff3c4;box-shadow:4px 4px 0 rgba(0,0,0,.65);
  text-shadow:1px 1px 0 rgba(255,255,255,.35)}
-.splash-tut:active{transform:translate(4px,4px);box-shadow:none}
+.splash-tut:active{transform:translateX(-50%) translate(4px,4px);box-shadow:none}
+@media (max-height:520px){.splash-tut{bottom:calc(12px + env(safe-area-inset-bottom));padding:11px 18px}}
 #tutorial{position:fixed;inset:0;z-index:10001;display:none;
  background:rgba(4,7,13,.95);align-items:center;justify-content:center;padding:14px}
 #tutorial.open{display:flex}
@@ -741,9 +746,9 @@ body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:
    <div class="splash-sub">THE TRAIL IS THE GAME</div>
    <div class="splash-quote" id="splashQuote"></div>
   </div>
-  <button class="splash-tut" id="tutBtn">📖 TUTORIAL</button>
   <div class="splash-tap">TAP TO CONTINUE</div>
  </div>
+ <button class="splash-tut" id="tutBtn">📖 TUTORIAL</button>
 </div>
 <script>
 /* The title card is for opening the app, not for every region change: entering
@@ -6678,8 +6683,9 @@ function cardMark(){
 }
 function statBlock(g,x,y,val,lab,sc,col){
  ringTxt(g,val,x,y,sc,col||'#ffffff');
- ringTxt(g,lab,x,y+7*sc+Math.round(sc*1.6),Math.max(2,Math.round(sc/2.6)),'#f5c651');
- return Math.max(ringW(val,sc),ringW(lab,Math.max(2,Math.round(sc/2.6))));
+ const ls=Math.max(3,Math.round(sc/2.2));
+ ringTxt(g,lab,x,y+7*sc+Math.round(sc*1.9),ls,'#f5c651');
+ return Math.max(ringW(val,sc),ringW(lab,ls));
 }
 async function buildShareCard(p){
  const c=document.createElement('canvas');
@@ -6695,30 +6701,39 @@ async function buildShareCard(p){
  const hero=heroFor(leadKit());
  const hs=4,hw=hero.width*hs,hh=hero.height*hs;
  const hx=LEFT,hy=CARD_H-40-hh;
- const who=climberName().slice(0,16);
- ringTxt(g,who,hx,hy-Math.round(5*4.6),4,'#eaf2fb');
+ /* Clear of the sprite by a full line: the name is seven pixels tall at this
+    scale plus its ring, and it was being drawn into the top of the hiker's
+    head. */
+ const who=climberName().slice(0,16),ws=4;
+ ringTxt(g,who,hx,hy-(7*ws+14),ws,'#eaf2fb');
  g.drawImage(hero,hx,hy,hw,hh);
  /* the right column starts clear of the hiker */
  const COLX=hx+hw+34,AVAIL=CARD_W-COLX-LEFT;
  /* the name sets its own size: long trail names shrink rather than run off */
  let ns=11;while(ns>4&&ringW(p.n,ns)>AVAIL)ns--;
- ringTxt(g,p.n,COLX,1010,ns,'#f5c651');
- /* stats, laid out left to right with whatever room each one needs */
+ ringTxt(g,p.n,COLX,990,ns,'#f5c651');
+ /* Three stats on the row, not four. Four fitted only by shrinking the glyphs
+    until the gaps between them were narrower than the digits, which reads as
+    one run-on number. XP moves onto the rank line, where it belongs anyway. */
  const done=S.done[p.id];
  const stats=[[String(p.mi).replace(/\s*mi.*$/i,''),'MI'],
               [String(p.t).replace(/\s+/g,' ').trim(),'TIME'],
-              [p.d.toUpperCase(),'GRADE'],
-              ['+'+p.xp,'XP']];
- let sx=COLX,ss=9;
- const gap=()=>Math.round(ss*5);
+              [p.d.toUpperCase(),'GRADE']];
+ let ss=11;
+ const gap=()=>Math.round(ss*6);
  const need=()=>stats.reduce((w,[v])=>w+ringW(v,ss)+gap(),-gap());
- while(ss>4&&need()>AVAIL)ss--;
- stats.forEach(([v,l])=>{statBlock(g,sx,1100,v,l,ss);sx+=ringW(v,ss)+gap();});
- /* rank, and where it came from */
- const li=lvlFor(totalXP());
- ringTxt(g,'LV '+(li+1)+'  '+LEVELS[li].n,COLX,1216,4,'#eaf2fb');
- ringTxt(g,RG.short+(done?'  '+fmtDate(done).toUpperCase():''),COLX,1262,3,'#9fb4cc');
- ringTxt(g,'SUMMITQUEST.APP',COLX,1300,4,'#f5c651');
+ while(ss>5&&need()>AVAIL)ss--;
+ let sx=COLX;
+ const statY=1060,labY=statY+7*ss+Math.round(ss*1.9),ls=Math.max(3,Math.round(ss/2.2));
+ stats.forEach(([v,l])=>{statBlock(g,sx,statY,v,l,ss);sx+=ringW(v,ss)+gap();});
+ /* rank, xp, and where it came from, stacked under whatever height the stats
+    ended up needing */
+ const li=lvlFor(totalXP()),rank='LV '+(li+1)+'  '+LEVELS[li].n;
+ const rankY=labY+7*ls+24;
+ ringTxt(g,rank,COLX,rankY,4,'#eaf2fb');
+ ringTxt(g,'+'+p.xp+' XP',COLX+ringW(rank,4)+28,rankY,4,'#f5c651');
+ ringTxt(g,RG.short+(done?'  '+fmtDate(done).toUpperCase():''),COLX,rankY+44,3,'#9fb4cc');
+ ringTxt(g,'SUMMITQUEST.APP',COLX,rankY+80,4,'#f5c651');
  return c;
 }
 /* Saving to the camera roll is the phone's job, not the page's. The share sheet
@@ -7846,7 +7861,7 @@ const TUT_PAGES=[
     to render yet. */
  function drawCardShot(){
   const c=document.getElementById('tutCardShot');if(!c)return;
-  const W2=360,H2=170;c.width=W2;c.height=H2;
+  const W2=360,H2=196;c.width=W2;c.height=H2;
   const g=c.getContext('2d');g.imageSmoothingEnabled=false;
   g.clearRect(0,0,W2,H2);
   const ring=(str,x,y,sc,col)=>{
@@ -7887,9 +7902,12 @@ const TUT_PAGES=[
    ring('SKINNY DIP FALLS',10,86,3,'#f5c651');
    const wof=(t,sc)=>t.length*6*sc-sc;
    let x=10;
-   [['1.6','MI'],['1 HR','TIME'],['EASY','GRADE'],['+10','XP']].forEach(([v,l])=>{
-    ring(v,x,112,3,'#ffffff');ring(l,x,140,2,'#f5c651');
-    x+=Math.max(wof(v,3),wof(l,2))+16;});}
+   [['1.6','MI'],['1 HR','TIME'],['EASY','GRADE']].forEach(([v,l])=>{
+    ring(v,x,112,4,'#ffffff');ring(l,x,146,2,'#f5c651');
+    x+=Math.max(wof(v,4),wof(l,2))+26;});
+   const rank='LV 4  GORGE WALKER';
+   ring(rank,10,172,2,'#eaf2fb');
+   ring('+10 XP',10+wof(rank,2)+16,172,2,'#f5c651');}
  }
  function render(){
   const p=TUT_PAGES[i];
@@ -7941,11 +7959,21 @@ function paintSplashMap(){
 (function(){
  const sp=document.getElementById('splash');if(!sp)return;
  let gone=false;
+ const onTut=e=>!!(e.target&&e.target.closest&&e.target.closest('#tutBtn'));
+ const tutOpen=()=>{const t=document.getElementById('tutorial');
+  return !!(t&&t.classList.contains('open'));};
+ const onKey=()=>{if(tutOpen())return;dismiss();};
  const dismiss=()=>{if(gone)return;gone=true;sp.style.display='none';
-  window.removeEventListener('keydown',dismiss);};
- sp.addEventListener('click',dismiss);
- sp.addEventListener('touchstart',dismiss,{passive:true});
- window.addEventListener('keydown',dismiss);
+  window.removeEventListener('keydown',onKey);};
+ /* The tutorial button lives inside the splash, and the splash dismisses on any
+    touch anywhere in it. On a phone the touchstart reached the splash before
+    the button's own click ever fired, so pressing TUTORIAL dismissed the title
+    card and dropped straight into the map. Guarding here rather than calling
+    stopPropagation on the button covers touchstart, which is the one that
+    actually got there first. */
+ sp.addEventListener('click',e=>{if(onTut(e)||tutOpen())return;dismiss();});
+ sp.addEventListener('touchstart',e=>{if(onTut(e)||tutOpen())return;dismiss();},{passive:true});
+ window.addEventListener('keydown',onKey);
  window.addEventListener('resize',()=>{if(!gone)paintSplashMap();});
 })();
 </script>
