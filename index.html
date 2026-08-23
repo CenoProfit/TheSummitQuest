@@ -2662,135 +2662,135 @@ function pickRegion(){
    scales to whatever the frame gives it. Regions are addressed by hash, which
    makes each one linkable and means switching regions is a clean reload with no
    chance of one world's state bleeding into the next. */
-/* Projection over the eastern seaboard. The aspect follows the real geography
-   (the eastern US is taller than it is wide at this latitude) rather than the
-   shape of the panel, so the continent is not stretched. */
-const WLON0=-126.4,WLON1=-66.0,WLAT0=49.8,WLAT1=24.2;
-const WTS=3,WTW=316,WTH=190;
-const wpx=l=>(l-WLON0)/(WLON1-WLON0)*WTW, wpy=l=>(WLAT0-l)/(WLAT0-WLAT1)*WTH;
-/* Atlantic seaboard, then the Gulf, then a straight western cut and back along
-   the Canadian border. Coarse on purpose: this is a signpost, not an atlas. */
-const COAST=[
- [-124.7,48.4],[-124.1,46.9],[-124.0,46.3],[-123.9,45.6],[-124.0,44.6],[-124.2,43.4],
- [-124.4,42.6],[-124.1,41.7],[-123.8,40.4],[-123.0,39.0],[-122.5,37.8],[-121.9,36.6],
- [-120.6,34.6],[-119.2,34.1],[-118.4,33.7],[-117.3,32.9],[-117.1,32.5],[-114.7,32.7],
- [-111.0,31.3],[-108.2,31.3],[-106.5,31.8],[-104.9,29.6],[-103.1,29.0],[-101.4,29.8],
- [-99.5,27.6],[-97.4,25.9],[-97.2,27.8],[-96.4,28.6],[-95.0,29.1],[-93.8,29.7],
- [-92.0,29.6],[-90.5,29.2],[-89.4,29.0],[-89.2,30.3],[-88.0,30.4],[-86.5,30.4],
- [-85.0,29.7],[-84.0,30.1],[-82.8,29.0],[-82.7,27.9],[-82.0,26.5],[-81.2,25.2],
- [-80.4,25.4],[-80.1,26.7],[-80.6,28.4],[-81.3,29.8],[-81.5,30.7],[-80.9,32.0],
- [-79.2,33.2],[-77.9,34.2],[-76.5,34.7],[-75.5,35.2],[-76.0,36.9],[-75.9,37.9],
- [-75.1,38.5],[-74.9,39.3],[-74.2,40.5],[-73.2,41.0],[-72.0,41.3],[-71.1,41.5],
- [-70.7,41.8],[-70.5,42.6],[-70.8,43.0],[-70.2,43.4],[-69.1,43.8],[-68.2,44.3],
- [-67.1,44.6],[-67.3,45.6],[-69.2,47.4],[-70.3,46.2],[-71.5,45.0],[-74.7,45.0],
- [-76.9,44.0],[-79.0,43.3],[-82.4,43.0],[-82.5,45.4],[-84.4,46.5],[-88.4,48.3],
- [-90.9,48.1],[-95.2,49.0],[-123.3,49.0],[-124.7,48.4]];
-/* Chesapeake and Delaware bays, carved out of the land mask so the mid-Atlantic
-   reads correctly instead of as solid coast */
-const WBAYS=[
- [[-76.02,37.00],[-76.30,37.60],[-76.35,38.20],[-76.50,38.70],[-76.10,39.35],[-76.40,39.20],
-  [-76.55,38.60],[-76.60,38.00],[-76.35,37.35]],
- [[-75.55,38.60],[-75.35,39.20],[-75.55,39.55],[-75.20,39.35],[-75.05,38.90],[-75.20,38.55]]];
-const GLAKES=[[-81.4,42.3,7,2.4],[-77.4,43.6,5.5,1.8],[-84.4,44.6,5.5,4.2],[-87.2,44.4,4,5.0],[-88.0,47.6,8.5,2.6],[-112.5,41.2,1.7,1.0]];
-/* Three roughly parallel Appalachian belts: the Blue Ridge in front, Valley and
-   Ridge behind it, the Allegheny Plateau behind that. Drawing them separately is
-   what gives the range its banded grain instead of one smooth hump. */
-const WRANGES=[
- {p:[[-84.3,34.6],[-83.4,35.5],[-82.3,36.3],[-81.2,37.2],[-80.0,38.2],[-78.8,39.0],[-77.5,39.9],[-76.0,40.9],[-74.6,41.9]],h:.34,w:4.0},
- {p:[[-85.5,34.4],[-84.6,35.3],[-83.6,36.2],[-82.4,37.2],[-81.2,38.2],[-80.0,39.2],[-78.6,40.2],[-77.2,41.2],[-75.8,42.0]],h:.26,w:4.4},
- {p:[[-86.6,34.9],[-85.4,36.0],[-84.0,37.4],[-82.4,38.8],[-80.8,40.2],[-79.2,41.4]],h:.13,w:4.8},
- /* northern New England highlands */
- {p:[[-73.2,43.2],[-72.9,43.9],[-72.6,44.6]],h:.24,w:3.2},
- {p:[[-71.6,43.8],[-71.3,44.3],[-71.0,44.8]],h:.28,w:3.0},
- {p:[[-74.8,43.6],[-74.2,44.1],[-73.7,44.4]],h:.26,w:4.0},
- {p:[[-74.6,42.0],[-74.2,42.3]],h:.17,w:2.8},
- /* a hint of the Ozarks at the western cut */
- {p:[[-90.3,36.2],[-90.3,37.0]],h:.12,w:3.0}];
-function wRand(seed){let a=seed;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
- t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function wNoise(w,h,rnd){const g=new Float32Array(w*h);for(let i=0;i<w*h;i++)g[i]=rnd();return{g,w,h};}
-function wSmp(N,u,v){
- const fx=u*(N.w-1),fy=v*(N.h-1);
- let x0=fx|0,y0=fy|0;if(x0<0)x0=0;if(y0<0)y0=0;
- const x1=Math.min(x0+1,N.w-1),y1=Math.min(y0+1,N.h-1);
- let tx=fx-x0,ty=fy-y0;tx=tx*tx*(3-2*tx);ty=ty*ty*(3-2*ty);
- const a=N.g[y0*N.w+x0],b=N.g[y0*N.w+x1],c=N.g[y1*N.w+x0],d=N.g[y1*N.w+x1];
- const t=a+(b-a)*tx;return t+((c+(d-c)*tx)-t)*ty;
-}
-/* State and provincial boundaries. Simplified polylines: the long straight
-   surveyed lines are exact, the river borders (Ohio, Potomac, Savannah,
-   Mississippi) are traced loosely. */
-const WBORDERS=[
- /* ── western state lines: mostly meridians and parallels ── */
- [[-124.4,42.00],[-117.03,42.00]],                     /* OR / CA */
- [[-117.03,42.00],[-114.04,41.99]],                    /* ID / NV-UT */
- [[-120.00,42.00],[-120.00,39.00]],[[-120.00,39.00],[-114.63,35.00]],   /* CA / NV */
- [[-114.63,35.00],[-114.60,34.30]],
- [[-114.05,42.00],[-114.05,37.00]],                    /* NV / UT */
- [[-114.05,37.00],[-109.05,37.00]],                    /* AZ / UT */
- [[-109.05,42.00],[-109.05,31.33]],                    /* UT-AZ / CO-NM */
- [[-109.05,41.00],[-102.05,41.00]],                    /* CO north */
- [[-102.05,41.00],[-102.05,36.99]],                    /* CO east */
- [[-109.05,36.99],[-103.00,36.99]],                    /* NM north */
- [[-103.00,36.99],[-103.00,32.00]],                    /* NM east */
- [[-111.05,45.00],[-104.05,45.00]],                    /* WY north */
- [[-104.05,45.00],[-104.05,41.00]],                    /* WY east */
- [[-111.05,45.00],[-111.05,41.00]],                    /* WY west */
- [[-116.05,49.00],[-116.05,45.60]],                    /* ID panhandle */
- [[-117.03,46.00],[-117.03,42.00]],                    /* ID / OR-WA */
- [[-124.7,46.30],[-116.9,46.00]],                      /* WA / OR */
- [[-104.05,49.00],[-104.05,45.94]],                    /* MT / ND */
- [[-104.05,45.94],[-104.05,43.00]],
- [[-102.00,43.00],[-96.44,42.49]],                     /* NE south */
- [[-102.05,40.00],[-95.31,40.00]],                     /* KS north */
- [[-102.05,37.00],[-94.62,37.00]],                     /* KS south */
- [[-100.00,36.50],[-94.43,36.50]],                     /* OK north */
- [[-106.62,32.00],[-103.00,32.00]],                    /* NM / TX */
+/* The overworld is a hand-drawn 122x88 pixel map, not generated terrain. These
+   bounds are the projection the drawing turns out to use: they were fitted by
+   matching the drawn coastline against real coordinates, and they check out
+   against the Great Lakes to within about a degree. Do not adjust them without
+   refitting — every region pin is placed through them.
 
- [[-79.48,39.72],[-75.79,39.72]],                                        /* Mason-Dixon */
- [[-79.76,42.00],[-75.36,42.00]],                                        /* PA / NY */
- [[-75.36,42.00],[-75.13,41.24],[-74.70,41.36]],                         /* Delaware R. */
- [[-80.52,42.00],[-80.52,40.64]],                                        /* PA / OH */
- [[-80.52,40.64],[-80.85,39.60],[-81.75,39.10],[-82.20,38.42]],          /* WV / OH */
- [[-82.20,38.42],[-82.60,38.42],[-83.00,38.70],[-83.95,38.78],[-84.82,39.10]], /* KY / OH */
- [[-84.82,39.10],[-84.82,41.70]],                                        /* OH / IN */
- [[-84.82,39.10],[-85.90,38.28],[-86.80,38.00],[-87.60,37.90],[-88.03,37.80],[-89.17,37.07]], /* Ohio R. */
- [[-89.17,37.07],[-89.50,36.50],[-89.60,36.00],[-90.30,35.10]],          /* Mississippi R. */
- [[-90.30,36.50],[-89.60,36.50],[-88.05,36.50]],                         /* KY / TN west */
- [[-88.05,36.50],[-84.78,36.60],[-83.68,36.60],[-81.97,36.60]],          /* KY / TN */
- [[-81.97,36.60],[-81.68,36.34],[-82.60,35.98],[-83.68,35.56],[-84.32,34.99]], /* TN / VA / NC */
- [[-88.47,34.99],[-84.32,34.99]],                                        /* TN south */
- [[-83.68,36.55],[-75.87,36.55]],                                        /* VA / NC */
- [[-82.20,38.42],[-81.65,37.20],[-80.90,37.30],[-80.30,37.50],[-79.50,38.05],[-78.40,39.15],[-77.72,39.32]], /* WV / VA */
- [[-79.48,39.72],[-78.35,39.32],[-77.72,39.32],[-77.25,39.00],[-77.04,38.79],[-76.55,38.30]], /* Potomac */
- [[-75.79,39.72],[-75.79,38.45],[-75.05,38.45]],                         /* DE / MD */
- [[-83.11,35.00],[-82.35,35.20],[-81.03,35.16],[-79.67,34.80],[-78.55,33.87]], /* NC / SC */
- [[-83.35,34.99],[-82.90,34.49],[-82.25,34.00],[-81.50,33.10],[-80.90,32.10]], /* Savannah R. */
- [[-85.61,34.99],[-85.35,33.20],[-85.05,32.10],[-84.90,31.00],[-85.00,30.62]], /* GA / AL */
- [[-85.00,30.62],[-82.05,30.62],[-81.44,30.71]],                         /* GA / FL */
- [[-88.47,34.99],[-88.47,30.35]],                                        /* AL / MS */
- [[-74.70,41.36],[-73.90,40.99],[-73.90,40.50]],                         /* NY / NJ */
- [[-73.35,45.01],[-73.35,42.05]],                                        /* NY / VT-MA */
- [[-73.49,42.05],[-71.80,42.05]],                                        /* MA / CT */
- [[-71.80,42.05],[-71.38,41.80],[-71.38,41.40]],                         /* MA / RI */
- [[-72.55,45.01],[-72.40,43.60],[-72.20,42.73]],                         /* VT / NH */
- [[-71.08,45.30],[-70.95,44.20],[-70.80,43.10]],                         /* NH / ME */
- [[-74.72,45.01],[-73.35,45.01]],                                        /* NY / Canada */
- [[-71.50,45.10],[-70.30,45.40]]];                                       /* ME / Canada */
-const WSTATES=[["CALIF.",-119.8,37.2,0],["ORE.",-120.6,43.9,0],["WASH.",-120.5,47.4,0],
+   WTS is the blit scale. It has to stay a whole number or the drawn pixels come
+   out uneven. */
+const WLON0=-128.438,WLON1=-66.172,WLAT0=52.703,WLAT1=21.781;
+const WTS=6,WTW=122,WTH=88;
+const wpx=l=>(l-WLON0)/(WLON1-WLON0)*WTW, wpy=l=>(WLAT0-l)/(WLAT0-WLAT1)*WTH;
+/* The map itself: a palette plus one character per pixel, decoded straight
+   into an ImageData. Kept inline and synchronous because the launcher paints
+   the world on its first frame and an <img> would not have loaded yet. */
+const WMAP={
+ pal:["#0363ad", "#299fed", "#4a85b7", "#7f855b", "#e7be7c", "#deaf73", "#bd965d", "#f2e39b", "#856841", "#d2d592", "#a7c784", "#a3d072", "#5192a0", "#6cb75c", "#81b964", "#3a4b3b", "#071113", "#9a6c41", "#5d4b30", "#150401", "#277582", "#07305f", "#0772bb", "#08243b", "#87aa8a", "#ab8558", "#f3d67d", "#ffecce", "#311406", "#64a976", "#114982", "#2283c8", "#362c18", "#456b4c", "#5bace1", "#686c53", "#81532b", "#014a9d", "#023582"],
+ chars:"0123456789abcdefghijklmnopqrstuvwxyzABC",
+ rows:[
+  "000000011123456657777745685497777777777777779a7977bbbbbbbbbcbbbbdddddddddddddddddddd311112dddddbbbbbbb977777bb7777bbbbeeee",
+  "000000011fggg956657777746h443ij777777777777777777bbbbbbbbbbcbbbbbbbddddddddddddddddddkl111gddddbbbbbb977779bbb77bbbbddegg2",
+  "0000000m1n9oga945p5q77q456rijjjs7777777777977779bbbbbbbbbb22bbbbbbbbbbdddddddddddddddgtg11uoddddbbbbb9977777bb7bbbb3f2211v",
+  "0000000011ga9og9456q4q4746r3333w777777777779479bbbb77bbbbb222bbbbbbbbbbbbdddddddddddeg21111gdddddbbbbbb77b777b9bbxg11otogk",
+  "00000000v1239ona455qq777777ss83r77777777777777b77777bbbbbb222bbbbbbbbbbbbbbdddddddddddg1111gdddddbbbbb77b977b79bbg111ngoof",
+  "00000000mv1u972nb755447whppp38w47777777777777777777bbbbbbba22abbbbbbbbbbbbbbdddddddddddf111fddddbbbbbb97bb77bbbbg11vv11211",
+  "000000000m11ga7ln99644wpppp3p8j477777777777777777777b77bbbbt2cbbbbbbbbbbbbbbbddddddddddddgtxddddbbbbbbbbbb99bbbgu1geanl111",
+  "000000000mv1ya9xoa3445rppz833iw44777777777777b7777777b7bbbbbo2abbbbbbbbbbbbbbddddddddddddddddddbbbbbbbbbbbbbbee22gebeen111",
+  "0000000000v112x72oas85rzwj3wiw46477777777777777747777779bbbbbccbbbbbbbbbbbbbbbdddddddddddddddddbbbbbbbbddb97bblk3bbeeg1111",
+  "0000000000mv1og22ob8744zwr5sww46477777777777777777777b779bbbbccbbbbbbbbbbbbbbbbddddddddddddddddbbbbbbbddddb7bfcebbfg2ul111",
+  "0000000000mm13eegeawz77wwr6w3s464777777777777777777779979bbbbcobbbbbbbbbbbbabbbbdddddddddbbbbbbbbbbbbb9ddddddgebbbbbeou111",
+  "0000000000mm1xeegeaag4737444746pwwwr774444777777777779bbbbbbbbbbbbbbbbbbbbbccbbbbddbbddbbbbbbbbbbbbbbb9bbbb93gdbbbbbddnvu1",
+  "0000000000mm1xexxee3874447i545q55474997iii777777777777999bbbbbbbbbbbbbbbbbbccbbbbbbbbbbbbbbbbbbbbbbbbbbbbb79gogwwobbddenck",
+  "0000000000mv1feeeb99777777w6455455777777744444www777777777bbbbbbfbbbbbbbbbbbabbbbbbbbbbbbbbbbbbbbbbbbbbbbb79goa9bxbedddegg",
+  "0000000000v11feebji99777774444q45577777qqqq7777774499isswwwwffffa3bbbbbbbbbbk222bbbbbbbbbbbbbbbbbbbbbbbddbbfdz99beeddddeee",
+  "000000000mv1uedb99g9bbb77474i544557777q5q7777777777777bbbbbb3bbbbogwwbbbbbbcvvvv2bbbbbbbbbbbbbbbbbbbbbbbddddbx99beddddegog",
+  "000000000mv1geea7jg7bbbb4i44544455q774qqq47997999777779bbbbb3bbbbbbbb3awgacvvvvvv2tbbbbbbbbbbbbbbbbbbbbddddbaxabdd3ddog2oe",
+  "0000000000v1beee77a99bb94w445A54454q44q44777777777797779bbbbbbbbbbbbbbbaagvvvvvvvvvtbbbbbbbbbbbbbbedbbdddddba3bddddgg11tde",
+  "000000000mvubeeaj7aaa77wwwqq55445555554q4777777337777a777bbbbbbbbbbbbbbbnvvvngvvvvv2bbbbbbddbbdbbbddbbdddddba3bddddo11ndeg",
+  "000000000v1gee99wg777q44445q5p65h5p4444477777777377777977bbbbbbbbbbbbbblvvvga2vvv222bbbbbdddddbbddddddddddbew9bdddx111gdt2",
+  "0000000001vadb987774444q55555p5h66644p4777777777377777a779bbbbbbbbbbbbfgn0oaaalllaagfooottdebbbbbdddddddgggw9bbddgn1112tg1",
+  "00000000v1gedb9i7744444q4h5hp55586545544477777773777777779bbbbbbbbbbbzbbaa999aaaaaaaogcccv2cbbbbbbddd33a9ebaafedw111111211",
+  "00000000vleed944j4444447775p5h5854j3s66447747777377iiiiizzz33xbbbbbbbxbbbbb99zawgvvng2vvvvv2cdbbbbddfb99bx93bben1111111111",
+  "0000000m1xbbb434p44444q7775ph66i66p455AAA4444q779777777979b9axbbbbbbxbbbbbb9baa2vvg3ba2vvvc22ddbeddfbb99bx93beo11111111111",
+  "0000000m1xbb77r444444477775phh6ph66w8j545A455888977777797bb77xbbbbbbbbbbbbbbbbglvlgbbbgvvvbbbeeedtk2eb77939zeeg1111111111v",
+  "0000000m1394773i444444447755hhh6555s3i6556h44447777777a97bb777zbbbbbbbbbbbbbb3bvvobbbegvvvbbbbb22vv2eb99bb9w33g1111111111m",
+  "0000000m194655j44444644i5745555544p54jj555h44444777777997bb777zbbbbbbzbbbbbbbbfvvabbebugvvbbbek2klleeeeebb3abee111111111vm",
+  "0000000v1954rij45655544i44qq44446686j66555p444444477777a99b977z9bbbbbbfbbbbbbbfvvbbbbbbbgvebbd2geeeeb9999eobeeegn1111111v0",
+  "B000000vg544j7555456844i4544qq46668p555jpp54444444777777a9bb7az9bbbbbba3bbbbbblvvbbbbbbbocbbedcgbbbb9999beoooog2v1111111mB",
+  "CC0000m1r5465445555554p6ii555666668p6www56544444444777777bbbb3z3333bbbbabbbbbblvvobbbbbbbbbkk2gbbba3ziibddoeog1111111111Bu",
+  "CCCB00mv94454445545q5555h665iii446p8663585ppp444iiiAA83333bbb3bbbbbbbbbbbbbbbbnvvgbbbbbafbkvvg3ff9aabbbwedwg2l1111111110BC",
+  "CCBBB0mvg49egjw554444565ph55i444hip6665545pppp444444q777777eezbbbbbbbbbbbxxxxxgvvgbbbbbg22vuxbbbbb939bb3tx3gv11111111m00uC",
+  "lCBBBBmvz49d94j4A4454555555544445hph665pj46ppp44444444777777bbzbbbbbbbbbbzbbbbxmvfbbbbbn2vgebbbbbb7jr9bxtglv1111111v0000BC",
+  "lCBBBBmv359d99sji44455555555454oA88866665658pp54444444777777bbabbbbbbbbbbbbbbbbggbbbxbbbaabbbbbbbbzo9be3tt111111mmm0000BCC",
+  "lCCBBB0v3b9dej86h54455556p5p555ophAAwAA556hppp554444447777779bbbbbbbbbbbbxbbbbbebbbbbbbbbbbbbfbbbgi79ed3tt11111m000000BBCl",
+  "lCCBBB0vneddd4ij55556656h55i5555hhhppp55ps45pp6i88844q777779bbbxbbbbbbbbxbbbbbbebbbbbbbbbbbbbxbb9s73bwftto1111m000000BBBCl",
+  "lCCBBB0mvoddd9w5p555pp6p555i55555h55555555j5pp44444777777779bbbfbbbbbbbbfbbbbbb3bbbbbbbbbbbbbxbb9w9afttnnn111m00000BBBBBCl",
+  "lCCBBBBm1uadd55ri555p5pp5pp45555hhp5555p55536644444777777779bbbxaababbbobbbbbbbxbbbbbfbbbbbbbbb6g993e3etl111mm00000BBBBBCl",
+  "lCCBBBBm1lbdd74846555p55hp545556h55666pph5ji6644444www777777bbbabbbbbbbabbbbbbbxbbbbbxbbbbbbfb9g9g9eet3ef111m00000BBBBBCCl",
+  "lCBBBBBmvlbbdd54w48555555655558p6556655Ah666866544p4477777bbbbbbfbbbbbbbwbbbbbbxbbbbbxbbbbbf99jjr9edfouef11v00000BBBBBBCCl",
+  "lCCBBBBmmvwbdd454445555555555ppp5445ip568hh6466644844q7779bbbbbbxbbbbbbbeebbbbbxbbbbbfzzxxx99779r9dddokgl1100000BBBBBBBCCl",
+  "CCCBBBBBmvbbbdd94sji45555555hphp5655i6h68h6p666644844q7779bbbbbbbfbbbbbbb3xbbbbxbbbabbbbba99933s4dddddgn11v0000BBBBBBBBCCl",
+  "lCCBBBBBmvgb9deb55w554555585hph55466i6hAhh6666664484477777bbbbbbbfbbbbbbxb3bbbbxbbbzbbbbbbz9jj479bddddnv11v0000BBBBBBBBBCl",
+  "lCCBBBBBmvnbbddb4g66h444458555554555i6hhhhph6p4444844477779bbbbbbfbbbbbbbbzbbbb33xbbbbbbbb39jjg4bbdddddn11v0000BBBBBBBBull",
+  "lCCBBBBBmm1o9eeb64j74h44q54445ApA885i6phhhh6h664448qq777777bbbbbbfbbbbbbbb3fbbfbbbbbbbbbbb999379bedxwwxfy1m0000BBBBBBBCCCl",
+  "lCCCBBBBmm1g97bb44847454887656555555hhhphh868855448qq77777bbbbbbbfbbbbbbbbbaoxxbbbbbbbbbb34j7j8ffadddddfg11000BBBBBBBCCCCl",
+  "CCCCBBBBBm1g9774544745w444446555555555555hh58888AAi8h3333bbbbbbbbfbbbbbbbdddxbbbbbbffxii399g79bbbedddddtn11000BBBBBBCCCCCl",
+  "CCCCCBBBBmm1nx5qqq4433467q45555555566666hp668666844447777bbbbbbbbfbbbbbbddddxxz3bbbbbb9b9rg999bbbddddddn11100BBBBBBCCCCCCl",
+  "CCCCBBBBB0mv0vo34qq633467q555pp555566666hp68p664855544i77bbbbbbbb3aaoeeoddfe3edddbbbbbb93r939bbbdddddddg11m00BBBBBCCCCCCCl",
+  "CCCCBBBBBBmv11vnee446399674555p5555A666655h86644644477i777bbbbbbbb999beddddfdddddbbb9bb79g49a33bddddddn11100BBBBBBCCCCCCCl",
+  "CBBBBBBBBB0mm111ge7q4j79w7745555555A666646666444544q77i777bbbbbbbb99bbbddddxdddbbbb99b5wg499bbbxxxdddg111v0BBBBBBCCCCCCCCl",
+  "CBBBBBBBBB0m1m11vab7397bgb7q45565558666446664444544q77i777bbbbbbbbddddddddttddd33333399gg9bbbdddddxdt1111m0BBBBuCCCCCCCCCl",
+  "CBBBBBBBBBBmm11mvg97e9bgbb977qq55658666646664444444477i779bbbbbbbbxbbeddddxddddxbbbb9939gbw3eddddddn1111mm0BBBuCCCCCCCCCCl",
+  "CBBBBBBBBBBBmv1vvga7eebgbbbbbbq446Ap6666666644444447773wbbbbbbbbbbbbdddddddddddxbbbbbx9j9bbbfdddddt1111mmm0BBBCCCCCCCCCCCl",
+  "CBBBBBBBBBBBmm1mmv9iw3wfeeebbb4q445pp6656566444444q777bbbwfbbbbddedddddddfdddddxdddbbbbbbbdddddddd2111mmmm0BBBCCCCCCCCCCCl",
+  "CBBBBBBBBBBBmmmmmv779bxebbbbqqq454p6pp5555h64444447777bbbbb3fxexx3ddddddd3dddddxddbdbbbbbddddddddk1111mmm00BBBCCCCCCCCCCCl",
+  "CBBBBBBBBBBBBmmmmv3b9eeegxb7qqq46486pp5545h64444447779bbbbbbbbddddtdddddd3ddddddddddbbdbddddddddx111vmmm000BBBCCCCCCCCCCCl",
+  "CCCBBBBBBBBBBBmmmvna9dffdbg477q44485445445h6444447777bbbbbbbbddddddffffff3dddddddddddddddddddddgv11vmmmm000BBBCCCCCCCCCCCl",
+  "CCCCCBBBBBBBBBmmmmva79uvgeb7377q44p44444444644444777779bbbxbdddddddddddddfdddddddddddddddddddddg111mmmm000BBBBCCCCCCCCCCCl",
+  "CCCCCCBBBBBBBBB0mmva7blvvge9735544p4h5558AA88444777777777bbddddddddddddddndddddddddddddddddddddy11vmmmm00BBBBBBCCCCCCCCCCl",
+  "CCCCCCBBBBBBBBBB0mvgbbnv1vbe7774448ih444w44447777777799bbbbbdddddddfddddddddddddddddddddddddddo111mmmmm00BBBBBBBCCCCCCCCCl",
+  "CCCCCCCBBBBBBBBBmmmgb9lv1vobb774445444444w444777777777bbbbbbdddddddfddddfddddddddxxxffftddddddoy11mmmmmm0BCCCBBBBCCCCCCCCl",
+  "CCCCCCCBBBBBBBBBBmmyzb3v1vnb74744q54444447w54477777777777bbbdddddddtddddffffxddddwdddddffffffxen11mmmmmmmmCCCBBBBBCCCCCCCl",
+  "lCCCCCCBBBBBB2BBBmmmva9g0vkb997774564444444z444q7777777bbbbbdddddddtddddddddnd3xgennfedddtdddddn11mmmmmmmmCCCCBBBBBCCCCCCl",
+  "lCCCCCBBBBBBBBBBBBmm1n99vvowb779745p5444444w4444477777777bbddddddddwdddddddnng111l111ugtg1ndddddl1mmmmmmmmCCCCBBBBBCCCCCCl",
+  "lCCCCCBBBBBBBBBBBBBv11f9wvffbb97965A6644444w4444jsw77779bbbddddddddn3dddddddtc111111111111mnddddg11mmmmmmmCCCCBBBBBCCCCCCl",
+  "lCCCCCCBBBBBBBBBBBBuvvnaanvvee77bq44p6644454gi47777g99bbbbdddddddflv1ynngtdxgc1111mmm11111112dddd21mmmmmmmCCCCCBBBBCCCCCCl",
+  "lCCCCCCCBBBBBBBBBBBvnn3a9gvvgeebbq55p664445446pw477wabddddddddddtl11111112gnyn111mmmmm1111112ddddg1mmmmmmm0CCCCBBBCCCCCCCl",
+  "lCCCCCCCCCBBBBBBBBB0uabb9ovmvnee9q5ph666444444475777gdddddddddddl11111111111111vmmmmmmm111112dddd3vmmmmmmm0CCCCBBBCCCCCCCl",
+  "lCBCCCCCCCCCBBBBBBBBm2a9e9x0mvgddq54A664444444475577fddddddddxy11111111111111vmvmmmmmmmm11111gddddg1m1111m0CCCBBBBCCCCCCCl",
+  "lCCCCCCCCCCCBBBBBBBBBvkxb93mmmuodbq56666444444444477bgddddddg111111111111111mmmmmmmBBBmmv1111gdddddmv11v11kCCCBBBCCCCCCCCl",
+  "lCCCCCCCCCCCBBBBBBBBBv11x992m01leeqq566644444444447bbaeddddd2111111111mmm1mmmmmmmmmBBBBmm11111xddddgm1kk11kCCCuBuCCCCCCCCl",
+  "lCCCCCCCCCCBBBBBBBBBB0v11l9bv011gebq4886644444446479bbwddddg1111mmmmmmmmmmmmmmmmmmmBBBBBm11111nodddgmmvvm1kCCCuBCCCCCCCCCl",
+  "CCCCCCCCCCCBBBBBBBBBBBm11vxbvv012ee945AA66444444q4q79beddddg111mm00000000mm00mmmmm0BBBBBBv11111ldddgmm111mmmBCCCCCCCCCCCCl",
+  "CCCCCCCCCCCCBBBBBBBBBBBm1v3bg00vneee95pA6664444455447bdggdd3111mm00000000mBBBBB0mBBBBBBBBm111111yfdvmm11l1110uCCCCCCCCCCCl",
+  "CCCCCCCCCCCCBBBBBBBBBBB01v3bgummyneebq5A6666544445477bbdagg3111mm0BBBB000BBBBBBBBBBBBBBBBm1111111ggvmm11k0110yCuC0CCCCCCCl",
+  "CCCCCCCCCCCCBBBBBBBBBBB01lee9lmmvyneeq6A6666644444477bbddddg111mmBBBBBBBBBBBBBBBBBBBBBBBBm111111111vmm11ckm10000u0CCCCCCCl",
+  "CCCCCCCCCCCCCCBBBBBBBBBBm1lebl1mmvyxeb46A6666644656667bdddde11vmBBBBBBBBBBBBBBBBBBBBBBBBBB11111111vmmm111l2m1v0mmCCCCCCCCl",
+  "CCCCCCCCCCCCCCCBBBBBBBBBBv11o931mmvygeb4p8666666666665bbddd111mmBBBBBBBBBBBBBBBBmmmmBBBBBB0mv1111mmv1v1111mm1111umBB000CCl",
+  "CCCCCCCCCCCCCCCCBBBBBBBBBBv1na9cmmv12beq5h6666666666654bbdx11vmmBBBBBBBBBBBBBBBBmmmmmBBBBmmmmmmmmmmmvv111111111m000v1B00vu",
+  "CCCCCCCCCCCCCCCCCBBBBBBBBB011uagmmmv1kdb5hh666666666657eben11vmmBBBBBBBBBBBBBBB1vvmmmmBBBmmmmmmm0llllmmv111111m000v10yv0vu",
+  "CCCCCCCCCCCCCCCCCBBBBBBBBBB0vvflm0mmv1ke7php6666666665peben11mmmBBBBBBBBBBBBBB11111mmm0mmmmmvlnotdddtf000Bvvvvv10000000111",
+  "lCCCCCCCCCCCCCCCCCBBBBBBBBBBmmmm0mmmvv1xb45AA6666666654bben11mmm0BBBBBBBBBBmm1111111mmmmmmmvxtongdddddttttn000000000Bl2B11",
+  "lCCCCCCCCCCCCCCCCBBBBBBBBBBBB000mmmmmm11e656A6A66666654bben11mmm0BBBBBBBBBmm111111111mmmmvvoonv11nnnnddddddon0000000kkBBBB",
+  "lCCCCCCCCCCCCCCCCCBBBBBBBBBBBBB0mmmmmm11345666666666449dddn11mmm0BBBBBBBvv111111111111mmmvn32vny1111vvvvldddddtgku00BBBBBB",
+  "lCCCCCCCCCCCCCCCCCBBBBBBBBBBBB0mmmmmmm11te4q66666666549dddg11mmmmBBBBBB111111111111111vmm0vBBBnkBBBBBB111kfxdddddtol00lnnn",
+  "lCCCCCCCCCCCCCCCCCBBBBBBBBBBBB0mmmmmBBm1ne7466666666647dddt11mmmmBBB000111111111unnnk1vmBCCCCBBCuBBBBBBB0v11xbaaagn20lo999",
+  "lCCCCCCCCCCCCCCCCCBBBBBBBBBBBu000000BuB1ne7q46666666hh49dddg11mmm0B0m00111111l33tttd31m0CCCCCCCCCuBB0000001ffguv22uuB00ga9"]};
+const WSTATES=[["CALIF.",-118.8,37.0,0],["ORE.",-120.4,43.8,0],["WASH.",-119.9,47.3,0],
  ["NEV.",-117.0,39.4,1],["IDAHO",-114.6,44.4,1],["MONT.",-109.6,47.0,0],
  ["WYO.",-107.6,43.0,1],["UTAH",-111.6,39.3,1],["COLO.",-105.6,39.0,0],
  ["ARIZ.",-111.6,34.3,1],["N.M.",-106.1,34.4,1],["TEXAS",-99.4,31.4,0],
  ["N.D.",-100.5,47.4,1],["S.D.",-100.3,44.4,1],["NEB.",-99.7,41.5,1],
  ["KAN.",-98.4,38.5,1],["OKLA.",-97.5,35.5,1],["MINN.",-94.3,46.4,1],
  ["IOWA",-93.5,42.1,1],["MO.",-92.5,38.4,1],["ARK.",-92.4,34.8,1],
- ["LA.",-92.3,31.1,1],["WIS.",-89.9,44.6,1],
- ["MAINE",-69.4,44.9,0],["N.H.",-71.6,43.6,1],["VT",-72.7,43.9,1],
- ["MASS",-72.0,42.4,1],["CONN",-72.7,41.6,1],["N.Y.",-75.4,42.9,0],["PA",-77.7,41.0,0],
- ["N.J.",-74.6,40.1,1],["DEL",-75.4,38.9,1],["MD",-76.9,39.3,1],["W.VA",-80.6,38.8,0],
- ["VA",-78.6,37.6,0],["N.C.",-79.4,35.6,0],["S.C.",-81.0,34.0,0],["GA",-83.4,32.7,0],
- ["FLA",-81.8,28.6,0],["ALA",-86.6,32.6,0],["MISS",-89.4,32.6,0],["TENN",-86.2,35.8,0],
- ["KY",-85.2,37.6,0],["OHIO",-82.8,40.3,0],["IND",-86.2,39.6,1],["ILL",-89.2,39.6,1]];
+ ["LA.",-92.3,31.1,1],["WIS.",-89.9,44.6,1],["MICH.",-84.3,43.7,1],
+ ["MAINE",-69.8,45.6,0],["N.H.",-71.4,43.8,1],["VT",-72.7,44.4,1],
+ ["MASS",-72.0,42.5,1],["CONN",-73.1,41.5,1],["N.Y.",-75.6,43.0,0],["PA",-77.7,41.0,0],
+ ["N.J.",-74.3,40.3,1],["DEL",-75.1,38.7,1],["MD",-77.4,39.3,1],["W.VA",-80.7,38.9,0],
+ ["VA",-78.4,37.5,0],["N.C.",-79.5,35.5,0],["S.C.",-81.0,34.0,0],["GA",-83.4,32.7,0],
+ ["FLA",-81.1,27.9,0],["ALA",-86.6,32.6,0],["MISS",-89.5,32.6,0],["TENN",-86.2,35.9,0],
+ ["KY",-85.2,37.5,0],["OHIO",-82.9,40.3,0],["IND",-86.3,39.6,1],["ILL",-89.3,39.7,1]];
+/* Open water, and the two neighbours the drawing includes: unlabelled they read
+   as unexplained land rather than as Canada and Mexico. Left-aligned, not
+   centred, because each one is placed against the space it has to fit in. */
+const WSEAS=[
+ ["PACIFIC OCEAN",-126.3,25.5,"rgba(180,220,245,.66)"],
+ ["ATLANTIC OCEAN",-73.2,36.6,"rgba(180,220,245,.66)"],
+ ["GULF OF MEXICO",-87.6,27.6,"rgba(180,220,245,.62)"],
+ ["CANADA",-103.0,51.6,"rgba(250,244,224,.54)"],
+ ["MEXICO",-104.0,24.4,"rgba(250,244,224,.54)"]];
 /* A compact 5x7 subset, enough for state abbreviations */
 const LFONT={
 A:"01110|10001|10001|11111|10001|10001|10001",B:"11110|10001|11110|10001|10001|10001|11110",
@@ -2813,10 +2813,12 @@ function wtxt(g,str,x,y,col,sc){
   if(ch===" "){cx+=4*sc;continue;}
   const rows=(LFONT[ch]||"").split("|");
   if(!LFONT[ch]){cx+=4*sc;continue;}
-  rows.forEach((r,ry)=>{for(let rx=0;rx<r.length;rx++){
-   if(r[rx]==="1"){
-    g.fillStyle="rgba(0,0,0,.6)";g.fillRect(x===cx?cx+sc:cx+sc,y+ry*sc+sc,sc,sc);
-    g.fillStyle=col;g.fillRect(cx+rx*sc,y+ry*sc,sc,sc);}}});
+  g.fillStyle="rgba(0,0,0,.66)";
+  rows.forEach((r,ry)=>{for(let rx=0;rx<r.length;rx++)
+   if(r[rx]==="1")g.fillRect(cx+rx*sc+sc,y+ry*sc+sc,sc,sc);});
+  g.fillStyle=col;
+  rows.forEach((r,ry)=>{for(let rx=0;rx<r.length;rx++)
+   if(r[rx]==="1")g.fillRect(cx+rx*sc,y+ry*sc,sc,sc);});
   cx+=(rows[0].length+1)*sc;}
 }
 function wtw(str,sc){sc=sc||1;let w=0;
@@ -2825,152 +2827,41 @@ function wtw(str,sc){sc=sc||1;let w=0;
   w+=(LFONT[ch].split("|")[0].length+1)*sc;}
  return w-sc;}
 
-/* ── terrain is expensive, so it is built once into an offscreen canvas and
-      blitted on every repaint; only the pins are redrawn on hover ── */
-let WCACHE=null;
+/* ── the drawing is decoded once into an offscreen canvas and blitted on every
+      repaint; only the pins are redrawn on hover ── */
+let WCACHE=null,WART=null;
+/* Decode the palette-and-characters map into a 1:1 canvas. Synchronous on
+   purpose: the launcher paints the world on its first frame, and an <img> or a
+   data URI would still be loading. */
+function buildWorldArt(){
+ if(WART)return WART;
+ const c=document.createElement('canvas');
+ c.width=WTW;c.height=WTH;
+ const g=c.getContext('2d');
+ const img=g.createImageData(WTW,WTH),d=img.data;
+ const look={};
+ WMAP.chars.split("").forEach((ch,i)=>{const h=WMAP.pal[i];
+  look[ch]=[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];});
+ for(let y=0;y<WTH;y++){const row=WMAP.rows[y];
+  for(let x=0;x<WTW;x++){const p=look[row[x]],i=(y*WTW+x)*4;
+   d[i]=p[0];d[i+1]=p[1];d[i+2]=p[2];d[i+3]=255;}}
+ g.putImageData(img,0,0);
+ WART=c;return c;
+}
+/* Labels are drawn over the blit rather than into the art, at label resolution
+   rather than art resolution: a 5x7 glyph is wider than Colorado on a 122px
+   map, so they only work once the art has been scaled up. */
 function buildWorldTerrain(){
  const c=document.createElement('canvas');
  c.width=WTW*WTS;c.height=WTH*WTS;
  const g=c.getContext('2d');
- const rnd=wRand(70141);
- const N1=wNoise(9,10,rnd),N2=wNoise(19,21,rnd),N3=wNoise(40,44,rnd),
-       N4=wNoise(82,88,rnd),NB=wNoise(13,15,rnd),NF=wNoise(26,28,rnd),
-       NR=wNoise(150,162,rnd);   /* fine grain, for rock texture on the ridges */
-
- /* ── ocean ── */
- g.fillStyle="#071426";g.fillRect(0,0,c.width,c.height);
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  const n=wSmp(N4,x/WTW,y/WTH);
-  if(n>.72){g.fillStyle="#0a1c33";g.fillRect(x*WTS,y*WTS,WTS,WTS);}
-  else if(n<.30){g.fillStyle="#051020";g.fillRect(x*WTS,y*WTS,WTS,WTS);}}
-
- /* ── land mask ── */
- const poly=COAST.map(([lo,la])=>[wpx(lo),wpy(la)]);
- const inPoly=(pts,x,y)=>{let inside=false;
-  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
-   const[xi,yi]=pts[i],[xj,yj]=pts[j];
-   if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;}
-  return inside;};
- const bays=WBAYS.map(b=>b.map(([lo,la])=>[wpx(lo),wpy(la)]));
- const land=new Uint8Array(WTW*WTH);
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  if(!inPoly(poly,x+.5,y+.5))continue;
-  let ok=1;
-  for(const[lo,la,rw,rh]of GLAKES){
-   const dx=(x-wpx(lo))/rw,dy=(y-wpy(la))/rh;
-   if(dx*dx+dy*dy<=1){ok=0;break;}}
-  if(ok)for(const b of bays)if(inPoly(b,x+.5,y+.5)){ok=0;break;}
-  land[y*WTW+x]=ok;}
-
- /* ── distance from the sea, for the coastal plain ── */
- const dist=new Int16Array(WTW*WTH).fill(-1);
- const q=[];
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  const i=y*WTW+x;
-  if(land[i])continue;
-  dist[i]=0;q.push(i);}
- for(let qi=0;qi<q.length;qi++){
-  const i=q[qi],x=i%WTW,y=(i/WTW)|0;
-  for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
-   const nx=x+dx,ny=y+dy;
-   if(nx<0||nx>=WTW||ny<0||ny>=WTH)continue;
-   const j=ny*WTW+nx;
-   if(dist[j]<0){dist[j]=dist[i]+1;q.push(j);}}}
-
- /* ── elevation ── */
- const elev=new Float32Array(WTW*WTH);
- const belts=WRANGES.map(R=>{
-  const pts=[];
-  for(let i=0;i<R.p.length-1;i++){
-   const x0=wpx(R.p[i][0]),y0=wpy(R.p[i][1]);
-   const x1=wpx(R.p[i+1][0]),y1=wpy(R.p[i+1][1]);
-   const steps=Math.max(2,Math.hypot(x1-x0,y1-y0)|0);
-   for(let s=0;s<=steps;s++)pts.push([x0+(x1-x0)*s/steps,y0+(y1-y0)*s/steps]);}
-  return{pts,h:R.h,w:R.w};});
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  const i=y*WTW+x;
-  if(!land[i])continue;
-  const u=x/WTW,v=y/WTH;
-  let e=.10+wSmp(N1,u,v)*.15+wSmp(N2,u,v)*.10+wSmp(N3,u,v)*.06+wSmp(N4,u,v)*.035;
-  /* The ranges no longer raise the ground. They used to add a belt of
-     elevation along each crest, which the colour ramp then turned into a grey
-     streak across the map; the streak is gone with them. WRANGES and the belt
-     maths are left in place for whatever wants them next. */
-  /* coastal plain: flatten and drop the last dozen tiles before the sea */
-  const dc=dist[i];
-  if(dc>=0&&dc<14)e-=(1-dc/14)*.13;
-  elev[i]=e;}
-
- /* ── colour ──
-    Two axes: elevation decides how grey and bright the ground gets, and a
-    low-frequency band decides green forest against beige open country, so the
-    interior breaks up into patches instead of reading as one flat fill. */
- const GREEN=["#1b3a1f","#204526","#26512b","#2d5d31","#356937","#3e763e","#488246","#548f4f"];
- const BEIGE=["#3f4526","#4c522c","#5a6033","#6a6f3c","#7b7f48","#8d9055","#9fa065","#b0af76"];
- const GREY =["#5d5b4e","#6b6859","#7a7666","#8a8574","#9a9483","#aaa392","#bcb4a3","#cfc7b6"];
- const SANDY=["#8a8058","#9a8f66","#a89c74","#b6aa84"];
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  const i=y*WTW+x;
-  if(!land[i])continue;
-  const u=x/WTW,v=y/WTH;
-  const e=elev[i],n=wSmp(N4,u,v),band=wSmp(NB,u,v);
-  let col;
-  if(e>.40){
-   /* High ground is wooded upland, a shade darker than the lowland forest.
-      The range itself is drawn as peaks over the top, further down, rather
-      than coloured in: a grey ramp on its own only ever read as a smear. */
-   const t=Math.min(1,(e-.40)/.28);
-   col=GREEN[Math.max(0,Math.min(4,2+((t*2+n*1.1)|0)))];
-  }else{
-   const t=Math.min(1,Math.max(0,e/.40));
-   const idx=Math.min(7,(t*7.4+n*1.4)|0);
-   /* The band decides green against open country, but longitude decides more:
-      east of the hundredth meridian is forest and farmland, west of it is
-      plains, basin and desert. Without this the Mojave came out as woodland. */
-   const lonHere=WLON0+u*(WLON1-WLON0);
-   const arid=Math.max(0,Math.min(1,(-100.0-lonHere)/9.5));
-   const dry=band*.60+n*.20+arid*.62;
-   col=(dry>.60)?BEIGE[idx]:GREEN[idx];
-   /* the true desert southwest goes to bare ground rather than dry grass */
-   if(arid>.72&&e<.34&&band*.5+n*.5>.34)col=SANDY[Math.min(SANDY.length-1,(idx*SANDY.length/8)|0)];
-  }
-  /* the immediate shore is sand, not forest */
-  const dc=dist[i];
-  if(dc>=0&&dc<=2&&e<.30)col=SANDY[Math.min(SANDY.length-1,(dc+(n*1.6|0)))];
-  g.fillStyle=col;g.fillRect(x*WTS,y*WTS,WTS,WTS);}
-
-
- /* ── state lines, drawn at pixel resolution so they stay hairline ── */
- g.lineWidth=1;g.lineJoin="round";g.lineCap="round";
- const drawBorders=(col,off)=>{
-  g.strokeStyle=col;
-  WBORDERS.forEach(seg=>{
-   g.beginPath();
-   seg.forEach(([lo,la],k)=>{
-    const x=wpx(lo)*WTS+off,y=wpy(la)*WTS+off;
-    k?g.lineTo(x,y):g.moveTo(x,y);});
-   g.stroke();});};
- drawBorders("rgba(0,0,0,.45)",1.5);      /* drop shadow keeps them legible on pale ground */
- drawBorders("rgba(232,242,250,.50)",.5);
-
- /* ── shoreline ── */
- g.fillStyle="#e2eef6";
- for(let y=0;y<WTH;y++)for(let x=0;x<WTW;x++){
-  if(!land[y*WTW+x])continue;
-  const edge=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{
-   const nx=x+dx,ny=y+dy;
-   return nx<0||nx>=WTW||ny<0||ny>=WTH||!land[ny*WTW+nx];});
-  if(edge)g.fillRect(x*WTS,y*WTS,WTS,WTS);}
-
- /* ── labels ── */
+ g.imageSmoothingEnabled=false;
+ g.drawImage(buildWorldArt(),0,0,WTW,WTH,0,0,c.width,c.height);
  WSTATES.forEach(([t,lo,la,small])=>{
-  const sc=small?1:1;
-  const x=wpx(lo)*WTS,y=wpy(la)*WTS;
-  wtxt(g,t,Math.round(x-wtw(t,sc)/2),Math.round(y-3),
-   small?"rgba(255,255,255,.40)":"rgba(255,255,255,.54)",sc);});
- wtxt(g,"ATLANTIC OCEAN",Math.round(wpx(-73.2)*WTS),Math.round(wpy(36.6)*WTS),"rgba(150,200,235,.42)",1);
- wtxt(g,"GULF OF MEXICO",Math.round(wpx(-87.6)*WTS),Math.round(wpy(27.6)*WTS),"rgba(150,200,235,.38)",1);
- wtxt(g,"APPALACHIANS",Math.round(wpx(-81.6)*WTS),Math.round(wpy(38.0)*WTS),"rgba(255,240,200,.34)",1);
+  wtxt(g,t,Math.round(wpx(lo)*WTS-wtw(t,1)/2),Math.round(wpy(la)*WTS-3),
+   small?"rgba(255,255,255,.66)":"rgba(255,255,255,.82)",1);});
+ WSEAS.forEach(([t,lo,la,col])=>
+  wtxt(g,t,Math.round(wpx(lo)*WTS),Math.round(wpy(la)*WTS),col,1));
  WCACHE=c;
  return c;
 }
