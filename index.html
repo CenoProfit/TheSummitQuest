@@ -101,7 +101,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .nav-row.on .ns-sub{color:#5a4a1c}
 .ns-rule{height:2px;background:var(--edge);margin:13px 2px}
 .map-wrap.fit{display:flex;align-items:center;justify-content:center}
-.map-wrap{overflow:auto;padding:6px;background:#030509;cursor:grab;max-height:74vh;-webkit-overflow-scrolling:touch}
+.map-wrap{overflow:auto;padding:6px;background:#030509;cursor:grab;-webkit-overflow-scrolling:touch}
 .map-wrap.dragging{cursor:grabbing}
 #map{display:block;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:pan-x pan-y}
 .map-holder{position:relative;width:max-content}
@@ -244,9 +244,14 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 /* ── map shell + floating catalog ── */
 .map-shell{position:relative;margin-bottom:9px}
 .map-wrap.fit{display:flex;align-items:center;justify-content:center}
+/* Block, not flex. A centred flex child that overflows its scroll container
+   has its leading edge clipped and unreachable by scrolling, which is half of
+   why the whole map could not be panned to. Auto margins centre the same way
+   and give the overflow back. */
 .map-wrap{overflow:auto;padding:6px;background:#030509;cursor:grab;-webkit-overflow-scrolling:touch;
- display:flex;justify-content:center;align-items:flex-start}
-.map-wrap.fit .map-holder{margin:0 auto}
+ display:block}
+.map-wrap .map-holder{margin:0 auto}
+.map-wrap.fit{display:flex;align-items:center;justify-content:center}
 /* The quest list used to be a chunky floating button sitting on top of the map.
    It is now a full-width bar directly under the map, where it cannot cover
    terrain and reads as part of the page furniture. */
@@ -551,8 +556,7 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
  .subtitle{font-size:8.5px;margin-bottom:8px}
  .screen.active{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
  #screenMap>.map-shell{flex:1 1 auto;min-height:0;display:flex}
- #screenMap .map-wrap{flex:1 1 auto;max-height:none;height:auto!important;
-  min-height:0;display:flex;align-items:center;justify-content:center}
+  #screenMap .map-wrap{flex:1 1 auto;max-height:none;height:auto!important;min-height:0}
  #screenBadge,#screenLog,#screenAvatar{overflow:auto}
  .footnote{margin-top:auto;padding-top:8px}
 
@@ -915,7 +919,7 @@ function sqDailyQuote(){
   </div>
 </div>
 
-<div class="footnote" id="foot">DRAG TO PAN · TAP A BANNER TO INSPECT · PINK SKULL BANNERS ARE BOSS TREKS</div>
+<div class="footnote" id="foot">DRAG TO PAN · DOUBLE-CLICK OR PINCH TO ZOOM · PINK SKULL BANNERS ARE BOSS TREKS</div>
 <div id="toast"><div class="t1"></div><div class="t2"></div></div>
 <script>
 /* ═══════════════ 1. DATA ═══════════════ */
@@ -3000,7 +3004,11 @@ const RG=REGIONS[ACTIVE];
 /* ── active-region aliases: the engine below is written against these names ── */
 const P=RG.quests,LEVELS=RG.levels,BOSSES=RG.bosses;
 const RIDGES=RG.ridges,PEAKS=RG.peaks,VALS=RG.vals,RIVERS=RG.rivers,LAKES=RG.lakes,
-      PARKWAY=RG.parkway,ROADS=RG.roads,CANYONS=RG.canyons,STRUCTS=RG.structs,RLABELS=RG.labels;
+      CANYONS=RG.canyons,STRUCTS=RG.structs,RLABELS=RG.labels;
+/* RG.roads and RG.parkway are still carried by every region but nothing draws
+   them any more: a grey line laid over hand-textured terrain read as a scar on
+   it rather than as part of it, at every zoom. The data is left in place so the
+   decision is one function call to reverse. */
 const TW=RG.tw,TH=RG.th,TS=12,W=TW*TS,H=TH*TS;
 const LON0=RG.lon0,LON1=RG.lon1,LAT0=RG.lat0,LAT1=RG.lat1;
 const RNG=mul32(RG.seed);
@@ -3051,8 +3059,7 @@ const N1=ng(10,8,RNG),N2=ng(21,16,RNG),N3=ng(42,32,RNG),N4=ng(84,64,RNG),N5=ng(1
 
 /* linear ridge systems — these build actual RANGES, not blobs */
 
-const hM=new Float32Array(TW*TH),wM=new Uint8Array(TW*TH),rM=new Uint8Array(TW*TH),
-      pM=new Uint8Array(TW*TH),cM=new Uint8Array(TW*TH);
+const hM=new Float32Array(TW*TH),wM=new Uint8Array(TW*TH),cM=new Uint8Array(TW*TH);
 /* A region may declare a regional elevation trend along an arbitrary axis.
    Western North Carolina is mountainous edge to edge and declares none, so it
    takes the original expression untouched.
@@ -3126,9 +3133,6 @@ RIVERS.forEach(r=>mark(r,wM,1,5));
 LAKES.forEach(([lo,la,rw,rh])=>{const cx=ptx(lo),cy=pty(la);
  for(let ty=0;ty<TH;ty++)for(let tx=0;tx<TW;tx++){const dx=(tx-cx)/rw,dy=(ty-cy)/rh;
   if(dx*dx+dy*dy<=1+(smp(N5,tx/TW,ty/TH)-.5)*.40)wM[ty*TW+tx]=1;}});
-mark(PARKWAY,pM,1,5); ROADS.forEach(r=>mark(r,rM,1,5));
-const PARKWAY_SEGS=[PARKWAY];
-
 /* distance fields */
 function bfs(src,mask){const d=new Float32Array(TW*TH).fill(999);const q=[];
  for(let i=0;i<TW*TH;i++)if(src[i]){d[i]=0;q.push(i);}
@@ -3542,54 +3546,6 @@ function drawWaterDetail(){
     bx.fillRect(x+((rr()*6)|0),y+((rr()*10)|0),4,1);}}
   waterPx.push([x,y]);
  }
-}
-
-function roadPts(path,wobAmp){
- const out=[];
- const wob=(X,Y)=>{
-  const w1=(smp(N3,X/W,Y/H)-.5), w2=(smp(N4,X/W,Y/H)-.5);
-  return [X+(w1*wobAmp+w2*wobAmp*0.45), Y+(w2*wobAmp*0.8-w1*wobAmp*0.35)];
- };
- for(let i=0;i<path.length-1;i++){
-  const a=path[i],b=path[i+1];
-  const x0=px(a[0]),y0=py(a[1]),x1=px(b[0]),y1=py(b[1]);
-  const len=Math.hypot(x1-x0,y1-y0);
-  /* Two samples per pixel. At one per pixel a diagonal run leaves gaps
-     between stamps, which is most of what made the roads look chopped. */
-  const steps=Math.max(2,Math.round(len*2));
-  for(let s=0;s<steps;s++){const t=s/steps;
-   out.push(wob(x0+(x1-x0)*t, y0+(y1-y0)*t));}}
- /* the old loop stopped one step short, so every road ended just before the
-    place it was heading for */
- const e=path[path.length-1];
- out.push(wob(px(e[0]),py(e[1])));
- return out;}
-/* A plus-shaped footprint. Square stamps meeting at their corners are what
-   serrates a diagonal; dropping the corners keeps the edge running smooth. */
-function roadStamp(c,pts,wd,grow){
- const r=Math.round,h=wd/2,g=grow||0;
- pts.forEach(([X,Y])=>{
-  const x=r(X-h),y=r(Y-h);
-  if(g){c.fillRect(x-g,y,wd+g*2,wd);c.fillRect(x,y-g,wd,wd+g*2);}
-  else c.fillRect(x,y,wd,wd);});}
-function drawRoads(){
- const jobs=[];
- /* Flat grey, laid into the map rather than raised off it. The earlier tan
-    road had a shadow under it, a lit crown along the top and a dirt verge
-    outside, which together read as a stick lying on the terrain. A road is
-    not an object on the ground, it is the ground being a different colour. */
- ROADS.forEach(r=>jobs.push({pts:roadPts(r,3.2),wd:3,
-   edge:"#4a4f56",body:"#7c828c",dash:null,dl:0}));
- PARKWAY_SEGS.forEach(seg=>jobs.push({pts:roadPts(seg,3.6),wd:5,
-   edge:"#454a52",body:"#8b9199",dash:"#c8ccd2",dl:8}));
- jobs.forEach(o=>{
-  /* one darker edge, no highlight and no cast shadow, so the surface stays
-     flat and the only relief is the join with the terrain */
-  bx.fillStyle=o.edge;roadStamp(bx,o.pts,o.wd,1);
-  bx.fillStyle=o.body;roadStamp(bx,o.pts,o.wd,0);
-  if(o.dash)o.pts.forEach(([X,Y],i)=>{
-   if((i%(o.dl*2))>=o.dl)return;
-   bx.fillStyle=o.dash;bx.fillRect(Math.round(X),Math.round(Y),1,1);});});
 }
 
 /* ═══════════════ 4b. MOUNTAIN RANGE SYSTEM ═══════════════ */
@@ -4086,30 +4042,6 @@ function drawWaterfalls(){
   bx.fillStyle="#4e4636";bx.fillRect(x-wd/2-3,y-hgt-3,wd+6,3);
   bx.fillStyle="#7a6f58";bx.fillRect(x-wd/2-3,y-hgt-3,wd+6,1);});
 }
-/* ── TRAILS: dotted paths from each destination toward the road network ── */
-function drawTrails(){
- const roads=[];
- for(let ty=0;ty<TH;ty++)for(let tx=0;tx<TW;tx++)
-  if(rM[ty*TW+tx]||pM[ty*TW+tx])roads.push([tx*TS+6,ty*TS+6]);
- if(!roads.length)return;
- P.forEach(q=>{
-  let best=null,bd=1e9;
-  roads.forEach(([rx,ry])=>{const d=(rx-q.x)**2+(ry-q.y)**2;if(d<bd){bd=d;best=[rx,ry];}});
-  if(!best||bd>150*150)return;
-  const [rx,ry]=best;
-  const mx=(q.x+rx)/2+(((q.y-ry))*0.16), my=(q.y+ry)/2-(((q.x-rx))*0.16);
-  const steps=Math.max(8,Math.round(Math.hypot(rx-q.x,ry-q.y)/4));
-  for(let s=0;s<=steps;s++){
-   const t=s/steps,it=1-t;
-   const X=Math.round(it*it*q.x+2*it*t*mx+t*t*rx);
-   const Y=Math.round(it*it*q.y+2*it*t*my+t*t*ry);
-   if(X<4||X>W-4||Y<4||Y>H-4)continue;
-   const tx=(X/TS)|0,ty=(Y/TS)|0;
-   if(wM[ty*TW+tx])continue;
-   if(s%2)continue;
-   bx.fillStyle="rgba(26,20,10,.26)";bx.fillRect(X,Y+1,2,1);
-   bx.fillStyle="rgba(190,164,112,.62)";bx.fillRect(X,Y,2,1);}});
-}
 /* ── MIST pooling in the gorges + snow patches on the high ground ── */
 function drawAtmosphere(){
  for(let ty=0;ty<TH;ty++)for(let tx=0;tx<TW;tx++){
@@ -4227,36 +4159,82 @@ let zoom=1,jumpPulse=0,showMarkers=true,sound=true,hoverId=null,selId=null,showL
 const catSel=new Set();
 const catShown=c=>catSel.size===0||catSel.has(c);
 let zoomIdx=0, zoomMul=1;
-function fitScale(){
+const ZMIN=1, ZMAX=8;
+/* FIT is 1. Everything above it is a multiple of whatever scale makes the whole
+   region fit, and it is continuous: the three buttons are shortcuts into the
+   same range the wheel and the pinch move through. */
+
+/* What is actually left on screen under the top of the map frame. The old code
+   assumed a flat 62% of the window height no matter how tall the HUD above the
+   map happened to be. On a short window that put the bottom of the frame below
+   the fold while the frame was set to overflow:hidden, so the bottom of the map
+   existed but could not be reached by any means.
+
+   Only the bar directly under the map is held on screen with it. The legend and
+   the detail panel below that are page content the player scrolls to; reserving
+   room for those as well shrinks the map to a postage stamp. */
+function reserveBelow(){
  const wr=document.getElementById('mapWrap');
- const availW=Math.max(180,wr.clientWidth-16);
- const vh=(window.innerHeight||800);
- const availH=Math.max(200,vh*0.62);          // leave room for HUD + panel
- return Math.max(0.10,Math.min(availW/W,availH/H));
+ const shell=wr.closest('.map-shell')||wr;
+ const next=shell.nextElementSibling;
+ const r=next?next.getBoundingClientRect():null;
+ return 16+(r&&r.height>0&&r.height<90?r.height+9:0);
 }
+function frameBox(){
+ const wr=document.getElementById('mapWrap'),cs=getComputedStyle(wr);
+ const padX=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0);
+ const padY=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);
+ /* The frame is border-box with a 3px border, so the chrome that height has to
+    carry on top of the map is the padding and the border both. Missing the
+    border is a few pixels of the map clipped off the bottom at FIT. */
+ const bdY=(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
+ const top=Math.max(0,wr.getBoundingClientRect().top);
+ const vh=window.innerHeight||document.documentElement.clientHeight||800;
+ /* A floor, so that a short window or a mid-layout measurement gives a small
+    map rather than a thumbnail. */
+ return {w:Math.max(180,wr.clientWidth-padX),
+         h:Math.max(240,vh-top-reserveBelow()-padY-bdY),padY:padY,bdY:bdY};
+}
+function fitScale(){const b=frameBox();return Math.max(0.08,Math.min(b.w/W,b.h/H));}
+let lastBoost=null;
 function applyZoom(){
- const f=fitScale();
- zoom=f*zoomMul;
- const wr=document.getElementById('mapWrap');
- cv.style.width=(W*zoom)+"px";cv.style.height=(H*zoom)+"px";
+ const wr=document.getElementById('mapWrap'),mh=document.getElementById('mapHolder');
+ const b=frameBox();
+ zoomMul=Math.max(ZMIN,Math.min(ZMAX,zoomMul));
+ zoom=Math.max(0.08,Math.min(b.w/W,b.h/H))*zoomMul;
+ const cw=Math.round(W*zoom),ch=Math.round(H*zoom);
+ cv.style.width=cw+"px";cv.style.height=ch+"px";
  cv.style.imageRendering = zoom>=0.92 ? "pixelated" : "auto";
- const mh=document.getElementById('mapHolder');
- mh.style.width=(W*zoom)+"px";mh.style.height=(H*zoom)+"px";
- const atFit=zoomMul<=1.02;
- wr.classList.toggle('fit',atFit);
- if(atFit){
-  /* a minimum rather than a fixed height, so a flex parent can stretch the
-     frame to the bottom of the screen with the map centred inside it */
-  wr.style.height="";wr.style.minHeight=(H*zoom+16)+"px";
-  wr.style.maxHeight="none";wr.style.overflow="hidden";
- }else{
-  wr.style.height="";wr.style.minHeight="";
-  wr.style.maxHeight=Math.round((window.innerHeight||800)*0.62)+"px";
-  wr.style.overflow="auto";}
- const near=[1,2,4].findIndex(m=>Math.abs(m-zoomMul)<0.06);
- zoomIdx=near;
+ mh.style.width=cw+"px";mh.style.height=ch+"px";
+ /* Measured, not assumed: the frame only hides its overflow when there
+    demonstrably is none, and it is never taller than the room on screen. */
+ const fits=cw<=b.w+1&&ch<=b.h+1;
+ wr.classList.toggle('fit',fits);
+ wr.style.minHeight="";wr.style.maxHeight="";
+ wr.style.height=Math.round(Math.min(ch,b.h)+b.padY+b.bdY)+"px";
+ wr.style.overflow=fits?"hidden":"auto";
+ zoomIdx=[1,2,4].findIndex(m=>Math.abs(m-zoomMul)<0.06);
  ['z1','z2','z3'].forEach((id,i)=>document.getElementById(id).classList.toggle('on',zoomIdx===i));
- if(typeof drawLabels==="function")drawLabels(labelBoost());
+ /* Relabelling is the expensive part of a zoom, and the boost only changes at a
+    handful of thresholds, so a continuous gesture does it a few times rather
+    than on every frame. */
+ const bo=labelBoost();
+ if(typeof drawLabels==="function"&&bo!==lastBoost){lastBoost=bo;drawLabels(bo);}
+}
+/* Zoom about a point instead of about the middle of the frame: the pixel under
+   the cursor, or between the fingers, stays where it is. Measuring the canvas
+   before and after rather than working from scrollLeft keeps it correct while
+   the map is still small enough to be centred by its auto margins. */
+function zoomAbout(mul,clientX,clientY){
+ const wr=document.getElementById('mapWrap'),fr=wr.getBoundingClientRect();
+ if(clientX===undefined){clientX=fr.left+fr.width/2;clientY=fr.top+fr.height/2;}
+ const before=cv.getBoundingClientRect();
+ const mx=(clientX-before.left)/zoom,my=(clientY-before.top)/zoom;
+ zoomMul=Math.max(ZMIN,Math.min(ZMAX,mul));
+ applyZoom();
+ const after=cv.getBoundingClientRect();
+ wr.scrollLeft+=(after.left+mx*zoom)-clientX;
+ wr.scrollTop +=(after.top +my*zoom)-clientY;
 }
 function labelBoost(){return Math.max(1,Math.min(4,Math.round(1.35/zoom)));}
 
@@ -6258,7 +6236,7 @@ function setScreen(s){
  if(s==='avatar')document.getElementById('navAvatar').classList.add('on');
  document.getElementById('foot').textContent = s==='battle'
   ? "BOSS TELEGRAPHS ITS NEXT MOVE — BRACE ON HEAVY & DEVASTATING"
-  : "DRAG TO PAN · TAP A BANNER TO INSPECT · PINK SKULL BANNERS ARE BOSS TREKS";
+  : "DRAG TO PAN · DOUBLE-CLICK OR PINCH TO ZOOM · PINK SKULL BANNERS ARE BOSS TREKS";
  window.scrollTo({top:0,behavior:'smooth'});}
 const navEl=()=>document.getElementById('navSheet');
 function openNav(){const n=navEl();if(n){n.classList.add('open');blip();}}
@@ -6344,31 +6322,35 @@ wrap.addEventListener('touchmove',e=>{const t=e.touches[0];
 cv.addEventListener('touchend',e=>{if(tmv)return;const t=e.changedTouches[0];
  const r=cv.getBoundingClientRect();pick((t.clientX-r.left)/zoom,(t.clientY-r.top)/zoom);},{passive:true});
 ['z1','z2','z3'].forEach((id,i)=>document.getElementById(id).onclick=()=>{
- const cxr=(wrap.scrollLeft+wrap.clientWidth/2)/zoom,cyr=(wrap.scrollTop+wrap.clientHeight/2)/zoom;
- zoomMul=[1,2,4][i];applyZoom();
- if(zoomMul>1.02){wrap.scrollLeft=cxr*zoom-wrap.clientWidth/2;
-  wrap.scrollTop=cyr*zoom-wrap.clientHeight/2;}
+ zoomAbout([1,2,4][i]);
+ render();layoutRails();tip.style.display='none';});
+/* Ctrl or command with the wheel, which is also what a trackpad pinch sends.
+   A plain wheel is left alone so it still scrolls the map and then the page. */
+wrap.addEventListener('wheel',e=>{
+ if(!e.ctrlKey&&!e.metaKey)return;
+ e.preventDefault();
+ zoomAbout(zoomMul*Math.exp(-e.deltaY*0.01),e.clientX,e.clientY);
+ render();layoutRails();tip.style.display='none';},{passive:false});
+cv.addEventListener('dblclick',e=>{
+ e.preventDefault();
+ zoomAbout(zoomMul<1.5?2:zoomMul<3.5?4:1,e.clientX,e.clientY);
  render();layoutRails();tip.style.display='none';});
 let rzT=null;
 window.addEventListener('resize',()=>{clearTimeout(rzT);
  rzT=setTimeout(()=>{applyZoom();render();layoutRails();},170);});
 /* pinch-to-zoom */
-let pinchD=0,pinchM=1,pinchCX=0,pinchCY=0;
+let pinchD=0,pinchM=1;
 const tdist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
 wrap.addEventListener('touchstart',e=>{
- if(e.touches.length===2){pinchD=tdist(e.touches);pinchM=zoomMul;
-  const r=wrap.getBoundingClientRect();
-  pinchCX=((e.touches[0].clientX+e.touches[1].clientX)/2-r.left+wrap.scrollLeft)/zoom;
-  pinchCY=((e.touches[0].clientY+e.touches[1].clientY)/2-r.top+wrap.scrollTop)/zoom;}},{passive:false});
+ if(e.touches.length===2){pinchD=tdist(e.touches);pinchM=zoomMul;}},{passive:false});
 wrap.addEventListener('touchmove',e=>{
  if(e.touches.length!==2||!pinchD)return;
  e.preventDefault();
- const d=tdist(e.touches);
- zoomMul=Math.max(1,Math.min(6,pinchM*d/pinchD));
- applyZoom();
- if(zoomMul>1.02){
-  wrap.scrollLeft=pinchCX*zoom-wrap.clientWidth/2;
-  wrap.scrollTop=pinchCY*zoom-wrap.clientHeight/2;}
+ /* Anchored on the midpoint between the fingers. The old version recentred the
+    frame on it every frame, which walked the map out from under the pinch. */
+ zoomAbout(pinchM*tdist(e.touches)/pinchD,
+  (e.touches[0].clientX+e.touches[1].clientX)/2,
+  (e.touches[0].clientY+e.touches[1].clientY)/2);
  render();},{passive:false});
 wrap.addEventListener('touchend',e=>{if(e.touches.length<2)pinchD=0;},{passive:true});
 const TMODES=["AUTO","DAWN","DAY","DUSK","NIGHT"];
@@ -6567,9 +6549,10 @@ function jumpTo(id){
     nothing. syncFilters rebuilds the legend, so there is nothing else to touch. */
  if(!catShown(p.c)){catSel.add(p.c);syncFilters();}
  selId=p.id;jumpPulse=34;render();showDetail(p);
- if(zoomMul>1.02){
-  wrap.scrollLeft=p.x*zoom-wrap.clientWidth/2;
-  wrap.scrollTop=(p.y-BAN_H/2)*zoom-wrap.clientHeight/2;}
+ if(wrap.scrollWidth>wrap.clientWidth||wrap.scrollHeight>wrap.clientHeight){
+  const cr=cv.getBoundingClientRect(),fr=wrap.getBoundingClientRect();
+  wrap.scrollLeft+=(cr.left+p.x*zoom)-(fr.left+fr.width/2);
+  wrap.scrollTop +=(cr.top+(p.y-BAN_H/2)*zoom)-(fr.top+fr.height/2);}
  tone(760,.06,"triangle",.05);tone(1140,.08,"triangle",.045,.06);
  /* The quest list deliberately stays open, on phones too. The detail sheet
     layers above it, so closing the sheet drops you back where you were in the
@@ -6696,9 +6679,8 @@ function loop(ts){requestAnimationFrame(loop);
  if(tick%450===0)updHUD();}
 function step(pc,fn){return new Promise(res=>{setTimeout(()=>{
  fn();document.getElementById('lfill').style.width=pc+"%";res();},12);});}
-/* the crest-road step is named after whichever road this region actually has */
 const LOADMSG=["SURVEYING THE RANGE…","RAISING MOUNTAINS…","CARVING GORGES…",
- "FLOODING THE VALLEYS…","PLANTING FORESTS…","LAYING THE "+(RG.crestRoad||"PARKWAY")+"…",
+ "FLOODING THE VALLEYS…","PLANTING FORESTS…","CUTTING THE TREELINE…",
  "BUILDING SETTLEMENTS…","LIGHTING THE WINDOWS…","DRAWING THE MAP…"];
 function setMsg(i){const lm=document.getElementById('loadmsg');
  if(lm)lm.textContent=LOADMSG[i]||"READY";}
@@ -6710,8 +6692,8 @@ function setMsg(i){const lm=document.getElementById('loadmsg');
  await step(54,()=>{drawWaterDetail();setMsg(4);});
  await step(64,()=>{drawDeco();setMsg(5);});
  await step(74,()=>{drawMountains();setMsg(6);});
- await step(80,()=>{drawWaterfalls();drawRoads();setMsg(7);});
- await step(88,()=>{drawStructs();drawTrails();setMsg(8);});
+ await step(80,()=>{drawWaterfalls();setMsg(7);});
+ await step(88,()=>{drawStructs();setMsg(8);});
  await step(94,()=>{drawAtmosphere();
   compass(bx,W-56,58);scalebar(bx,30,H-42);frameArt();drawLabels();});
  await step(100,()=>{});
