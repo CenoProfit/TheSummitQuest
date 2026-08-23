@@ -124,6 +124,12 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .stat{background:var(--panel2);border:2px solid var(--edge);padding:7px 9px}
 .stat .k{font-family:var(--pix);font-size:7px;color:var(--dim);letter-spacing:1px;display:block;margin-bottom:5px}
 .stat .v{font-size:12px;color:var(--ink);font-weight:bold}
+.d-where{font-size:11px;line-height:1.65;color:var(--dim);border:2px solid var(--edge);
+ background:rgba(10,16,24,.5);padding:8px 10px;margin-top:9px}
+.d-where b{color:var(--gold)}
+.d-where .mono{font-family:'Courier New',monospace;color:var(--ink)}
+.d-where .d-map{color:#7fd0ff;margin-left:6px}
+.d-where .d-hintline{display:block;color:#6c7a8c;margin-top:4px}
 .d-food{background:#241b0d;border:2px solid #75540b;padding:9px 11px;font-size:12px;color:#f2dda6;margin-bottom:13px}
 .d-food b{color:var(--gold)}
 .d-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -4958,13 +4964,14 @@ async function claimBoss(p){
  try{fix=await currentFix();}catch(e){err=e;}
  if(fix){
   const d=metresBetween(fix.lat,fix.lon,p.lat,p.lon);
-  if(d<=GEOFENCE_M){await awardBoss(p);bossWon(p);return;}
-  if(fix.acc&&d-fix.acc<=GEOFENCE_M)err={vague:true,d,acc:fix.acc};
+  const RAD=geofenceFor(p);
+  if(d<=RAD){await awardBoss(p);bossWon(p);return;}
+  if(fix.acc&&d-fix.acc<=RAD)err={vague:true,d,acc:fix.acc};
   else err={far:true,d};
  }
  /* Beaten but unclaimed. The win is not taken away and the boss does not have
     to be fought again — the claim is simply left open until it can be made. */
- const why=err&&err.far?`You read as <b>${fmtDist(err.d)}</b> from ${p.n}, and the check needs ${GEOFENCE_M} m.`
+ const why=err&&err.far?`You read as <b>${fmtDist(err.d)}</b> from ${p.n}, and the check needs ${fmtDist(geofenceFor(p))}.`
   :err&&err.vague?`Your device places you <b>${fmtDist(err.d)}</b> away but is only sure to about <b>${fmtDist(err.acc)}</b>, too rough to tell.`
   :err&&(err.denied||err.code===1)?'Location is switched off for Summit.'
   :'No location fix here.';
@@ -5155,6 +5162,11 @@ function showDetail(p){
    <div class="stat"><span class="k">TIME</span><span class="v">${p.t}</span></div>
   </div>
   <div class="d-food">🍖 REFUEL AT — <b>${p.food}</b></div>
+  ${dn?'':`<div class="d-where">◎ CHECK IN — anywhere within <b>${fmtDist(geofenceFor(p))}</b> of
+   <span class="mono">${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</span>
+   <a class="d-map" target="_blank" rel="noopener"
+      href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}">open in maps</a>
+   <span class="d-hintline">The trailhead counts. You do not have to be standing on the exact spot.</span></div>`}
   <div class="d-actions">
    ${boss?`<button class="btn-go boss" id="bbtn">${S.slain[p.id]?'⚔ FIGHT AGAIN':'⚔ ENTER BATTLE'}</button>`:''}
    ${(!boss||dn)?`<button class="btn-go ${dn?'done':''}" id="cbtn">${dn?'✓ CLEARED — UNDO':'MARK COMPLETE'}</button>`:''}
@@ -5205,7 +5217,16 @@ function showDetail(p){
    Paradise Falls drops into a slot canyon — routinely reports a fix that far
    out, and a radius tight enough to feel impressive would make exactly the
    best hikes unloggable. Tune it after field testing, not before. */
-const GEOFENCE_M=150;
+/* Radius by category rather than one number. 150 m asked people to stand on a
+   surveyed point they had no way of seeing in the app, and refused them at the
+   trailhead of a hike they had just walked. These are wide enough to clear from
+   the parking area of the hike you actually did, and multi-day treks get more
+   again because their single coordinate can sit a long way from any one
+   trailhead. Someone driving to the foot of sixty of these to game a
+   leaderboard has done the travelling, which was the point. */
+const GEOFENCE_BY_CAT={water:4000,short:4000,view:4000,mod:5000,hard:6000,long:8000,multi:20000};
+const GEOFENCE_M=5000;                       // fallback, and what the copy quotes
+const geofenceFor=p=>(p&&GEOFENCE_BY_CAT[p.c])||GEOFENCE_M;
 
 /* Haversine. These distances are a few hundred metres, so treating the earth as
    a sphere costs far less error than the GPS fix already carries. */
@@ -5260,8 +5281,8 @@ async function checkIn(p,onPass){
    :'<span style="color:#ff9a86">No location fix. Open sky helps — a gorge or a dense canopy can block it entirely.</span>')
    +'<div style="margin-top:7px"><span class="small-link" id="manlog">log it by hand instead</span></div>');
   return;}
- const d=metresBetween(fix.lat,fix.lon,p.lat,p.lon);
- if(d<=GEOFENCE_M){btn.textContent='✓ YOU ARE HERE';await pass();return;}
+ const d=metresBetween(fix.lat,fix.lon,p.lat,p.lon),RAD=geofenceFor(p);
+ if(d<=RAD){btn.textContent='✓ YOU ARE HERE';await pass();return;}
  btn.disabled=false;btn.textContent='TRY AGAIN';
  const manual='<div style="margin-top:7px"><span class="small-link" id="manlog">log it by hand instead</span></div>';
  /* A fix carries its own margin of error, and a reading is only a refusal if it
@@ -5269,13 +5290,13 @@ async function checkIn(p,onPass){
     wifi reports kilometres out with kilometres of error — a reading equally
     consistent with standing at the falls — and calling that "you are not here"
     would be a claim the data does not support. Say so instead of accusing. */
- if(fix.acc&&d-fix.acc<=GEOFENCE_M){
+ if(fix.acc&&d-fix.acc<=RAD){
   checkNote(p,`<span style="color:#f5c651">Cannot confirm this one from here. Your device places you <b>${fmtDist(d)}</b> away but is only sure to about <b>${fmtDist(fix.acc)}</b>, which is too rough to tell whether you are at ${p.n}.</span>`
    +'<div style="color:var(--dim);margin-top:6px">A phone outdoors will do better than a laptop. If you are there, try again in a few seconds.</div>'+manual);
   return;}
  checkNote(p,`<span style="color:#ff9a86">You read as <b>${fmtDist(d)}</b> from ${p.n}`
   +(fix.acc?`, with the fix itself accurate to about ${fmtDist(fix.acc)}`:'')
-  +`. The check needs ${GEOFENCE_M} m.</span>`
+  +`. The check needs ${fmtDist(RAD)}.</span>`
   +'<div style="color:var(--dim);margin-top:6px">If you are standing there, wait a few seconds for the signal to settle and try again.</div>'+manual);
 }
 /* A photo is attached after the hike is cleared, never as a way of clearing it:
