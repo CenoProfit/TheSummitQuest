@@ -136,6 +136,13 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .refix:hover{background:var(--edge2);color:#fff8dc}
 .refix:active{transform:translateY(-50%) translate(1px,1px)}
 .refix[disabled]{opacity:.55;cursor:default}
+/* Fine print, on every destination whether cleared or not. Trail data in this
+   file is a guide written at one point in time; permits, seasonal gates and
+   closures are not, and the one failure this app cannot recover from is sending
+   somebody on a three hour drive to a trailhead that is shut. */
+.d-fine{font-size:10.5px;line-height:1.6;color:#8f9bad;margin-top:9px;
+ border-left:2px solid var(--edge2);padding:5px 0 5px 9px;letter-spacing:.2px}
+.d-fine b{color:#c2cddb;font-weight:normal}
 .d-where{font-size:11px;line-height:1.65;color:var(--dim);border:2px solid var(--edge);
  background:rgba(10,16,24,.5);padding:8px 10px;margin-top:9px}
 .d-where b{color:var(--gold)}
@@ -6361,6 +6368,8 @@ function showDetail(p){
    <div class="stat"><span class="k">TIME</span><span class="v">${p.t}</span></div>
   </div>
   <div class="d-food">🍖 REFUEL AT — <b>${p.food}</b></div>
+  <div class="d-fine">◈ <b>Check access and closures before attempting.</b>
+   Permits, seasonal gates, fire closures and road conditions change; this entry does not.</div>
   ${dn?'':`<div class="d-where">◎ CHECK IN — anywhere within <b>${fmtDist(geofenceFor(p))}</b> of
    <span class="mono">${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}</span>
    <a class="d-map" target="_blank" rel="noopener"
@@ -7799,7 +7808,10 @@ const TUT_PAGES=[
   </div>
  </div>
  <div class="tut-cap">The radius is generous on purpose, and a fix under heavy canopy is
-  allowed to fail gracefully — there is always a way to log it by hand.</div>`},
+  allowed to fail gracefully: there is always a way to log it by hand.<br><br>
+  <b style="color:#c2cddb">Every destination carries the same fine print: check access and
+  closures before you drive.</b> Permits, seasonal gates and fire closures change, and the
+  entry in this app does not.</div>`},
 {h:'5 · EARN XP, CLIMB THE RANKS',html:`
  <p class="tut-p">Every destination is worth XP by how hard it is and what kind of outing it
   is. Twelve ranks per region, and the last one takes most of the map.</p>
