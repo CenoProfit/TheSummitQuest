@@ -2158,6 +2158,193 @@ REGIONS.glacier={
   {id:"a15",ic:"⛰",n:"PASS COLLECTOR",d:"Siyeh, Piegan, Gunsight and the Dawson-Pitamakan loop",need:["h1","h4","l2","l3"]},
   {id:"a16",ic:"🐻",n:"THE BOB",d:"The Chinese Wall and the Nyack Coal Creek loop",need:["x2","x5"]}]};
 
+REGIONS.utah={
+ id:"utah",name:"SOUTHERN UTAH",short:"S. UTAH",home:"Moab",
+ tagline:"Slickrock, slot canyons and the Colorado Plateau",
+ pin:{lon:-110.90,lat:37.90},
+ lon0:-113.60,lon1:-109.00,lat0:38.95,lat1:36.90,tw:112,th:76,seed:20261104,
+ crestRoad:"SCENIC BYWAY 12",
+ /* This is the one region that is high everywhere and mountainous almost
+    nowhere. The relief is cut downward rather than pushed up: plateaus in the
+    west stepping down into canyon country in the east, with laccolithic ranges
+    standing on top of the plateau like islands. */
+ dry:true,
+ rock:["granite","rust",.97],
+ ramp:[
+  [0.00,[222,186,138]],[0.10,[206,156,104]],[0.20,[192,120, 70]],
+  [0.30,[172, 92, 52]],[0.40,[150, 74, 44]],[0.50,[136, 84, 48]],
+  [0.58,[124,100, 58]],[0.66,[104,104, 58]],[0.74,[ 80, 94, 54]],
+  [0.82,[ 70, 84, 56]],[0.88,[112,102, 88]],[0.94,[164,158,150]],
+  [0.975,[206,210,214]],[1.00,[240,244,250]]],
+ tilt:{ax:.94,ay:-.10,t0:.05,t1:.95,w:.26,e:-.20,damp:.30},
+ ridges:[
+ {p:[[-111.25,38.45],[-111.15,38.15],[-111.05,37.85],[-110.95,37.55]],h:1.06,w:2.2,n:"waterpocket"},
+ {p:[[-110.20,38.90],[-109.80,38.88],[-109.40,38.86]],h:.92,w:2.6,n:"bookcliffs"},
+ {p:[[-110.78,38.90],[-110.66,38.66],[-110.60,38.42]],h:1.00,w:2.4,n:"sanrafael"},
+ {p:[[-113.10,37.10],[-112.60,37.05],[-112.10,37.05],[-111.60,37.10]],h:.94,w:2.6,n:"vermilion"},
+ {p:[[-112.90,37.45],[-112.40,37.40],[-111.90,37.42]],h:1.00,w:2.4,n:"whitecliffs"},
+ {p:[[-112.85,37.66],[-112.60,37.60],[-112.20,37.58],[-112.00,37.62]],h:1.14,w:3.2,n:"markagunt"},
+ {p:[[-111.60,38.05],[-111.45,37.95],[-111.30,37.85]],h:1.24,w:3.4,n:"aquarius"},
+ {p:[[-109.60,37.55],[-109.55,37.25],[-109.50,37.00]],h:.86,w:1.8,n:"combridge"},
+ {p:[[-110.05,37.50],[-109.90,37.35],[-109.75,37.25]],h:.90,w:2.4,n:"cedarmesa"},
+ {p:[[-111.30,37.90],[-111.20,37.65],[-111.10,37.45]],h:.96,w:2.2,n:"circlecliffs"}],
+ peaks:[[-109.229,38.439,1.32,9],[-109.250,38.460,1.26,7],[-110.810,38.100,1.28,8],
+ [-110.850,37.920,1.22,7],[-109.470,37.840,1.24,8],[-110.860,37.035,1.20,8],
+ [-111.500,38.050,1.26,9],[-112.830,37.690,1.24,8],[-113.500,37.380,1.18,7],
+ [-111.920,37.730,1.16,6],[-111.550,38.410,1.20,7],[-112.170,37.630,1.10,6],
+ [-113.050,37.220,1.08,6],[-110.700,37.830,1.10,5],[-109.850,37.800,1.02,6],
+ [-112.530,37.560,1.12,6],[-110.300,38.720,.94,5],[-109.700,38.760,.90,5]],
+ vals:[[-109.55,38.57,.44,10],[-109.40,38.65,.36,8],[-110.15,38.20,.42,12],
+  [-111.30,37.75,.34,10],[-112.95,37.25,.40,8],[-112.55,37.10,.36,12],
+  [-110.70,38.35,.40,12],[-109.45,37.60,.30,12]],
+ rivers:[
+  [[-109.05,38.90],[-109.35,38.72],[-109.60,38.60],[-109.95,38.45],[-110.20,38.20],[-110.40,37.95],[-110.65,37.55]],
+  [[-110.05,38.94],[-110.00,38.70],[-110.05,38.45],[-110.20,38.20]],
+  [[-110.75,38.55],[-110.60,38.35],[-110.40,38.10]],
+  [[-111.60,37.85],[-111.40,37.70],[-111.20,37.50],[-111.05,37.30]],
+  [[-112.85,37.42],[-112.95,37.28],[-113.10,37.18],[-113.35,37.10]],
+  [[-109.05,37.28],[-109.45,37.25],[-109.90,37.20],[-110.30,37.15],[-110.75,37.10]],
+  [[-111.60,38.35],[-111.35,38.30],[-111.10,38.25],[-110.85,38.42]]],
+ /* Lake Powell is one water body with 1,900 miles of shoreline; it is drawn as
+    an overlapping chain up the drowned Colorado rather than as a single blob. */
+ lakes:[[-111.450,36.980,3.2,1.4],[-111.320,37.040,3.0,1.4],[-111.190,37.110,2.8,1.5],
+  [-111.060,37.190,2.6,1.6],[-110.940,37.280,2.4,1.8],[-110.840,37.390,2.2,1.9],
+  [-110.750,37.500,2.1,2.0],[-110.650,37.610,2.0,2.0],[-110.550,37.720,1.9,1.9],
+  [-110.480,37.810,1.8,1.7],[-110.420,37.880,1.7,1.5],
+  [-110.980,37.140,1.6,2.4],[-111.180,36.960,2.2,1.2],
+  [-113.380,37.120,1.6,1.2],[-111.720,38.550,1.2,2.4],[-112.020,38.200,1.0,2.0],
+  [-112.790,37.520,1.8,.8],[-109.450,38.470,.9,.7]],
+ parkway:[[-112.16,37.62],[-111.90,37.68],[-111.62,37.78],[-111.42,37.85],[-111.42,38.02],[-111.42,38.28]],
+ roads:[
+  [[-113.30,38.60],[-112.60,38.72],[-111.80,38.90],[-111.00,38.92],[-110.20,38.90],[-109.40,38.88],[-109.05,38.88]],
+  [[-109.55,38.92],[-109.55,38.57],[-109.48,38.20],[-109.46,37.85],[-109.47,37.62],[-109.48,37.28]],
+  [[-112.30,38.92],[-112.20,38.50],[-112.15,38.00],[-112.53,37.62],[-112.53,37.05]],
+  [[-113.28,37.20],[-113.10,37.20],[-112.95,37.25],[-112.78,37.24]],
+  [[-113.58,37.30],[-113.50,37.55],[-113.30,37.90],[-113.10,38.30],[-112.95,38.65]],
+  [[-111.90,38.35],[-111.60,38.32],[-111.28,38.30],[-110.95,38.35],[-110.70,38.37],[-110.30,38.55]],
+  [[-109.48,37.85],[-109.90,37.85],[-110.20,37.90],[-110.40,37.90],[-110.60,38.05]],
+  [[-109.90,37.35],[-109.92,37.22],[-109.95,37.10]],
+  [[-109.68,38.60],[-109.78,38.50],[-109.82,38.38]]],
+ canyons:[
+  {p:[[-112.98,37.35],[-112.95,37.27],[-112.93,37.20]],d:.62,r:.52,w:1.6},
+  {p:[[-112.90,37.45],[-112.95,37.36]],d:.58,r:.50,w:1.2},
+  {p:[[-109.60,38.60],[-109.85,38.48],[-110.05,38.30],[-110.20,38.18]],d:.60,r:.50,w:2.0},
+  {p:[[-110.20,38.18],[-110.30,38.00],[-110.38,37.85]],d:.64,r:.54,w:2.0},
+  {p:[[-110.02,38.70],[-110.05,38.45],[-110.18,38.22]],d:.58,r:.48,w:1.8},
+  {p:[[-111.45,37.80],[-111.25,37.55],[-111.05,37.32]],d:.58,r:.48,w:1.6},
+  {p:[[-111.10,37.42],[-111.00,37.36]],d:.54,r:.46,w:1.1},
+  {p:[[-110.05,37.50],[-109.95,37.35],[-109.88,37.22]],d:.56,r:.46,w:1.4},
+  {p:[[-109.80,37.20],[-110.00,37.18],[-110.20,37.16]],d:.58,r:.48,w:1.6},
+  {p:[[-111.28,38.30],[-111.18,38.24],[-111.10,38.14]],d:.52,r:.44,w:1.4},
+  {p:[[-112.00,37.05],[-111.85,36.98]],d:.60,r:.50,w:1.0},
+  {p:[[-109.90,37.90],[-110.10,37.85],[-110.30,37.88]],d:.56,r:.46,w:1.5},
+  {p:[[-113.20,37.45],[-113.10,37.44]],d:.50,r:.44,w:1.2},
+  {p:[[-112.17,37.63],[-112.16,37.55],[-112.14,37.47]],d:.50,r:.46,w:1.3},
+  {p:[[-109.85,38.15],[-109.78,38.05],[-109.75,37.95]],d:.50,r:.44,w:1.4}],
+ structs:[
+  {lo:-113.578,la:37.096,t:"city",lab:"ST GEORGE"},
+  {lo:-113.061,la:37.678,t:"city",lab:"CEDAR CITY"},
+  {lo:-109.550,la:38.573,t:"town",lab:"MOAB"},
+  {lo:-112.526,la:37.047,t:"town",lab:"KANAB"},
+  {lo:-112.996,la:37.189,t:"town",lab:"SPRINGDALE"},
+  {lo:-111.418,la:38.300,t:"town",lab:"TORREY"},
+  {lo:-111.601,la:37.770,t:"town",lab:"ESCALANTE"},
+  {lo:-111.424,la:37.914,t:"town",lab:"BOULDER"},
+  {lo:-109.478,la:37.624,t:"town",lab:"BLANDING"},
+  {lo:-109.343,la:37.871,t:"town",lab:"MONTICELLO"},
+  {lo:-109.551,la:37.283,t:"town",lab:"BLUFF"},
+  {lo:-110.714,la:38.373,t:"town",lab:"HANKSVILLE"},
+  {lo:-109.740,la:38.476,t:"hut",lab:"DEAD HORSE PT"},
+  {lo:-110.708,la:38.573,t:"hut",lab:"GOBLIN VALLEY"}],
+ labels:[
+  {t:"CANYONLANDS",pri:0,lo:-109.95,la:38.30,s:1,c:"#ffe0bc"},
+  {t:"ZION",pri:1,lo:-112.94,la:37.32,s:1,c:"#ffe0bc"},
+  {t:"BRYCE CANYON",pri:1,lo:-112.20,la:37.58,s:1,c:"#ffd6d2"},
+  {t:"CAPITOL REEF",pri:1,lo:-111.18,la:38.18,s:1,c:"#ffe0bc"},
+  {t:"ARCHES",pri:1,lo:-109.60,la:38.76,s:1,c:"#ffe0bc"},
+  {t:"GRAND STAIRCASE",pri:1,lo:-111.92,la:37.30,s:1,c:"#f0d8b4"},
+  {t:"ESCALANTE",pri:2,lo:-111.92,la:37.268,s:1,c:"#e0c8a4"},
+  {t:"SCENIC BYWAY 12",pri:2,lo:-111.60,la:37.94,s:1,c:"#ffe9a8"},
+  {t:"LAKE POWELL",pri:2,lo:-110.72,la:37.40,s:1,c:"#bcd8ea"},
+  {t:"LA SAL MOUNTAINS",pri:2,lo:-109.26,la:38.42,s:1,c:"#d2dbe8"},
+  {t:"HENRY MOUNTAINS",pri:2,lo:-110.84,la:38.02,s:1,c:"#d2dbe8"},
+  {t:"CEDAR MESA",pri:2,lo:-109.96,la:37.42,s:1,c:"#e0c8a4"},
+  {t:"THE MAZE",pri:2,lo:-110.18,la:38.06,s:1,c:"#e0c8a4"}],
+ levels:[{n:"SLICKROCK NOVICE",xp:0},{n:"CAIRN FOLLOWER",xp:50},{n:"SLOT CANYON CURIOUS",xp:120},
+  {n:"RIM WALKER",xp:220},{n:"HOODOO HUNTER",xp:350},{n:"SANDSTONE SCRAMBLER",xp:500},
+  {n:"POTHOLE PROSPECTOR",xp:680},{n:"NARROWS WADER",xp:880},{n:"WATER CARRIER",xp:1100},
+  {n:"CANYONEER",xp:1350},{n:"PLATEAU VETERAN",xp:1620},{n:"RED ROCK LEGEND",xp:1910}],
+ quests:[
+{id:"w1",c:"water",n:"The Narrows, Bottom Up",lat:37.2850,lon:-112.9480,drive:"5.5 hr",dm:330,d:"Hard",mi:"9.4 mi RT",t:"7 hr",hi:"There is no trail. You walk up the Virgin River between walls a thousand feet high and twenty feet apart. Check the flash flood forecast first, every time.",food:"Oscar's Cafe, Springdale"},
+{id:"w2",c:"water",n:"Emerald Pools",lat:37.2530,lon:-112.9580,drive:"5.5 hr",dm:330,d:"Easy-Mod",mi:"3 mi RT",t:"2 hr",hi:"Three tiers of pools fed by seeps in the sandstone, with a waterfall you walk behind at the lower one.",food:"Whiptail Grill, Springdale"},
+{id:"w3",c:"water",n:"Lower Calf Creek Falls",lat:37.7950,lon:-111.4150,drive:"4 hr",dm:240,d:"Mod",mi:"6 mi RT",t:"3.5 hr",hi:"A 126 ft fall dropping into a green pool in the middle of the desert, with pictographs on the wall a mile in.",food:"Hell's Backbone Grill, Boulder"},
+{id:"w4",c:"water",n:"Kanarra Falls",lat:37.5390,lon:-113.1780,drive:"5.5 hr",dm:330,d:"Mod",mi:"3.8 mi RT",t:"3 hr",hi:"Up a creek into a narrow slot with wooden ladders bolted beside the falls. Permit capped at 150 people a day.",food:"Centro Pizzeria, Cedar City"},
+{id:"w5",c:"water",n:"Mill Creek Falls",lat:38.5590,lon:-109.5100,drive:"10 min",dm:10,d:"Easy",mi:"2.4 mi RT",t:"1.5 hr",hi:"A swimming hole with a waterfall five minutes from downtown Moab. The whole town is there on a hot afternoon.",food:"Milt's Stop & Eat, Moab"},
+{id:"s1",c:"short",n:"Delicate Arch",lat:38.7436,lon:-109.4993,drive:"30 min",dm:30,d:"Mod",mi:"3 mi RT",t:"2 hr",hi:"Up an open slickrock ramp with no shade and no railing, to the arch on the licence plate. Sunset is worth the crowd.",food:"Moab Brewery"},
+{id:"s2",c:"short",n:"Landscape Arch",lat:38.7900,lon:-109.5940,drive:"40 min",dm:40,d:"Easy",mi:"2 mi RT",t:"1 hr",hi:"306 ft across and six feet thick at its thinnest. A slab fell off it in 1991 and nobody is allowed underneath any more.",food:"Moab Brewery"},
+{id:"s3",c:"short",n:"Mesa Arch",lat:38.3890,lon:-109.8680,drive:"45 min",dm:45,d:"Easy",mi:"0.7 mi RT",t:"40 min",hi:"An arch on the cliff edge that catches reflected sunrise on its underside. Expect forty tripods at dawn.",food:"Milt's Stop & Eat, Moab"},
+{id:"s4",c:"short",n:"Navajo Loop & Queens Garden",lat:37.6250,lon:-112.1650,drive:"4.5 hr",dm:270,d:"Mod",mi:"2.9 mi RT",t:"2 hr",hi:"Down Wall Street's switchbacks into the hoodoos and back up through the Queens Garden. The classic Bryce walk, done in the right direction.",food:"Bryce Canyon Coffee Co, Tropic"},
+{id:"s5",c:"short",n:"Corona Arch",lat:38.5720,lon:-109.6300,drive:"20 min",dm:20,d:"Easy-Mod",mi:"3 mi RT",t:"2 hr",hi:"On BLM land outside the park, with a cable handrail and a short ladder. Bigger than most arches inside Arches.",food:"Moab Brewery"},
+{id:"v1",c:"view",n:"Dead Horse Point",lat:38.4800,lon:-109.7400,drive:"45 min",dm:45,d:"Easy",mi:"1.5 mi RT",t:"1 hr",hi:"2,000 ft straight down onto a gooseneck of the Colorado, from a mesa connected to the world by a thirty yard neck.",food:"Milt's Stop & Eat, Moab"},
+{id:"v2",c:"view",n:"Bryce Point at Sunrise",lat:37.6040,lon:-112.1560,drive:"4.5 hr",dm:270,d:"Easy",mi:"1 mi RT",t:"1 hr",hi:"The whole amphitheatre lit from the east at once. It is 8,300 ft here and freezing at dawn most of the year.",food:"Bryce Canyon Coffee Co, Tropic"},
+{id:"v3",c:"view",n:"Angels Landing",lat:37.2690,lon:-112.9490,drive:"5.5 hr",dm:330,d:"Extreme",mi:"5.4 mi RT",t:"4 hr",hi:"Walter's Wiggles, then half a mile of fin with chains bolted to the rock and 1,200 ft of air on both sides. Permit by lottery.",food:"Oscar's Cafe, Springdale"},
+{id:"v4",c:"view",n:"Muley Point & the Moki Dugway",lat:37.2400,lon:-109.9900,drive:"2.5 hr",dm:150,d:"Easy",mi:"0.5 mi RT",t:"30 min",hi:"Three miles of unpaved switchbacks up an 1,100 ft cliff, then a rim looking down on the San Juan goosenecks and out to Monument Valley.",food:"Twin Rocks Cafe, Bluff"},
+{id:"m1",c:"mod",n:"Chesler Park & the Joint Trail",lat:38.1500,lon:-109.8300,drive:"1.5 hr",dm:90,d:"Mod-Hard",mi:"11 mi RT",t:"7 hr",hi:"A meadow ringed by banded sandstone spires, reached through a fracture so narrow you turn your pack sideways.",food:"Milt's Stop & Eat, Moab"},
+{id:"m2",c:"mod",n:"Cassidy Arch",lat:38.2880,lon:-111.2260,drive:"2.5 hr",dm:150,d:"Mod",mi:"3.4 mi RT",t:"2.5 hr",hi:"One of the few arches you are allowed to walk out on top of. Named for Butch Cassidy, who is supposed to have hidden below it.",food:"Capitol Burger, Torrey"},
+{id:"m3",c:"mod",n:"Fiery Furnace",lat:38.7430,lon:-109.5620,drive:"35 min",dm:35,d:"Mod",mi:"2 mi",t:"3 hr",hi:"A maze of fins with no marked trail, entered by permit only after a briefing. People get lost in here every season.",food:"Moab Brewery"},
+{id:"m4",c:"mod",n:"Peekaboo & Spooky Gulch",lat:37.4740,lon:-111.2170,drive:"4.5 hr",dm:270,d:"Mod",mi:"3.5 mi loop",t:"3 hr",hi:"Two slots off Hole-in-the-Rock Road, one entered by a ten foot climb and the other narrow enough that packs come off.",food:"Escalante Outfitters"},
+{id:"m5",c:"mod",n:"Hickman Bridge & Rim Overlook",lat:38.2900,lon:-111.2280,drive:"2.5 hr",dm:150,d:"Mod",mi:"4.6 mi RT",t:"3 hr",hi:"A 133 ft natural bridge, then a climb to the rim looking down on the orchards and the Fremont River.",food:"Capitol Burger, Torrey"},
+{id:"h1",c:"hard",n:"Observation Point",lat:37.2740,lon:-112.9380,drive:"5.5 hr",dm:330,d:"Hard",mi:"6.8 mi RT",t:"5 hr",hi:"700 ft higher than Angels Landing and looking down on it, reached from East Mesa since the main trail closed to rockfall.",food:"Whiptail Grill, Springdale"},
+{id:"h2",c:"hard",n:"Mount Peale, La Sals",lat:38.4386,lon:-109.2292,drive:"1 hr",dm:60,d:"Extreme",mi:"6 mi RT",t:"7 hr",hi:"12,721 ft of loose talus with no trail above the basin, and the desert 8,000 ft below on every side.",food:"Moab Brewery"},
+{id:"h3",c:"hard",n:"Druid Arch",lat:38.1300,lon:-109.8100,drive:"1.5 hr",dm:90,d:"Hard",mi:"11 mi RT",t:"8 hr",hi:"Up Elephant Canyon on sand and slickrock to a squared-off arch that looks like it was set there on purpose. Ladder near the top.",food:"Milt's Stop & Eat, Moab"},
+{id:"h4",c:"hard",n:"Mount Ellen, Henry Mountains",lat:38.1000,lon:-110.8100,drive:"2.5 hr",dm:150,d:"Hard",mi:"6 mi RT",t:"6 hr",hi:"11,522 ft on the last range in the lower 48 to be mapped, with a free-roaming bison herd on the flanks below.",food:"Stan's Burger Shak, Hanksville"},
+{id:"h5",c:"hard",n:"Boulder Mail Trail",lat:37.8600,lon:-111.4300,drive:"4 hr",dm:240,d:"Hard",mi:"15.5 mi",t:"10 hr",hi:"The route the mail went by mule until 1924, across bare slickrock between Escalante and Boulder. Cairns only, and two deep canyon crossings.",food:"Hell's Backbone Grill, Boulder"},
+{id:"l1",c:"long",n:"Devils Garden Primitive Loop",lat:38.7830,lon:-109.5940,drive:"40 min",dm:40,d:"Mod-Hard",mi:"7.9 mi loop",t:"5 hr",hi:"Eight arches on one loop, with a slickrock fin you walk along and a section that is genuinely exposed.",food:"Moab Brewery"},
+{id:"l2",c:"long",n:"Syncline Loop",lat:38.4310,lon:-109.8830,drive:"1 hr",dm:60,d:"Hard",mi:"8.3 mi loop",t:"7 hr",hi:"Around Upheaval Dome, a crater that is either a salt dome or a meteor strike depending who you ask. More rescues than any other trail in the park.",food:"Milt's Stop & Eat, Moab"},
+{id:"l3",c:"long",n:"West Rim Trail",lat:37.3200,lon:-112.9600,drive:"5.5 hr",dm:330,d:"Hard",mi:"14.5 mi",t:"9 hr",hi:"Lava Point down to the Grotto, along the rim the whole way and past the Angels Landing junction at the end. One way, arrange a shuttle.",food:"Oscar's Cafe, Springdale"},
+{id:"l4",c:"long",n:"Under-the-Rim: Bryce Point to Sheep Creek",lat:37.5700,lon:-112.2000,drive:"4.5 hr",dm:270,d:"Mod-Hard",mi:"12 mi",t:"7 hr",hi:"Below the hoodoos rather than above them, through ponderosa and past the Hat Shop. Almost nobody leaves the rim.",food:"Bryce Canyon Coffee Co, Tropic"},
+{id:"x1",c:"multi",n:"The Zion Traverse",lat:37.3300,lon:-113.1900,drive:"5.5 hr",dm:330,d:"Extreme",mi:"48 mi",t:"4 days",hi:"Kolob Canyons to the East Rim across the whole park, over the plateau and down through the canyon. Water sources are far apart and you plan around them.",food:"Oscar's Cafe, Springdale",boss:"titan"},
+{id:"x2",c:"multi",n:"Coyote Gulch",lat:37.4200,lon:-111.0900,drive:"4.5 hr",dm:270,d:"Hard",mi:"25 mi",t:"3 days",hi:"A creek running through a 400 ft slot with two arches and a natural bridge over it. You walk in the water most of the way.",food:"Escalante Outfitters",boss:"leviathan"},
+{id:"x3",c:"multi",n:"The Maze",lat:38.2000,lon:-110.1000,drive:"5 hr",dm:300,d:"Extreme",mi:"30 mi",t:"4 days",hi:"The most remote district in the national park system. Three hours of high clearance road to the trailhead and no help coming if it goes wrong.",food:"Stan's Burger Shak, Hanksville",boss:"wyrm"},
+{id:"x4",c:"multi",n:"Grand Gulch, Cedar Mesa",lat:37.4500,lon:-109.9500,drive:"2.5 hr",dm:150,d:"Extreme",mi:"38 mi",t:"4 days",hi:"Cliff dwellings, granaries and rock art left where they were built eight hundred years ago. Look, photograph, touch nothing.",food:"Twin Rocks Cafe, Bluff",boss:"panther"},
+{id:"x5",c:"multi",n:"Buckskin Gulch & Paria Canyon",lat:37.0700,lon:-111.8800,drive:"6 hr",dm:360,d:"Extreme",mi:"38 mi",t:"4 days",hi:"The longest slot canyon on earth: thirteen miles of it under 500 ft walls twelve feet apart, with no exit and no high ground.",food:"Rocking V Cafe, Kanab",boss:"golem"},
+{id:"x6",c:"multi",n:"Under-the-Rim Trail, End to End",lat:37.5000,lon:-112.2200,drive:"4.5 hr",dm:270,d:"Hard",mi:"23 mi",t:"3 days",hi:"Bryce Point to Rainbow Point below the amphitheatre, camping among hoodoos at 8,000 ft where it freezes in June.",food:"Bryce Canyon Coffee Co, Tropic",boss:"quartz"},
+{id:"x7",c:"multi",n:"La Sal Traverse",lat:38.4500,lon:-109.2600,drive:"1 hr",dm:60,d:"Extreme",mi:"26 mi",t:"3 days",hi:"Above 11,000 ft along an alpine range that has red desert on both horizons. Afternoon storms arrive without warning up here.",food:"Moab Brewery",boss:"frost"}],
+ bosses:{
+  wyrm:{name:"THE MAZE WYRM",hp:400,atk:24,rec:4,arch:"wyrm",biome:"canyon",
+   pal:["#2a1109","#54240f","#8a4018","#b8682a","#dc9c50","#f2cc90"],eye:"#3ce0ff",accent:"#ff8a2c",
+   moves:[["SAND COIL",.95,"LIGHT"],["WRONG TURN",1.32,"HEAVY"],["NO HELP COMING",1.68,"DEVASTATING"]],
+   intro:"Every canyon in here looks like the one you came down. It is counting on that."},
+  leviathan:{name:"THE COYOTE GULCH LEVIATHAN",hp:450,atk:25,rec:5,arch:"wyrm",biome:"water",
+   pal:["#06182a","#0c3450","#166288","#28a0bc","#62cfe0","#aaeef6"],eye:"#ff7a2c",accent:"#62dcea",
+   moves:[["UNDERCUT",.95,"LIGHT"],["FLASH FLOOD",1.34,"HEAVY"],["FOUR HUNDRED FEET OF WALL",1.7,"DEVASTATING"]],
+   intro:"The sky was clear where you are standing. It was not clear upstream."},
+  frost:{name:"THE LA SAL HOARFROST",hp:465,atk:26,rec:6,arch:"golem",biome:"snow",
+   pal:["#0d1a2a","#1a334c","#2f6084","#5292b4","#8ec6dc","#dcf0fa"],eye:"#2ae0ff",accent:"#5aa0c4",
+   moves:[["RIME GRIP",.95,"LIGHT"],["TALUS SLIDE",1.3,"HEAVY"],["TWELVE THOUSAND OVER RED",1.68,"DEVASTATING"]],
+   intro:"An island of ice sitting on top of a desert, and it resents the arrangement."},
+  panther:{name:"THE CEDAR MESA LION",hp:335,atk:22,rec:3,arch:"beast",biome:"forest",
+   pal:["#0d0910","#1b1322","#30203a","#492f56","#6a4874","#9a70a4"],eye:"#8cf055",accent:"#c48ee4",
+   moves:[["POUNCE",1.0,"LIGHT"],["LEDGE AMBUSH",1.3,"HEAVY"],["EIGHT HUNDRED YEARS",1.58,"DEVASTATING"]],
+   intro:"People lived in these alcoves for centuries. Something is still using them."},
+  golem:{name:"THE BUCKSKIN GOLEM",hp:540,atk:28,rec:7,arch:"golem",biome:"canyon",
+   pal:["#2b1a10","#4e2e18","#7a4a26","#a86e3c","#cf9a5e","#eec894"],eye:"#ffb020",accent:"#ff6a28",
+   moves:[["WALL SQUEEZE",1.0,"LIGHT"],["LOG JAM",1.34,"HEAVY"],["THIRTEEN MILES, NO EXIT",1.74,"DEVASTATING"]],
+   intro:"Twelve feet wide, five hundred feet deep, and it fills the whole width."},
+  titan:{name:"THE KOLOB TITAN",hp:410,atk:23,rec:5,arch:"titan",biome:"bald",
+   pal:["#2a1a10","#4e3018","#7c5228","#a87c3e","#cfa864","#f0d49a"],eye:"#ff74cc",accent:"#ffd85a",
+   moves:[["SLAB SWEEP",.95,"LIGHT"],["DRY SPRING",1.32,"HEAVY"],["FORTY EIGHT MILES",1.68,"DEVASTATING"]],
+   intro:"It stands between you and the next water, and the next water is fourteen miles on."},
+  quartz:{name:"THE HOODOO COLOSSUS",hp:490,atk:27,rec:6,arch:"golem",biome:"canyon",
+   pal:["#3a1c26","#66303e","#9a4f58","#c8787c","#e8aaa4","#fbdcd4"],eye:"#ffe23a",accent:"#ff9ab0",
+   moves:[["SPIRE VOLLEY",1.0,"LIGHT"],["FROST WEDGE",1.32,"HEAVY"],["TEN MILLION WINTERS",1.72,"DEVASTATING"]],
+   intro:"Two hundred freeze-thaw cycles a year carved these. One of them stood up."}},
+ landmarks:[
+  {id:"a13",ic:"🌉",n:"THE ARCH SET",d:"Delicate, Landscape, Mesa and Cassidy",need:["s1","s2","s3","m2"]},
+  {id:"a14",ic:"💦",n:"DESERT WATER",d:"The Narrows, Calf Creek, Kanarra and Mill Creek",need:["w1","w3","w4","w5"]},
+  {id:"a15",ic:"🪢",n:"THE EXPOSED ONES",d:"Angels Landing, Observation Point, the Syncline and Druid Arch",need:["v3","h1","l2","h3"]},
+  {id:"a16",ic:"🧗",n:"SLOT COUNTRY",d:"Peekaboo and Spooky, and the Buckskin Gulch",need:["m4","x5"]}]};
+
 /* xp is derived, so compute it for every region up front: the launcher needs it
    to total lifetime XP without booting a world. */
 Object.values(REGIONS).forEach(rg=>rg.quests.forEach(p=>p.xp=DIFF_XP[p.d]+CAT_BONUS[p.c]));
@@ -3128,8 +3315,10 @@ const bx=bg.getContext('2d');
 const waterPx=[];   // sparkle anchors
 const lightsPx=[];  // night window lights
 
-/* elevation colour ramp */
-const RAMP=[
+/* elevation colour ramp. A region may declare its own: the Colorado Plateau is
+   the only one so far that needs to, because a temperate green-to-grey ramp
+   makes slickrock read as pasture. */
+const RAMP=RG.ramp||[
  [0.00,[150,200,108]],[0.14,[128,186,88]],[0.26,[102,168,70]],
  [0.38,[ 80,146,60]],[0.49,[ 62,124,52]],[0.58,[ 50,104,46]],
  [0.66,[ 52, 88, 48]],[0.73,[ 78, 84, 58]],[0.80,[108, 98, 76]],
@@ -3279,12 +3468,21 @@ const PALS={
  gld:{1:"#4a3808",3:"#b8941c",4:"#e8cc46",5:"#4a3520"},
  bare:{1:"#3a2c1c",5:"#4a3520"},
  rock:{1:"#2c261f",2:"#8a7f70",3:"#c0b6a2"},
+ pj  :{1:"#1d2614",3:"#354424",4:"#4c5f30",5:"#33261a"},   // pinyon & juniper
+ sage:{1:"#2e3626",3:"#59654a",4:"#7c8866",5:"#33261a"},   // sagebrush
+ slick:{1:"#3a1c10",2:"#a85a2e",3:"#d9954e"},              // sunlit slickrock
+ slickD:{1:"#2a1409",2:"#7c3a1c",3:"#a86636"},
  rockD:{1:"#211d18",2:"#6a6156",3:"#948a7a"},
  snowr:{1:"#5a6470",2:"#d2dce4",3:"#f4f9fc"}};
 
 function shadow(c,x,y,w,h){c.fillStyle="rgba(20,30,20,.26)";
  c.fillRect(x+1,y,w-2,h);c.fillRect(x,y+1,w,h-2);}
 
+/* An arid region grows a fraction of the cover a temperate one does, and what
+   it does grow is pinyon, juniper and sage rather than hardwood and spruce.
+   The farmland, hedgerow and pond decorations are skipped outright: there is
+   none of any of it on the plateau. */
+const DRY=!!RG.dry;
 function drawDeco(){
  for(let ty=0;ty<TH;ty++)for(let tx=0;tx<TW;tx++){
   const i=ty*TW+tx;if(wM[i])continue;
@@ -3304,20 +3502,22 @@ function drawDeco(){
   if(b===1)dens=.16; else if(b===2)dens=.62; else if(b===3)dens=.88;
   else if(b===4)dens=.82; else if(b===5)dens=.56; else if(b===6)dens=.24; else dens=.05;
   dens*= (0.55+denseNoise*0.9);
+  if(DRY)dens*=0.30;
   const nTrees = a<dens ? (b2<dens*0.75?2:1) : 0;
   if(b>=5){
-   if(a<(b>=7?.72:.34))spr(bx,ROCK,b>=7?PALS.snowr:PALS.rockD,x+1+((c2*3)|0),y+3+((d2*3)|0));
+   if(a<(b>=7?.72:.34))spr(bx,ROCK,b>=7?(DRY?PALS.slick:PALS.snowr):(DRY?PALS.slickD:PALS.rockD),x+1+((c2*3)|0),y+3+((d2*3)|0));
    // scree
    for(let k=0;k<3;k++){if(rr()>.55)continue;
-    bx.fillStyle=b>=7?"rgba(255,255,255,.55)":"rgba(60,54,44,.55)";
+    bx.fillStyle=b>=7?(DRY?"rgba(212,140,84,.55)":"rgba(255,255,255,.55)"):(DRY?"rgba(120,58,30,.55)":"rgba(60,54,44,.55)");
     bx.fillRect(x+((rr()*10)|0),y+((rr()*10)|0),1+((rr()*2)|0),1);}
    // ridge highlight where the slope faces up-left
    if(gt(B,tx,ty+1)<b&&gt(B,tx+1,ty)<=b){
-    bx.fillStyle=b>=7?"rgba(255,255,255,.42)":"rgba(210,196,166,.30)";
+    bx.fillStyle=b>=7?(DRY?"rgba(244,186,120,.44)":"rgba(255,255,255,.42)"):(DRY?"rgba(226,158,98,.32)":"rgba(210,196,166,.30)");
     bx.fillRect(x,y,TS,1);}
   }
-  if(b>=4&&b<6&&d2>.72)spr(bx,ROCK,PALS.rockD,x+3+((e2*3)|0),y+4);
-  if(b===1&&a>.30&&a<.52&&distToWater[i]>2.5){ // farmland patch
+  if(b>=4&&b<6&&d2>.72)spr(bx,ROCK,DRY?PALS.slickD:PALS.rockD,x+3+((e2*3)|0),y+4);
+  if(DRY&&b<=4&&!nTrees&&d2>.80)spr(bx,ROCK,PALS.slick,x+2+((a*4)|0),y+4);
+  if(!DRY&&b===1&&a>.30&&a<.52&&distToWater[i]>2.5){ // farmland patch
    bx.fillStyle=c2>.5?"rgba(196,206,110,.30)":"rgba(168,196,96,.26)";
    bx.fillRect(x,y,TS,TS);
    bx.fillStyle="rgba(92,110,54,.34)";
@@ -3328,25 +3528,26 @@ function drawDeco(){
   for(let k=0;k<nTrees;k++){
    const ox=x+((k===0?1:5)+((rr()*3)|0)), oy=y+((k===0?0:3)+((rr()*3)|0));
    let pal,grid;
-   if(b>=5){grid=TREE_C;pal=PALS.spr;}
+   if(DRY){grid=rr()>.45?TREE_C:TREE_B;pal=PALS.pj;}
+   else if(b>=5){grid=TREE_C;pal=PALS.spr;}
    else if(b===4){grid=rr()>.35?TREE_C:TREE_D;pal=aut?(rr()>.5?PALS.gld:PALS.aut):PALS.hi;}
    else if(b===3){grid=rr()>.5?TREE_C:TREE_D;pal=aut?(rr()>.55?PALS.aut:PALS.aut2):PALS.sum2;}
    else {grid=rr()>.72?TREE_C:TREE_D;pal=aut?(rr()>.5?PALS.gld:PALS.aut):PALS.sum;}
    shadow(bx,ox+1,oy+(grid===TREE_C?10:8),8,3);
    spr(bx,grid,pal,ox,oy);
   }
-  if(b<=2&&!nTrees&&c2>.80)spr(bx,BUSH,aut?PALS.aut:PALS.sum,x+2+((d2*3)|0),y+4);
-  if(b<=2&&!nTrees&&c2<.10){            // hedgerow
+  if(b<=3&&!nTrees&&c2>(DRY?.52:.80))spr(bx,BUSH,DRY?PALS.sage:(aut?PALS.aut:PALS.sum),x+2+((d2*3)|0),y+4);
+  if(!DRY&&b<=2&&!nTrees&&c2<.10){      // hedgerow
    bx.fillStyle="#2d5c22";
    if(d2>.5)bx.fillRect(x,y+5,TS,3); else bx.fillRect(x+5,y,3,TS);
    bx.fillStyle="#3f7a30";
    if(d2>.5)bx.fillRect(x,y+5,TS,1); else bx.fillRect(x+5,y,1,TS);}
-  if(b===1&&e2>.955){                   // meadow flowers
+  if(!DRY&&b===1&&e2>.955){             // meadow flowers
    const fc=["#f2e05a","#f28cc0","#ffffff","#c98af2"][(d2*4)|0];
    bx.fillStyle=fc;
    bx.fillRect(x+((a*9)|0),y+((b2*9)|0),1,1);
    bx.fillRect(x+((c2*9)|0),y+((d2*9)|0),1,1);}
-  if(b===2&&e2>.985){                   // farm pond
+  if(!DRY&&b===2&&e2>.985){             // farm pond
    bx.fillStyle="rgba(14,32,52,.5)";bx.fillRect(x+2,y+3,8,6);
    bx.fillStyle="#2f88b8";bx.fillRect(x+3,y+4,6,4);
    bx.fillStyle="#6fc4dc";bx.fillRect(x+3,y+4,4,1);}
@@ -3390,8 +3591,8 @@ function drawCliffs(){
   if(rr()>0.16)continue;
   const x=tx*TS,y=ty*TS,w2=4+((rr()*6)|0);
   bx.fillStyle="rgba(0,0,0,.30)";bx.fillRect(x+2,y+7,w2,2);
-  bx.fillStyle=hM[i]>0.93?"#c3cdd8":"#6d6350";bx.fillRect(x+2,y+4,w2,3);
-  bx.fillStyle=hM[i]>0.93?"#eef4fa":"#948868";bx.fillRect(x+2,y+4,w2,1);
+  bx.fillStyle=hM[i]>0.93?(DRY?"#b06a3a":"#c3cdd8"):(DRY?"#8a4522":"#6d6350");bx.fillRect(x+2,y+4,w2,3);
+  bx.fillStyle=hM[i]>0.93?(DRY?"#dc9a5c":"#eef4fa"):(DRY?"#b8703c":"#948868");bx.fillRect(x+2,y+4,w2,1);
  }
 }
 function drawCoastlines(){
@@ -3519,6 +3720,7 @@ const MTN_TYPES={
 
 /* which rock a range is made of — regional palette, elevation picks the variant */
 function mtnRegion(lon,lat){
+ if(RG.rock)return RG.rock;
  if(lon<-83.14&&lat>35.34)                        return ["granite","slate", .60];  // Great Smokies
  if(lat>35.56&&lon>-82.50&&lon<-82.10)            return ["slate","slate",   .54];  // Black Mtns
  if(lat>35.94&&lon>-82.44&&lon<-81.86)            return ["bald","bald",     .00];  // Roan balds
@@ -3706,10 +3908,11 @@ function drawMountains(){
    const ox=m.cx-m.w/2+rr()*m.w, oy=m.baseY-1+((rr()*4)|0);
    if(ox<4||ox>W-10)continue;
    const t=MTN_TYPES[m.key];
-   const pal=(m.key==="bald")?{1:"#243a12",3:"#4a6b1e",4:"#6f9130",5:"#3a2a18"}
+   const pal=DRY?PALS.pj
+            :(m.key==="bald")?{1:"#243a12",3:"#4a6b1e",4:"#6f9130",5:"#3a2a18"}
             :(m.h>0.80)?PALS.spr:PALS.hi;
    shadow(bx,ox|0,oy+10,8,3);
-   spr(bx,TREE_C,pal,ox|0,oy-2);}});
+   spr(bx,DRY?TREE_B:TREE_C,pal,ox|0,oy-2);}});
 }
 /* ═══════════════ 5. SETTLEMENTS & LANDMARKS ═══════════════ */
 function lite(c,x,y,w,h,col){c.fillStyle=col||"#ffd98a";c.fillRect(x,y,w,h);
