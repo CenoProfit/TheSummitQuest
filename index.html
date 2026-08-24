@@ -8210,6 +8210,13 @@ function paintSplashMap(){
 (function(){
  const sp=document.getElementById('splash');if(!sp)return;
  let gone=false;
+ /* The title card is shown once per session, and picking a region reloads the
+    page, so on every load after the first it is already display:none before
+    this runs. Taking the music hold in that case was a trap: nothing would ever
+    be tapped to dismiss the card, so the hold was never released and the title
+    theme played over the map and straight on through boss fights. The hold may
+    only ever be taken while the card is genuinely on screen. */
+ if(getComputedStyle(sp).display==='none'){gone=true;musicHold=false;return;}
  /* Nothing may make noise before the page has been touched, so the theme is
     started now in case this page is already allowed to, and armed on the first
     touch otherwise. Pressing TUTORIAL no longer dismisses the title card, so
