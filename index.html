@@ -2623,6 +2623,174 @@ REGIONS.sedona={
   {id:"a15",ic:"🏜",n:"BELOW THE RIM",d:"Three-Mile, Skeleton Point, Plateau Point and rim to rim",need:["m3","h2","l1","x2"]},
   {id:"a16",ic:"🏔",n:"THE HIGH COUNTRY",d:"Humphreys, Kendrick and the Inner Basin",need:["h1","m5","m4"]}]};
 
+REGIONS.cascades={
+ id:"cascades",name:"THE PACIFIC NORTHWEST",short:"PACIFIC NW",tag:"RAINIER",
+ home:"Seattle",hub:{lon:-122.335,lat:47.606},
+ tagline:"Rainier, the Olympics and the North Cascades",
+ pin:{lon:-121.760,lat:46.850},
+ lon0:-125.60,lon1:-119.80,lat0:49.00,lat1:45.80,tw:106,th:82,seed:20261106,
+ crestRoad:"NORTH CASCADES HIGHWAY",
+ /* Ocean on the west edge, the Olympics standing alone behind it, the Puget
+    lowland sunk in the middle, then the Cascade crest running the length of the
+    map with five glaciated volcanoes on it. The tilt only carries the general
+    rise from the coast to the crest; the ranges and the sunken lowland are
+    carried by ridges and valleys, because none of it is a ramp. */
+ rock:["granite","pine",.62],
+ tilt:{ax:.92,ay:.10,t0:.02,t1:.92,w:-.22,e:.20,damp:.28},
+ ridges:[
+ {p:[[-121.30,45.90],[-121.42,46.40],[-121.52,47.00],[-121.20,47.60],[-121.00,48.20],[-121.20,48.85]],h:1.20,w:3.4,n:"cascadecrest"},
+ {p:[[-123.75,47.70],[-123.42,47.86],[-123.10,47.92]],h:1.18,w:3.2,n:"olympics"},
+ {p:[[-123.52,47.58],[-123.32,47.96]],h:1.10,w:2.6,n:"olympicsouth"},
+ {p:[[-121.85,48.05],[-121.60,48.20]],h:1.02,w:2.6,n:"mountainloop"},
+ {p:[[-120.95,47.40],[-120.75,47.62]],h:1.10,w:2.6,n:"stuartrange"},
+ {p:[[-123.60,46.35],[-123.25,46.62]],h:.70,w:2.4,n:"willapa"},
+ {p:[[-121.95,46.60],[-121.70,46.72]],h:.92,w:2.4,n:"tatoosh"},
+ {p:[[-124.20,47.90],[-124.05,48.25]],h:.62,w:2.2,n:"coastrange"}],
+ peaks:[[-121.760,46.853,1.40,12],[-121.491,46.202,1.30,9],[-122.195,46.192,1.16,8],
+ [-121.814,48.777,1.32,9],[-121.113,48.112,1.28,8],[-123.711,47.802,1.20,8],
+ [-121.602,48.831,1.24,7],[-120.902,47.475,1.22,7],[-123.129,47.755,1.14,6],
+ [-121.117,48.535,1.20,7],[-121.694,48.166,1.06,6],[-123.253,47.505,1.04,5],
+ [-123.498,47.969,1.02,6],[-121.815,48.070,.94,5],[-121.724,47.488,.86,5],
+ [-120.734,48.516,1.14,6],[-121.075,48.475,1.16,6],[-122.640,48.406,.58,4]],
+ vals:[[-122.35,47.60,.54,16],[-123.20,46.70,.44,14],[-122.60,45.95,.40,12],
+  [-122.30,48.45,.40,12],[-120.30,47.50,.34,14],[-123.90,47.60,.30,10]],
+ rivers:[
+  [[-121.05,48.72],[-121.55,48.55],[-122.10,48.44],[-122.40,48.40]],
+  [[-121.55,47.42],[-121.90,47.62],[-122.15,47.80]],
+  [[-123.75,47.86],[-124.15,47.80],[-124.42,47.75]],
+  [[-121.20,45.85],[-122.00,45.88],[-122.75,46.05],[-123.40,46.20]],
+  [[-123.55,47.85],[-123.55,48.10]],
+  [[-120.90,47.55],[-120.45,47.45]]],
+ /* The Pacific is drawn as three overlapping bodies centred west of the frame,
+    so only its eastern margin shows; Puget Sound and Hood Canal are chains,
+    because an inland sea with a thousand miles of shoreline is not an ellipse. */
+ /* The Pacific is three overlapping bodies centred off the frame, sized so their
+    eastern edges land on the real coastline: about -124.6 off the Olympic
+    peninsula and a little further east down by Grays Harbor. Puget Sound and
+    Hood Canal are chains rather than ellipses, because an inland sea with a
+    thousand miles of shoreline is not one shape, and Seattle has to sit on it. */
+ lakes:[[-126.30,47.90,30,24],[-126.05,46.35,28,17],[-126.20,48.70,28,13],
+  [-122.48,47.15,2.2,3.2],[-122.44,47.50,2.0,2.8],[-122.46,47.82,2.2,2.8],
+  [-122.58,48.14,2.4,2.6],[-122.72,48.45,2.8,2.4],[-122.86,48.72,3.0,2.0],
+  [-122.92,47.35,1.6,3.6],[-123.02,47.72,1.8,2.6],[-123.08,47.98,1.8,1.6],
+  [-122.24,47.60,.9,2.4],[-123.80,48.06,2.4,.9],[-120.35,48.05,1.3,3.2],
+  [-121.06,48.80,1.0,2.6],[-121.66,48.70,.8,1.9],[-124.55,47.20,1.6,2.6]],
+ parkway:[[-121.60,48.55],[-121.20,48.68],[-120.90,48.62],[-120.65,48.52]],
+ roads:[
+  [[-122.65,45.85],[-122.55,46.30],[-122.90,46.95],[-122.45,47.25],[-122.33,47.60],[-122.20,48.10],[-122.35,48.78]],
+  [[-122.33,47.60],[-121.90,47.45],[-121.42,47.42],[-120.80,47.30],[-120.30,47.20]],
+  [[-122.90,47.05],[-123.30,47.20],[-123.55,47.55],[-123.10,48.10],[-123.45,48.12],[-124.00,48.05],[-124.35,47.60],[-124.20,47.05],[-123.80,46.90]],
+  [[-122.10,46.75],[-121.90,46.75],[-121.74,46.79]],
+  [[-121.95,47.15],[-121.60,46.98],[-121.51,46.87]],
+  [[-122.30,48.85],[-121.90,48.86],[-121.69,48.85]],
+  [[-122.70,46.35],[-122.40,46.30],[-122.22,46.28]]],
+ canyons:[
+  {p:[[-121.60,45.86],[-122.10,45.90]],d:.50,r:.42,w:2.0},
+  {p:[[-121.30,48.70],[-121.05,48.72]],d:.44,r:.38,w:1.8},
+  {p:[[-121.52,47.40],[-121.40,47.43]],d:.40,r:.34,w:1.6},
+  {p:[[-121.68,46.76],[-121.48,46.75]],d:.44,r:.38,w:1.8},
+  {p:[[-123.80,47.86],[-124.10,47.82]],d:.36,r:.32,w:1.6}],
+ structs:[
+  {lo:-122.335,la:47.606,t:"city",lab:"SEATTLE"},
+  {lo:-122.444,la:47.253,t:"city",lab:"TACOMA"},
+  {lo:-122.479,la:48.750,t:"city",lab:"BELLINGHAM"},
+  {lo:-122.900,la:47.038,t:"town",lab:"OLYMPIA"},
+  {lo:-123.430,la:48.118,t:"town",lab:"PORT ANGELES"},
+  {lo:-120.661,la:47.596,t:"town",lab:"LEAVENWORTH"},
+  {lo:-121.786,la:47.496,t:"town",lab:"NORTH BEND"},
+  {lo:-122.020,la:46.757,t:"town",lab:"ASHFORD"},
+  {lo:-121.435,la:48.532,t:"town",lab:"MARBLEMOUNT"},
+  {lo:-124.386,la:47.950,t:"town",lab:"FORKS"},
+  {lo:-121.736,la:46.786,t:"hut",lab:"PARADISE"},
+  {lo:-121.642,la:46.915,t:"hut",lab:"SUNRISE"}],
+ labels:[
+  {t:"MOUNT RAINIER",pri:0,lo:-121.78,la:46.98,s:1,c:"#eaf5e0"},
+  {t:"NATIONAL PARK",pri:2,lo:-121.78,la:46.948,s:1,c:"#c8d4e4"},
+  {t:"OLYMPIC",pri:1,lo:-123.52,la:47.98,s:1,c:"#eaf5e0"},
+  {t:"NATIONAL PARK",pri:2,lo:-123.52,la:47.948,s:1,c:"#c8d4e4"},
+  {t:"NORTH CASCADES",pri:1,lo:-121.10,la:48.62,s:1,c:"#dfe8f4"},
+  {t:"MOUNT ST HELENS",pri:1,lo:-122.20,la:46.30,s:1,c:"#dfe8f4"},
+  {t:"MOUNT BAKER",pri:2,lo:-121.82,la:48.88,s:1,c:"#d2dbe8"},
+  {t:"PUGET SOUND",pri:2,lo:-122.60,la:47.92,s:1,c:"#bcd8ea"},
+  {t:"HOOD CANAL",pri:2,lo:-123.00,la:47.62,s:1,c:"#bcd8ea"},
+  {t:"PACIFIC OCEAN",pri:2,lo:-125.15,la:47.15,s:1,c:"#bcd8ea"},
+  {t:"THE ENCHANTMENTS",pri:2,lo:-120.84,la:47.54,s:1,c:"#dfe8f4"},
+  {t:"CASCADE CREST",pri:2,lo:-121.32,la:47.22,s:1,c:"#d2dbe8"}],
+ levels:[{n:"FERRY COMMUTER",xp:0},{n:"RAIN GEAR ROOKIE",xp:40},{n:"MOSS WALKER",xp:100},
+  {n:"LOWLAND RAMBLER",xp:180},{n:"LOOKOUT CHASER",xp:290},{n:"ALPINE LAKE REGULAR",xp:410},
+  {n:"PASS BAGGER",xp:560},{n:"GLACIER GAZER",xp:725},{n:"VOLCANO CLIMBER",xp:905},
+  {n:"WONDERLAND WALKER",xp:1110},{n:"CASCADE VETERAN",xp:1330},{n:"EVERGREEN LEGEND",xp:1570}],
+ quests:[
+{id:"w1",c:"water",n:"Sol Duc Falls",lat:47.9530,lon:-123.8340,drive:"3.5 hr",dm:210,d:"Easy",mi:"1.6 mi RT",t:"1 hr",hi:"Three channels dropping into a mossy slot canyon, crossed by a footbridge that puts you directly over it. Old growth the whole way in, and it rains here about two hundred days a year.",food:"Blondie's Plate, Sequim",rt:"Drive the Sol Duc Hot Springs Road off US-101 west of Lake Crescent, an Olympic National Park entrance fee applies. Eight tenths of a mile of level, wide trail through old growth reaches the footbridge over the falls. The Lover's Lane loop extends it. The road closes in winter."},
+{id:"w2",c:"water",n:"Wallace Falls",lat:47.8670,lon:-121.6780,drive:"1 hr",dm:60,d:"Mod",mi:"5.6 mi RT",t:"3 hr",hi:"Three tiers totalling 265 ft, with the middle viewpoint the one on every postcard. Close enough to Seattle that the lot fills by nine every weekend of the year.",food:"Zeke's Drive In, Gold Bar",rt:"Park at Wallace Falls State Park in Gold Bar, Discover Pass required and enforced. The Woody Trail climbs steadily 1,300 ft past the lower and middle falls to the upper. Turn round at the middle viewpoint if you want the photograph without the last steep push."},
+{id:"w3",c:"water",n:"Snoqualmie Falls",lat:47.5420,lon:-121.8370,drive:"40 min",dm:40,d:"Easy",mi:"0.5 mi RT",t:"45 min",hi:"268 ft, taller than Niagara, dropping beside a hydroelectric plant that has run since 1899. Sacred ground to the Snoqualmie Tribe and the opening shot of Twin Peaks.",food:"Salish Lodge Dining Room",rt:"Park in the free upper lot off SR-202 in Snoqualmie, which fills fast on weekends. The upper observation deck is a two minute paved walk. A steep trail drops to the lower viewpoint and boardwalk. Free and open all year."},
+{id:"w4",c:"water",n:"Franklin Falls",lat:47.4200,lon:-121.4400,drive:"50 min",dm:50,d:"Easy",mi:"2 mi RT",t:"1.5 hr",hi:"A 70 ft fall into an amphitheatre with the I-90 viaduct passing overhead, which sounds terrible and is not. It freezes into a blue wall most winters.",food:"Aardvark Express, North Bend",rt:"Park at the Franklin Falls trailhead off exit 47 on I-90, Northwest Forest Pass required. A mile of gentle trail beside Denny Creek reaches the base, with a short rocky section at the end. In winter it is a snowshoe route and microspikes are sensible."},
+{id:"w5",c:"water",n:"Marymere Falls",lat:48.0570,lon:-123.7900,drive:"3.5 hr",dm:210,d:"Easy",mi:"1.8 mi RT",t:"1 hr",hi:"A 90 ft ribbon in deep forest at the foot of Mount Storm King, reached on the flat until a short set of steps at the end.",food:"Lake Crescent Lodge",rt:"Park at the Storm King Ranger Station on US-101 at Lake Crescent. The trail passes under the highway then runs level through old growth for most of a mile, finishing with stairs to two viewpoints. It combines naturally with Mount Storm King from the same lot."},
+{id:"s1",c:"short",n:"Rattlesnake Ledge",lat:47.4340,lon:-121.7700,drive:"40 min",dm:40,d:"Mod",mi:"4 mi RT",t:"2.5 hr",hi:"1,160 ft to a rock shelf over Rattlesnake Lake and the Cedar River watershed. The single busiest trail in the state, and the ledge is unrailed with a long drop.",food:"North Bend Bar & Grill",rt:"Park at the Rattlesnake Lake Recreation Area near North Bend; the lot is large and still overflows by nine on weekends. A well graded trail switchbacks 2 miles to the lower ledge. Stay back from the edge, which is unfenced and has killed people, and carry on to the middle and upper ledges for fewer crowds."},
+{id:"s2",c:"short",n:"Naches Peak Loop",lat:46.8710,lon:-121.5150,drive:"2 hr",dm:120,d:"Easy-Mod",mi:"3.2 mi loop",t:"2 hr",hi:"A loop around a small peak on the Rainier boundary that hands you the mountain over a tarn from the far side. Late July wildflowers here are the best in the state.",food:"Wapiti Woolies, Greenwater",rt:"Park at the Tipsoo Lake or Chinook Pass lot on SR-410, and walk the loop clockwise so Rainier is in front of you rather than behind. Part of it runs on the Pacific Crest Trail. The pass road is closed by snow from roughly November to June."},
+{id:"s3",c:"short",n:"Hoh Rain Forest: Hall of Mosses",lat:47.8600,lon:-123.9350,drive:"4.5 hr",dm:270,d:"Easy",mi:"0.8 mi loop",t:"45 min",hi:"Twelve to fourteen feet of rain a year, and every branch carrying club moss. Sitka spruce and western hemlock over 250 ft tall. There is nothing else like it in the country.",food:"Blakeslee's Bar & Grill, Forks",rt:"Drive the Upper Hoh Road off US-101, entrance fee, and note the road has washed out in recent winters so check it is open. A flat, easy loop from behind the visitor center. Arrive before nine or after four; the lot fills and rangers turn cars away for hours at a time."},
+{id:"s4",c:"short",n:"Lake 22",lat:48.0760,lon:-121.7470,drive:"1.5 hr",dm:90,d:"Mod",mi:"5.4 mi RT",t:"3.5 hr",hi:"A cirque lake under the cliffs of Mount Pilchuck, reached through a research forest of old growth cedar with boardwalks over the wet ground.",food:"Bluebird Cafe, Granite Falls",rt:"Park at the Lake 22 trailhead on the Mountain Loop Highway, Northwest Forest Pass required. The trail climbs 1,350 ft over 2.7 miles with boardwalk and stone steps. Snow lingers at the lake into June and the basin holds ice long after the trailhead is clear."},
+{id:"s5",c:"short",n:"Deception Pass & Rosario Head",lat:48.4060,lon:-122.6440,drive:"1.5 hr",dm:90,d:"Easy",mi:"2 mi",t:"1.5 hr",hi:"A 1935 steel bridge 180 ft above a tidal strait where the current runs at eight knots. Below it, headland trails through wind-shaped fir out to the water.",food:"Shrimp Shack, Bow",rt:"Park at Deception Pass State Park, Discover Pass required, and use the Rosario Beach or bridge lots. Short trails link the bridge walkway, Rosario Head and the beaches. Nearly flat. Check the tide table if you want the beach rather than the bluff."},
+{id:"v1",c:"view",n:"Hurricane Ridge",lat:47.9690,lon:-123.4980,drive:"3.5 hr",dm:210,d:"Easy",mi:"1.6 mi RT",t:"1 hr",hi:"A mile above Port Angeles with the whole Olympic interior across the valley and Vancouver Island behind you. Deer graze the meadow and ignore everybody.",food:"Next Door Gastropub, Port Angeles",rt:"Drive the 17 mile Hurricane Ridge Road from Port Angeles, entrance fee. Paved meadow loops leave from the parking area. The day lodge burned down in 2023 and facilities are limited. The road closes overnight and in winter is open only Friday to Sunday with chains required."},
+{id:"v2",c:"view",n:"Sunrise, Mount Rainier",lat:46.9150,lon:-121.6420,drive:"2.5 hr",dm:150,d:"Easy",mi:"0.5 mi RT",t:"45 min",hi:"At 6,400 ft this is the highest point in the park you can drive to, looking straight up the Emmons Glacier, the largest glacier in the lower 48.",food:"Wapiti Woolies, Greenwater",rt:"Drive the Sunrise Road off SR-410, entrance fee and, in summer, a timed entry reservation for the corridor. Short paved paths leave from the lot. The road opens around the start of July and closes with the first snow, which makes it the shortest season in the park."},
+{id:"v3",c:"view",n:"Artist Point, Mount Baker",lat:48.8470,lon:-121.6910,drive:"2.5 hr",dm:150,d:"Easy",mi:"1 mi RT",t:"1 hr",hi:"The end of the road at 5,100 ft with Baker on one side and Shuksan on the other. Mount Baker Ski Area a few miles below holds the world record for snowfall in a season.",food:"Graham's Restaurant, Glacier",rt:"Drive SR-542 to its very end above the Mount Baker Ski Area. Short trails leave from the lot in several directions. The road is usually only clear from late July to early October; before that the last few miles stay under snow."},
+{id:"v4",c:"view",n:"Mount St Helens: Windy Ridge",lat:46.2560,lon:-122.1360,drive:"3 hr",dm:180,d:"Easy-Mod",mi:"1 mi RT",t:"1 hr",hi:"The closest you can drive to the crater, four miles out and looking straight into it across Spirit Lake, which still carries a raft of logs blown down in 1980.",food:"Fire Mountain Grill, Kid Valley",rt:"Drive Forest Road 99 from Randle on the east side, a long slow approach and a different route entirely from the Johnston Ridge side. A 368 step staircase climbs from the lot for the higher view. The road opens in summer only and closes early in autumn."},
+{id:"m1",c:"mod",n:"Skyline Trail at Paradise",lat:46.7860,lon:-121.7360,drive:"2.5 hr",dm:150,d:"Mod-Hard",mi:"5.5 mi loop",t:"4 hr",hi:"The signature day on Rainier: 1,700 ft up through the flower meadows to Panorama Point, level with the Nisqually Glacier and looking down onto it.",food:"Copper Creek Inn, Ashford",rt:"Park at Paradise, entrance fee and a summer timed entry reservation for the corridor; the lot is full by nine most days. Walk the loop clockwise. Snow covers the upper section into July and the Pebble Creek crossing above it is where people slip. Ask at the visitor center before committing."},
+{id:"m2",c:"mod",n:"Tolmie Peak Lookout",lat:46.9350,lon:-121.8650,drive:"2.5 hr",dm:150,d:"Mod",mi:"6.5 mi RT",t:"4 hr",hi:"A 1930s fire lookout above Eunice Lake with Rainier filling the view behind it. The quietest of the classic Rainier viewpoints because the road in puts people off.",food:"Copper Creek Inn, Ashford",rt:"Drive the Mowich Lake Road from Buckley, seventeen miles of rough gravel that is slow but passable in a normal car. From Mowich Lake the trail rolls to Eunice Lake then climbs steeply to the lookout. The road opens in July and is the reason this one stays quiet."},
+{id:"m3",c:"mod",n:"Maple Pass Loop",lat:48.5160,lon:-120.7340,drive:"3 hr",dm:180,d:"Mod-Hard",mi:"7.2 mi loop",t:"5 hr",hi:"2,000 ft to a ridge above Lake Ann with the North Cascades stacked in every direction. Larches turn gold in the last week of September and the whole state comes to see it.",food:"Mazama Store",rt:"Park at the Rainy Pass lot on SR-20, Northwest Forest Pass required. Walk the loop clockwise so the steep section is the climb rather than the descent. The North Cascades Highway closes for winter, usually November to May, and the closure gates are miles apart."},
+{id:"m4",c:"mod",n:"Mount Ellinor",lat:47.5050,lon:-123.2530,drive:"2.5 hr",dm:150,d:"Hard",mi:"6.2 mi RT",t:"5 hr",hi:"A steep Olympic summit with a resident herd of mountain goats that are entirely unbothered by people, and a view over Hood Canal to Rainier.",food:"Hoodsport Coffee Company",rt:"Drive Forest Road 2419 off US-101 at Hoodsport to the upper trailhead, Northwest Forest Pass required. The trail climbs 2,400 ft in under three miles, relentlessly. A snow chute offers a shortcut early in the season and requires an axe and the knowledge to use it. Do not approach the goats."},
+{id:"m5",c:"mod",n:"Summerland",lat:46.8880,lon:-121.6000,drive:"2.5 hr",dm:150,d:"Mod-Hard",mi:"8.4 mi RT",t:"6 hr",hi:"A meadow basin on the east side of Rainier reached along a stretch of the Wonderland Trail, with the Fryingpan Glacier above and marmots everywhere.",food:"Wapiti Woolies, Greenwater",rt:"Park at the Fryingpan Creek trailhead on SR-410, entrance fee. The trail climbs 2,100 ft at a steady grade through forest before opening into the basin. Continuing to Panhandle Gap adds two miles and crosses permanent snow. Bears are common in the meadow."},
+{id:"h1",c:"hard",n:"Mount Si",lat:47.4880,lon:-121.7240,drive:"40 min",dm:40,d:"Hard",mi:"8 mi RT",t:"5 hr",hi:"3,150 ft in four miles, the training climb every Seattle mountaineer has done a hundred times. The Haystack at the top is a genuine scramble most people skip.",food:"Twede's Cafe, North Bend",rt:"Park at the Mount Si trailhead near North Bend, Discover Pass required. Relentless switchbacks with no view until the top. The final Haystack scramble is class 3 rock with real exposure and it is not obligatory. Go on a weekday if you can; this is the most climbed peak in the state."},
+{id:"h2",c:"hard",n:"Cascade Pass & Sahale Arm",lat:48.4750,lon:-121.0750,drive:"3 hr",dm:180,d:"Hard",mi:"12 mi RT",t:"8 hr",hi:"Switchbacks to a pass used for thousands of years, then a ridge climbing into a glacier basin with peaks on every horizon. The finest alpine walking in the state.",food:"Marblemount Diner",rt:"Drive the Cascade River Road from Marblemount, 23 miles of increasingly rough gravel that is often closed by washouts, so check before setting out. The pass is 3.7 miles at a gentle grade; Sahale Arm above it climbs 2,000 ft more and is where the trip becomes serious. Snow holds on the arm into August."},
+{id:"h3",c:"hard",n:"Mount Storm King",lat:48.0570,lon:-123.7860,drive:"3.5 hr",dm:210,d:"Hard",mi:"4.1 mi RT",t:"4 hr",hi:"2,000 ft in under two miles to a knife edge above Lake Crescent, with fixed ropes on the last stretch and a drop on both sides. Short, and one of the most exposed trails in the state.",food:"Lake Crescent Lodge",rt:"Same trailhead as Marymere Falls at the Storm King Ranger Station on US-101. The maintained trail ends partway up; above it the route is unmaintained with knotted ropes bolted to the rock. The park does not recommend going past the ropes. Do not attempt this in the wet, which is most days."},
+{id:"h4",c:"hard",n:"Camp Muir",lat:46.8360,lon:-121.7310,drive:"2.5 hr",dm:150,d:"Extreme",mi:"9 mi RT",t:"9 hr",hi:"4,700 ft from Paradise to a stone hut at 10,188 ft, the high camp for the summit climb. Above Pebble Creek it is all snowfield and there is no trail at all.",food:"Copper Creek Inn, Ashford",rt:"From Paradise, follow the Skyline Trail to Pebble Creek, then it is 2.2 miles of open snow up the Muir Snowfield with no marked route. Whiteouts here are common and people die getting lost on the descent. Carry a compass bearing, sunglasses, sunscreen and axe, and turn back in cloud."},
+{id:"h5",c:"hard",n:"Hidden Lake Lookout",lat:48.5100,lon:-121.2100,drive:"3 hr",dm:180,d:"Hard",mi:"8 mi RT",t:"7 hr",hi:"3,300 ft to a 1931 lookout perched on a rock spine at 6,900 ft, with the whole North Cascades laid out around it. The building is open to anybody who reaches it.",food:"Marblemount Diner",rt:"Drive Forest Road 1540 off the Cascade River Road, rough and best with clearance. The trail climbs through meadow then boulder and often snow to a saddle, with a final rocky scramble to the lookout. Snow blocks the upper basin into August and the last section is genuinely exposed."},
+{id:"l1",c:"long",n:"Colchuck Lake",lat:47.4750,lon:-120.8400,drive:"2.5 hr",dm:150,d:"Hard",mi:"8 mi RT",t:"6 hr",hi:"2,300 ft to a turquoise lake under Dragontail Peak and the granite wall of Aasgard Pass. It is the gateway to the Enchantments and a full day in its own right.",food:"München Haus, Leavenworth",rt:"Drive Icicle Creek Road then Eightmile Road from Leavenworth to the Stuart Lake trailhead, Northwest Forest Pass required, and the lot fills before six. Day hiking needs no permit; overnight does. The last mile is boulder field. Aasgard Pass above the lake is 2,200 ft of loose class 3 and is not a trail."},
+{id:"l2",c:"long",n:"Mount St Helens: Harry's Ridge",lat:46.2760,lon:-122.2160,drive:"2.5 hr",dm:150,d:"Mod-Hard",mi:"8 mi RT",t:"5 hr",hi:"Along the Boundary Trail into the blast zone to a ridge looking straight into the crater and down on Spirit Lake. Named for Harry Truman, who refused to leave and is still under the debris.",food:"Fire Mountain Grill, Kid Valley",rt:"Drive SR-504 to the Johnston Ridge Observatory, and check access first: the highway has been closed by a bridge failure and the route may be from Coldwater Lake instead. The trail is exposed pumice with no shade and no water. Take far more water than the distance suggests."},
+{id:"l3",c:"long",n:"Spray Park",lat:46.9330,lon:-121.8620,drive:"2.5 hr",dm:150,d:"Mod-Hard",mi:"8 mi RT",t:"6 hr",hi:"Past Spray Falls into a high meadow basin on Rainier's northwest side that many people rate above Paradise, without the road or the crowd.",food:"Copper Creek Inn, Ashford",rt:"From Mowich Lake at the end of seventeen miles of gravel, take the Spray Park Trail past the falls and climb into the basin. It gains 1,700 ft. Snow lies in the park into late July and the route across it is marked only by boot track. Bears are frequently seen here."},
+{id:"l4",c:"long",n:"Grand Valley from Obstruction Point",lat:47.9200,lon:-123.4200,drive:"4 hr",dm:240,d:"Hard",mi:"12 mi RT",t:"8 hr",hi:"A high traverse across open Olympic ridge to a chain of lakes in a glacial valley. The road to the trailhead is the highest in the park and the most alarming.",food:"Next Door Gastropub, Port Angeles",rt:"Drive Obstruction Point Road, eight miles of narrow gravel with no guardrail beyond Hurricane Ridge, unsuitable for trailers and closed until August most years. The trail is above treeline the whole way and drops 1,500 ft into the valley, which you climb back at the end."},
+{id:"x1",c:"multi",n:"The Wonderland Trail",lat:46.8500,lon:-121.7600,drive:"2.5 hr",dm:150,d:"Extreme",mi:"93 mi",t:"10 days",hi:"All the way round Mount Rainier with 22,000 ft of climbing, crossing every one of its river valleys and glaciers in turn. One of the great long trails in the world.",food:"Copper Creek Inn, Ashford",rt:"Wilderness permits are drawn in an early lottery and the walk-up allocation is small and gone at opening. Most parties take ten to twelve days anticlockwise from Longmire, with food caches arranged in advance at Longmire, White River and Mowich. Snow blocks the high passes into July.",boss:"titan"},
+{id:"x2",c:"multi",n:"The Enchantments Through-Hike",lat:47.4800,lon:-120.7900,drive:"2.5 hr",dm:150,d:"Extreme",mi:"18 mi",t:"1-2 days",hi:"Up Aasgard Pass into a granite basin of larches, tarns and mountain goats at 7,800 ft, then down to Snow Lakes. The most sought-after permit in the state.",food:"München Haus, Leavenworth",rt:"Overnight permits are drawn in a February lottery with odds around two percent. The day hike needs no permit and is 18 miles with 4,500 ft of climbing, usually walked from Colchuck down to Snow Lakes with a shuttle. Aasgard Pass is 2,200 ft of loose rock and is where the injuries happen.",boss:"quartz"},
+{id:"x3",c:"multi",n:"Olympic Coast: Shi Shi to Rialto",lat:48.2800,lon:-124.6800,drive:"5 hr",dm:300,d:"Extreme",mi:"24 mi",t:"3 days",hi:"Wilderness beach walking past sea stacks and tide pools, with headland crossings on fixed ropes and sand ladders. The tide decides when you move and when you wait.",food:"Blakeslee's Bar & Grill, Forks",rt:"A wilderness permit and a bear canister are required, and a Makah recreation pass for the Shi Shi trailhead. You must carry a tide table and a chart of the headland crossings: several points are impassable at high water and people have been cut off and drowned. Plan every day around the tide, not the mileage.",boss:"leviathan"},
+{id:"x4",c:"multi",n:"Hoh River to Blue Glacier",lat:47.8600,lon:-123.9350,drive:"4.5 hr",dm:270,d:"Extreme",mi:"35 mi",t:"4 days",hi:"Seventeen miles up the rainforest valley at almost no grade, then 3,700 ft in the last stretch to the moraine and the ice at the foot of Mount Olympus.",food:"Blakeslee's Bar & Grill, Forks",rt:"Wilderness permit and bear canister required, booked in advance. The valley is flat and easy; the climb from Glacier Meadows is not, and the last section uses a ladder down into the creek bed. Check whether the Hoh Road and the high bridges are open before you drive out.",boss:"frost"},
+{id:"x5",c:"multi",n:"Copper Ridge Loop",lat:48.9000,lon:-121.5000,drive:"3 hr",dm:180,d:"Extreme",mi:"34 mi",t:"4 days",hi:"A high ridge above the Chilliwack valley in the far north of the park, with a fire lookout on the crest and the Canadian peaks filling the horizon.",food:"Graham's Restaurant, Glacier",rt:"Drive the Hannegan Pass Road off SR-542, then a permit from the Glacier Public Service Center, which are competitive. The loop involves a cable car crossing of the Chilliwack River that may be out of service; ask when you collect the permit. Snow holds on Copper Ridge into late July.",boss:"panther"},
+{id:"x6",c:"multi",n:"Mount St Helens: Loowit Trail",lat:46.1920,lon:-122.1950,drive:"3 hr",dm:180,d:"Extreme",mi:"30 mi",t:"4 days",hi:"All the way round the volcano across the 1980 blast zone, through pumice desert, boulder fields and canyons cut by lahars, with almost no shade and almost no water.",food:"Fire Mountain Grill, Kid Valley",rt:"No permit is needed for the Loowit itself, though camping is banned in the restricted zone on the north side. Water sources are few and marked on the Forest Service map, which you should carry. The boulder fields are slow and the pumice reflects heat. Most parties go clockwise from June Lake.",boss:"golem"},
+{id:"x7",c:"multi",n:"PCT: Snoqualmie to Stevens Pass",lat:47.4270,lon:-121.4130,drive:"50 min",dm:50,d:"Extreme",mi:"75 mi",t:"6 days",hi:"The Alpine Lakes section of the Pacific Crest Trail, ridge after ridge of granite and tarns, and one of the most consistently beautiful stretches of the whole 2,650 miles.",food:"Aardvark Express, North Bend",rt:"A Northwest Forest Pass at the trailheads and a free self-issued wilderness permit are all that is needed. Both ends sit on highways, so a shuttle is easy to arrange. Snow lingers on the north-facing traverses into July and several of them are steep enough to want an axe early in the season.",boss:"wyrm"}],
+ bosses:{
+  wyrm:{name:"THE ALPINE LAKES WYRM",hp:405,atk:24,rec:5,arch:"wyrm",biome:"bald",
+   pal:["#0f2a26","#1b4a42","#2d7a68","#47ac90","#7fd8b6","#bef2dc"],eye:"#ffd23a",accent:"#4fe0a8",
+   moves:[["TARN COIL",.95,"LIGHT"],["GRANITE TRAVERSE",1.32,"HEAVY"],["SEVENTY FIVE MILES",1.68,"DEVASTATING"]],
+   intro:"Ridge after ridge after ridge, and it has been under all of them."},
+  leviathan:{name:"THE OLYMPIC COAST LEVIATHAN",hp:465,atk:26,rec:5,arch:"wyrm",biome:"water",
+   pal:["#04141f","#082c3c","#0f5666","#1c8c94","#4fc4c0","#a2eee4"],eye:"#ff6a2c",accent:"#57e0d4",
+   moves:[["RIPTIDE",.95,"LIGHT"],["HEADLAND CUT-OFF",1.34,"HEAVY"],["THE TIDE DOES NOT WAIT",1.72,"DEVASTATING"]],
+   intro:"The tide table said you had forty minutes. The tide table was optimistic."},
+  frost:{name:"THE BLUE GLACIER HOARFROST",hp:480,atk:27,rec:6,arch:"golem",biome:"snow",
+   pal:["#0a1826","#143048","#265c80","#4890b4","#88c8e0","#dcf2fc"],eye:"#2ae6ff",accent:"#5aa8cc",
+   moves:[["CREVASSE GRIP",.95,"LIGHT"],["SERAC FALL",1.32,"HEAVY"],["THE ICE REMEMBERS",1.7,"DEVASTATING"]],
+   intro:"Thirty five miles of rainforest, and then the ice, and the ice was waiting."},
+  panther:{name:"THE COPPER RIDGE COUGAR",hp:345,atk:23,rec:4,arch:"beast",biome:"forest",
+   pal:["#0a0c10","#161c24","#26333c","#3a4c58","#587280","#849eaa"],eye:"#9cf055",accent:"#a8d8e4",
+   moves:[["POUNCE",1.0,"LIGHT"],["CABLE CAR AMBUSH",1.3,"HEAVY"],["FOUR DAYS FROM A ROAD",1.6,"DEVASTATING"]],
+   intro:"There are more cougars in this state than anywhere else, and you are four days from a road."},
+  golem:{name:"THE BLAST ZONE GOLEM",hp:530,atk:28,rec:7,arch:"golem",biome:"canyon",
+   pal:["#1a1618","#31292c","#4e4247","#6d5e62","#8f7d80","#b6a3a4"],eye:"#ff9020",accent:"#ff5a3c",
+   moves:[["PUMICE SLIDE",1.0,"LIGHT"],["LAHAR",1.34,"HEAVY"],["EIGHTEEN MAY 1980",1.74,"DEVASTATING"]],
+   intro:"Fifty-seven people died here in nine minutes. Something stayed behind."},
+  titan:{name:"THE TAHOMA TITAN",hp:430,atk:25,rec:6,arch:"titan",biome:"bald",
+   pal:["#141c2a","#26364c","#425a76","#6888a4","#9ec0d4","#e0f0fa"],eye:"#ff74cc",accent:"#ffd85a",
+   moves:[["MEADOW SWEEP",.95,"LIGHT"],["GLACIER STEP",1.32,"HEAVY"],["NINETY THREE MILES ROUND",1.7,"DEVASTATING"]],
+   intro:"It has twenty six glaciers and it does not care which way you walk round it."},
+  quartz:{name:"THE ENCHANTMENTS COLOSSUS",hp:500,atk:28,rec:6,arch:"golem",biome:"snow",
+   pal:["#211d2c","#3a3450","#5f5684","#8f84b4","#c2b8e0","#f6f2ff"],eye:"#ffb03a",accent:"#a8f0d0",
+   moves:[["SHARD VOLLEY",1.0,"LIGHT"],["AASGARD PASS",1.34,"HEAVY"],["TWO PERCENT ODDS",1.72,"DEVASTATING"]],
+   intro:"Two thousand two hundred feet of loose granite, and it is standing at the top of it."}},
+ landmarks:[
+  {id:"a13",ic:"🌋",n:"THE VOLCANOES",d:"Skyline, Harry's Ridge, Artist Point and Camp Muir",need:["m1","l2","v3","h4"]},
+  {id:"a14",ic:"🌧",n:"RAINFOREST & COAST",d:"The Hoh, Sol Duc, Marymere and the Olympic coast",need:["s3","w1","w5","x3"]},
+  {id:"a15",ic:"🔭",n:"LOOKOUT TOWERS",d:"Tolmie Peak, Hidden Lake and Mount Si",need:["m2","h5","h1"]},
+  {id:"a16",ic:"⚔",n:"THE BIG ONES",d:"The Wonderland and the Enchantments",need:["x1","x2"]}]};
+
 /* xp is derived, so compute it for every region up front: the launcher needs it
    to total lifetime XP without booting a world. */
 Object.values(REGIONS).forEach(rg=>rg.quests.forEach(p=>p.xp=DIFF_XP[p.d]+CAT_BONUS[p.c]));
@@ -7912,14 +8080,11 @@ const TUT_PAGES=[
      stepping out of your home.</p>
   <p><b>Summit Quest will not stand for this.</b> There are endless trails just in our
      backyard, with mountains, waterfalls, and views still undiscovered. Start your
-     expeditions and turn your life into a video game about you. Nine regions. Hundreds of
-     hikes. Places you can actually stand, feel, and see. Complete a hike, and enshrine it
-     in Summit Quest forever.</p>
-  <p>Become a living legend as you continue clearing adventures. Climb the ranks by
-     completing hikes and go from Couch Potato to Appalachian Legend. From scenic
-     viewpoints and easy strolls, to treacherous multi-day routes guarded by pixel beasts,
-     write your story and share it with friends. Nothing here is unlocked by staring at
-     your phone. It is unlocked by <b>going outside</b>.</p>
+     expeditions and turn your life into a video game about you.</p>
+  <p>Climb the ranks by completing hikes and go from Couch Potato to Appalachian Legend.
+     From scenic viewpoints and easy strolls, to treacherous multi-day routes guarded by
+     pixel beasts, write your story and enshrine it forever. Nothing here is unlocked by
+     staring at your phone. It is unlocked by <b>going outside</b>.</p>
   <div class="tut-kicker">THE TRAIL IS THE GAME</div>
   <div class="tut-sig">— Yaseen Hegab</div>
  </div>`},
