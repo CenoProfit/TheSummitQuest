@@ -751,6 +751,13 @@ body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:
 .tut-kicker{font-family:var(--pix);font-size:clamp(11px,2vw,16px);letter-spacing:3px;
  color:var(--gold);margin-top:20px;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
 .tut-sig{font-size:13px;color:var(--dim);margin-top:16px;font-style:italic;letter-spacing:.3px}
+/* The closing page is one line and nothing else, so it gets the room to land. */
+.tut-final{text-align:center;padding:32px 8px 24px}
+.tut-final img{width:min(240px,58%);height:auto;image-rendering:pixelated;
+ image-rendering:crisp-edges;display:block;margin:0 auto 26px;opacity:.9}
+.tut-final .lead{font-size:15px;line-height:1.9;color:#ccd8e6;margin-bottom:6px}
+.tut-final .tut-kicker{font-size:clamp(13px,3.4vw,26px);letter-spacing:4px;margin-top:12px;line-height:1.7}
+@media (max-width:640px){.tut-final{padding:20px 4px 16px}.tut-final img{margin-bottom:18px}}
 .tut-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 .tut-bar{height:15px;background:#060a10;border:2px solid var(--edge2);overflow:hidden}
 .tut-bar i{display:block;height:100%;background:linear-gradient(#8bf05f,#4fbf35)}
@@ -8425,8 +8432,13 @@ const TUT_PAGES=[
    background-size:16px 16px;background-position:0 0,8px 8px"></canvas>
  </div>
  <p class="tut-p">The background is transparent on purpose. It goes <b>over your own photo</b>
-  rather than swallowing it, so the picture stays yours.</p>
- <div class="tut-kicker" style="text-align:center">THE TRAIL IS THE GAME</div>`}];
+  rather than swallowing it, so the picture stays yours.</p>`},
+{h:'',html:`
+ <div class="tut-final">
+  <img alt="Summit Quest" src="${TUT_MARK}">
+  <div class="lead">Go forth and remember,</div>
+  <div class="tut-kicker">THE TRAIL IS THE GAME</div>
+ </div>`}];
 (function(){
  const wrap=document.getElementById('tutorial'),body=document.getElementById('tutBody'),
        dots=document.getElementById('tutDots'),prev=document.getElementById('tutPrev'),
@@ -8493,7 +8505,9 @@ const TUT_PAGES=[
   dots.innerHTML=TUT_PAGES.map((_,k)=>`<span class="tut-dot${k===i?' on':''}"></span>`).join('');
   prev.disabled=i===0;
   next.textContent=i===TUT_PAGES.length-1?'START CLIMBING ▶':'NEXT ▶';
-  if(i===TUT_PAGES.length-1)drawCardShot();
+  /* No-ops unless the page currently on screen owns that canvas, so it does not
+    need to know which page number the share card happens to be. */
+ drawCardShot();
  }
  const open=()=>{i=0;render();wrap.classList.add('open');wrap.setAttribute('aria-hidden','false');};
  const close=()=>{wrap.classList.remove('open');wrap.setAttribute('aria-hidden','true');};
