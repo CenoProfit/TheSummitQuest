@@ -8171,7 +8171,13 @@ function paintSplashMap(){
     A first touch that dismisses instead skips the theme rather than sounding a
     bar of it and crossfading away. */
  const theme=()=>{
-  if(gone||typeof musicInit!=='function'||!window.musicOn)return;
+  /* musicOn is declared with let at the top level of the engine script, and a
+     top-level let is NOT a property of window. Reading it as window.musicOn
+     came back undefined every time, so this returned early on every load and
+     the title card played the overworld score. Separate classic scripts share
+     the global lexical scope, so the bare name is the correct way to reach it. */
+  if(gone||typeof musicInit!=='function')return;
+  if(typeof musicOn!=='undefined'&&!musicOn)return;
   const ac=musicInit();if(!ac)return;
   musicHold=true;musicMode('theme');
   if(ac.state==='suspended')ac.resume().catch(()=>{});
