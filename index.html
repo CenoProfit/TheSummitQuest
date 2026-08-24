@@ -3398,6 +3398,35 @@ const WMAP={
   "lCCCCCCCCCCCCCCCCCBBBBBBBBBBBB0mmmmmmm11te4q66666666549dddg11mmmmBBBBBB111111111111111vmm0vBBBnkBBBBBB111kfxdddddtol00lnnn",
   "lCCCCCCCCCCCCCCCCCBBBBBBBBBBBB0mmmmmBBm1ne7466666666647dddt11mmmmBBB000111111111unnnk1vmBCCCCBBCuBBBBBBB0v11xbaaagn20lo999",
   "lCCCCCCCCCCCCCCCCCBBBBBBBBBBBu000000BuB1ne7q46666666hh49dddg11mmm0B0m00111111l33tttd31m0CCCCCCCCCuBB0000001ffguv22uuB00ga9"]};
+
+/* The mountain and the waterfall, lifted out of the logo art with the plaque
+   background knocked out, so the card carries the same drawing the splash does
+   without the banner around it. Stored the way the hero sprites are and decoded
+   synchronously, which is what lets the card be built in one pass rather than
+   waiting on an image to load.
+
+   Top level rather than inside the region engine: the tutorial draws a preview
+   of this card before any region exists, and a separate classic script can only
+   reach names in the shared global scope. */
+const CARD_ART={
+ mtn:{w:14,h:13,p:[[8, 13, 20, 255], [116, 232, 79, 255], [122, 83, 8, 255], [255, 255, 255, 255], [134, 149, 168, 255], [90, 115, 146, 255], [233, 240, 246, 255]],
+  d:"011100...0...0.020330.010..0.02344301110.0.0345543020...03451564320..034515656430...452565456430..5256545456430.1565651545643056545612545640654545622545605451545615545645221545611545"},
+ fall:{w:10,h:14,p:[[8, 13, 20, 255], [97, 162, 255, 255], [146, 211, 255, 255], [65, 97, 251, 255], [255, 255, 255, 255]],
+  d:"00..00....1100110...23112310..233123110.143343310.142342310.11431431103143143310314331431033143143314314412434442244224424232433420000000000"}};
+const CARD_CHARS='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const CARD_CACHE={};
+function cardSprite(key){
+ if(CARD_CACHE[key])return CARD_CACHE[key];
+ const a=CARD_ART[key],c=document.createElement('canvas');
+ c.width=a.w;c.height=a.h;
+ const g=c.getContext('2d'),im=g.createImageData(a.w,a.h),d=im.data;
+ for(let i=0;i<a.w*a.h;i++){
+  const ch=a.d[i];if(ch==='.')continue;
+  const col=a.p[CARD_CHARS.indexOf(ch)],o=i*4;
+  d[o]=col[0];d[o+1]=col[1];d[o+2]=col[2];d[o+3]=col[3];}
+ g.putImageData(im,0,0);
+ return CARD_CACHE[key]=c;
+}
 const WSTATES=[["CALIF.",-118.8,37.0,0],["ORE.",-120.4,43.8,0],["WASH.",-119.9,47.3,0],
  ["NEV.",-117.0,39.4,1],["IDAHO",-114.6,44.4,1],["MONT.",-109.6,47.0,0],
  ["WYO.",-107.6,43.0,1],["UTAH",-111.6,39.3,1],["COLO.",-105.6,39.0,0],
@@ -7055,72 +7084,73 @@ function ringTxt(g,str,x,y,sc,col,ring){
 const ringW=(str,sc)=>{let w=0;
  for(const ch of String(str).toUpperCase())w+=(ch===' ')?4*sc:6*sc;
  return w-sc;};
-/* The logo is already in the page as a data URI for the splash, so it is
-   borrowed rather than duplicated. It may not have decoded yet on a cold open,
-   hence the wait. */
-let CARDMARK=null;
-function cardMark(){
- if(CARDMARK)return CARDMARK;
- const src=document.querySelector('.splashmark');
- if(!src)return null;
- return CARDMARK=new Promise(res=>{
-  const im=new Image();
-  im.onload=()=>res(im);im.onerror=()=>res(null);
-  im.src=src.getAttribute('src');});
-}
-function statBlock(g,x,y,val,lab,sc,col){
- ringTxt(g,val,x,y,sc,col||'#ffffff');
- const ls=Math.max(3,Math.round(sc/2.2));
- ringTxt(g,lab,x,y+7*sc+Math.round(sc*1.9),ls,'#f5c651');
- return Math.max(ringW(val,sc),ringW(lab,ls));
-}
-async function buildShareCard(p){
+/* Centred so the whole block can be dragged anywhere on a photo, and stacked so
+   it reads top to bottom: the wording between its two graphics, the trail, the
+   three numbers, then who walked it. Each stat sits tight above its own label so
+   the pair reads as one thing; the gap between stats is six times the type size
+   and the gap inside one is a fraction of that. Both the name and the stat row
+   size themselves down to fit, independently, so a long trail name cannot push
+   the numbers around. */
+function buildShareCard(p){
  const c=document.createElement('canvas');
  c.width=CARD_W;c.height=CARD_H;
  const g=c.getContext('2d');
  g.imageSmoothingEnabled=false;
  g.clearRect(0,0,CARD_W,CARD_H);
- const LEFT=44;
- /* logo plaque */
- const mark=await cardMark();
- if(mark){const ms=7;g.drawImage(mark,LEFT,742,mark.width*ms,mark.height*ms);}
- /* the hiker, bottom left, with their name over their head */
- const hero=heroFor(leadKit());
- const hs=4,hw=hero.width*hs,hh=hero.height*hs;
- const hx=LEFT,hy=CARD_H-40-hh;
- /* Clear of the sprite by a full line: the name is seven pixels tall at this
-    scale plus its ring, and it was being drawn into the top of the hiker's
-    head. */
- const who=climberName().slice(0,16),ws=4;
- ringTxt(g,who,hx,hy-(7*ws+14),ws,'#eaf2fb');
- g.drawImage(hero,hx,hy,hw,hh);
- /* the right column starts clear of the hiker */
- const COLX=hx+hw+34,AVAIL=CARD_W-COLX-LEFT;
- /* the name sets its own size: long trail names shrink rather than run off */
- let ns=11;while(ns>4&&ringW(p.n,ns)>AVAIL)ns--;
- ringTxt(g,p.n,COLX,990,ns,'#f5c651');
- /* Three stats on the row, not four. Four fitted only by shrinking the glyphs
-    until the gaps between them were narrower than the digits, which reads as
-    one run-on number. XP moves onto the rank line, where it belongs anyway. */
- const done=S.done[p.id];
+ const MID=CARD_W/2,MAXW=CARD_W-120;
+ const GOLD='#f5c651',WHITE='#ffffff',INK='#eaf2fb';
+
+ /* header: graphic, wording, graphic */
+ const BRAND=6,GS=5,GAPG=32,brand='SUMMIT QUEST';
+ const mt=cardSprite('mtn'),fl=cardSprite('fall');
+ const bw=ringW(brand,BRAND),bh=7*BRAND;
+ const mw=mt.width*GS,mh=mt.height*GS,fw=fl.width*GS,fh=fl.height*GS;
+ const headw=mw+GAPG+bw+GAPG+fw,headh=Math.max(mh,fh,bh);
+
+ let ns=11;while(ns>4&&ringW(p.n,ns)>MAXW)ns--;
+
  const stats=[[String(p.mi).replace(/\s*mi.*$/i,''),'MI'],
               [String(p.t).replace(/\s+/g,' ').trim(),'TIME'],
-              [p.d.toUpperCase(),'GRADE']];
- let ss=11;
- const gap=()=>Math.round(ss*6);
- const need=()=>stats.reduce((w,[v])=>w+ringW(v,ss)+gap(),-gap());
- while(ss>5&&need()>AVAIL)ss--;
- let sx=COLX;
- const statY=1060,labY=statY+7*ss+Math.round(ss*1.9),ls=Math.max(3,Math.round(ss/2.2));
- stats.forEach(([v,l])=>{statBlock(g,sx,statY,v,l,ss);sx+=ringW(v,ss)+gap();});
- /* rank, xp, and where it came from, stacked under whatever height the stats
-    ended up needing */
+              [p.d,'GRADE']];
+ const LS=6,GAPV=10;
+ let VS=12,sw=[],gap=0,roww=0;
+ const measure=()=>{gap=Math.round(VS*6);
+  sw=stats.map(([v,l])=>Math.max(ringW(v,VS),ringW(l,LS)));
+  roww=sw.reduce((a,b)=>a+b,0)+gap*2;};
+ measure();while(VS>8&&roww>MAXW){VS--;measure();}
+ const rowh=7*VS+GAPV+7*LS;
+
+ const hero=heroFor(leadKit()),hs=4;
+ const hw=hero.width*hs,hh=hero.height*hs;
+ const who=climberName().slice(0,16);
  const li=lvlFor(totalXP()),rank='LV '+(li+1)+'  '+LEVELS[li].n;
- const rankY=labY+7*ls+24;
- ringTxt(g,rank,COLX,rankY,4,'#eaf2fb');
- ringTxt(g,'+'+p.xp+' XP',COLX+ringW(rank,4)+28,rankY,4,'#f5c651');
- ringTxt(g,RG.short+(done?'  '+fmtDate(done).toUpperCase():''),COLX,rankY+44,3,'#9fb4cc');
- ringTxt(g,'SUMMITQUEST.APP',COLX,rankY+80,4,'#f5c651');
+ const US=6,RS=4,GAPA=28;
+ const rightw=Math.max(ringW(who,US),ringW(rank,RS));
+ const grpw=hw+GAPA+rightw;
+
+ let y=Math.round((CARD_H-(headh+46+7*ns+54+rowh+60+hh))/2);
+
+ const hx=Math.round(MID-headw/2);
+ g.drawImage(mt,hx,y+Math.round((headh-mh)/2),mw,mh);
+ ringTxt(g,brand,hx+mw+GAPG,y+Math.round((headh-bh)/2),BRAND,GOLD);
+ g.drawImage(fl,hx+mw+GAPG+bw+GAPG,y+Math.round((headh-fh)/2),fw,fh);
+ y+=headh+46;
+
+ ringTxt(g,p.n,Math.round(MID-ringW(p.n,ns)/2),y,ns,WHITE);
+ y+=7*ns+54;
+
+ let sx=Math.round(MID-roww/2);
+ stats.forEach(([v,l],i)=>{
+  ringTxt(g,v,sx+Math.round((sw[i]-ringW(v,VS))/2),y,VS,WHITE);
+  ringTxt(g,l,sx+Math.round((sw[i]-ringW(l,LS))/2),y+7*VS+GAPV,LS,GOLD);
+  sx+=sw[i]+gap;});
+ y+=rowh+60;
+
+ const ax=Math.round(MID-grpw/2);
+ g.drawImage(hero,ax,y,hw,hh);
+ const tx=ax+hw+GAPA,th=7*US+14+7*RS,ty=y+Math.round((hh-th)/2);
+ ringTxt(g,who,tx,ty,US,WHITE);
+ ringTxt(g,rank,tx,ty+7*US+14,RS,GOLD);
  return c;
 }
 /* Saving to the camera roll is the phone's job, not the page's. The share sheet
@@ -7151,7 +7181,7 @@ async function saveShareCard(c,name,btn){
  return 'downloaded';
 }
 async function shareHike(p){
- const card=await buildShareCard(p);
+ const card=buildShareCard(p);
  const v=document.createElement('div');
  v.className='share-view';
  const holder=document.createElement('div');holder.appendChild(card);
@@ -8448,31 +8478,37 @@ const TUT_PAGES=[
  /* A small stand-in for the share card, drawn here rather than pulled from the
     game: the tutorial runs before any region exists, so there is nothing real
     to render yet. */
+ /* A small stand-in for the share card, drawn here rather than pulled from the
+    game: the tutorial runs before any region exists, so there is nothing real
+    to render yet. It mirrors the real layout so the page is not advertising a
+    card that looks different when it arrives. CARD_ART and cardSprite are
+    top-level in the engine script, which separate classic scripts share. */
  function drawCardShot(){
   const c=document.getElementById('tutCardShot');if(!c)return;
-  const W2=360,H2=196;c.width=W2;c.height=H2;
+  const W2=360,H2=150;c.width=W2;c.height=H2;
   const g=c.getContext('2d');g.imageSmoothingEnabled=false;
   g.clearRect(0,0,W2,H2);
+  const F={A:"01110|10001|10001|11111|10001|10001|10001",B:"11110|10001|11110|10001|10001|10001|11110",
+   C:"01110|10001|10000|10000|10000|10001|01110",D:"11110|10001|10001|10001|10001|10001|11110",
+   E:"11111|10000|10000|11110|10000|10000|11111",F:"11111|10000|10000|11110|10000|10000|10000",
+   G:"01110|10001|10000|10111|10001|10001|01110",H:"10001|10001|10001|11111|10001|10001|10001",
+   I:"11111|00100|00100|00100|00100|00100|11111",J:"00111|00010|00010|00010|00010|10010|01100",
+   K:"10001|10010|10100|11000|10100|10010|10001",L:"10000|10000|10000|10000|10000|10000|11111",
+   M:"10001|11011|10101|10001|10001|10001|10001",N:"10001|11001|10101|10011|10001|10001|10001",
+   O:"01110|10001|10001|10001|10001|10001|01110",P:"11110|10001|10001|11110|10000|10000|10000",
+   Q:"01110|10001|10001|10001|10101|10010|01101",R:"11110|10001|10001|11110|10100|10010|10001",
+   S:"01111|10000|10000|01110|00001|00001|11110",T:"11111|00100|00100|00100|00100|00100|00100",
+   U:"10001|10001|10001|10001|10001|10001|01110",V:"10001|10001|10001|10001|10001|01010|00100",
+   W:"10001|10001|10001|10001|10101|11011|10001",X:"10001|10001|01010|00100|01010|10001|10001",
+   Y:"10001|10001|01010|00100|00100|00100|00100",Z:"11111|00001|00010|00100|01000|10000|11111",
+   "0":"01110|10001|10011|10101|11001|10001|01110","1":"00100|01100|00100|00100|00100|00100|01110",
+   "2":"01110|10001|00001|00010|00100|01000|11111","3":"11110|00001|00001|01110|00001|00001|11110",
+   "4":"10010|10010|10010|11111|00010|00010|00010","5":"11111|10000|11110|00001|00001|10001|01110",
+   "6":"01110|10000|10000|11110|10001|10001|01110","7":"11111|00001|00010|00100|01000|01000|01000",
+   "8":"01110|10001|10001|01110|10001|10001|01110","9":"01110|10001|10001|01111|00001|00001|01110",
+   ".":"00000|00000|00000|00000|00000|00000|00100"};
+  const wof=(t,sc)=>{let w=0;for(const ch of t.toUpperCase())w+=(ch===' '||!F[ch])?4*sc:6*sc;return w-sc;};
   const ring=(str,x,y,sc,col)=>{
-   const F={A:"01110|10001|10001|11111|10001|10001|10001",B:"11110|10001|11110|10001|10001|10001|11110",
-    C:"01110|10001|10000|10000|10000|10001|01110",D:"11110|10001|10001|10001|10001|10001|11110",
-    E:"11111|10000|10000|11110|10000|10000|11111",F:"11111|10000|10000|11110|10000|10000|10000",
-    G:"01110|10001|10000|10111|10001|10001|01110",H:"10001|10001|10001|11111|10001|10001|10001",
-    I:"11111|00100|00100|00100|00100|00100|11111",K:"10001|10010|10100|11000|10100|10010|10001",
-    L:"10000|10000|10000|10000|10000|10000|11111",M:"10001|11011|10101|10001|10001|10001|10001",
-    N:"10001|11001|10101|10011|10001|10001|10001",O:"01110|10001|10001|10001|10001|10001|01110",
-    P:"11110|10001|10001|11110|10000|10000|10000",R:"11110|10001|10001|11110|10100|10010|10001",
-    S:"01111|10000|10000|01110|00001|00001|11110",T:"11111|00100|00100|00100|00100|00100|00100",
-    U:"10001|10001|10001|10001|10001|10001|01110",V:"10001|10001|10001|10001|10001|01010|00100",
-    W:"10001|10001|10001|10001|10101|11011|10001",Y:"10001|10001|01010|00100|00100|00100|00100",
-    J:"00111|00010|00010|00010|00010|10010|01100",Q:"01110|10001|10001|10001|10101|10010|01101",
-    X:"10001|10001|01010|00100|01010|10001|10001",Z:"11111|00001|00010|00100|01000|10000|11111",
-    "0":"01110|10001|10011|10101|11001|10001|01110","1":"00100|01100|00100|00100|00100|00100|01110",
-    "2":"01110|10001|00001|00010|00100|01000|11111","3":"11110|00001|00001|01110|00001|00001|11110",
-    "4":"10010|10010|10010|11111|00010|00010|00010","5":"11111|10000|11110|00001|00001|10001|01110",
-    "6":"01110|10000|10000|11110|10001|10001|01110","7":"11111|00001|00010|00100|01000|01000|01000",
-    "8":"01110|10001|10001|01110|10001|10001|01110","9":"01110|10001|10001|01111|00001|00001|01110",
-    ".":"00000|00000|00000|00000|00000|00000|00100","+":"00000|00100|00100|11111|00100|00100|00000"};
    const cells=[];let cx=x;
    for(const ch of str.toUpperCase()){
     if(ch===' '||!F[ch]){cx+=4*sc;continue;}
@@ -8483,20 +8519,26 @@ const TUT_PAGES=[
    cells.forEach(([px,py])=>{for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
     if(dx||dy)g.fillRect(px+dx*sc,py+dy*sc,sc,sc);});
    g.fillStyle=col;cells.forEach(([px,py])=>g.fillRect(px,py,sc,sc));};
-  const im=new Image();
-  im.onload=()=>{g.drawImage(im,10,14,im.width*2,im.height*2);paint();};
-  im.onerror=paint;
-  im.src=TUT_MARK;
-  function paint(){
-   ring('SKINNY DIP FALLS',10,86,3,'#f5c651');
-   const wof=(t,sc)=>t.length*6*sc-sc;
-   let x=10;
-   [['1.6','MI'],['1 HR','TIME'],['EASY','GRADE']].forEach(([v,l])=>{
-    ring(v,x,112,4,'#ffffff');ring(l,x,146,2,'#f5c651');
-    x+=Math.max(wof(v,4),wof(l,2))+26;});
-   const rank='LV 4  GORGE WALKER';
-   ring(rank,10,172,2,'#eaf2fb');
-   ring('+10 XP',10+wof(rank,2)+16,172,2,'#f5c651');}
+  const MID=W2/2,GOLD='#f5c651',WHITE='#ffffff';
+  let y=14;
+  if(typeof cardSprite==='function'){
+   const mt=cardSprite('mtn'),fl=cardSprite('fall'),GS=2,GAPG=10,bs=2;
+   const bw=wof('SUMMIT QUEST',bs),mw=mt.width*GS,mh=mt.height*GS,fw=fl.width*GS,fh=fl.height*GS;
+   const hw2=mw+GAPG+bw+GAPG+fw,hh2=Math.max(mh,fh,7*bs),hx=Math.round(MID-hw2/2);
+   g.drawImage(mt,hx,y+Math.round((hh2-mh)/2),mw,mh);
+   ring('SUMMIT QUEST',hx+mw+GAPG,y+Math.round((hh2-7*bs)/2),bs,GOLD);
+   g.drawImage(fl,hx+mw+GAPG+bw+GAPG,y+Math.round((hh2-fh)/2),fw,fh);
+   y+=hh2+16;
+  }else{ring('SUMMIT QUEST',Math.round(MID-wof('SUMMIT QUEST',2)/2),y,2,GOLD);y+=30;}
+  const nm='SKINNY DIP FALLS';
+  ring(nm,Math.round(MID-wof(nm,3)/2),y,3,WHITE); y+=21+18;
+  const stats=[['1.6','MI'],['1 HR','TIME'],['EASY','GRADE']],VS=4,LS=2,GAP=22;
+  const sw=stats.map(([v,l])=>Math.max(wof(v,VS),wof(l,LS)));
+  let x=Math.round(MID-(sw.reduce((a,b)=>a+b,0)+GAP*2)/2);
+  stats.forEach(([v,l],i)=>{
+   ring(v,x+Math.round((sw[i]-wof(v,VS))/2),y,VS,WHITE);
+   ring(l,x+Math.round((sw[i]-wof(l,LS))/2),y+7*VS+5,LS,GOLD);
+   x+=sw[i]+GAP;});
  }
  function render(){
   const p=TUT_PAGES[i];
