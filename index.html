@@ -7454,7 +7454,11 @@ const PENT=[57,60,62,64,67,69,72,74,76,79];
    guessed: a rendered bar peaks near -18 dBFS here, with headroom to spare when
    several notes and their echoes happen to land together. */
 const MLEVEL=.48;
-let mBus=null,mWet=null,mLP=null,mCalm=null,mBoss=null,mTimer=null,mBar=0,mNext=0,mMode='calm';
+let mBus=null,mWet=null,mLP=null,mCalm=null,mBoss=null,mTheme=null,mTimer=null,mBar=0,mNext=0,mMode='calm';
+/* While the title card is up the theme owns the score and nothing else may take
+   it: the region engine calls setScreen during boot, which would otherwise flip
+   straight to the overworld music underneath the splash. */
+let musicHold=false;
 function musicInit(){
  const ac=audioCtx();if(!ac||mBus)return ac;
  mBus=ac.createGain();mBus.gain.value=musicOn?MLEVEL:.0001;
@@ -7468,6 +7472,7 @@ function musicInit(){
     one instead. */
  mCalm=ac.createGain();mCalm.gain.value=1;mCalm.connect(mBus);
  mBoss=ac.createGain();mBoss.gain.value=0;mBoss.connect(mBus);
+ mTheme=ac.createGain();mTheme.gain.value=0;mTheme.connect(mBus);
  return ac;
 }
 /* Soft mallet: a triangle through a lowpass with a quick edge and a long tail.
@@ -7588,29 +7593,147 @@ function scheduleBossBar(ac,t){
   for(let k=0;k<4;k++)mPulse(ac,mid(57-k),t+BBAR-.6+k*.15,.14,.085,'square');
  return BBAR;
 }
+/* ── title theme ──
+   The overworld score is weather and the boss score is a threat. A title screen
+   is neither: it is a promise, and it has to sound like the trip is worth
+   taking. So this is the one piece here with an actual tune rather than a pool
+   of notes to draw from, because a theme has to be the same every time to
+   become the game's theme at all.
+
+   D major at 132 BPM. The lift comes from one borrowed chord: the C major in
+   bar five is the flat seventh, which does not belong in D major and is the
+   single most reliable way ever found to make music sound like setting out. It
+   is what every adventure score leans on, and it costs one chord. */
+const TBEAT=60/132,TBAR=TBEAT*4;
+const TPROG=[
+ {bass:50,ch:[62,66,69]},   /* D    */
+ {bass:45,ch:[61,64,69]},   /* A    */
+ {bass:47,ch:[62,66,71]},   /* Bm   */
+ {bass:43,ch:[62,67,71]},   /* G    */
+ {bass:48,ch:[64,67,72]},   /* C    the borrowed one */
+ {bass:43,ch:[62,67,71]},   /* G    */
+ {bass:50,ch:[62,66,69]},   /* D    */
+ {bass:45,ch:[61,64,69]}];  /* A    turnaround */
+/* Eight slots a bar, one per eighth note. 0 is a rest. Written out rather than
+   generated: the rising shape across bars four to five is the hook, and a
+   random walk cannot be relied on to find it. */
+const TMEL=[
+ [62, 0,66,69, 74, 0,69, 0],
+ [69, 0,71,73, 74, 0, 0, 0],
+ [71, 0,69,66, 69, 0, 0, 0],
+ [67, 0,69,71, 74, 0, 0, 0],
+ [76, 0,74,72, 67, 0, 0, 0],
+ [71, 0,74, 0, 67, 0,71, 0],
+ [69, 0,66, 0, 62, 0, 0, 0],
+ [64, 0,66,67, 69, 0, 0, 0]];
+/* Bright and plucked: a triangle with a sawtooth an octave up under it, opened
+   by a filter that shuts again fast. Reads as a struck string. */
+function tLead(ac,f,t,dur,vel){
+ const g=ac.createGain(),lp=ac.createBiquadFilter();
+ lp.type='lowpass';lp.Q.value=1.1;
+ lp.frequency.setValueAtTime(5200,t);
+ lp.frequency.exponentialRampToValueAtTime(1400,t+dur*.8);
+ [['triangle',0,1],['sawtooth',1200,.34]].forEach(([ty,det,mix])=>{
+  const o=ac.createOscillator(),m=ac.createGain();
+  o.type=ty;o.frequency.value=f;o.detune.value=det;
+  m.gain.value=mix;o.connect(m);m.connect(lp);
+  o.start(t);o.stop(t+dur+.05);});
+ lp.connect(g);g.connect(mTheme);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+.008);
+ g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+}
+/* A walking bass, not a drone. Root on the beat and the fifth between, which is
+   what makes the whole thing feel like it is going somewhere on foot. */
+function tBass(ac,f,t,dur,vel){
+ const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
+ o.type='triangle';o.frequency.value=f;
+ lp.type='lowpass';lp.frequency.value=520;
+ o.connect(lp);lp.connect(g);g.connect(mTheme);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+.014);
+ g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ o.start(t);o.stop(t+dur+.04);
+}
+/* Chord voices that swell rather than start: horns, more or less. */
+function tHorn(ac,f,t,dur,vel){
+ const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
+ o.type='sawtooth';o.frequency.value=f;o.detune.value=(Math.random()*7-3.5);
+ lp.type='lowpass';lp.frequency.value=1900;
+ o.connect(lp);lp.connect(g);g.connect(mTheme);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.linearRampToValueAtTime(vel,t+dur*.30);
+ g.gain.setValueAtTime(vel,t+dur*.72);
+ g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ o.start(t);o.stop(t+dur+.04);
+}
+function tDrum(ac,t,dur,cut,vel){
+ const sr=ac.createBufferSource(),g=ac.createGain(),hp=ac.createBiquadFilter();
+ sr.buffer=noiseBuf(ac);hp.type='highpass';hp.frequency.value=cut;
+ sr.connect(hp);hp.connect(g);g.connect(mTheme);
+ g.gain.setValueAtTime(vel,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ sr.start(t);sr.stop(t+dur+.03);
+}
+function tKick(ac,t){
+ const o=ac.createOscillator(),g=ac.createGain();
+ o.type='sine';o.frequency.setValueAtTime(120,t);
+ o.frequency.exponentialRampToValueAtTime(48,t+.09);
+ g.gain.setValueAtTime(.26,t);g.gain.exponentialRampToValueAtTime(.0001,t+.17);
+ o.connect(g);g.connect(mTheme);o.start(t);o.stop(t+.17);
+}
+function scheduleThemeBar(ac,t){
+ const ph=TPROG[mBar%TPROG.length],mel=TMEL[mBar%TMEL.length],E=TBEAT/2;
+ /* root, fifth, root, fifth — eight to the bar, the walking part */
+ for(let i=0;i<8;i++)
+  tBass(ac,mid(ph.bass+(i%2?7:0)),t+i*E,E*.92,.20);
+ /* chord on the downbeat and again on three, so the harmony keeps arriving */
+ [0,2].forEach(b=>ph.ch.forEach(n=>tHorn(ac,mid(n),t+b*TBEAT,TBEAT*1.85,.038)));
+ /* melody */
+ for(let i=0;i<8;i++){
+  if(!mel[i])continue;
+  const nxt=mel.slice(i+1).findIndex(v=>v)+1;
+  const len=(nxt>0?nxt:8-i)*E*.94;
+  tLead(ac,mid(mel[i]),t+i*E,Math.min(len,TBEAT*1.6),.135);
+ }
+ /* a light kit: this is a title card, not a boss */
+ [0,2].forEach(b=>tKick(ac,t+b*TBEAT));
+ [1,3].forEach(b=>tDrum(ac,t+b*TBEAT,.13,1100,.135));
+ for(let i=0;i<8;i++)tDrum(ac,t+i*E+E/2,.03,6000,.035);
+ /* fill on the last bar of the loop so the seam is a lift, not a restart */
+ if(mBar%TPROG.length===TPROG.length-1)
+  for(let k=0;k<4;k++)tDrum(ac,t+TBAR-TBEAT+k*E/2,.07,2200,.10+k*.02);
+ return TBAR;
+}
 /* Switching is a crossfade plus a change of tone: the boss side wants the top
    end the pads did not, and almost none of the reverb, or the sixteenths turn
    to soup. */
 function musicMode(m){
+ /* The title card holds the score until it is dismissed. */
+ if(musicHold&&m!=='theme')return;
  if(mMode===m)return;
  mMode=m;
  if(!mBus||!AC)return;
- const ac=AC,t=ac.currentTime,boss=m==='boss';
- [[mCalm,boss?0:1],[mBoss,boss?1:0]].forEach(([n,v])=>{
+ const ac=AC,t=ac.currentTime;
+ [[mCalm,m==='calm'?1:0],[mBoss,m==='boss'?1:0],[mTheme,m==='theme'?1:0]].forEach(([n,v])=>{
+  if(!n)return;
   n.gain.cancelScheduledValues(t);
   n.gain.setValueAtTime(n.gain.value,t);
   n.gain.linearRampToValueAtTime(v,t+(v?.35:.7));});
+ const cut=m==='boss'?3800:m==='theme'?5000:2600;
+ const wet=m==='boss'?.14:m==='theme'?.20:.5;
  mLP.frequency.cancelScheduledValues(t);
- mLP.frequency.setTargetAtTime(boss?3800:2600,t,.25);
+ mLP.frequency.setTargetAtTime(cut,t,.25);
  mWet.gain.cancelScheduledValues(t);
- mWet.gain.setTargetAtTime(boss?.14:.5,t,.25);
+ mWet.gain.setTargetAtTime(wet,t,.25);
  /* Restart the grid rather than dropping the new mode into the middle of the
     old one's bar. */
  if(mTimer){clearTimeout(mTimer);mTimer=null;mBar=0;mNext=ac.currentTime+.12;scheduleBar();}
 }
 function scheduleBar(){
  const ac=audioCtx();if(!ac)return;
- if(mMode==='boss'){const len=scheduleBossBar(ac,mNext);mBar++;mNext+=len;
+ if(mMode==='boss'||mMode==='theme'){
+  const len=mMode==='boss'?scheduleBossBar(ac,mNext):scheduleThemeBar(ac,mNext);
+  mBar++;mNext+=len;
   mTimer=setTimeout(scheduleBar,Math.max(30,(mNext-len*.5-ac.currentTime)*1000));return;}
  const ch=PROG[mBar%PROG.length],t=mNext;
  mPad(ac,mid(ch.bass),t,BAR+1.2,.05);
@@ -8018,12 +8141,32 @@ function paintSplashMap(){
 (function(){
  const sp=document.getElementById('splash');if(!sp)return;
  let gone=false;
+ /* Nothing may make noise before the page has been touched, so the theme is
+    started now in case this page is already allowed to, and armed on the first
+    touch otherwise. Pressing TUTORIAL no longer dismisses the title card, so
+    that press is exactly such a touch and the theme carries into the tutorial.
+    A first touch that dismisses instead skips the theme rather than sounding a
+    bar of it and crossfading away. */
+ const theme=()=>{
+  if(gone||typeof musicInit!=='function'||!window.musicOn)return;
+  const ac=musicInit();if(!ac)return;
+  musicHold=true;musicMode('theme');
+  if(ac.state==='suspended')ac.resume().catch(()=>{});
+ };
+ const dropHold=()=>{
+  if(typeof musicMode!=='function')return;
+  musicHold=false;
+  const ac=(typeof audioCtx==='function')?audioCtx():null;
+  if(ac&&ac.state==='suspended')ac.resume().catch(()=>{});
+  musicMode(document.body.classList.contains('fighting')?'boss':'calm');
+ };
+ theme();
  const onTut=e=>!!(e.target&&e.target.closest&&e.target.closest('#tutBtn'));
  const tutOpen=()=>{const t=document.getElementById('tutorial');
   return !!(t&&t.classList.contains('open'));};
  const onKey=()=>{if(tutOpen())return;dismiss();};
  const dismiss=()=>{if(gone)return;gone=true;sp.style.display='none';
-  window.removeEventListener('keydown',onKey);};
+  window.removeEventListener('keydown',onKey);dropHold();};
  /* The tutorial button lives inside the splash, and the splash dismisses on any
     touch anywhere in it. On a phone the touchstart reached the splash before
     the button's own click ever fired, so pressing TUTORIAL dismissed the title
@@ -8032,6 +8175,9 @@ function paintSplashMap(){
     actually got there first. */
  sp.addEventListener('click',e=>{if(onTut(e)||tutOpen())return;dismiss();});
  sp.addEventListener('touchstart',e=>{if(onTut(e)||tutOpen())return;dismiss();},{passive:true});
+ /* The tutorial press is the gesture that unlocks audio for most people. */
+ const tb2=document.getElementById('tutBtn');
+ if(tb2)tb2.addEventListener('click',theme);
  window.addEventListener('keydown',onKey);
  window.addEventListener('resize',()=>{if(!gone)paintSplashMap();});
 })();
