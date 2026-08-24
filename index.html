@@ -7596,76 +7596,95 @@ function scheduleBossBar(ac,t){
 /* ── title theme ──
    The overworld score is weather and the boss score is a threat. A title screen
    is neither: it is a promise, and it has to sound like the trip is worth
-   taking. So this is the one piece here with an actual tune rather than a pool
-   of notes to draw from, because a theme has to be the same every time to
-   become the game's theme at all.
+   taking.
 
-   D major at 132 BPM. The lift comes from one borrowed chord: the C major in
-   bar five is the flat seventh, which does not belong in D major and is the
-   single most reliable way ever found to make music sound like setting out. It
-   is what every adventure score leans on, and it costs one chord. */
-const TBEAT=60/132,TBAR=TBEAT*4;
+   The first attempt at this failed for an instructive reason. It was written
+   with the same soft triangle-through-a-lowpass voices as the overworld pads
+   and pushed through the same three second reverb, so it came out as the
+   ambient patch with a drum kit behind it. Timbre carries far more of a piece's
+   character than tempo or key do. So this version changes the instruments
+   first: square waves with no lowpass smothering them, a sixteenth note
+   arpeggio underneath, offbeat chord stabs, a kit loud enough to drive, and
+   almost no reverb at all. Nothing here shares a voice with the overworld.
+
+   156 BPM, D major, eight bars, a 12.3 second loop. The melody is written out
+   rather than drawn from a pool, because a theme has to be the same every time
+   to become the game's theme, and it arcs up to a D6 in bar six. The lift still
+   comes from one borrowed chord, the C major in bar seven: the flat seventh
+   does not belong in D major and is the oldest trick there is for making music
+   sound like setting out. */
+const TBEAT=60/156,TBAR=TBEAT*4,T16=TBAR/16;
 const TPROG=[
- {bass:50,ch:[62,66,69]},   /* D    */
- {bass:45,ch:[61,64,69]},   /* A    */
- {bass:47,ch:[62,66,71]},   /* Bm   */
- {bass:43,ch:[62,67,71]},   /* G    */
- {bass:48,ch:[64,67,72]},   /* C    the borrowed one */
- {bass:43,ch:[62,67,71]},   /* G    */
- {bass:50,ch:[62,66,69]},   /* D    */
- {bass:45,ch:[61,64,69]}];  /* A    turnaround */
-/* Eight slots a bar, one per eighth note. 0 is a rest. Written out rather than
-   generated: the rising shape across bars four to five is the hook, and a
-   random walk cannot be relied on to find it. */
+ {bass:50,ch:[62,66,69]},   /* D  */
+ {bass:50,ch:[62,66,69]},   /* D  */
+ {bass:43,ch:[62,67,71]},   /* G  */
+ {bass:45,ch:[61,64,69]},   /* A  */
+ {bass:47,ch:[62,66,71]},   /* Bm */
+ {bass:43,ch:[62,67,71]},   /* G  */
+ {bass:48,ch:[64,67,72]},   /* C  the borrowed one */
+ {bass:45,ch:[61,64,69]}];  /* A  turnaround */
+/* Sixteen slots a bar, 0 for a rest. Up an octave from the overworld's register
+   and full of dotted, off-the-beat entries, which is most of what separates a
+   tune that bounces from one that drifts. */
 const TMEL=[
- [62, 0,66,69, 74, 0,69, 0],
- [69, 0,71,73, 74, 0, 0, 0],
- [71, 0,69,66, 69, 0, 0, 0],
- [67, 0,69,71, 74, 0, 0, 0],
- [76, 0,74,72, 67, 0, 0, 0],
- [71, 0,74, 0, 67, 0,71, 0],
- [69, 0,66, 0, 62, 0, 0, 0],
- [64, 0,66,67, 69, 0, 0, 0]];
-/* Bright and plucked: a triangle with a sawtooth an octave up under it, opened
-   by a filter that shuts again fast. Reads as a struck string. */
+ [74,74, 0,78, 81, 0, 0, 0, 81, 0,79,78, 76, 0, 0, 0],
+ [74, 0,76,78, 81, 0, 0, 0,  0, 0, 0, 0, 78,79,81, 0],
+ [83, 0, 0,81, 79, 0, 0, 0, 79, 0,78,76, 74, 0, 0, 0],
+ [73, 0,74,76, 78, 0, 0, 0, 76, 0, 0, 0,  0, 0, 0, 0],
+ [78, 0,78, 0, 83, 0, 0, 0, 81, 0,78, 0, 74, 0, 0, 0],
+ [79, 0,81,83, 86, 0, 0, 0, 83, 0,81, 0, 79, 0, 0, 0],
+ [76, 0, 0,79, 84, 0, 0, 0, 83, 0,79, 0, 76, 0, 0, 0],
+ [73, 0,74, 0, 76, 0,78, 0, 81, 0, 0, 0,  0, 0, 0, 0]];
+/* Two squares a few cents apart, high-passed to take the mud out and then left
+   alone. The point is that nothing closes over the top of it: a square with its
+   harmonics intact is the sound of a game that wants your attention, and it is
+   the opposite of every voice in the overworld score. */
 function tLead(ac,f,t,dur,vel){
- const g=ac.createGain(),lp=ac.createBiquadFilter();
- lp.type='lowpass';lp.Q.value=1.1;
- lp.frequency.setValueAtTime(5200,t);
- lp.frequency.exponentialRampToValueAtTime(1400,t+dur*.8);
- [['triangle',0,1],['sawtooth',1200,.34]].forEach(([ty,det,mix])=>{
-  const o=ac.createOscillator(),m=ac.createGain();
-  o.type=ty;o.frequency.value=f;o.detune.value=det;
-  m.gain.value=mix;o.connect(m);m.connect(lp);
-  o.start(t);o.stop(t+dur+.05);});
- lp.connect(g);g.connect(mTheme);
+ const g=ac.createGain(),hp=ac.createBiquadFilter();
+ hp.type='highpass';hp.frequency.value=280;
+ [-7,7].forEach(det=>{
+  const o=ac.createOscillator();
+  o.type='square';o.frequency.value=f;o.detune.value=det;
+  o.connect(hp);o.start(t);o.stop(t+dur+.04);});
+ hp.connect(g);g.connect(mTheme);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+.006);
+ g.gain.exponentialRampToValueAtTime(vel*.55,t+dur*.5);
+ g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+}
+/* A short square blip. Sixteen of these a bar climbing the chord is the
+   chiptune engine room, and it is what makes the whole thing feel fast. */
+function tArp(ac,f,t,vel){
+ const o=ac.createOscillator(),g=ac.createGain();
+ o.type='square';o.frequency.value=f;
+ o.connect(g);g.connect(mTheme);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+.004);
+ g.gain.exponentialRampToValueAtTime(.0001,t+.085);
+ o.start(t);o.stop(t+.12);
+}
+/* Bass with an edge on it. A sawtooth under a resonant lowpass rather than the
+   overworld's soft triangle: it has to be felt on a phone speaker. */
+function tBass(ac,f,t,dur,vel){
+ const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
+ o.type='sawtooth';o.frequency.value=f;
+ lp.type='lowpass';lp.frequency.value=900;lp.Q.value=4;
+ o.connect(lp);lp.connect(g);g.connect(mTheme);
  g.gain.setValueAtTime(.0001,t);
  g.gain.exponentialRampToValueAtTime(vel,t+.008);
  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ o.start(t);o.stop(t+dur+.03);
 }
-/* A walking bass, not a drone. Root on the beat and the fifth between, which is
-   what makes the whole thing feel like it is going somewhere on foot. */
-function tBass(ac,f,t,dur,vel){
+/* Chord stabs, on the offbeats, gone in a tenth of a second. */
+function tStab(ac,f,t,vel){
  const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
- o.type='triangle';o.frequency.value=f;
- lp.type='lowpass';lp.frequency.value=520;
+ o.type='square';o.frequency.value=f;o.detune.value=(Math.random()*6-3);
+ lp.type='lowpass';lp.frequency.value=3400;
  o.connect(lp);lp.connect(g);g.connect(mTheme);
  g.gain.setValueAtTime(.0001,t);
- g.gain.exponentialRampToValueAtTime(vel,t+.014);
- g.gain.exponentialRampToValueAtTime(.0001,t+dur);
- o.start(t);o.stop(t+dur+.04);
-}
-/* Chord voices that swell rather than start: horns, more or less. */
-function tHorn(ac,f,t,dur,vel){
- const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();
- o.type='sawtooth';o.frequency.value=f;o.detune.value=(Math.random()*7-3.5);
- lp.type='lowpass';lp.frequency.value=1900;
- o.connect(lp);lp.connect(g);g.connect(mTheme);
- g.gain.setValueAtTime(.0001,t);
- g.gain.linearRampToValueAtTime(vel,t+dur*.30);
- g.gain.setValueAtTime(vel,t+dur*.72);
- g.gain.exponentialRampToValueAtTime(.0001,t+dur);
- o.start(t);o.stop(t+dur+.04);
+ g.gain.exponentialRampToValueAtTime(vel,t+.005);
+ g.gain.exponentialRampToValueAtTime(.0001,t+.11);
+ o.start(t);o.stop(t+.15);
 }
 function tDrum(ac,t,dur,cut,vel){
  const sr=ac.createBufferSource(),g=ac.createGain(),hp=ac.createBiquadFilter();
@@ -7674,34 +7693,38 @@ function tDrum(ac,t,dur,cut,vel){
  g.gain.setValueAtTime(vel,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
  sr.start(t);sr.stop(t+dur+.03);
 }
-function tKick(ac,t){
+function tKick(ac,t,vel){
  const o=ac.createOscillator(),g=ac.createGain();
- o.type='sine';o.frequency.setValueAtTime(120,t);
- o.frequency.exponentialRampToValueAtTime(48,t+.09);
- g.gain.setValueAtTime(.26,t);g.gain.exponentialRampToValueAtTime(.0001,t+.17);
- o.connect(g);g.connect(mTheme);o.start(t);o.stop(t+.17);
+ o.type='sine';o.frequency.setValueAtTime(150,t);
+ o.frequency.exponentialRampToValueAtTime(46,t+.075);
+ g.gain.setValueAtTime(vel||.46,t);g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+ o.connect(g);g.connect(mTheme);o.start(t);o.stop(t+.16);
 }
 function scheduleThemeBar(ac,t){
- const ph=TPROG[mBar%TPROG.length],mel=TMEL[mBar%TMEL.length],E=TBEAT/2;
- /* root, fifth, root, fifth — eight to the bar, the walking part */
- for(let i=0;i<8;i++)
-  tBass(ac,mid(ph.bass+(i%2?7:0)),t+i*E,E*.92,.20);
- /* chord on the downbeat and again on three, so the harmony keeps arriving */
- [0,2].forEach(b=>ph.ch.forEach(n=>tHorn(ac,mid(n),t+b*TBEAT,TBEAT*1.85,.038)));
- /* melody */
- for(let i=0;i<8;i++){
+ const ph=TPROG[mBar%TPROG.length],mel=TMEL[mBar%TMEL.length];
+ /* arpeggio: chord tones climbing, an octave under the melody, all sixteens */
+ const arp=[ph.ch[0]-12,ph.ch[1]-12,ph.ch[2]-12,ph.ch[0]];
+ for(let i=0;i<16;i++)tArp(ac,mid(arp[i%4]),t+i*T16,.030);
+ /* bass: root, root, fifth, octave — eight to the bar and pushing */
+ const BP=[0,0,7,0,0,7,12,7];
+ for(let i=0;i<8;i++)tBass(ac,mid(ph.bass+BP[i]),t+i*T16*2,T16*1.7,.30);
+ /* stabs on the and of two and the and of four */
+ [6,14].forEach(sl=>ph.ch.forEach(n=>tStab(ac,mid(n),t+sl*T16,.075)));
+ /* melody, each note held until the next one or the end of the bar */
+ for(let i=0;i<16;i++){
   if(!mel[i])continue;
-  const nxt=mel.slice(i+1).findIndex(v=>v)+1;
-  const len=(nxt>0?nxt:8-i)*E*.94;
-  tLead(ac,mid(mel[i]),t+i*E,Math.min(len,TBEAT*1.6),.135);
+  let n=1;while(i+n<16&&!mel[i+n])n++;
+  tLead(ac,mid(mel[i]),t+i*T16,Math.min(n*T16*.92,TBEAT*1.5),.115);
  }
- /* a light kit: this is a title card, not a boss */
- [0,2].forEach(b=>tKick(ac,t+b*TBEAT));
- [1,3].forEach(b=>tDrum(ac,t+b*TBEAT,.13,1100,.135));
- for(let i=0;i<8;i++)tDrum(ac,t+i*E+E/2,.03,6000,.035);
- /* fill on the last bar of the loop so the seam is a lift, not a restart */
+ /* the kit, loud enough to lead rather than to keep time */
+ [0,6,8].forEach(sl=>tKick(ac,t+sl*T16,sl===6?.30:.46));
+ [4,12].forEach(sl=>tDrum(ac,t+sl*T16,.15,1400,.30));
+ tDrum(ac,t+11*T16,.07,1900,.12);                  /* ghost snare before four */
+ for(let i=0;i<8;i++)tDrum(ac,t+i*T16*2+T16,.035,7000,i%2?.10:.055);
+ /* a crash to open the loop and a fill to close it */
+ if(mBar%TPROG.length===0)tDrum(ac,t,.55,3000,.16);
  if(mBar%TPROG.length===TPROG.length-1)
-  for(let k=0;k<4;k++)tDrum(ac,t+TBAR-TBEAT+k*E/2,.07,2200,.10+k*.02);
+  [10,12,13,14,15].forEach((sl,k)=>tDrum(ac,t+sl*T16,.08,1600,.14+k*.03));
  return TBAR;
 }
 /* Switching is a crossfade plus a change of tone: the boss side wants the top
@@ -7719,8 +7742,8 @@ function musicMode(m){
   n.gain.cancelScheduledValues(t);
   n.gain.setValueAtTime(n.gain.value,t);
   n.gain.linearRampToValueAtTime(v,t+(v?.35:.7));});
- const cut=m==='boss'?3800:m==='theme'?5000:2600;
- const wet=m==='boss'?.14:m==='theme'?.20:.5;
+ const cut=m==='boss'?3800:m==='theme'?11000:2600;
+ const wet=m==='boss'?.14:m==='theme'?.06:.5;
  mLP.frequency.cancelScheduledValues(t);
  mLP.frequency.setTargetAtTime(cut,t,.25);
  mWet.gain.cancelScheduledValues(t);
