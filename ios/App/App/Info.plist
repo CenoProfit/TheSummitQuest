@@ -22,16 +22,18 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Summit lets you attach a photo to a hike you have logged. Photos are stored on your device.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Summit lets you pick an existing picture to attach to a hike you have logged.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Summit can save a copy of the photo you take to your own photo library. You can switch this off in the options menu.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Summit checks that you are at a destination before marking it complete. Your location is only read when you tap to log a hike.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Summit can save a copy of the photo you take to your own photo library. You can switch this off in the options menu.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Summit lets you pick an existing picture to attach to a hike you have logged.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
