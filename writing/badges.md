@@ -9,15 +9,15 @@ Two lines per badge. LOCKED is what it says before you have it: the goal, in the
 A few contain a live number written as {P.length} or {cnt("water")}. Keep those tokens exactly as they are and write around them.
 
 ### a1 · FIRST STEPS
-LOCKED: Everything begins with one. Clear a single location and I will start paying attention.
+LOCKED: Everything begins with your first quest. Clear a single location and I will consider taking you seriously.
 EARNED: You've completed your first adventure. Nothing for me to notice yet, but what will you do now?
 
 ### a2 · TRAIL LEGS
-LOCKED: Ten. That is where habit begins to replace intention.
+LOCKED: Ten quests. That is where habit begins to replace intention.
 EARNED: Wow, you've beat 10 hikes now. Maybe we should keep an eye on you...
 
 ### a3 · CENTURY CLUB
-LOCKED: Twenty-five would be no accident. Few come this far.
+LOCKED: Twenty-five quests would be no accident. Few come this far.
 EARNED: Okay, 25 completed, you have drawn our interest. How far are you willing to go? We will be waiting...
 
 ### a4 · THE FULL MAP
@@ -58,17 +58,17 @@ EARNED: Only someone who has the ability to level all {NB} beasts, has truly exp
 
 ### a17 · HOMETOWN HERO
 LOCKED: Five spots within 40 min of {RG.home}. The ground nearest home is the least walked.
-EARNED: It takes bravery to intentionally pursue discomfort. Clear 5 spots within 40 min of {RG.home}.
+EARNED: It takes bravery to intentionally pursue discomfort.
 
 ### a18 · NIGHT OWL
 LOCKED: Walk between 8pm and 5am. The dark is only unfamiliar.
-EARNED: The night consumes all... except for those with a courage that inspires light. Log a hike between 8pm and 5am
+EARNED: The night consumes all... except for those with a courage that inspires light.
 
 ### a19 · DOUBLE HEADER
 LOCKED: Two hikes in a single day. That is appetite, not endurance.
-EARNED: You are eager. I like it. Log two hikes on the same day.
+EARNED: You are eager. I like it.
 
 ### a20 · BIG WEEK
 LOCKED: Five hikes inside any 7-day window. Let us see what you are made of.
-EARNED: You have a veracity that may take you far. We were deeply entertained by your heroic effort. Now recover, enjoy family and friends... Log 5 hikes within any 7-day window.
+EARNED: You have a tenacity that may take you far. We were deeply entertained by your heroic effort. Now recover, enjoy family and friends...
 
