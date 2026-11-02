@@ -38,7 +38,7 @@ EARNED: It is wise to sit and gaze to the horizon. All {cnt("view")} scenic over
 
 ### a8 · MIDDLE GROUND
 LOCKED: The {cnt("mod")} moderate hikes. Not the gentle ones, not yet the cruel ones.
-EARNED: You are improving, the {cnt("mod")} moderate hikes all build your strength for more. Keep going....
+EARNED: You are improving, the {cnt("mod")} moderate hikes all build your strength for more. Keep going...
 
 ### a9 · QUAD DESTROYER
 LOCKED: All {cnt("hard")} steep & difficult hikes. The view is not given to you. It is charged.
