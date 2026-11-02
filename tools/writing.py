@@ -33,7 +33,36 @@ BOSS  = re.compile(r'(\w+):\{name:"(' + STR + r')",hp:(.*?)intro:"(' + STR + r')
 # number, as in "Clear all "+P.length+" locations". The whole expression is
 # captured and the code parts are shown as {P.length} so the prose around them
 # can be rewritten without losing the value.
-BADGE = re.compile(r'ach\("(\w+)","([^"]*)","(' + STR + r')",(.*?),\(\)=>', re.S)
+# `ach(` is a substring of `each(` and `attach(`, so the boundary matters: without
+# it this finds 157 calls instead of 16. Arguments are split by walking the call
+# rather than by regex, because several of them are expressions containing commas.
+ACH = re.compile(r'(?<![A-Za-z0-9_$.])ach\(')
+
+def split_args(t, i):
+    args, buf, depth, q, esc = [], "", 0, False, False
+    while i < len(t):
+        c = t[i]
+        if esc:              buf += c; esc = False
+        elif c == "\\":      buf += c; esc = True
+        elif q:              buf += c; q = not (c == '"')
+        elif c == '"':       buf += c; q = True
+        elif c in "([{":     depth += 1; buf += c
+        elif c in ")]}":
+            if depth == 0:   return [a.strip() for a in args + [buf]], i
+            depth -= 1;      buf += c
+        elif c == "," and depth == 0: args.append(buf); buf = ""
+        else:                buf += c
+        i += 1
+    raise SystemExit("! unterminated ach( call")
+
+def badge_calls(s):
+    """[(id, start, end, args)] — args are (id, icon, name, locked, earned, test)."""
+    out = []
+    for m in ACH.finditer(s):
+        a, end = split_args(s, m.end())
+        if len(a) >= 6 and a[0].startswith('"'):
+            out.append((a[0].strip('"'), m.start(), end, a))
+    return out
 PIECE = re.compile(r'"(' + STR + r')"|([^+]+)')
 
 def expr_to_text(e):
@@ -99,14 +128,38 @@ HEAD = ("<!-- Edit the text under each heading. Leave the headings alone:\n"
         "     the id in each one is how the text finds its way home.\n"
         "     Then run: python3 tools/writing.py apply -->\n")
 
-def write_md(path, title, entries, note=""):
+def write_md(path, title, entries, note="", locked=None):
     b = ["# " + title, "", HEAD]
     if note:
         b += [note, ""]
     for key, label, text in entries:
-        b += ["### %s · %s" % (key, label), text, ""]
+        b.append("### %s · %s" % (key, label))
+        if locked and key in locked:
+            b.append("<!-- locked badge shows: %s -->" % locked[key])
+        b += [text, ""]
     io.open(path, "w", encoding="utf-8").write("\n".join(b) + "\n")
     return len(entries)
+
+def read_badges(path):
+    """-> {id: (locked, earned)} — badges are the one file with two fields."""
+    if not os.path.exists(path):
+        return {}
+    out, cur, field = {}, None, None
+    for line in io.open(path, encoding="utf-8"):
+        h = re.match(r'^### (\S+) · ', line)
+        if h:
+            cur, field = h.group(1), None
+            out[cur] = {"LOCKED": [], "EARNED": []}
+        elif cur:
+            m = re.match(r'^(LOCKED|EARNED):\s*(.*)$', line.strip())
+            if m:
+                field = m.group(1); out[cur][field].append(m.group(2))
+            elif field and not line.startswith(("<!--", "#")):
+                out[cur][field].append(line.strip())
+    return {k: (" ".join(" ".join(v["LOCKED"]).split()),
+                " ".join(" ".join(v["EARNED"]).split()))
+            for k, v in out.items() if v["LOCKED"] or v["EARNED"]}
+
 
 def read_md(path):
     """-> {key: text}, preserving nothing but the prose."""
@@ -130,13 +183,18 @@ def extract():
     os.makedirs(OUT, exist_ok=True)
     s = src(); regs = regions(s); names = {r[0]: r[1] for r in regs}
 
-    n = write_md(os.path.join(OUT, "badges.md"), "Badges",
-                 [(m.group(1), unesc(m.group(3)), expr_to_text(m.group(4))) for m in BADGE.finditer(s)],
-                 "The line under each badge is what the player reads when it is earned. Most of "
-                 "these still describe the mechanic rather than the achievement.\n\n"
-                 "A few contain a live number written as {P.length} or {cnt(\"water\")}. "
-                 "Keep those tokens exactly as they are and write around them.")
-    print("badges.md         %3d" % n)
+    b = ["# Badges", "", HEAD,
+         "Two lines per badge. LOCKED is what it says before you have it: the goal, in "
+         "the same voice. EARNED is what it says once you do.", "",
+         "A few contain a live number written as {P.length} or {cnt(\"water\")}. Keep "
+         "those tokens exactly as they are and write around them.", ""]
+    rows = badge_calls(s)
+    for bid, _, _, a in rows:
+        b += ["### %s · %s" % (bid, unesc(a[2].strip('"'))),
+              "LOCKED: " + expr_to_text(a[3]),
+              "EARNED: " + expr_to_text(a[4]), ""]
+    io.open(os.path.join(OUT, "badges.md"), "w", encoding="utf-8").write("\n".join(b) + "\n")
+    print("badges.md         %3d" % len(rows))
 
     rows = []
     for m in BOSS.finditer(s):
@@ -172,7 +230,7 @@ def extract():
             write_md(os.path.join(OUT, "quests-%s.md" % rid), "%s — destinations" % name, rows)
             print("quests-%-11s %3d" % (rid + ".md", len(rows)))
             total += len(rows)
-    print("\n%d quests, %d bosses, %d badges" % (total, len(BOSS.findall(s)), len(BADGE.findall(s))))
+    print("\n%d quests, %d bosses, %d badges" % (total, len(BOSS.findall(s)), len(badge_calls(s))))
 
 
 # ── apply ────────────────────────────────────────────────────────────────────
@@ -198,17 +256,20 @@ def apply():
     s = src()
     changed, missing = 0, []
 
-    edits = read_md(os.path.join(OUT, "badges.md"))
+    edits = read_badges(os.path.join(OUT, "badges.md"))
     used, out, last, n = set(), [], 0, 0
-    for m in BADGE.finditer(s):
-        k = m.group(1)
-        if k not in edits:
+    for bid, st, end, a in badge_calls(s):
+        if bid not in edits:
             continue
-        used.add(k)
-        new = text_to_expr(edits[k])
-        if new == m.group(4).strip():
+        used.add(bid)
+        lock, earn = edits[bid]
+        nl = text_to_expr(lock) if lock else a[3]
+        ne = text_to_expr(earn) if earn else a[4]
+        if nl == a[3] and ne == a[4]:
             continue
-        out.append(s[last:m.start(4)]); out.append(new); last = m.end(4); n += 1
+        out.append(s[last:st])
+        out.append("ach(%s,%s,%s,%s,%s,%s)" % (a[0], a[1], a[2], nl, ne, a[5]))
+        last = end + 1; n += 1
     out.append(s[last:]); s = "".join(out); changed += n
     missing += [("badges.md", k) for k in edits if k not in used]
 
