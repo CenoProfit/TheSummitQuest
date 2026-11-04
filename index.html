@@ -18,7 +18,13 @@
 :root{
   --pix:'Press Start 2P','Courier New',monospace;
   --body:'Courier New',Courier,monospace;
-  --bg:#080d14; --panel:#111823; --panel2:#1a2432;
+  --bg:#080d14; --solid:#111823; --solid2:#1a2432;
+  /* The panels are translucent so the wilderness behind them is actually
+     visible. They are not blurred: a blur would turn pixel art to mush, and
+     the scene is low contrast enough to read text over. Anything that floats
+     over the map or the page, rather than sitting in the flow, is re-made
+     opaque further down, because a see-through sheet over a map is unreadable. */
+  --panel:rgba(14,22,33,.58); --panel2:rgba(24,34,48,.50);
   --edge:#33445c; --edge2:#5a7392; --ink:#e9f0f6; --dim:#8695a8;
   --gold:#f5c651; --xp:#74e84f; --hp:#e8503c;
 }
@@ -782,6 +788,11 @@ body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:
  .tut-p{font-size:13px}
  .tut-card{width:100%;max-height:96vh}
 }
+/* Anything that floats over the page or the map stays opaque: a see-through
+   sheet on top of the map is just two maps. Last in the sheet so it wins
+   over the rules that set these from --panel. */
+.detail,.cat-panel{background:var(--solid)}
+.opt-pop,.cat-head{background:var(--solid2)}
 </style>
 </head>
 <body>
@@ -3757,6 +3768,48 @@ const RIDGE_PAL={
  cascades:{sky:["#16262e","#3b5a56"],band:["#2d4742","#1f322f","#13201e"]},
  oregon  :{sky:["#172a33","#41635c"],band:["#345048","#223630","#15231f"]}};
 const RIDGE_DEF={sky:["#16243c","#22395a"],band:["#1b2c47","#152238","#0e1726"]};
+/* ── the scene ────────────────────────────────────────────────────────────
+   One routine paints the whole page background: sky, four ridge layers
+   stepping down the screen instead of crowding the top, a treeline on the
+   near ridges, a meadow, a river running toward the viewer, and a few
+   animals. Everything is seeded off the region's own seed, so a region looks
+   the same every time you open it and no two regions share a skyline. The
+   canvas is a third of the screen's size and scaled back up with
+   image-rendering:pixelated, so every rect below is a three pixel block and
+   the whole thing stays pixel art rather than a smooth illustration. */
+const _rgb=h=>{h=h.replace('#','');
+ return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];};
+const _css=a=>'rgb('+Math.round(a[0])+','+Math.round(a[1])+','+Math.round(a[2])+')';
+const _mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const _dark=(a,t)=>_mix(a,[0,0,0],t),_lite=(a,t)=>_mix(a,[255,255,255],t);
+/* Seeded so the scene never crawls between repaints. */
+function rng32(s){return function(){s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);
+ t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+const SPR={
+ deer  :[".......#.#","........#.","........##",".########.",
+         ".#########",".########.",".#.#..#.#.",".#.#..#.#."],
+ rabbit:["#.#..",".###.",".####",".#..#"],
+ bird  :["#.#",".#."],
+ hawk  :["##...##",".##.##.","...#..."]};
+function blit(g,sp,x,y,col){g.fillStyle=col;
+ for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++)
+  if(sp[r][c]==='#')g.fillRect(x+c,y+r,1,1);}
+/* Conifers everywhere except the desert regions, which get a stem and a
+   small canopy instead: a juniper reads wrong as a fir. */
+const DESERT={utah:1,sedona:1};
+function tree(g,x,y,h,col,dry){
+ g.fillStyle=col;
+ /* juniper and sage: a round crown on a short trunk. A fir shape in red
+    rock country reads as the wrong continent. */
+ if(dry){const hb=Math.max(2,Math.round(h*.62));
+  for(let i=0;i<hb;i++){const r=Math.max(0,Math.round(hb*.7*Math.sin((i+.5)/hb*Math.PI)));
+   g.fillRect(x-r,y-h+i,r*2+1,1);}
+  g.fillRect(x,y-h+hb,1,Math.max(1,h-hb));return;}
+ const w=Math.max(1,Math.round(h*.42));
+ for(let i=0;i<h;i++){const r=Math.round(w*(i/Math.max(1,h-1)));
+  g.fillRect(x-r,y-h+i,r*2+1,1);}
+ g.fillRect(x,y,1,Math.max(1,Math.round(h*.2)));
+}
 function ridgeProfile(x,w,seed,amp,base){
  const t=x/w*Math.PI*2;
  return base-amp*(
@@ -3768,28 +3821,101 @@ function paintRidge(rid,ph){
  const c=document.getElementById('ridge');if(!c)return;
  const PX=3,w=c.clientWidth||window.innerWidth,h=c.clientHeight||window.innerHeight;
  c.width=Math.max(1,Math.ceil(w/PX));c.height=Math.max(1,Math.ceil(h/PX));
- const g2=c.getContext('2d');g2.imageSmoothingEnabled=false;
- const pal=RIDGE_PAL[rid]||RIDGE_DEF,W2=c.width,H2=c.height;
- const sky=g2.createLinearGradient(0,0,0,H2);
- sky.addColorStop(0,pal.sky[0]);sky.addColorStop(1,pal.sky[1]);
- g2.fillStyle=sky;g2.fillRect(0,0,W2,H2);
- /* Stars only after dark, seeded off their own index so they do not crawl
-    between repaints. */
- if(ph==="NIGHT"||ph==="DAWN"){
-  g2.fillStyle="rgba(255,255,255,"+(ph==="NIGHT"?.42:.16)+")";
-  for(let i=0;i<90;i++){
-   const sx=(i*53)%W2,sy=(i*29)%Math.max(1,(H2*.30)|0);
-   if((i*7)%4===0)g2.fillRect(sx,sy,1,1);}
- }
- /* The region's own seed shapes its skyline, so no two are the same ridge. */
+ const g=c.getContext('2d');g.imageSmoothingEnabled=false;
+ const pal=RIDGE_PAL[rid]||RIDGE_DEF,W=c.width,H=c.height;
+ const skyA=_rgb(pal.sky[0]),skyB=_rgb(pal.sky[1]),band=pal.band.map(_rgb);
+ const near=band[band.length-1],dry=!!DESERT[rid];
  const seed=(((REGIONS[rid]||{}).seed||1)%997)/137;
- pal.band.forEach((col,i)=>{
-  g2.fillStyle=col;
-  const amp=H2*(.035+i*.012),base=H2*(.10+i*.035);
-  for(let x=0;x<W2;x++){
-   const y=Math.round(ridgeProfile(x,W2,seed+i*2.1,amp,base));
-   g2.fillRect(x,y,1,H2-y);}
- });
+ const rand=rng32(Math.round(seed*100000)+7);
+
+ /* sky */
+ const sg=g.createLinearGradient(0,0,0,Math.round(H*.62));
+ sg.addColorStop(0,_css(skyA));sg.addColorStop(1,_css(skyB));
+ g.fillStyle=sg;g.fillRect(0,0,W,H);
+ /* Stars only after dark, placed off their own index rather than the
+    sequence, so a repaint puts them back where they were. */
+ if(ph==="NIGHT"||ph==="DAWN"){
+  g.fillStyle="rgba(255,255,255,"+(ph==="NIGHT"?.42:.16)+")";
+  for(let i=0;i<90;i++){
+   const sx=(i*53)%W,sy=(i*29)%Math.max(1,(H*.30)|0);
+   if((i*7)%4===0)g.fillRect(sx,sy,1,1);}
+ }
+
+ /* Four ridges walking down the screen. Each is darker and larger than the
+    one behind it, which is the whole of the depth cue at this palette. */
+ const LAYERS=4;
+ for(let i=0;i<LAYERS;i++){
+  const t=i/(LAYERS-1),ci=t*(band.length-1),i0=Math.min(band.length-2,Math.floor(ci));
+  const col=_mix(band[i0],band[i0+1],ci-i0);
+  const amp=H*(.045+i*.015),base=H*(.15+i*.105),prof=[];
+  g.fillStyle=_css(col);
+  for(let x=0;x<W;x++){
+   const y=Math.round(ridgeProfile(x,W,seed+i*2.1,amp,base));
+   prof.push(y);g.fillRect(x,y,1,H-y);}
+  /* a lit rim along the crest, so the layers separate even where two of
+     them nearly touch */
+  g.fillStyle=_css(_lite(col,.16));
+  for(let x=0;x<W;x++)g.fillRect(x,prof[x],1,1);
+  /* trees only on the two near ridges: on the far ones they would be one
+     pixel of noise */
+  if(i>=2){
+   const tc=_css(_dark(col,.38));
+   for(let x=1;x<W;x++)if(rand()<.32)tree(g,x,prof[x]+1,i+1+Math.round(rand()*2),tc,dry);
+  }
+ }
+
+ /* the meadow in front, with its own soft edge rather than a ruled line */
+ const gy=Math.round(H*.60),gp=[];
+ for(let x=0;x<W;x++)gp.push(Math.round(ridgeProfile(x,W,seed+9.3,H*.022,gy)));
+ const gTop=_mix(near,skyB,.26),gBot=_dark(near,.52),top=Math.min.apply(null,gp);
+ for(let y=top;y<H;y++){
+  g.fillStyle=_css(_mix(gTop,gBot,(y-top)/Math.max(1,H-top)));
+  let s=-1;
+  for(let x=0;x<=W;x++){const on=x<W&&gp[x]<=y;
+   if(on&&s<0)s=x;else if(!on&&s>=0){g.fillRect(s,y,x-s,1);s=-1;}}
+ }
+
+ /* The river widens as it comes toward you, which is the cheapest honest
+    perspective there is. Clipped to the meadow so it cannot spill into the
+    hills where the bank sits high. */
+ /* The water keeps a little of the region in it but leans blue wherever it
+    is, because a river the colour of the canyon around it reads as a path. */
+ const base=_mix(skyB,[58,106,140],.84);
+ const ry=Math.round(H*.57),wat=_lite(base,.08),watD=_dark(base,.30);
+ for(let y=ry;y<H;y++){
+  const t=(y-ry)/Math.max(1,H-ry);
+  const cx=W*.34+Math.sin(t*3.4+seed*2)*W*.13+Math.sin(t*7.1+seed)*W*.04+t*W*.05,
+        hw=.8+t*t*W*.055;
+  const x0=Math.max(0,Math.round(cx-hw)),x1=Math.min(W,Math.round(cx+hw));
+  for(let x=x0;x<x1;x++){
+   if(gp[x]>y)continue;
+   const edge=(x===x0||x===x1-1);
+   g.fillStyle=_css(edge?_dark(watD,.25):_mix(watD,wat,t));
+   g.fillRect(x,y,1,1);}
+  if(((y*7+(cx|0))%11)===0&&x1-x0>3){
+   g.fillStyle=_css(_lite(wat,.30));g.fillRect(x0+1,y,x1-x0-2,1);}
+ }
+
+ /* near bank: scrub, rocks and the few trees that stand over everything */
+ const sc=_css(_dark(near,.46)),fc=_css(_dark(near,.64));
+ for(let k=0,n=Math.round(W*1.6);k<n;k++){
+  const x=Math.round(rand()*W),y=Math.round(H*(.66+rand()*.33));
+  if(y<gp[Math.min(W-1,x)])continue;
+  g.fillStyle=sc;g.fillRect(x,y,1,1);
+  if(rand()<.3)g.fillRect(x+1,y,1,1);
+ }
+ for(let k=0,n=Math.max(4,Math.round(W/9));k<n;k++)
+  tree(g,Math.round(rand()*W),H-1-Math.round(rand()*H*.03),
+       Math.round(H*(.05+rand()*.05)),fc,dry);
+
+ /* the animals, one silhouette each, standing where the panels are thinnest */
+ const ac=_css(_dark(near,.72));
+ if(dry){blit(g,SPR.hawk,Math.round(W*.66),Math.round(H*.17),ac);
+         blit(g,SPR.hawk,Math.round(W*.78),Math.round(H*.12),ac);}
+ else{for(let i=0;i<5;i++)
+  blit(g,SPR.bird,Math.round(W*(.56+i*.045)),Math.round(H*(.13+(i%2)*.02)),ac);
+  blit(g,SPR.deer,Math.round(W*.70),Math.round(H*.70)-8,ac);}
+ blit(g,SPR.rabbit,Math.round(W*.17),Math.round(H*.82)-4,ac);
 }
 /* The launcher has no region, so it draws the default scene at the hour it is. */
 const repaintScene=()=>paintRidge(typeof CUR_REGION!=="undefined"?CUR_REGION:pickRegion(),
