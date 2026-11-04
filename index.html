@@ -791,8 +791,28 @@ body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:
 /* Anything that floats over the page or the map stays opaque: a see-through
    sheet on top of the map is just two maps. Last in the sheet so it wins
    over the rules that set these from --panel. */
-.detail,.cat-panel{background:var(--solid)}
-.opt-pop,.cat-head{background:var(--solid2)}
+.detail,.cat-panel{background:var(--solidR,var(--solid))}
+.opt-pop,.cat-head{background:var(--solid2R,var(--solid2))}
+/* A dither on the same three pixel grid the scene is drawn on, so the solid
+   surfaces read as part of the same picture rather than flat web panels. */
+.detail,.cat-panel,.opt-pop,.cat-head,.xp-track{
+ background-image:
+  repeating-linear-gradient(0deg,rgba(255,255,255,.032) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(90deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px)}
+@media (max-width:640px){
+ /* A treeline across the top of the trail sheet. It is a background rather
+    than a ::before because the sheet scrolls, and an absolute child outside
+    an overflow:auto box is clipped away. Backgrounds hold to the border box,
+    so it stays put while the card scrolls under it. */
+ .detail{padding-top:34px;
+  background-image:var(--pine),
+   repeating-linear-gradient(0deg,rgba(255,255,255,.032) 0 1px,transparent 1px 3px),
+   repeating-linear-gradient(90deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px);
+  background-repeat:repeat-x,repeat,repeat;
+  background-size:96px 24px,auto,auto;
+  background-position:left top,left top,left top;
+  image-rendering:pixelated}
+}
 </style>
 </head>
 <body>
@@ -3817,6 +3837,25 @@ function ridgeProfile(x,w,seed,amp,base){
    .28*Math.sin(t*2.7+seed*1.7)+
    .17*Math.sin(t*5.1+seed*2.3));
 }
+/* A seamless strip of trees, drawn with the same routine as the ones on the
+   ridges and handed to CSS as an image. The sheets that have to stay opaque
+   sit behind it, so a trail card rises out of a treeline instead of being a
+   rectangle parked on the map. Cached: the tile only changes when the region
+   does. */
+let _pineKey="",_pineURL="";
+function pineTile(col,dry){
+ const key=_css(col)+dry;if(key===_pineKey)return _pineURL;
+ const t=document.createElement('canvas');t.width=48;t.height=12;
+ const g=t.getContext('2d');g.imageSmoothingEnabled=false;
+ /* lighter than the sheet it sits on, not darker: a black silhouette on a
+    near-black panel is just a black panel */
+ const c=_css(_lite(col,.11)),r=rng32(99);
+ for(let i=0;i<6;i++){
+  const x=Math.round(r()*48),h=5+Math.round(r()*6);
+  /* drawn three times so a tree crossing the seam finishes on the far side */
+  tree(g,x-48,11,h,c,dry);tree(g,x,11,h,c,dry);tree(g,x+48,11,h,c,dry);}
+ _pineKey=key;_pineURL=t.toDataURL();return _pineURL;
+}
 function paintRidge(rid,ph){
  const c=document.getElementById('ridge');if(!c)return;
  const PX=3,w=c.clientWidth||window.innerWidth,h=c.clientHeight||window.innerHeight;
@@ -3916,6 +3955,13 @@ function paintRidge(rid,ph){
   blit(g,SPR.bird,Math.round(W*(.56+i*.045)),Math.round(H*(.13+(i%2)*.02)),ac);
   blit(g,SPR.deer,Math.round(W*.70),Math.round(H*.70)-8,ac);}
  blit(g,SPR.rabbit,Math.round(W*.17),Math.round(H*.82)-4,ac);
+
+ /* The surfaces that cannot be translucent borrow the region's colour
+    instead, so they still belong to the place they are standing in. */
+ const R=document.documentElement.style;
+ R.setProperty('--solidR',_css(_mix(_rgb('#111823'),near,.24)));
+ R.setProperty('--solid2R',_css(_mix(_rgb('#1a2432'),near,.22)));
+ R.setProperty('--pine','url('+pineTile(near,dry)+')');
 }
 /* The launcher has no region, so it draws the default scene at the hour it is. */
 const repaintScene=()=>paintRidge(typeof CUR_REGION!=="undefined"?CUR_REGION:pickRegion(),
