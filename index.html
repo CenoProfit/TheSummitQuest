@@ -23,17 +23,19 @@
   --gold:#f5c651; --xp:#74e84f; --hp:#e8503c;
 }
 *{box-sizing:border-box}
-body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);color:var(--ink);font-family:var(--body);
- background-image:radial-gradient(circle at 20% 10%,rgba(60,90,140,.10),transparent 55%),
-   radial-gradient(circle at 80% 80%,rgba(120,70,140,.08),transparent 55%),
-   url(data:image/png;base64,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);
- background-size:auto,auto,96px 96px;background-attachment:fixed,fixed,fixed;}
+body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);color:var(--ink);font-family:var(--body);}
 /* The whole page carries the time of day, not just the map. The background was
    a ten pixel gutter on a phone, so tinting only that changed nothing anybody
    would see; washing everything is what makes dusk feel like dusk. Low alpha,
    because this sits over text. */
 #sky{position:fixed;inset:0;z-index:400;pointer-events:none;background:transparent;
  transition:background 1.4s linear}
+/* Behind everything at z-index -1, so it costs no layout space. The header
+   already sits in the only part of a phone screen that is not a panel, and the
+   map has to stay above the fold, so the mountains go under the title rather
+   than pushing it down. */
+#ridge{position:fixed;inset:0;width:100%;height:100%;
+ z-index:-1;pointer-events:none;image-rendering:pixelated}
 .frame{background:var(--panel);border:3px solid var(--edge);position:relative;
  box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--edge2),5px 5px 0 5px rgba(0,0,0,.55)}
 .title{text-align:center;font-family:var(--pix);font-size:clamp(10px,3.1vw,20px);letter-spacing:2px;
@@ -784,6 +786,7 @@ body.fighting #battleCanvas{max-height:none;max-width:none;flex:0 0 auto;margin:
 </head>
 <body>
 <div id="sky" aria-hidden="true"></div>
+<canvas id="ridge" aria-hidden="true"></canvas>
 <div id="splash">
  <canvas id="splashMap"></canvas>
  <div class="splash-scrim"></div>
@@ -3727,6 +3730,73 @@ function showLauncher(){
 }
 
 /* the launcher writes its choice here before the engine runs */
+const PHASES={
+ DAWN :{icon:"🌅",dark:"rgba(50,26,72,.24)",tint:"rgba(255,158,96,.22)",amb:"rgba(255,190,140,.10)",
+   sky:"linear-gradient(180deg,rgba(255,158,96,.14) 0%,rgba(120,60,90,.09) 45%,rgba(50,26,72,.10) 100%)"},
+ DAY  :{icon:"☀",dark:null,tint:null,amb:null,sky:null},
+ DUSK :{icon:"🌇",dark:"rgba(28,20,72,.30)",tint:"rgba(255,116,58,.26)",amb:"rgba(255,140,80,.10)",
+   sky:"linear-gradient(180deg,rgba(255,116,58,.16) 0%,rgba(150,60,90,.11) 40%,rgba(28,20,72,.16) 100%)"},
+ NIGHT:{icon:"🌙",dark:"rgba(4,8,30,.62)",tint:"rgba(50,86,190,.20)",amb:null,
+   sky:"linear-gradient(180deg,rgba(50,86,190,.15) 0%,rgba(10,18,56,.20) 50%,rgba(4,8,30,.30) 100%)"}};
+function autoPhase(){const h=new Date().getHours();
+ return (h>=5&&h<8)?"DAWN":(h>=8&&h<17)?"DAY":(h>=17&&h<20)?"DUSK":"NIGHT";}
+/* One palette per region, so the page behind the panels is the place you are
+   playing rather than the same navy everywhere. Time of day is handled
+   separately by the #sky wash, which means place and hour are one mechanism
+   each instead of eleven times four hand-mixed combinations. */
+const RIDGE_PAL={
+ wnc     :{sky:["#1d3550","#3f6b74"],band:["#2b4f55","#1d3a40","#12262b"]},
+ nova    :{sky:["#1c3348","#3a6360"],band:["#2a4c47","#1d3734","#122422"]},
+ sierra  :{sky:["#1b3047","#4a6276"],band:["#43525f","#2e3b46","#1c252d"]},
+ vermont :{sky:["#16301f","#3c6b3a"],band:["#2d5230","#1e3a22","#132616"]},
+ teton   :{sky:["#172a46","#44617f"],band:["#3a506b","#28384e","#192433"]},
+ front   :{sky:["#1f2c42","#5d6472"],band:["#4a4a51","#34343c","#212128"]},
+ glacier :{sky:["#13293a","#3b6a74"],band:["#2f5560","#1f3c45","#13262c"]},
+ utah    :{sky:["#3a1f16","#8a452a"],band:["#6b3220","#4a2217","#2d140e"]},
+ sedona  :{sky:["#43200f","#9c4f22"],band:["#7c3718","#55240f","#331509"]},
+ cascades:{sky:["#16262e","#3b5a56"],band:["#2d4742","#1f322f","#13201e"]},
+ oregon  :{sky:["#172a33","#41635c"],band:["#345048","#223630","#15231f"]}};
+const RIDGE_DEF={sky:["#16243c","#22395a"],band:["#1b2c47","#152238","#0e1726"]};
+function ridgeProfile(x,w,seed,amp,base){
+ const t=x/w*Math.PI*2;
+ return base-amp*(
+   .55*Math.sin(t*1.3+seed)+
+   .28*Math.sin(t*2.7+seed*1.7)+
+   .17*Math.sin(t*5.1+seed*2.3));
+}
+function paintRidge(rid,ph){
+ const c=document.getElementById('ridge');if(!c)return;
+ const PX=3,w=c.clientWidth||window.innerWidth,h=c.clientHeight||window.innerHeight;
+ c.width=Math.max(1,Math.ceil(w/PX));c.height=Math.max(1,Math.ceil(h/PX));
+ const g2=c.getContext('2d');g2.imageSmoothingEnabled=false;
+ const pal=RIDGE_PAL[rid]||RIDGE_DEF,W2=c.width,H2=c.height;
+ const sky=g2.createLinearGradient(0,0,0,H2);
+ sky.addColorStop(0,pal.sky[0]);sky.addColorStop(1,pal.sky[1]);
+ g2.fillStyle=sky;g2.fillRect(0,0,W2,H2);
+ /* Stars only after dark, seeded off their own index so they do not crawl
+    between repaints. */
+ if(ph==="NIGHT"||ph==="DAWN"){
+  g2.fillStyle="rgba(255,255,255,"+(ph==="NIGHT"?.42:.16)+")";
+  for(let i=0;i<90;i++){
+   const sx=(i*53)%W2,sy=(i*29)%Math.max(1,(H2*.30)|0);
+   if((i*7)%4===0)g2.fillRect(sx,sy,1,1);}
+ }
+ /* The region's own seed shapes its skyline, so no two are the same ridge. */
+ const seed=(((REGIONS[rid]||{}).seed||1)%997)/137;
+ pal.band.forEach((col,i)=>{
+  g2.fillStyle=col;
+  const amp=H2*(.035+i*.012),base=H2*(.10+i*.035);
+  for(let x=0;x<W2;x++){
+   const y=Math.round(ridgeProfile(x,W2,seed+i*2.1,amp,base));
+   g2.fillRect(x,y,1,H2-y);}
+ });
+}
+/* The launcher has no region, so it draws the default scene at the hour it is. */
+const repaintScene=()=>paintRidge(typeof CUR_REGION!=="undefined"?CUR_REGION:pickRegion(),
+                                  typeof CUR_PHASE!=="undefined"?CUR_PHASE:autoPhase());
+addEventListener("resize",repaintScene);
+
+let CUR_REGION=null,CUR_PHASE=null;
 function runGame(ACTIVE){
 const RG=REGIONS[ACTIVE];
 
@@ -4876,16 +4946,6 @@ for(let it=0;it<300;it++)for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++
 P.forEach(p=>{p.x=Math.max(20,Math.min(W-20,Math.round(p.x)));p.y=Math.max(42,Math.min(H-16,Math.round(p.y)));});
 
 /* ═══════════════ 7. DAY / NIGHT ═══════════════ */
-const PHASES={
- DAWN :{icon:"🌅",dark:"rgba(50,26,72,.24)",tint:"rgba(255,158,96,.22)",amb:"rgba(255,190,140,.10)",
-   sky:"linear-gradient(180deg,rgba(255,158,96,.14) 0%,rgba(120,60,90,.09) 45%,rgba(50,26,72,.10) 100%)"},
- DAY  :{icon:"☀",dark:null,tint:null,amb:null,sky:null},
- DUSK :{icon:"🌇",dark:"rgba(28,20,72,.30)",tint:"rgba(255,116,58,.26)",amb:"rgba(255,140,80,.10)",
-   sky:"linear-gradient(180deg,rgba(255,116,58,.16) 0%,rgba(150,60,90,.11) 40%,rgba(28,20,72,.16) 100%)"},
- NIGHT:{icon:"🌙",dark:"rgba(4,8,30,.62)",tint:"rgba(50,86,190,.20)",amb:null,
-   sky:"linear-gradient(180deg,rgba(50,86,190,.15) 0%,rgba(10,18,56,.20) 50%,rgba(4,8,30,.30) 100%)"}};
-function autoPhase(){const h=new Date().getHours();
- return (h>=5&&h<8)?"DAWN":(h>=8&&h<17)?"DAY":(h>=17&&h<20)?"DUSK":"NIGHT";}
 let timeMode="AUTO";
 const phase=()=>timeMode==="AUTO"?autoPhase():timeMode;
 const stars=[];for(let i=0;i<320;i++)stars.push([Math.random()*W,Math.random()*H*0.92,Math.random()]);
@@ -6606,9 +6666,15 @@ function defeat(){
 /* ═══════════════ 12. HUD / LEVELS ═══════════════ */
 const totalXP=()=>P.reduce((s,p)=>s+(S.done[p.id]?p.xp:0),0);
 function lvlFor(xp){let i=0;LEVELS.forEach((L,k)=>{if(xp>=L.xp)i=k;});return i;}
+/* ── the ridgeline behind the header ──
+   Drawn rather than drawn-on: three overlapping profiles built from summed
+   sines, so it is a few lines of maths instead of an image, and it can take any
+   palette asked of it. The seed decides the shape, which is what lets a region
+   have its own skyline later. */
 function paintSky(){
  const el=document.getElementById('sky');
  if(el)el.style.background=PHASES[phase()].sky||"transparent";
+ CUR_REGION=ACTIVE;CUR_PHASE=phase();paintRidge(CUR_REGION,CUR_PHASE);
 }
 /* AUTO rolls over on its own, so the page has to notice without being touched. */
 setInterval(paintSky,60000);
@@ -8294,7 +8360,7 @@ else musicStart();
   Object.values(FILE.regions||{}).forEach(r=>Object.keys((r&&r.pics)||{}).forEach(k=>keep.add(k)));
   PHOTOS.sweep(keep);}catch(e){}
  const id=pickRegion();
- if(!id){showLauncher();return;}
+ if(!id){paintRidge(null,autoPhase());showLauncher();return;}
  /* the title is the drawn logo now; nothing to reset */
  document.getElementById('gameSub').textContent=
   REGIONS[id].name+' · '+REGIONS[id].quests.length+' Locations · '+
