@@ -8919,7 +8919,21 @@ function paintSplashMap(){
  const tutOpen=()=>{const t=document.getElementById('tutorial');
   return !!(t&&t.classList.contains('open'));};
  const onKey=()=>{if(tutOpen())return;dismiss();};
- const dismiss=()=>{if(gone)return;gone=true;sp.style.display='none';
+ /* Swallow one click, in the capture phase, after a touch dismissal. The
+    splash goes away on touchstart, and the browser then sends the
+    compatibility click for that same tap to whatever is now under the
+    finger, which is a region card: tapping past the title card walked
+    straight into Western North Carolina. The touchstart calls preventDefault
+    to stop that click being synthesised at all, and this is the backstop for
+    anything that sends it anyway. It is armed only on the touch path, so a
+    mouse click, which has already fired by the time we get here, never loses
+    its next one. */
+ const eat=e=>{e.stopPropagation();e.preventDefault();};
+ const guardClick=()=>{
+  window.addEventListener('click',eat,true);
+  setTimeout(()=>window.removeEventListener('click',eat,true),600);};
+ const dismiss=guard=>{if(gone)return;gone=true;sp.style.display='none';
+  if(guard)guardClick();
   window.removeEventListener('keydown',onKey);dropHold();};
  /* The tutorial button lives inside the splash, and the splash dismisses on any
     touch anywhere in it. On a phone the touchstart reached the splash before
@@ -8928,7 +8942,8 @@ function paintSplashMap(){
     stopPropagation on the button covers touchstart, which is the one that
     actually got there first. */
  sp.addEventListener('click',e=>{if(onTut(e)||tutOpen())return;dismiss();});
- sp.addEventListener('touchstart',e=>{if(onTut(e)||tutOpen())return;dismiss();},{passive:true});
+ sp.addEventListener('touchstart',e=>{if(onTut(e)||tutOpen())return;
+  e.preventDefault();dismiss(true);},{passive:false});
  /* The tutorial press is the gesture that unlocks audio for most people. */
  const tb2=document.getElementById('tutBtn');
  if(tb2)tb2.addEventListener('click',theme);
