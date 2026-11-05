@@ -1101,7 +1101,7 @@ function sqDailyQuote(){
   </div>
 </div>
 
-<div class="footnote" id="foot">DRAG TO PAN · DOUBLE-CLICK OR PINCH TO ZOOM · PINK SKULL BANNERS ARE BOSS TREKS</div>
+<div class="footnote" id="foot">PINK SKULLS ARE BOSS TREKS</div>
 <div id="toast"><div class="t1"></div><div class="t2"></div></div>
 <script>
 /* ═══════════════ 1. DATA ═══════════════ */
@@ -7567,8 +7567,11 @@ function setScreen(s){
  if(s==='badge')document.getElementById('navBadge').classList.add('on');
  if(s==='avatar')document.getElementById('navAvatar').classList.add('on');
  document.getElementById('foot').textContent = s==='battle'
-  ? "BOSS TELEGRAPHS ITS NEXT MOVE — BRACE ON HEAVY & DEVASTATING"
-  : "DRAG TO PAN · DOUBLE-CLICK OR PINCH TO ZOOM · PINK SKULL BANNERS ARE BOSS TREKS";
+  /* Pan, zoom and the filter are all in the tutorial's READ THE MAP page and
+     all discoverable by doing them. What a pink skull means is neither, so
+     that is the only line worth standing on screen. */
+  ? "BRACE ON HEAVY & DEVASTATING"
+  : "PINK SKULLS ARE BOSS TREKS";
  window.scrollTo({top:0,behavior:'smooth'});}
 const navEl=()=>document.getElementById('navSheet');
 function openNav(){const n=navEl();if(n){n.classList.add('open');blip();}}
@@ -7631,7 +7634,7 @@ function buildLegend(){
  hint.className='leg-hint';
  hint.textContent=(catSel.size||doneSel!=='all')
   ?'showing '+P.filter(shown).length+' of '+P.length
-  :'tap a type to show only that';
+  :'tap to filter';
  legend.appendChild(hint);
 }
 /* one place to redraw everything the filter touches */
@@ -8596,7 +8599,7 @@ const TUT_PAGES=[
    <div style="font-size:11px;color:var(--dim)">26/61 cleared · 940 XP · 5 badges · 2/7 bosses</div>
   </div>
  </div>
- <div class="tut-cap">Nine regions, 367 destinations. Search by state, range or town.</div>`},
+ <div class="tut-cap">Eleven regions, 460 destinations. Search by state, range or town.</div>`},
 {h:'2 · READ THE MAP',html:`
  <p class="tut-p">Every destination is a banner planted where it really is. The colour is the
   kind of outing; a <b>pink skull</b> is a multi-day boss trek.</p>
