@@ -3871,13 +3871,20 @@ function paintRidge(rid,ph){
  const sg=g.createLinearGradient(0,0,0,Math.round(H*.62));
  sg.addColorStop(0,_css(skyA));sg.addColorStop(1,_css(skyB));
  g.fillStyle=sg;g.fillRect(0,0,W,H);
- /* Stars only after dark, placed off their own index rather than the
-    sequence, so a repaint puts them back where they were. */
+ /* Stars only after dark, from a generator of their own so they do not
+    disturb the sequence that shapes the ridges, and seeded so a repaint puts
+    every one of them back where it was. They used to be placed at i*53 and
+    i*29 modulo the canvas, which on a phone, where the canvas is only about
+    125 wide, is not scatter at all: the two progressions line up and the sky
+    comes out ruled in diagonal rows. Brightness varies too, because a field
+    of identical dots reads as a grid however well it is scattered. */
  if(ph==="NIGHT"||ph==="DAWN"){
-  g.fillStyle="rgba(255,255,255,"+(ph==="NIGHT"?.42:.16)+")";
-  for(let i=0;i<90;i++){
-   const sx=(i*53)%W,sy=(i*29)%Math.max(1,(H*.30)|0);
-   if((i*7)%4===0)g.fillRect(sx,sy,1,1);}
+  const sr=rng32(1337),lim=Math.max(1,(H*.42)|0),night=(ph==="NIGHT");
+  for(let i=0;i<110;i++){
+   const sx=Math.floor(sr()*W),sy=Math.floor(sr()*lim),b=sr();
+   g.fillStyle="rgba(255,255,255,"+
+    (night?(b<.14?.78:b<.48?.44:.24):(b<.3?.20:.11))+")";
+   g.fillRect(sx,sy,1,1);}
  }
 
  /* Four ridges walking down the screen. Each is darker and larger than the
