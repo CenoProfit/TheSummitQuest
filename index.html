@@ -959,6 +959,8 @@ function sqDailyQuote(){
     <button class="btn nav-row" id="navBeasts">
       <span class="ns-i">🐾</span><span class="ns-t">TRAIL BEASTS</span><span class="ns-sub">every boss and what it guards</span></button>
     <div class="ns-rule"></div>
+    <button class="btn nav-row" id="navTut">
+      <span class="ns-i">🧭</span><span class="ns-t">HOW IT WORKS</span><span class="ns-sub">run the tutorial again</span></button>
     <button class="btn nav-row" id="navWorld">
       <span class="ns-i">🌎</span><span class="ns-t">REGIONS</span><span class="ns-sub">leave for the world map</span></button>
   </div>
@@ -7582,6 +7584,12 @@ document.getElementById('navLog').onclick=()=>{renderLog();setScreen('log');};
 document.getElementById('navBadge').onclick=()=>{renderBadges();setScreen('badge');};
 document.getElementById('navAvatar').onclick=()=>{renderAvatar();setScreen('avatar');};
 document.getElementById('navBeasts').onclick=()=>{renderBeasts();setScreen('beasts');};
+/* The tutorial used to be reachable only from the splash, which meant it was
+   gone for good the moment you tapped past it. It is a dialog rather than a
+   screen, so this closes the menu and opens it over whatever you were on,
+   instead of going through setScreen. */
+document.getElementById('navTut').onclick=()=>{closeNav();
+ if(window.openTutorial)window.openTutorial(true);};
 /* ═══════════════ 19. LEGEND + INPUT ═══════════════ */
 const legend=document.getElementById('legend');
 function buildLegend(){
@@ -8743,6 +8751,7 @@ const TUT_PAGES=[
   <div class="tut-kicker">THE TRAIL IS THE GAME</div>
  </div>`}];
 (function(){
+ let reopened=false;
  const wrap=document.getElementById('tutorial'),body=document.getElementById('tutBody'),
        dots=document.getElementById('tutDots'),prev=document.getElementById('tutPrev'),
        next=document.getElementById('tutNext'),card=document.getElementById('tutCard');
@@ -8819,12 +8828,17 @@ const TUT_PAGES=[
   body.scrollTop=0;
   dots.innerHTML=TUT_PAGES.map((_,k)=>`<span class="tut-dot${k===i?' on':''}"></span>`).join('');
   prev.disabled=i===0;
-  next.textContent=i===TUT_PAGES.length-1?'START CLIMBING ▶':'NEXT ▶';
+  /* "START CLIMBING" is right the first time, from the splash. Reopened from
+     the menu you are already climbing, so the last button says where it
+     actually puts you back. */
+  next.textContent=i===TUT_PAGES.length-1
+   ?(reopened?'BACK TO THE TRAIL ▶':'START CLIMBING ▶'):'NEXT ▶';
   /* No-ops unless the page currently on screen owns that canvas, so it does not
     need to know which page number the share card happens to be. */
  drawCardShot();
  }
- const open=()=>{i=0;render();wrap.classList.add('open');wrap.setAttribute('aria-hidden','false');};
+ const open=again=>{reopened=!!again;i=0;render();
+  wrap.classList.add('open');wrap.setAttribute('aria-hidden','false');};
  const close=()=>{wrap.classList.remove('open');wrap.setAttribute('aria-hidden','true');};
  const go=d=>{const n=i+d;if(n<0)return;if(n>=TUT_PAGES.length)return close();i=n;render();};
  next.onclick=e=>{e.stopPropagation();go(1);};
