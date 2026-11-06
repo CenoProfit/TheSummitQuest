@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Summit Quest — Daily Trek</title>
+<style>
+@font-face{font-family:'Press Start 2P';font-style:normal;font-weight:400;font-display:block;
+ src:url(data:font/woff2;base64,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) format('woff2');}
+:root{
+ --pix:'Press Start 2P','Courier New',monospace;
+ --body:'Courier New',Courier,monospace;
+ --bg:#080d14; --solid:#111823; --solid2:#1a2432;
+ --panel:rgba(14,22,33,.62); --panel2:rgba(24,34,48,.52);
+ --edge:#33445c; --edge2:#5a7392; --ink:#e9f0f6; --dim:#8695a8;
+ --gold:#f5c651; --xp:#74e84f;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+ display:flex;flex-direction:column;overflow:hidden;
+ -webkit-user-select:none;user-select:none}
+
+/* ---- the scene fills the screen, chrome floats over it ---- */
+#scene{position:fixed;inset:0;width:100%;height:100%;z-index:0;image-rendering:pixelated}
+.wrap{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;
+ padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
+
+.frame{background:var(--panel);border:3px solid var(--edge);position:relative;
+ box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--edge2),4px 4px 0 4px rgba(0,0,0,.5)}
+/* same 3px dither the game uses, so these read as the same material */
+.frame{background-image:
+ repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
+ repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
+
+/* ---- top: where you are ---- */
+.top{padding:9px 11px}
+.trailname{font-family:var(--pix);font-size:8px;letter-spacing:2px;color:var(--gold);
+ text-shadow:2px 2px 0 rgba(0,0,0,.7)}
+.mile{font-family:var(--pix);font-size:17px;color:var(--ink);
+ text-shadow:2px 2px 0 rgba(0,0,0,.75);margin:7px 0 2px;letter-spacing:1px}
+.mile small{font-size:8px;color:var(--dim);letter-spacing:2px}
+.biome{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+
+/* ---- bottom: what is next ---- */
+.btm{margin-top:auto;padding:10px 11px 11px}
+.nextrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
+.nextname{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--gold);
+ text-shadow:1px 1px 0 rgba(0,0,0,.7);line-height:1.5}
+.nextdist{font-family:var(--pix);font-size:8px;color:var(--ink);white-space:nowrap}
+.track{height:13px;background:#0a121c;border:2px solid var(--edge2);position:relative;overflow:hidden;
+ background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
+.fill{height:100%;background:linear-gradient(#9bf07a,#48b82e);width:0%;transition:width .5s ease-out}
+.steprow{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;
+ letter-spacing:1px;color:var(--dim)}
+.steprow b{color:var(--xp);font-family:var(--pix);font-size:9px}
+.steprow i{color:var(--gold);font-family:var(--pix);font-size:9px;font-style:normal}
+
+/* ---- dev controls, prototype only ---- */
+.dev{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.btn{font-family:var(--pix);font-size:7px;letter-spacing:1px;padding:8px 7px;flex:1;
+ background:var(--solid2);color:var(--ink);border:2px solid var(--edge2);cursor:pointer;
+ box-shadow:2px 2px 0 rgba(0,0,0,.6)}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+.devnote{font-size:9px;color:#5c6a7c;letter-spacing:1px;margin-top:7px;text-align:center}
+
+/* ---- chest ---- */
+#chest{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
+ background:rgba(4,8,14,.82);padding:20px}
+#chest.open{display:flex}
+.cbox{max-width:330px;width:100%;text-align:center;padding:20px 18px;background:var(--solid)}
+.clm{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:2px;margin-bottom:12px;line-height:1.7}
+#chestcv{width:84px;height:84px;image-rendering:pixelated;margin:4px auto 12px;display:block}
+.crar{font-family:var(--pix);font-size:11px;letter-spacing:2px;margin-bottom:8px;
+ text-shadow:2px 2px 0 rgba(0,0,0,.7)}
+.citem{font-family:var(--pix);font-size:10px;color:var(--ink);line-height:1.8;margin-bottom:4px}
+.ckind{font-size:10px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div class="wrap">
+  <div class="frame top">
+    <div class="trailname">★ APPALACHIAN TRAIL · NOBO</div>
+    <div class="mile"><span id="mile">0.0</span> <small>MI OF 2197</small></div>
+    <div class="biome" id="biome">Georgia hardwood</div>
+  </div>
+
+  <div class="frame btm">
+    <div class="nextrow">
+      <span class="nextname" id="nextname">STOVER CREEK SHELTER</span>
+      <span class="nextdist" id="nextdist">2.8 MI</span>
+    </div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="steprow">
+      <span>TODAY <b id="today">0</b> STEPS</span>
+      <span>DAY <i id="day">1</i></span>
+    </div>
+    <div class="dev">
+      <button class="btn" id="b1k">+1,000 STEPS</button>
+      <button class="btn" id="b5k">+5,000 STEPS</button>
+      <button class="btn" id="bday">NEXT DAY</button>
+      <button class="btn" id="brst">RESET</button>
+    </div>
+    <div class="devnote">prototype controls — real build reads HealthKit</div>
+  </div>
+</div>
+
+<div id="chest"><div class="frame cbox">
+  <div class="clm" id="clm">HAWK MOUNTAIN SHELTER<br>MILE 8.1</div>
+  <canvas id="chestcv" width="28" height="28"></canvas>
+  <div class="crar" id="crar">UNCOMMON</div>
+  <div class="citem" id="citem">LAUREL CLOAK</div>
+  <div class="ckind" id="ckind">climber skin</div>
+  <button class="btn" id="cok" style="flex:none;width:100%">KEEP WALKING ▶</button>
+</div></div>
+
+<script>
+/* ===================================================================
+   SUMMIT QUEST — DAILY TREK (prototype)
+
+   Your real steps walk your climber up a real long trail. Nothing here
+   gates or is gated by the summit game: the trail is its own reward,
+   and the next landmark is never more than a few days away.
+
+   Everything is drawn with the same vocabulary as the region scenes in
+   index.html: a canvas sized at 1:3 and scaled back up with
+   image-rendering:pixelated, so every fillRect below is a 3px block.
+   =================================================================== */
+
+const PX  = 3;      // screen pixels per drawn pixel
+const PPM = 250;    // drawn pixels per trail mile
+const SPM = 2100;   // steps per mile, ~30in stride
+
+/* ---------- colour helpers, lifted from the game ---------- */
+const _rgb=h=>{h=h.replace('#','');
+ return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];};
+const _css=a=>'rgb('+Math.round(a[0])+','+Math.round(a[1])+','+Math.round(a[2])+')';
+const _mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const _dark=(a,t)=>_mix(a,[0,0,0],t), _lite=(a,t)=>_mix(a,[255,255,255],t);
+
+/* Stateless hash rather than a seeded stream. The world scrolls past, so
+   every feature has to be derivable from its own world coordinate alone;
+   a sequential PRNG would make trees change as the camera moves. */
+function hash(n){let t=(n|0)+0x6D2B79F5|0;t=Math.imul(t^t>>>15,1|t);
+ t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;}
+
+/* ---------- the first stretch of the AT, northbound ----------
+   Mileages are the standard NOBO figures from Springer. Approximate, and
+   they shift a little every year as the trail is rerouted, which is true
+   of the paper guides too. Tier drives the chest. */
+const TRAIL = [
+ {m:  0.0,n:'SPRINGER MOUNTAIN',      k:'summit', t:3},
+ {m:  2.8,n:'STOVER CREEK SHELTER',   k:'shelter',t:0},
+ {m:  4.9,n:'THREE FORKS',            k:'water',  t:0},
+ {m:  5.2,n:'LONG CREEK FALLS',       k:'water',  t:1},
+ {m:  8.1,n:'HAWK MOUNTAIN SHELTER',  k:'shelter',t:1},
+ {m: 15.8,n:'GOOCH MOUNTAIN SHELTER', k:'shelter',t:1},
+ {m: 20.5,n:'WOODY GAP',              k:'gap',    t:1},
+ {m: 28.8,n:'BLOOD MOUNTAIN',         k:'summit', t:4},
+ {m: 31.7,n:'NEEL GAP',               k:'town',   t:3},
+ {m: 37.4,n:'HOGPEN GAP',             k:'gap',    t:1},
+ {m: 43.2,n:'LOW GAP SHELTER',        k:'shelter',t:1},
+ {m: 50.5,n:'BLUE MOUNTAIN SHELTER',  k:'shelter',t:1},
+ {m: 52.9,n:'UNICOI GAP',             k:'gap',    t:2},
+ {m: 56.0,n:'TRAY MOUNTAIN',          k:'summit', t:3},
+ {m: 69.6,n:'DICKS CREEK GAP',        k:'town',   t:2},
+ {m: 78.1,n:'BLY GAP',                k:'border', t:4},
+ {m: 85.5,n:'STANDING INDIAN',        k:'summit', t:3},
+ {m: 99.6,n:'ALBERT MOUNTAIN',        k:'summit', t:4},
+ {m:100.0,n:'ONE HUNDRED MILES',      k:'mark',   t:4},
+ {m:106.4,n:'ROCK GAP',               k:'gap',    t:1},
+ {m:109.8,n:'WINDING STAIR GAP',      k:'town',   t:3}
+];
+
+/* ---------- biomes, interpolated by mile ----------
+   The screen has to look different a month from now without anybody
+   hand-drawing a month of trail, so the palette is a keyframed ramp and
+   the tree shape changes with it. */
+const BIOMES = [
+ {m:  0,n:'Georgia hardwood',  sky:['#15263c','#53728a'],far:'#2f4556',mid:'#31503c',near:'#1f3527',gnd:'#4a3a26',tree:'hard'},
+ {m: 22,n:'Laurel ridge',      sky:['#162a3e','#5b7d93'],far:'#2b4252',mid:'#2b4a39',near:'#1b3124',gnd:'#453523',tree:'hard'},
+ {m: 28,n:'Blood Mountain bald',sky:['#1b2c3e','#7d8fa0'],far:'#3b4a58',mid:'#4a5048',near:'#36382e',gnd:'#5b5244',tree:'bald'},
+ {m: 34,n:'Chattahoochee ridge',sky:['#152840','#52768f'],far:'#2d4454',mid:'#2e4d3b',near:'#1d3326',gnd:'#473826',tree:'hard'},
+ {m: 56,n:'Tray Mountain spruce',sky:['#122440','#47708c'],far:'#27404f',mid:'#234434',near:'#16291f',gnd:'#3b3124',tree:'fir'},
+ {m: 78,n:'North Carolina balsam',sky:['#101f3a','#3e6988'],far:'#223b4c',mid:'#1e3e30',near:'#12241b',gnd:'#342c22',tree:'fir'},
+ {m: 99,n:'Nantahala high country',sky:['#0e1c36','#3a6485'],far:'#1f3647',mid:'#1b3a2d',near:'#102019',gnd:'#302a21',tree:'fir'}
+];
+function biomeAt(mi){
+ let a=BIOMES[0],b=BIOMES[0];
+ for(let i=0;i<BIOMES.length;i++){ if(BIOMES[i].m<=mi) a=BIOMES[i];
+  if(BIOMES[i].m>mi){b=BIOMES[i];break;} b=a; }
+ const span=Math.max(.001,b.m-a.m), t=Math.min(1,Math.max(0,(mi-a.m)/span));
+ const L=(x,y)=>_mix(_rgb(x),_rgb(y),t);
+ return {name:(t<.5?a.n:b.n),
+  sky0:L(a.sky[0],b.sky[0]), sky1:L(a.sky[1],b.sky[1]),
+  far:L(a.far,b.far), mid:L(a.mid,b.mid), near:L(a.near,b.near), gnd:L(a.gnd,b.gnd),
+  tree:(t<.5?a.tree:b.tree)};
+}
+
+/* ---------- state ---------- */
+const KEY='sq_trek_proto';
+let S={steps:0,today:0,day:1,opened:[]};
+try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const miles=()=>S.steps/SPM;
+
+let shown=miles();          // camera, eases toward the real figure
+let walking=false, tAnim=0;
+
+/* ---------- sprites ---------- */
+/* Two frame walk cycle. Pack on the back, trekking pole, because at this
+   size the silhouette is the only thing carrying the character. */
+const HIKER=[
+[".ggg....","gbbbg...","gbbbg..p",".ggg...p","rrrrr..p","rrrrrk.p","rrrrrk.p",".rr.rr.p",
+ ".kk..kk.",".kk..kk.","bb....bb"],
+[".ggg....","gbbbg...","gbbbg..p",".ggg...p","rrrrr..p","rrrrrk.p","rrrrrk.p",".rrrr..p",
+ "..kkk...",".kk.kk..","bb...bb."]];
+const HPAL={g:'#3f6b3a',b:'#e8c49a',r:'#c8552f',k:'#2b3a4a',p:'#9b7b4a'};
+function hiker(g,x,y,f){
+ const sp=HIKER[f];
+ for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
+  const ch=sp[r][c]; if(ch==='.')continue;
+  g.fillStyle=HPAL[ch]||'#fff'; g.fillRect(x+c,y+r,1,1);}
+}
+
+function drawTree(g,x,gy,h,col,kind){
+ g.fillStyle=col;
+ if(kind==='fir'){
+  const w=Math.max(1,Math.round(h*.40));
+  for(let i=0;i<h;i++){const r=Math.round(w*(i/Math.max(1,h-1)));
+   g.fillRect(x-r,gy-h+i,r*2+1,1);}
+  g.fillRect(x,gy,1,Math.max(1,Math.round(h*.18)));
+  return;
+ }
+ if(kind==='bald'){ /* wind-stunted scrub and rock, nothing with a crown */
+  const hb=Math.max(2,Math.round(h*.45));
+  for(let i=0;i<hb;i++){const r=Math.max(0,Math.round(hb*.55*Math.sin((i+.5)/hb*Math.PI)));
+   g.fillRect(x-r,gy-hb+i,r*2+1,1);}
+  return;
+ }
+ /* hardwood: a broad round crown on a visible trunk */
+ const hb=Math.max(3,Math.round(h*.58)), rad=Math.max(1,Math.round(h*.46));
+ for(let i=0;i<hb;i++){const r=Math.max(0,Math.round(rad*Math.sin((i+.4)/hb*Math.PI)));
+  g.fillRect(x-r,gy-h+i,r*2+1,1);}
+ g.fillRect(x,gy-h+hb,1,Math.max(1,h-hb));
+}
+
+/* Landmarks get a shape you can read at a glance from across the screen,
+   because seeing Blood Mountain coming is most of the point. */
+function marker(g,x,gy,k,col,lit){
+ g.fillStyle=col;
+ if(k==='shelter'){
+  g.fillRect(x-5,gy-5,11,5);               // body
+  for(let i=0;i<6;i++) g.fillRect(x-6+i,gy-5-i,1,1), g.fillRect(x+6-i,gy-5-i,1,1);
+  g.fillStyle=_css(_dark(_rgb(col),.45)); g.fillRect(x-3,gy-4,6,4);
+ }else if(k==='summit'||k==='mark'){
+  for(let i=0;i<9;i++) g.fillRect(x-i,gy-9+i,i*2+1,1);   // cairn
+  g.fillStyle='#f5c651'; g.fillRect(x,gy-12,1,3); g.fillRect(x,gy-12,4,2);
+ }else if(k==='town'){
+  g.fillRect(x-6,gy-7,12,7);
+  for(let i=0;i<7;i++) g.fillRect(x-7+i,gy-7-i,1,1), g.fillRect(x+7-i,gy-7-i,1,1);
+  g.fillStyle='#f5c651'; g.fillRect(x-2,gy-4,2,2); g.fillRect(x+1,gy-4,2,2);
+ }else if(k==='water'){
+  g.fillStyle='#4a86a8';
+  for(let i=0;i<5;i++) g.fillRect(x-6+i*3,gy-1-((i%2)?1:0),3,1);
+ }else if(k==='border'){
+  g.fillRect(x,gy-14,1,14);
+  g.fillStyle='#f5c651'; g.fillRect(x+1,gy-14,8,5);
+ }else{ /* gap: a trail sign */
+  g.fillRect(x,gy-10,1,10);
+  g.fillStyle=lit?'#f5c651':'#8a6a3a'; g.fillRect(x-5,gy-10,11,4);
+ }
+}
+
+/* ---------- the scene ---------- */
+const cv=document.getElementById('scene');
+function paint(cam,t){
+ const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
+ const W=Math.max(1,Math.ceil(w/PX)), H=Math.max(1,Math.ceil(h/PX));
+ if(cv.width!==W) cv.width=W; if(cv.height!==H) cv.height=H;
+ const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
+
+ const B=biomeAt(cam);
+ const ox=cam*PPM, hx=Math.round(W*0.34);   // climber sits here, always
+
+ /* sky, washed toward the real hour so the screen at 6am is not the screen
+    at 9pm. The same idea as the region scenes, cheaper. */
+ const hr=new Date().getHours();
+ const night=(hr<5||hr>=22)?.85:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
+ const s0=_mix(B.sky0,[6,10,22],night*.75), s1=_mix(B.sky1,[14,22,40],night*.7);
+ const grd=g.createLinearGradient(0,0,0,H*.70);
+ grd.addColorStop(0,_css(s0)); grd.addColorStop(1,_css(s1));
+ g.fillStyle=grd; g.fillRect(0,0,W,H);
+
+ if(night>.4){
+  for(let i=0;i<90;i++){
+   const sx=Math.floor(hash(i*7+1)*W), sy=Math.floor(hash(i*13+5)*H*.45), b=hash(i*3+9);
+   g.fillStyle='rgba(255,255,255,'+(b<.15?.72*night:b<.5?.40*night:.21*night)+')';
+   g.fillRect(sx,sy,1,1);}
+ }
+
+ /* three ridge layers at different parallax. Continuous sums of sines of the
+    world coordinate, so the horizon never repeats and never seams. */
+ const ridge=(wx,f,a,base)=>base-a*(
+   .55*Math.sin(wx*f*1.00)+.28*Math.sin(wx*f*2.70+1.7)+.17*Math.sin(wx*f*5.30+4.1));
+ const haze=(c,t)=>_mix(c,s1,t);
+ const layers=[
+  {p:0.11,col:haze(B.far ,.54),f:.016,a:H*.125,b:H*.44,tree:0},
+  {p:0.26,col:haze(B.far ,.32),f:.024,a:H*.100,b:H*.56,tree:1},
+  {p:0.52,col:haze(B.mid ,.13),f:.037,a:H*.070,b:H*.67,tree:1},
+  {p:1.00,col:_dark(B.near,.20),f:.055,a:H*.030,b:H*.73,tree:2}];
+
+ for(const L of layers){
+  const col=_css(L.col), rim=_css(_lite(L.col,L.p<.3?.07:L.p<.6?.13:.20));
+  const prev=[];
+  for(let x=0;x<W;x++){
+   const wx=(ox*L.p)+x;
+   const y=Math.round(ridge(wx,L.f,L.a,L.b));
+   g.fillStyle=col; g.fillRect(x,y,1,H-y);
+   g.fillStyle=rim; g.fillRect(x,y,1,1);
+   prev[x]=y;
+  }
+  if(!L.tree) continue;
+  /* trees anchored to world slots so they hold still as the camera moves */
+  const sp=L.tree===2?7:11, tc=_css(_dark(L.col,L.tree===2?.34:.16));
+  const k0=Math.floor((ox*L.p)/sp)-1, k1=k0+Math.ceil(W/sp)+3;
+  for(let k=k0;k<k1;k++){
+   const jitter=hash(k*31+L.tree*977)*sp;
+   const x=Math.round(k*sp+jitter-(ox*L.p));
+   if(x<-8||x>W+8) continue;
+   const hh=(L.tree===2?6:3)+Math.round(hash(k*17+L.tree*541)*(L.tree===2?9:5));
+   const gy=Math.round(ridge((ox*L.p)+x,L.f,L.a,L.b))+1;
+   if(L.tree===2 && hash(k*53+7)<.30) continue;   // gaps you can see through
+   drawTree(g,x,gy,hh,tc,B.tree);
+  }
+ }
+
+ /* the trail itself: a dirt tread along the near ridge line */
+ const groundAt=x=>Math.round(ridge(ox+x,.055,H*.030,H*.73))+1;
+ const dirt=_rgb('#000000');
+ for(let x=0;x<W;x++){
+  const y=groundAt(x);
+  g.fillStyle=_css(_lite(B.gnd,.10)); g.fillRect(x,y,1,1);
+  g.fillStyle=_css(B.gnd);            g.fillRect(x,y+1,1,2);
+  g.fillStyle=_css(_dark(B.gnd,.40)); g.fillRect(x,y+3,1,2);
+ }
+
+ /* landmarks, drawn in world space so they arrive on their own mileage */
+ for(const L of TRAIL){
+  const x=Math.round((L.m-cam)*PPM+hx);
+  if(x<-20||x>W+20) continue;
+  const passed=cam>=L.m;
+  marker(g,x,groundAt(x),L.k,_css(passed?_lite(B.near,.34):_lite(B.near,.20)),passed);
+  /* name only when it is close enough to matter */
+  if(Math.abs(x-hx)<W*.46){
+   const a=Math.max(.15,1-Math.abs(x-hx)/(W*.46));
+   g.fillStyle='rgba(245,198,81,'+a.toFixed(2)+')';
+   g.fillRect(x,groundAt(x)-17,1,3);
+  }
+ }
+
+ /* the climber */
+ const gy=groundAt(hx);
+ const frame=walking?(Math.floor(t/150)%2):0;
+ g.fillStyle='rgba(0,0,0,.30)'; g.fillRect(hx-3,gy+1,8,1);     // contact shadow
+ hiker(g,hx-3,gy-10,frame);
+
+ /* foreground grass, fastest parallax, sells the motion */
+ const fg=_css(_dark(B.near,.55)), fox=ox*1.7;
+ for(let k=Math.floor(fox/5)-1;k<fox/5+W/5+2;k++){
+  const x=Math.round(k*5+hash(k*71)*5-fox);
+  if(x<-4||x>W+4) continue;
+  const hh=2+Math.round(hash(k*29)*4);
+  g.fillStyle=fg; g.fillRect(x,H-hh,1,hh); g.fillRect(x+1,H-hh+1,1,hh);
+ }
+}
+
+/* ---------- chest ---------- */
+const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
+           ['EPIC','#b978f0'],['LEGENDARY','#f5c651']];
+const LOOT={
+ skin  :['LAUREL CLOAK','BLAZE ORANGE SHELL','WOOL FLANNEL','SPRINGER GREY','BALSAM PARKA','THRU-HIKER BEARD'],
+ pet   :['TRAIL DOG','GRAY JAY','BOX TURTLE','RIDGE FOX','CAMP MOUSE'],
+ map   :['LINEN TOPO','RANGER BLUEPRINT','FADED GUIDEBOOK','MOSS GREEN'],
+ journal:['BIRCH BARK COVER','DUCT TAPE COVER','SHELTER LOG STAMP'],
+ gear  :['CARBON POLES (SKIN)','ENAMEL MUG','BRASS COMPASS']
+};
+/* Tier is the landmark's weight, not a paid variable. Springer and Katahdin
+   should feel different from a gap you walked over at lunchtime. */
+function roll(tier){
+ const r=Math.random()+tier*0.11;
+ const i=r>1.30?4:r>1.05?3:r>0.78?2:r>0.42?1:0;
+ const kinds=Object.keys(LOOT), k=kinds[Math.floor(Math.random()*kinds.length)];
+ const pool=LOOT[k];
+ return {rar:i,kind:k,item:pool[Math.floor(Math.random()*pool.length)]};
+}
+function chestArt(col){
+ const c=document.getElementById('chestcv'),g=c.getContext('2d');
+ g.imageSmoothingEnabled=false; g.clearRect(0,0,28,28);
+ const body=_rgb('#7a5430'), band=_rgb(col);
+ g.fillStyle=_css(body);            g.fillRect(5,13,18,11);
+ g.fillStyle=_css(_dark(body,.35)); g.fillRect(5,22,18,2);
+ g.fillStyle=_css(_lite(body,.18)); g.fillRect(5,8,18,6);
+ g.fillStyle=_css(band);            g.fillRect(5,13,18,2); g.fillRect(12,8,4,16);
+ g.fillStyle=_css(_lite(band,.45)); g.fillRect(13,16,2,3);
+ for(let i=0;i<10;i++){ // sparkle
+  g.fillStyle='rgba(255,255,255,'+(.25+hash(i*13)*.5).toFixed(2)+')';
+  g.fillRect(2+Math.floor(hash(i*7)*24),1+Math.floor(hash(i*17)*7),1,1);}
+}
+let chestQ=[];
+function showChest(){
+ if(!chestQ.length) return;
+ const L=chestQ[0], d=roll(L.t), R=RAR[d.rar];
+ document.getElementById('clm').innerHTML=L.n+'<br>MILE '+L.m.toFixed(1);
+ document.getElementById('crar').textContent=R[0];
+ document.getElementById('crar').style.color=R[1];
+ document.getElementById('citem').textContent=d.item;
+ document.getElementById('ckind').textContent=d.kind;
+ chestArt(R[1]);
+ document.getElementById('chest').classList.add('open');
+}
+document.getElementById('cok').onclick=()=>{
+ chestQ.shift();
+ document.getElementById('chest').classList.remove('open');
+ if(chestQ.length) setTimeout(showChest,220);
+};
+
+/* ---------- hud ---------- */
+function hud(){
+ const mi=miles();
+ document.getElementById('mile').textContent=mi.toFixed(1);
+ document.getElementById('biome').textContent=biomeAt(mi).name;
+ document.getElementById('today').textContent=S.today.toLocaleString();
+ document.getElementById('day').textContent=S.day;
+
+ let prev={m:0}, next=null;
+ for(const L of TRAIL){ if(L.m<=mi) prev=L; else {next=L;break;} }
+ if(next){
+  document.getElementById('nextname').textContent=next.n;
+  document.getElementById('nextdist').textContent=(next.m-mi).toFixed(1)+' MI';
+  const span=Math.max(.01,next.m-prev.m);
+  document.getElementById('fill').style.width=
+   Math.max(0,Math.min(100,((mi-prev.m)/span)*100)).toFixed(1)+'%';
+ }else{
+  document.getElementById('nextname').textContent='TRAIL END (PROTOTYPE)';
+  document.getElementById('nextdist').textContent='—';
+  document.getElementById('fill').style.width='100%';
+ }
+}
+
+/* ---------- walking ---------- */
+function addSteps(n){
+ const before=miles();
+ S.steps+=n; S.today+=n;
+ const after=miles();
+ for(const L of TRAIL){
+  if(L.m>before && L.m<=after && S.opened.indexOf(L.m)<0){
+   S.opened.push(L.m); chestQ.push(L);}
+ }
+ save(); hud();
+ if(chestQ.length && !document.getElementById('chest').classList.contains('open'))
+  setTimeout(showChest,900);   // let them watch it arrive first
+}
+
+document.getElementById('b1k').onclick=()=>addSteps(1000);
+document.getElementById('b5k').onclick=()=>addSteps(5000);
+document.getElementById('bday').onclick=()=>{
+ S.day++; S.today=0; save();
+ addSteps(3000+Math.floor(Math.random()*6000));
+};
+document.getElementById('brst').onclick=()=>{
+ S={steps:0,today:0,day:1,opened:[]}; chestQ=[]; shown=0; save(); hud();
+};
+
+/* ---------- loop ---------- */
+let last=0;
+function frame(t){
+ const target=miles(), d=target-shown;
+ walking=Math.abs(d)>0.0015;
+ if(walking) shown+=d*Math.min(1,(t-last)/420);   // eases in, never snaps
+ last=t;
+ paint(shown,t);
+ requestAnimationFrame(frame);
+}
+hud(); requestAnimationFrame(frame);
+addEventListener('resize',()=>paint(shown,performance.now()));
+</script>
+</body>
+</html>
