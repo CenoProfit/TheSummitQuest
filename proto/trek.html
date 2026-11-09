@@ -224,6 +224,35 @@ const CH   = 256;    // chunk height, world rows
 const OVER = 96;     // how far an object may overhang the chunk above it
 const _qh=new URLSearchParams(location.search).get('t');
 const HOUR=()=> _qh!==null?(+_qh):new Date().getHours();
+/* Fractional hours. The sun has to crawl, not hop once an hour. */
+function TOD(){
+ if(_qh!==null) return (+_qh)%24;
+ const d=new Date(); return d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
+}
+/* ---- the sky ----
+   Sunrise at six, sunset at half past seven, and an arc between them. The
+   whole palette hangs off one number: the sun's elevation. */
+const SUNUP=6.0, SUNDN=19.5;
+function solar(){
+ const h=TOD(), day=(h>=SUNUP&&h<SUNDN);
+ const tt=day?(h-SUNUP)/(SUNDN-SUNUP):((h-SUNDN+24)%24)/(24-(SUNDN-SUNUP));
+ const el=Math.sin(tt*Math.PI);                 // 0 at the horizon, 1 at the top
+ return {day,tt,el,
+   x:0.05+0.90*tt,                              // across the sky, left to right
+   y:1-el,                                      // 0 at the top, 1 on the horizon
+   /* warmth spikes near the horizon and dies at noon */
+   warm:Math.min(0.72,Math.max(0,1-el*2.6))*(day?1:0.30),
+   dark:day?0:Math.min(1,0.35+el*0.75)};
+}
+const SKY={
+ night:[['#060b1c','#0d1630','#1a2443'],   /* zenith, middle, horizon */
+        ['#0a1024','#16203c','#2b3657']],
+ dawn :[['#17315e','#4a6b9e','#e9a06a'],
+        ['#1d3a6b','#5a7cab','#f4bf86']],
+ day  :[['#1d5fb8','#3f87d4','#a9d4ee'],
+        ['#2468c4','#4d93dd','#bfe0f4']],
+ dusk :[['#15274f','#4f4a86','#f0875a'],
+        ['#1b2f5c','#60588f','#f8a46d']]};
 const _qm=new URLSearchParams(location.search).get('m');
 
 /* ---- light ---- */
@@ -815,7 +844,8 @@ function sprite(g,rows,pal,x,y,s,flip){
 /* ===================================================================
    THE FRAME
    =================================================================== */
-const CLY=()=> Math.round(H*0.68);          // where the climber stands
+const HZN=()=> Math.round(H*0.44);          // the horizon, fixed on screen
+const CLY=()=> Math.round(H*0.74);          // where the climber stands
 const progress=()=> shownMi*RPM+drift;      // rows climbed
 const camTopRow=()=> -progress()-CLY();     // world row at screen y = 0
 const screenY=Y=> Y-camTopRow();
@@ -836,17 +866,227 @@ function spawn(now,alp){
  nextSpawn=now+2600+Math.random()*5200;
 }
 
+/* ---- clouds ----
+   Three layers at different speeds. Each cloud is drawn one column at a
+   time so the alpha never doubles where parts of it overlap, which is what
+   makes a soft cloud out of hard pixels. */
+function drawCloud(g,cx,cy,w,h,body,top,seed){
+ /* A cumulus is a row of overlapping lobes. Taking the maximum height
+    across them per column gives one silhouette, which is the only way the
+    alpha stays flat: overlapping translucent shapes build up and the seams
+    between them are exactly what stops a cloud looking like a cloud. */
+ const n=3+((hash(seed*31)*3)|0), L2=[];
+ for(let i=0;i<n;i++) L2.push({
+  x:(i+0.5)/n*w+(hash(seed*17+i*7)-0.5)*w*0.16,
+  r:h*(0.62+hash(seed*13+i*11)*0.85)});
+ const col=new Float32Array(w);
+ for(let x=0;x<w;x++){
+  let m=h*0.26;                                   // the flat base
+  for(const o of L2){
+   const dx=x-o.x; const v=o.r*o.r-dx*dx*0.72;
+   if(v>0) m=Math.max(m,Math.sqrt(v));}
+  col[x]=m;
+ }
+ g.fillStyle=body;
+ for(let x=0;x<w;x++){const hh=Math.round(col[x]); if(hh<1) continue;
+  g.fillRect(Math.round(cx+x),Math.round(cy-hh),1,hh);}
+ g.fillStyle=top;
+ for(let x=0;x<w;x++){const hh=Math.round(col[x]); if(hh<1) continue;
+  g.fillRect(Math.round(cx+x),Math.round(cy-hh),1,Math.max(1,Math.round(hh*0.40)));}
+}
+
+function paintSky(g,now,S2,B){
+ const hz=HZN();
+ /* which pair of palettes we are between */
+ let A,Bk,mixT;
+ if(S2.day){
+  if(S2.tt<0.16){A=SKY.dawn;Bk=SKY.day;mixT=S2.tt/0.16;}
+  else if(S2.tt>0.84){A=SKY.day;Bk=SKY.dusk;mixT=(S2.tt-0.84)/0.16;}
+  else {A=SKY.day;Bk=SKY.day;mixT=0;}
+ }else{
+  if(S2.tt<0.22){A=SKY.dusk;Bk=SKY.night;mixT=S2.tt/0.22;}
+  else if(S2.tt>0.80){A=SKY.night;Bk=SKY.dawn;mixT=(S2.tt-0.80)/0.20;}
+  else {A=SKY.night;Bk=SKY.night;mixT=0;}
+ }
+ const band=i=>_mix(_mix(_rgb(A[0][i]),_rgb(A[1][i]),0.5),
+                    _mix(_rgb(Bk[0][i]),_rgb(Bk[1][i]),0.5),mixT);
+ const zen=band(0), mid=band(1), hor=band(2);
+ const gr=g.createLinearGradient(0,0,0,hz+2);
+ gr.addColorStop(0,_css(zen)); gr.addColorStop(0.55,_css(mid)); gr.addColorStop(1,_css(hor));
+ g.fillStyle=gr; g.fillRect(0,0,W,hz+2);
+
+ /* stars, fading in as the sun goes down */
+ const starA=S2.day?Math.max(0,1-S2.el*5):Math.min(1,0.35+S2.el);
+ if(starA>0.03){
+  for(let i=0;i<190;i++){
+   const b=hash(i*3+9), tw=0.62+0.38*Math.sin(now/((i%7)*170+430)+i);
+   const y=(hash(i*13+5)*hz)|0;
+   const fade=1-y/hz*0.55;
+   g.fillStyle='rgba(255,255,255,'+((b<.10?.9:b<.42?.5:.24)*starA*tw*fade).toFixed(3)+')';
+   g.fillRect((hash(i*7+1)*W)|0,y,1,1);}
+ }
+
+ /* the disc, on its arc, with a glow that warms toward the horizon */
+ const sx=Math.round(W*S2.x), sy=Math.round(hz*S2.y*0.94);
+ const disc=S2.day?_mix(_rgb('#fff6cc'),_rgb('#ffb55e'),S2.warm)
+                  :_rgb('#eef3ff');
+ const halo=S2.day?_mix(_rgb('#ffd98a'),_rgb('#ff8a4a'),S2.warm)
+                  :_rgb('#9fb6e0');
+ const R2=Math.round(W*(S2.day?0.042:0.034));
+ const rg=g.createRadialGradient(sx,sy,0,sx,sy,W*(S2.day?0.42:0.26));
+ rg.addColorStop(0,'rgba('+(halo[0]|0)+','+(halo[1]|0)+','+(halo[2]|0)+','+(S2.day?0.55:0.30)+')');
+ rg.addColorStop(0.35,'rgba('+(halo[0]|0)+','+(halo[1]|0)+','+(halo[2]|0)+','+(S2.day?0.18:0.10)+')');
+ rg.addColorStop(1,'rgba('+(halo[0]|0)+','+(halo[1]|0)+','+(halo[2]|0)+',0)');
+ g.fillStyle=rg; g.fillRect(0,0,W,hz+2);
+ g.fillStyle=_css(disc);
+ for(let y=-R2;y<=R2;y++){
+  const w2=Math.round(Math.sqrt(Math.max(0,R2*R2-y*y)));
+  if(sy+y<hz+2) g.fillRect(sx-w2,sy+y,w2*2+1,1);}
+ if(!S2.day){                       /* craters */
+  g.fillStyle=_css(_mix(disc,_rgb('#9aa8c4'),.34));
+  g.fillRect(sx-R2*.45,sy-R2*.35,R2*.42,R2*.36);
+  g.fillRect(sx+R2*.12,sy+R2*.22,R2*.38,R2*.32);
+  g.fillRect(sx-R2*.1,sy+R2*.52,R2*.26,R2*.2);
+ }
+
+ /* three bands of cloud, each on its own clock */
+ const lit=_mix(_rgb('#ffffff'),_mix(_rgb('#ffd3a0'),_rgb('#5c6f9a'),S2.day?0:0.75),S2.warm*0.8+ (S2.day?0:0.5));
+ const shade=_mix(_mix(hor,zen,.4),_rgb('#59688f'),0.35);
+ for(let L=0;L<3;L++){
+  const n=[7,8,9][L], spd=[0.0040,0.0082,0.0150][L];
+  const yb=hz*[0.20,0.42,0.64][L];
+  const sc=[1.0,0.78,0.56][L];
+  const al=[0.90,0.74,0.56][L]*(S2.day?1:0.5);
+  for(let k=0;k<n;k++){
+   const cw=(W*0.24+hash(k*17+L*53)*W*0.42)*sc;
+   const ch2=(hz*0.070+hash(k*41+L*7)*hz*0.105)*sc;
+   let cx2=((hash(k*11+L*31)*W*2.6-now*spd)%(W+cw*1.4));
+   if(cx2<-cw*1.2) cx2+=W+cw*1.4;
+   const cy=yb+hash(k*23+L*13)*hz*0.14;
+   drawCloud(g,cx2,cy,Math.round(cw),ch2,
+     'rgba('+(shade[0]|0)+','+(shade[1]|0)+','+(shade[2]|0)+','+(al*0.58).toFixed(2)+')',
+     'rgba('+(lit[0]|0)+','+(lit[1]|0)+','+(lit[2]|0)+','+(al*0.94).toFixed(2)+')',
+     k*7+L*101+3);
+  }
+ }
+
+ /* ---- the range ----
+    Five layers of ridgeline standing on the horizon. This is the thing
+    that says "mountains" before anything else on screen does. */
+ /* A range is a handful of big masses with smaller ridges between them,
+    not a row of identical spikes. Each layer gets explicit peaks, placed
+    once, with noise laid over the top for the broken edges. */
+ const RP=[0.0016,0.0032,0.0058,0.0098,0.0160];
+ const RA=[1.52,1.26,1.02,0.76,0.52], RB=[0.962,0.982,0.998,1.008,1.016];
+ const RF=[0.0075,0.0115,0.0180,0.0280,0.0430];
+ const RN=[4,5,5,6,7];
+ const prog=progress();
+ for(let L=0;L<5;L++){
+  const far=1-L/4;                                    /* 1 is furthest */
+  let base=_mix(_rgb('#4a6a96'),_mix(B.mtn,_rgb('#1e3348'),.40),1-far);
+  base=_mix(base,hor,0.30+far*0.52);                  /* distance pales it */
+  base=_mix(base,_rgb('#28324c'),S2.dark*0.55);
+  base=_mix(base,_rgb('#e09a5e'),S2.warm*(0.30-far*0.20));
+  const rim=sh(base,0.34-far*0.16);
+  /* snow takes the same light as the rock, or dawn tears the two apart */
+  const snowC=_mix(_mix(_rgb('#ffffff'),_rgb('#ffd3a4'),S2.warm*0.62),hor,0.16+far*0.46);
+  const snowS=_mix(_mix(_rgb('#aec3e2'),_rgb('#e0a681'),S2.warm*0.52),hor,0.18+far*0.42);
+  const amp=hz*RA[L]*0.50, bas=hz*RB[L];
+  const cc=_css(base), rc=_css(rim);
+  /* this layer's peaks */
+  const pk=[];
+  for(let k=0;k<RN[L];k++){
+   const s2=k*131+L*7919;
+   const bulk=hash(s2+11);
+   pk.push({x:(k+0.5)/RN[L]*W+(hash(s2)-0.5)*W*(1.25/RN[L]),
+            h:amp*(0.30+Math.pow(hash(s2+5),0.7)*0.92),
+            w:W*(0.09+bulk*bulk*0.34)+W*0.05,     /* a few are much broader */
+            asym:0.55+hash(s2+17)*0.95,           /* one flank steeper */
+            sk:0.14+hash(s2+23)*0.30});           /* how far down the snow goes */
+  }
+  for(let x=0;x<W;x++){
+   const wx=x+prog*RP[L]*60;
+   let y=bas, best=null, bestD=1e9;
+   for(const o of pk){
+    let dx=(wx%W)-o.x; if(dx>W/2)dx-=W; if(dx<-W/2)dx+=W;
+    const side=dx<0?o.asym:1/o.asym;
+    const u=Math.abs(dx)/(o.w*side); if(u>1.2) continue;
+    /* broad shoulders that steepen toward the summit, not a cone */
+    const v=Math.max(0,1-u);
+    const hh=o.h*(v*v*(3-2*v))*Math.pow(v,0.42);
+    const yy=bas-hh;
+    if(yy<y){y=yy;}
+    if(Math.abs(dx)<bestD){bestD=Math.abs(dx);best=o;}
+   }
+   /* broken edges and minor ridges between the masses */
+   y-=amp*0.17*(1-Math.abs(vnoise(wx*RF[L],L*7.3)*2-1));
+   y-=amp*0.07*(1-Math.abs(vnoise(wx*RF[L]*2.4+3,L*7.3)*2-1));
+   y=Math.round(y);
+   if(y>=hz+2) continue;
+   g.fillStyle=cc; g.fillRect(x,y,1,hz+2-y);
+   g.fillStyle=rc; g.fillRect(x,y,1,1);
+   if(L<4&&best&&best.h>amp*0.52){
+    const depth=bas-y, line=best.h*(1-best.sk);
+    if(depth>line){
+     const sd=Math.min(depth-line,best.h*0.70);
+     for(let q=0;q<sd;q++){
+      /* the snowline frays, and bare rock shows in the gullies */
+      const n2=vnoise(wx*0.55,(y+q)*0.55);
+      if(n2<0.30+(q/sd)*0.58) continue;
+      g.fillStyle=_css(q<sd*0.40?snowC:snowS);
+      g.fillRect(x,y+q,1,1);}
+    }
+   }
+  }
+  const fy=hz*RB[L], y0=Math.max(0,fy-hz*0.20);
+  const hg2=g.createLinearGradient(0,y0,0,fy);
+  hg2.addColorStop(0,'rgba('+(hor[0]|0)+','+(hor[1]|0)+','+(hor[2]|0)+',0)');
+  hg2.addColorStop(1,'rgba('+(hor[0]|0)+','+(hor[1]|0)+','+(hor[2]|0)+','+(0.52-far*0.30).toFixed(2)+')');
+  g.fillStyle=hg2; g.fillRect(0,y0,W,Math.min(hz+2,fy)-y0);
+ }
+ return {hor,zen,warm:S2.warm,dark:S2.dark};
+}
+
 function paint(now,dt){
  const g=ctx;
  const mi=shownMi, B=biomeAt(Math.max(0,mi)), alp=alpineAt(Math.max(0,mi));
- const top=camTopRow();
- const hr=HOUR();
- const night=(hr<5||hr>=22)?.9:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
- const dusk=Math.max(0,1-Math.abs(hr-19)/2.6)*(1-night*.5);
+ const top=camTopRow(), hz=HZN();
+ const S2=solar();
+ const night=S2.dark, dusk=S2.warm*(S2.day?1:0.6);
 
- /* ---- the mountain, blitted from baked chunks ---- */
+ /* ---- the mountain you are on, blitted from baked chunks ---- */
  const c0=Math.floor(top/CH), c1=Math.floor((top+H)/CH);
  for(let ci=c0;ci<=c1;ci++) g.drawImage(chunkAt(ci),0,Math.round(ci*CH-top));
+
+ /* ---- cloud shadows crossing the ground ----
+    Cheap, and worth more than almost anything else of its cost: moving
+    light is what stops a static landscape looking painted on. */
+ if(S2.day&&S2.el>0.12){
+  for(let k=0;k<4;k++){
+   const cw=W*(0.42+hash(k*29)*0.55), chh=H*(0.10+hash(k*61)*0.13);
+   let cx2=((hash(k*17)*W*2.4-now*0.0062)%(W+cw*1.3)); if(cx2<-cw*1.2) cx2+=W+cw*1.3;
+   const cy=hz+((hash(k*41)*(H-hz)*1.5+now*0.0030)%((H-hz)*1.5))-chh*0.5;
+   if(cy>H) continue;
+   const sg=g.createRadialGradient(cx2+cw/2,cy+chh/2,0,cx2+cw/2,cy+chh/2,cw*0.55);
+   sg.addColorStop(0,'rgba(18,26,50,'+(0.26*S2.el).toFixed(3)+')');
+   sg.addColorStop(0.6,'rgba(18,26,50,'+(0.13*S2.el).toFixed(3)+')');
+   sg.addColorStop(1,'rgba(18,26,50,0)');
+   g.fillStyle=sg;
+   g.fillRect(Math.max(0,cx2),Math.max(hz,cy),cw,chh);}
+ }
+
+ /* ---- the sky and the range, painted over the top of the terrain ----
+    The ground runs out at the horizon line; the ranges stand on it and
+    their ragged feet, plus the haze pooled under them, hide the join. */
+ const SKYC=paintSky(g,now,S2,B);
+ /* the terrain emerges out of that same haze */
+ {const hzc=SKYC.hor;
+  const bg=g.createLinearGradient(0,hz-1,0,hz+Math.round(H*0.21));
+  bg.addColorStop(0,'rgba('+(hzc[0]|0)+','+(hzc[1]|0)+','+(hzc[2]|0)+',0.70)');
+  bg.addColorStop(0.28,'rgba('+(hzc[0]|0)+','+(hzc[1]|0)+','+(hzc[2]|0)+',0.30)');
+  bg.addColorStop(0.62,'rgba('+(hzc[0]|0)+','+(hzc[1]|0)+','+(hzc[2]|0)+',0.10)');
+  bg.addColorStop(1,'rgba('+(hzc[0]|0)+','+(hzc[1]|0)+','+(hzc[2]|0)+',0)');
+  g.fillStyle=bg; g.fillRect(0,hz-1,W,Math.round(H*0.21)+2);}
  /* keep one chunk ahead warm so the scroll never stutters into a build */
  if(!CHUNK.has(c0-1)) pending.push(c0-1);
  if(!CHUNK.has(c1+1)) pending.push(c1+1);
@@ -869,7 +1109,7 @@ function paint(now,dt){
  /* ---- wildlife, live, sorted so the near ones pass in front ---- */
  fauna.sort((a,b)=>a.Y-b.Y);
  for(const A of fauna){
-  const sy=screenY(A.Y); if(sy<-20||sy>H+20) continue;
+  const sy=screenY(A.Y); if(sy<hz-4||sy>H+20) continue;
   const F=FAUNA[A.type];
   let rows=F.r;
   if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
@@ -884,7 +1124,7 @@ function paint(now,dt){
 
  /* ---- the climber ---- */
  {const Yc=-progress(), cx=pathX(Yc), cy=CLY();
-  const s=Math.max(1,Math.round(W/150));
+  const s=Math.max(2,Math.round(W/82));
   const bob=Math.round(Math.sin(walkPhase*2)*s*.6);
   g.fillStyle='rgba(10,16,30,.34)';
   g.fillRect(Math.round(cx-s*3),Math.round(cy-s*.4),s*10,Math.max(1,Math.round(s*1.2)));
@@ -905,33 +1145,30 @@ function paint(now,dt){
     There is no horizon. Everything that sells depth is here: a haze that
     thickens toward the top of the frame, so the far ridges sit back
     without a single extra thing being drawn. */
- const hz=_mix(_mix(B.sky1,[238,245,255],.34),[110,132,168],night*.55);
- const hg=g.createLinearGradient(0,0,0,Math.round(H*0.60));
- hg.addColorStop(0,'rgba('+(hz[0]|0)+','+(hz[1]|0)+','+(hz[2]|0)+',0.44)');
- hg.addColorStop(0.35,'rgba('+(hz[0]|0)+','+(hz[1]|0)+','+(hz[2]|0)+',0.17)');
- hg.addColorStop(1,'rgba('+(hz[0]|0)+','+(hz[1]|0)+','+(hz[2]|0)+',0)');
- g.fillStyle=hg; g.fillRect(0,0,W,Math.round(H*0.60));
+
 
  /* ---- the hour, as a wash over everything ---- */
+ /* the hour, washed over the ground only: the sky already has it */
  if(night>0.02){
-  g.fillStyle='rgba(16,26,60,'+(night*0.62).toFixed(3)+')';
-  g.fillRect(0,0,W,H);
-  g.fillStyle='rgba(90,120,200,'+(night*0.10).toFixed(3)+')';
-  g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(16,26,60,'+(night*0.60).toFixed(3)+')';
+  g.fillRect(0,hz,W,H-hz);
+  g.fillStyle='rgba(88,118,198,'+(night*0.09).toFixed(3)+')';
+  g.fillRect(0,hz,W,H-hz);
  }
  if(dusk>0.02){
-  g.fillStyle='rgba(255,138,64,'+(dusk*0.26).toFixed(3)+')';
-  g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(255,150,80,'+(dusk*0.20).toFixed(3)+')';
+  g.fillRect(0,hz,W,H-hz);
  }
  /* sun raking across, only in the middle of the day */
- if(night<.35&&dusk<.3){
+ if(S2.day&&S2.el>0.18){
+  const lean=(S2.x-0.5)*W*0.9;
   for(let k=0;k<3;k++){
    const xx=((hash(k*211)*W*1.7-progress()*.10)%(W+160)+W+160)%(W+160)-80;
-   const lg=g.createLinearGradient(xx,0,xx+W*0.22,H*0.75);
+   const lg=g.createLinearGradient(xx,hz,xx+lean*0.5,H);
    lg.addColorStop(0,'rgba(255,246,214,0)');
-   lg.addColorStop(0.45,'rgba(255,246,214,0.085)');
+   lg.addColorStop(0.42,'rgba(255,246,214,'+(0.10*S2.el).toFixed(3)+')');
    lg.addColorStop(1,'rgba(255,246,214,0)');
-   g.fillStyle=lg; g.fillRect(Math.max(0,xx-10),0,W*0.30,H*0.78);}
+   g.fillStyle=lg; g.fillRect(Math.max(0,xx-12),hz,W*0.32,H-hz);}
  }
 
  /* ---- vignette ---- */
@@ -965,7 +1202,7 @@ function step(dt,now){
   if(!CHUNK.has(ci)) CHUNK.set(ci,buildChunk(ci));
  }
 
- const hr=HOUR(), night=(hr<5||hr>=22)?.9:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
+ const night=solar().dark;
  const alp=alpineAt(Math.max(0,shownMi));
  if(now>nextSpawn) spawn(now,alp);
  const top=camTopRow();
