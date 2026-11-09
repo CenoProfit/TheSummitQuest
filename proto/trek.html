@@ -986,12 +986,19 @@ function spawn(now,alp,camX,camY){
  const side=Math.random()<.5?-1:1;
  const d=120+Math.random()*220;
  const n=1+((Math.random()*3)|0);            // they travel in loose groups
- for(let i=0;i<n;i++)
-  fauna.push({type,air:true,
-   wx:camX+side*(70+Math.random()*120)+i*(8+Math.random()*14),
-   wy:camY-d+i*(10+Math.random()*22),
+ const FOC=Math.max(H*FOCV,W*0.62), hzY=HZN();
+ const camZ=terrainH(camX,camY)+EYE;
+ for(let i=0;i<n;i++){
+  const wx=camX+side*(70+Math.random()*120)+i*(8+Math.random()*14);
+  const wy=camY-d+i*(10+Math.random()*22);
+  const dd=Math.max(DNEAR+1,camY-wy), sc=FOC/dd;
+  /* where in the sky band this one should fly, as a fraction of it */
+  const ty=hzY*(0.20+Math.random()*0.56);
+  const hgt=Math.max(30,(camZ-hAt(wx,wy))+(hzY-ty)/sc);
+  fauna.push({type,air:true,wx,wy,
    vx:-side*(11+Math.random()*18), vy:4+Math.random()*14,
-   hgt:26+Math.random()*44, born:Math.random()*6.28, flip:side>0});
+   hgt, born:Math.random()*6.28, flip:side>0});
+ }
  nextSpawn=now+3200+Math.random()*6000;
 }
 
@@ -1107,8 +1114,15 @@ function paint(now,dt){
   if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
   const ss=Math.max(1,Math.round(F.s*0.55*sc));
   const run=Math.sin(now/260+A.born)*ss*1.6;   // a slow rise and fall
-  sprite(g,rows,F.p,Math.round(sx-rows[0].length*ss/2),
-         Math.round(sy-ss*rows.length-run),ss,A.flip);
+  const top=Math.round(sy-ss*rows.length-run), bw2=rows[0].length*ss;
+  const x0=Math.round(sx-bw2/2);
+  /* clear of the skyline across its whole span, or it is not in the sky */
+  let clear=true;
+  for(let q=0;q<=bw2;q+=2){
+   const cx2=x0+q; if(cx2<0||cx2>=W) continue;
+   if(top+ss*rows.length>=YB[cx2]){clear=false;break;}}
+  if(!clear) continue;
+  sprite(g,rows,F.p,x0,top,ss,A.flip);
  }
 
  /* ---- the climber, always in front ---- */
@@ -1328,13 +1342,15 @@ function fxFrame(now){
   const ly=Math.round(by-bh-lh-lidOpen*S*1.6);
   const x0=cx-bw/2+sx;
   for(let j=0;j<lh;j++){
-   const u=j/lh;                                  // 0 at the crown
+   /* u is 1 at the crown and 0 where the lid meets the box, so the widest
+      row is the bottom one. The other way round gives an upturned bowl. */
+   const u=1-(j+0.5)/lh;
    const w2=Math.round(bw*0.5*Math.sqrt(Math.max(0,1-u*u*0.72)));
    const yy=ly+j;
    fg.fillStyle=_css(out); fg.fillRect(cx+sx-w2-1,yy,w2*2+3,1);
    for(let i=-w2;i<=w2;i++){
     const lat=(i+w2)/(2*w2+.001);
-    let c2=_mix(woodM,woodL,(1-u)*0.46+(1-lat)*0.34);
+    let c2=_mix(woodM,woodL,u*0.46+(1-lat)*0.34);
     if(Math.floor((i+w2)/Math.max(1,S*1.4))%2) c2=_mix(c2,woodD,.22);
     fg.fillStyle=_css(c2); fg.fillRect(cx+sx+i,yy,1,1);}
   }
