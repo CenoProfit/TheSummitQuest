@@ -714,6 +714,10 @@ function landmark(g,x,gy,sc,k,B){
    separated by two outline pixels, which at this size reads as a black
    blob between his feet, and the third frame was a row shorter than the
    other two, so he bobbed a pixel every cycle on top of his own bob. */
+/* Seen from behind, a stride is not the legs opening and closing: it is
+   one foot planted and back while the other swings forward and lifts. The
+   boots trade places vertically and the hem never moves, because a robe
+   does not scissor. The cycle runs passing, left, passing, right. */
 const WIZ=[
  ["....yyyy......",
   "...yyyyyy..c..",
@@ -730,27 +734,9 @@ const WIZ=[
   ".oKRRRRRRKo.s.",
   ".oKKRRRRKKo.s.",
   ".oKK....KKo.s.",
-  "..ww....ww..s.",
-  "..o......o..s.",
-  "............s."],
- ["....yyyy......",
-  "...yyyyyy..c..",
-  "..yyYYYYyy.ccc",
-  "..yyYYYYyy.ccc",
-  "...oooooo..c..",
-  "..orrrrrro..s.",
-  ".orRRRRRRro.s.",
-  "orRRRRRRRRros.",
-  "orRbbbbbbRros.",
-  "orRRRRRRRRros.",
-  "orRRRRRRRRros.",
-  ".oRRRRRRRRo.s.",
-  ".oKRRRRRRKo.s.",
-  ".oKKRRRRKKo.s.",
-  ".oKKK..KKKo.s.",
-  "...ww..ww...s.",
-  "...o....o...s.",
-  "............s."],
+  "............s.",
+  "....ww.ww...s.",
+  "....o...o...s."],
  ["....yyyy......",
   "...yyyyyy..c..",
   "..yyYYYYyy.ccc",
@@ -766,9 +752,27 @@ const WIZ=[
   ".oKRRRRRRKo.s.",
   ".oKKRRRRKKo.s.",
   ".oKK....KKo.s.",
-  ".ww......ww.s.",
-  ".o........o.s.",
-  "............s."]];
+  ".......ww...s.",
+  "....ww..o...s.",
+  "....o.......s."],
+ ["....yyyy......",
+  "...yyyyyy..c..",
+  "..yyYYYYyy.ccc",
+  "..yyYYYYyy.ccc",
+  "...oooooo..c..",
+  "..orrrrrro..s.",
+  ".orRRRRRRro.s.",
+  "orRRRRRRRRros.",
+  "orRbbbbbbRros.",
+  "orRRRRRRRRros.",
+  "orRRRRRRRRros.",
+  ".oRRRRRRRRo.s.",
+  ".oKRRRRRRKo.s.",
+  ".oKKRRRRKKo.s.",
+  ".oKK....KKo.s.",
+  "....ww......s.",
+  "....o...ww..s.",
+  "........o...s."]];
 const WPAL={y:'#fbf236',Y:'#b7b130',o:'#0a0b14',r:'#c74c4a',R:'#ac3232',
             K:'#782126',b:'#6398ff',w:'#ffffff',s:'#8f563b',c:'#5fcde4'};
 const WCAN=[];
@@ -1152,7 +1156,7 @@ function paint(now,dt){
   const wy=camY-dd, cx=trailX(wy);
   const sx=W*0.5+(cx-camX)*sc, sy=hzY+(camZ-hAt(cx,wy))*sc;
   const pxH=Math.max(10,11*sc*CHAR);
-  const bob=Math.sin(walkPhase*2)*pxH*0.035;
+  const bob=Math.sin(walkPhase*Math.PI*0.5)*pxH*0.030;
   g.fillStyle='rgba(10,16,30,.34)';
   g.fillRect(Math.round(sx-pxH*0.26),Math.round(sy-pxH*0.03),
              Math.round(pxH*0.56),Math.max(1,Math.round(pxH*0.07)));
