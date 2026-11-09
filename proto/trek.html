@@ -201,82 +201,61 @@ function biomeAt(mi){
 }
 
 /* ===================================================================
-   RENDER CORE  —  three-quarter view, orthographic, chunk-baked
+   RENDER CORE  —  voxel space
 
-   The mountain is not projected every frame. It is a tall vertical
-   strip of world that gets baked, once, into offscreen chunks and then
-   scrolled. That is what a tile-based game does, and it is the only way
-   to afford this much detail: a chunk costs millions of operations to
-   shade, but it is paid once every twenty seconds instead of sixty
-   times a second.
+   You walk away from the camera, into the screen. The ground is a
+   heightfield and every screen column is a ray marched from near to far:
+   at each step the sample's height projects to a screen row, and if that
+   row is above anything already drawn in that column it fills the gap
+   downward. One y-buffer per column gives occlusion for free and means
+   every pixel is written exactly once.
 
-   The terrain itself is a ridged-multifractal heightfield lit by a
-   surface normal. Ridges, gullies, spurs and faces all fall out of that
-   for free, which is why it reads as a mountain range rather than as a
-   texture. Material comes from altitude and steepness: forest low,
-   meadow and scree above it, bare rock on anything steep, snow at the
-   top. There is no horizon and no sky. Distance is carried entirely by
-   a screen-space haze that thickens toward the top of the frame, so the
-   far ridges sit back without a single extra polygon.
+   This is the renderer Comanche used, and it is the only approach that
+   gives a mountain a real silhouette against the sky while it is still a
+   long way off, then lets it grow and pass by as you close on it.
+
+   Terrain is a pure function of world position, baked into tiles of
+   height and colour so the ray march only ever reads an array. Trees and
+   rocks are billboards rasterised into the same buffer at the depth they
+   belong to, which is what makes them occlude correctly against the
+   ridges in front of and behind them.
    =================================================================== */
-const RPM  = 900;    // world rows per trail mile
-const CH   = 256;    // chunk height, world rows
-const OVER = 96;     // how far an object may overhang the chunk above it
+const RPM  = 2600;   // world units per trail mile
+const TILE = 256;    // heightfield tile edge, world units
+const HSTEP= 4;      // coarse height sampling inside a tile
+const FOCB = 1.02;   // focal length, as a multiple of screen width
+const EYE  = 58;     // camera height above the ground it stands on
+const DNEAR= 34, DFAR = 980;
+
 const _qh=new URLSearchParams(location.search).get('t');
-const HOUR=()=> _qh!==null?(+_qh):new Date().getHours();
-/* Fractional hours. The sun has to crawl, not hop once an hour. */
+const _qm=new URLSearchParams(location.search).get('m');
 function TOD(){
  if(_qh!==null) return (+_qh)%24;
  const d=new Date(); return d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
 }
-/* ---- the sky ----
-   Sunrise at six, sunset at half past seven, and an arc between them. The
-   whole palette hangs off one number: the sun's elevation. */
+const HOUR=()=> Math.floor(TOD());
+/* Sunrise at six, sunset at half past seven. The whole palette hangs off
+   one number: how high the sun is. */
 const SUNUP=6.0, SUNDN=19.5;
 function solar(){
  const h=TOD(), day=(h>=SUNUP&&h<SUNDN);
  const tt=day?(h-SUNUP)/(SUNDN-SUNUP):((h-SUNDN+24)%24)/(24-(SUNDN-SUNUP));
- const el=Math.sin(tt*Math.PI);                 // 0 at the horizon, 1 at the top
- return {day,tt,el,
-   x:0.05+0.90*tt,                              // across the sky, left to right
-   y:1-el,                                      // 0 at the top, 1 on the horizon
-   /* warmth spikes near the horizon and dies at noon */
-   warm:Math.min(0.72,Math.max(0,1-el*2.6))*(day?1:0.30),
-   dark:day?0:Math.min(1,0.35+el*0.75)};
+ const el=Math.sin(tt*Math.PI);
+ return {day,tt,el,x:0.06+0.88*tt,y:1-el,
+  warm:Math.min(0.78,Math.max(0,1-el*2.6))*(day?1:0.30),
+  dark:day?0:Math.min(1,0.30+el*0.78)};
 }
-const SKY={
- night:[['#060b1c','#0d1630','#1a2443'],   /* zenith, middle, horizon */
-        ['#0a1024','#16203c','#2b3657']],
- dawn :[['#17315e','#4a6b9e','#e9a06a'],
-        ['#1d3a6b','#5a7cab','#f4bf86']],
- day  :[['#1d5fb8','#3f87d4','#a9d4ee'],
-        ['#2468c4','#4d93dd','#bfe0f4']],
- dusk :[['#15274f','#4f4a86','#f0875a'],
-        ['#1b2f5c','#60588f','#f8a46d']]};
-const _qm=new URLSearchParams(location.search).get('m');
+const SKYR={
+ night:['#070c1e','#0e1832','#1d2949'],
+ dawn :['#16305e','#4d6ea0','#eaa471'],
+ day  :['#1a5cb6','#3d85d2','#aed6ef'],
+ dusk :['#14264e','#524d8a','#f08a5c']};
 
 /* ---- light ---- */
 const COOL=[44,52,76], WARM=[255,243,205];
 const sh=(c,t)=> t<0?_mix(c,COOL,Math.min(.72,-t*.80)):_mix(c,WARM,Math.min(.86,t*.82));
-const LX=-0.62, LY=-0.56, LZ=0.55;          // key light, over the left shoulder
+const LX=-0.62, LY=-0.50, LZ=0.60;
 
-/* ---- ordered dither, served as canvas patterns ---- */
-const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
-const _pat=new Map();
-function dpat(a,b,lv){
- lv=Math.max(0,Math.min(16,Math.round(lv)));
- const k=a+'|'+b+'|'+lv;
- let p=_pat.get(k); if(p) return p;
- if(lv<=0) p=a; else if(lv>=16) p=b;
- else{
-  const c=document.createElement('canvas'); c.width=4; c.height=4;
-  const q=c.getContext('2d'); q.fillStyle=a; q.fillRect(0,0,4,4); q.fillStyle=b;
-  for(let y=0;y<4;y++)for(let x=0;x<4;x++) if(BAYER[(y<<2)|x]<lv) q.fillRect(x,y,1,1);
-  p=ctx.createPattern(c,'repeat');
- }
- if(_pat.size>1400) _pat.clear();
- _pat.set(k,p); return p;
-}
 function vnoise(x,y){
  const xi=Math.floor(x), yi=Math.floor(y), fx=x-xi, fy=y-yi;
  const h00=hash(xi*374761+yi*668265), h10=hash((xi+1)*374761+yi*668265);
@@ -285,327 +264,216 @@ function vnoise(x,y){
  return (h00*(1-sx)+h10*sx)*(1-sy)+(h01*(1-sx)+h11*sx)*sy;
 }
 function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.1,y*2.1)*.28+vnoise(x*4.3,y*4.3)*.17;}
-/* Ridged multifractal. Folding the noise at its midpoint turns rounded
-   hills into sharp crests, which is the difference between a landscape
-   and a duvet. */
 function ridged(x,y){
  let s=0,a=1,f=1,w=0;
- for(let i=0;i<5;i++){
-  const n=1-Math.abs(vnoise(x*f,y*f)*2-1);
-  s+=n*n*a; w+=a; a*=.52; f*=2.07;
- }
+ for(let i=0;i<5;i++){const n=1-Math.abs(vnoise(x*f,y*f)*2-1);
+  s+=n*n*a; w+=a; a*=.52; f*=2.07;}
  return s/w;
 }
 
 /* ---------- state ---------- */
-const KEY='sq_trek_proto3';
+const KEY='sq_trek_proto4';
 let S={steps:0,today:0,day:1,opened:[]};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const miles=()=>S.steps/SPM;
 if(_qm!==null) S.steps=Math.round((+_qm)*SPM);
-
 let shownMi=miles(), drift=0, surge=0, walkPhase=0;
 
 const cv=document.getElementById('scene');
 const ctx=cv.getContext('2d');
-let W=0,H=0;
+let W=0,H=0,terCan=null,terCtx=null,terImg=null,terBuf=null,YB=null;
+function HZN(){return Math.round(H*0.345);}
 function resize(){
  const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
  W=Math.max(1,Math.ceil(w/PX)); H=Math.max(1,Math.ceil(h/PX));
  cv.width=W; cv.height=H; ctx.imageSmoothingEnabled=false;
- CHUNK.clear(); TC.clear(); UC.clear(); _pat.clear();
+ terCan=document.createElement('canvas'); terCan.width=W; terCan.height=H;
+ terCtx=terCan.getContext('2d'); terCtx.imageSmoothingEnabled=false;
+ terImg=terCtx.createImageData(W,H);
+ terBuf=new Uint32Array(terImg.data.buffer);
+ YB=new Float32Array(W);
+ TILES.clear(); TC.clear(); UC.clear();
 }
 
-/* ---- where you are on the mountain ----
-   World rows run downhill, so climbing means the camera row decreases.
-   Row zero is Springer. Everything in the world is addressed by its row. */
+/* ---- where you are ----
+   World runs along -wy as you climb, so everything ahead of you has a
+   smaller wy and depth is simply camY minus it. */
+const progress=()=> shownMi*RPM+drift;
+const camWY=()=> -progress();
 const rowOfMile=m=> -m*RPM;
 const mileOfRow=Y=> -Y/RPM;
-
-/* How far above the treeline a mile feels, from the nearest bald summit. */
 function alpineAt(mi){
  let v=0;
- for(const L of TRAIL){
-  if(!L.a) continue;
+ for(const L of TRAIL){ if(!L.a) continue;
   const d=Math.abs(L.m-mi); if(d>2.6) continue;
-  v=Math.max(v,L.a*(1-d/2.6));
- }
+  v=Math.max(v,L.a*(1-d/2.6)); }
  return Math.max(0,Math.min(1,v));
 }
 
-/* ---- the crest ----
-   Long traverses with hard kinks, which is what a ridge actually does.
-   A triangle wave gives the reversal; the slow wander keeps it from
-   looking mechanical. */
-function crestX(Y){
- const a=Math.asin(Math.sin(Y*0.0040))*0.6366;
- const b=Math.asin(Math.sin(Y*0.0129+1.7))*0.6366;
- return W*0.50 + a*W*0.25 + b*W*0.125 + (fbm(Y*0.0055,11)-0.5)*W*0.11;
+/* ---- the trail, and the spine it follows ----
+   The crest rises and falls along its length, so summits roll toward you,
+   grow, and pass under your feet. That is the whole motion of the thing. */
+function trailX(wy){
+ return 210*Math.sin(wy*0.00062)
+      + 78*Math.sin(wy*0.00171+1.7)
+      + 26*Math.sin(wy*0.00430+4.1);
 }
-/* how broad the top of the spine is: wide saddles, narrow knife edges */
-function crestW(Y){
- return W*(0.105+0.055*Math.sin(Y*0.0072)+0.026*Math.sin(Y*0.0185+2.1));
+function spineH(wy){
+ return 66
+  + 42*Math.sin(wy*0.00128)
+  + 15*Math.sin(wy*0.00305+1.3)
+  + 7*Math.sin(wy*0.00760+3.1);
 }
-/* One over a crest, falling to zero down its flanks. Pulled out of the
-   height function because the shading needs it too: high ground is open to
-   the sky and reads bright, valleys close over and read dark, and that
-   contrast is most of what makes a ridge look like a ridge. */
-/* which flank falls away harder. It swaps over long distances, so the
-   exposure changes shoulder to shoulder as you walk. */
-function crestTilt(Y){ return Math.sin(Y*0.0029+0.7)*0.62+Math.sin(Y*0.0071)*0.25; }
-
-function ridgeProf(x,Y,off,wscale,fall){
- const cx=crestX(Y)+off, wd=crestW(Y)*wscale, tilt=crestTilt(Y);
- const dx=x-cx, d=Math.abs(dx), side=dx<0?-1:1;
- if(d<wd) return 1-0.19*(d/wd)*(d/wd);
- const e=(d-wd)/(W*fall)*(1.0+side*tilt*0.58);
- return 0.82*Math.exp(-e*2.4)/(1+e*1.30);
-}
-/* The one you are standing on. A tight falloff is the whole point: this is
-   a drop, not a hillside. */
-const crestProf=(x,Y)=> ridgeProf(x,Y,0,1,0.235);
-/* Its neighbours, lower and broader, with forested valleys in between.
-   Without them the flanks just run off the edge of the screen and there is
-   nothing to be above. */
-const SIDE_L=-0.70, SIDE_R=0.74;
-const leftProf =(x,Y)=> ridgeProf(x,Y,W*SIDE_L,1.7,0.30);
-const rightProf=(x,Y)=> ridgeProf(x,Y,W*SIDE_R,1.6,0.30);
-function profAt(x,Y){
- return Math.max(crestProf(x,Y),leftProf(x,Y)*0.74,rightProf(x,Y)*0.70);
-}
-
-const pathX=Y=> crestX(Y);
-const pathW=()=> Math.max(3,W*0.030);
-
-/* ---- terrain ---- */
-function terrainH(x,Y){
- let h=-Y*0.30;
- h+=crestProf(x,Y)*118;                        // the spine you walk
- h+=leftProf(x,Y)*78;                          // the range either side
- h+=rightProf(x,Y)*72;
- const p=profAt(x,Y);
- /* spurs and gullies, strongest on the flanks and in the valleys */
- h+=ridged(x*0.0092,Y*0.0092)*34*(0.24+0.76*(1-p));
- h+=ridged(x*0.023+30,Y*0.023)*10;
- h+=fbm(x*0.036,Y*0.036)*4.5;
+const TRAILW=3.2;
+function terrainH(wx,wy){
+ const cx=trailX(wy), dx=wx-cx;
+ const wd=78+28*Math.sin(wy*0.00105);
+ const fall=Math.exp(-Math.pow(Math.abs(dx)/wd,1.55));
+ let h=spineH(wy)*fall;
+ /* the range either side, strongest off the crest */
+ h+=ridged(wx*0.00108,wy*0.00108)*96*(0.22+0.78*(1-fall));
+ h+=ridged(wx*0.00330+7,wy*0.00330)*30;
+ h+=fbm(wx*0.0155,wy*0.0155)*5;
  return h;
 }
 
-/* Everything a pixel needs to know about itself. */
-const MAT={ROCK:0,SCREE:1,MEADOW:2,FOREST:3,SNOW:4,PATH:5,WATER:6};
-
 /* ===================================================================
-   CHUNKS
+   TILES — height, colour and scenery, baked once per patch of world
    =================================================================== */
-const CHUNK=new Map();
-let chunkBudget=0;
+const MAT={ROCK:0,SCREE:1,MEADOW:2,FOREST:3,SNOW:4,PATH:5};
+const TILES=new Map();
+const TQ=[];
+function buildTile(tx,ty){
+ const ox=tx*TILE, oy=ty*TILE;
+ const GN=(TILE/HSTEP)+3;
+ const G=new Float32Array(GN*GN);
+ for(let j=0;j<GN;j++)for(let i=0;i<GN;i++)
+  G[j*GN+i]=terrainH(ox+(i-1)*HSTEP,oy+(j-1)*HSTEP);
+ const gAt=(u,v)=>{                     // bilinear, u/v in tile-local units
+  const fu=u/HSTEP+1, fv=v/HSTEP+1;
+  const iu=Math.min(GN-2,Math.max(0,Math.floor(fu))), iv=Math.min(GN-2,Math.max(0,Math.floor(fv)));
+  const tu=fu-iu, tv=fv-iv, o=iv*GN+iu;
+  return (G[o]*(1-tu)+G[o+1]*tu)*(1-tv)+(G[o+GN]*(1-tu)+G[o+GN+1]*tu)*tv;
+ };
+ const Hh=new Float32Array(TILE*TILE);
+ for(let j=0;j<TILE;j++)for(let i=0;i<TILE;i++)
+  Hh[j*TILE+i]=gAt(i,j)+(hash(((ox+i)*73856+(oy+j)*19349)|0)-0.5)*0.55;
 
-function buildChunk(ci,B0){
- const A=ci*CH, Bq=A+CH;
- const c=document.createElement('canvas'); c.width=W; c.height=CH;
- const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
- const img=q.createImageData(W,CH), D=img.data;
-
- /* The heightfield is sampled at half resolution and interpolated. The
-    shading needs gradients, not detail, and this makes a chunk four
-    times cheaper without anyone being able to tell. */
- const GW=(W>>1)+3, GH=(CH>>1)+3;
- const G=new Float32Array(GW*GH);
- for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)
-  G[gy*GW+gx]=terrainH((gx-1)*2,A+(gy-1)*2);
- /* Cast shadow, in a single pass. The key light comes from the left, so
-    march each row left to right carrying the highest horizon seen so far,
-    decayed by the sun's slope: anything that falls below that horizon is
-    in the shadow of something uphill of it. A ridge that throws no shadow
-    into its own valley never reads as having height, and this is the one
-    cue that no amount of palette work can fake. */
- const SHD=new Float32Array(GW*GH);
- const SUNSL=1.35;                     // height lost per grid step sunward
- for(let gy=0;gy<GH;gy++){
-  let horizon=-1e9;
-  for(let gx=0;gx<GW;gx++){
-   horizon-=SUNSL;
-   const hv=G[gy*GW+gx];
-   if(hv>=horizon){ horizon=hv; SHD[gy*GW+gx]=0; }
-   else SHD[gy*GW+gx]=Math.min(1,(horizon-hv)/11);
+ /* cast shadow: one scan per row, carrying the highest horizon seen so
+    far and decaying it by the sun's slope. A ridge that throws no shadow
+    into its own valley never reads as having height. */
+ const SHD=new Float32Array(TILE*TILE);
+ const SUNSL=0.55;
+ for(let j=0;j<TILE;j++){
+  let hor=-1e9;
+  for(let i=0;i<TILE;i++){
+   hor-=SUNSL;
+   const hv=Hh[j*TILE+i];
+   if(hv>=hor){hor=hv; SHD[j*TILE+i]=0;}
+   else SHD[j*TILE+i]=Math.min(1,(hor-hv)/9);
   }
  }
- const sAt=(x,y)=>{
-  const fx=x*0.5+1, fy=y*0.5+1;
-  const xi=Math.min(GW-2,Math.max(0,Math.floor(fx))), yi=Math.min(GH-2,Math.max(0,Math.floor(fy)));
-  const tx=fx-xi, ty=fy-yi, o=yi*GW+xi;
-  return (SHD[o]*(1-tx)+SHD[o+1]*tx)*(1-ty)+(SHD[o+GW]*(1-tx)+SHD[o+GW+1]*tx)*ty;
- };
- const gAt=(x,y)=>{                       // bilinear back to full res
-  const fx=x*0.5+1, fy=y*0.5+1;
-  const xi=Math.min(GW-2,Math.max(0,Math.floor(fx))), yi=Math.min(GH-2,Math.max(0,Math.floor(fy)));
-  const tx=fx-xi, ty=fy-yi, o=yi*GW+xi;
-  return (G[o]*(1-tx)+G[o+1]*tx)*(1-ty)+(G[o+GW]*(1-tx)+G[o+GW+1]*tx)*ty;
- };
 
- for(let y=0;y<CH;y++){
-  const Y=A+y;
-  const mi=mileOfRow(Y);
-  const B=biomeAt(Math.max(0,mi)), alp=alpineAt(Math.max(0,mi));
-  const px=pathX(Y), pw=pathW();
-  const rock=_mix(B.rck,_rgb('#9c968a'),.22);
-  for(let x=0;x<W;x++){
-   const h=gAt(x,y);
-   const hx=(gAt(x+1,y)-gAt(x-1,y))*0.5;
-   const hy=(gAt(x,y+1)-gAt(x,y-1))*0.5;
+ const C=new Uint32Array(TILE*TILE);
+ for(let j=0;j<TILE;j++){
+  const wy=oy+j, mi=Math.max(0,mileOfRow(wy));
+  const B=biomeAt(mi), alp=alpineAt(mi);
+  const cx=trailX(wy);
+  const rock=_mix(B.rck,_rgb('#9c968a'),.24);
+  for(let i=0;i<TILE;i++){
+   const wx=ox+i, k=j*TILE+i, h=Hh[k];
+   const hx=(Hh[k+(i<TILE-1?1:0)]-Hh[k-(i>0?1:0)])*0.5/1;
+   const hy=(Hh[k+(j<TILE-1?TILE:0)]-Hh[k-(j>0?TILE:0)])*0.5/1;
    const inv=1/Math.sqrt(hx*hx+hy*hy+1);
-   let lam=(-hx*LX-hy*LY+LZ)*inv;              // lambert on the surface
+   let lam=(-hx*LX-hy*LY+LZ)*inv;
    const steep=Math.sqrt(hx*hx+hy*hy);
-   const prof=profAt(x,Y);
-   /* sky exposure: the crest is open, the gullies are not */
-   const amb=0.36+0.32*inv+0.26*prof;
-   lam=Math.max(-0.42,lam)*1.12+amb*0.30;
+   const open=Math.max(0,Math.min(1,(h-52)/145));
+   lam=Math.max(-0.42,lam)*1.05+(0.34+0.30*inv+0.22*open)*0.30;
 
-   /* ---- material ---- */
-   const dpx=Math.abs(x-px);
-   const grain=fbm(x*0.030,Y*0.030);          // patches, tens of pixels
-   const fine =fbm(x*0.26,Y*0.26);           // texture, a few pixels
-   const open=prof+grain*0.16-0.08;           // how exposed this ground is
-   let m, col;
-   if(dpx<pw*(0.9+grain*0.35)){
-    m=MAT.PATH;
-   }else if(steep>3.00-grain*0.8){
-    m=MAT.ROCK;                               // anything that is a cliff
-   }else if(alp>0.80&&open>0.70&&grain>0.30){
-    m=MAT.SNOW;
-   }else if(alp>0.46||(open>0.86&&steep>0.70)){
-    m=MAT.SCREE;                              // bare, blown crest
-   }else if(open<0.34){
-    m=MAT.FOREST;                             // the valleys fill with trees
-   }else if(open<0.56&&grain>0.30){
-    m=MAT.FOREST;
-   }else m=MAT.MEADOW;
+   const grain=fbm(wx*0.0085,wy*0.0085);
+   const fine =fbm(wx*0.075,wy*0.075);
+   const dpx=Math.abs(wx-cx);
+   let col;
+   if(dpx<TRAILW*(0.9+grain*0.4)){
+    const e=dpx/(TRAILW*(0.9+grain*0.4));
+    col=sh(_mix(B.pth,rock,0.24+alp*0.42),-0.02-e*0.46+(fine-0.5)*0.30);
+    if(hash((wx*7+wy*131)|0)<0.12) col=sh(col,0.26);
+   }else if(steep>1.05-grain*0.3){
+    const facet=Math.sin(wx*0.42+h*0.3)*Math.sin(wy*0.37+fine*2.2);
+    col=sh(_mix(_rgb('#6e6a78'),_rgb('#b0a9bb'),fine*0.7+(facet>0?0.16:0)),
+           -0.04+(fine-0.5)*0.38+facet*0.16);
+   }else if(alp>0.74&&open>0.70&&grain>0.30){
+    col=sh(_mix(_rgb('#dfe9fb'),_rgb('#ffffff'),fine),0.16+(fine-0.5)*0.18);
+   }else if(alp>0.44||open>0.84){
+    col=sh(_mix(rock,B.gn2,0.24+grain*0.3),-0.06+(fine-0.5)*0.34);
+   }else if(grain>0.30&&open<0.62){
+    col=sh(_mix(B.cnp,B.fst,grain*0.6),-0.24+(fine-0.5)*0.30);
+   }else col=sh(_mix(B.gnd,B.gn2,grain),(fine-0.5)*0.34);
 
-   switch(m){
-    case MAT.PATH:{
-     const edge=dpx/(pw*(0.9+grain*0.35));
-     col=_mix(B.pth,rock,0.35+alp*0.4);
-     col=sh(col,0.12-edge*0.50+(fine-0.5)*0.26);
-     if(hash((x*7+Y*131)|0)<0.12) col=sh(col,0.26);     // stones in the tread
-     break;}
-    case MAT.ROCK:{
-     const facet=Math.sin(x*0.52+h*0.14)*Math.sin(Y*0.44+fine*2.3)
-                +Math.sin(x*1.21+Y*0.63)*0.45;
-     const strat=Math.sin(h*0.34+fine*2.4)+facet*0.55;
-     col=_mix(_rgb('#6e6a78'),_rgb('#b0a9bb'),fine*0.70+(strat>0?0.18:0));
-     col=sh(col,-0.04+(fine-0.5)*0.40+facet*0.17);
-     break;}
-    case MAT.SCREE:
-     col=sh(_mix(rock,B.gn2,0.26+grain*0.3),-0.06+(fine-0.5)*0.36); break;
-    case MAT.SNOW:{
-     col=_mix(_rgb('#dfe9fb'),_rgb('#ffffff'),fine);
-     col=sh(col,0.16+(fine-0.5)*0.18); break;}
-    case MAT.FOREST:
-     col=sh(_mix(B.cnp,B.fst,grain*0.6),-0.26+(fine-0.5)*0.32); break;
-    default:
-     col=sh(_mix(B.gnd,B.gn2,grain),(fine-0.5)*0.36); break;
-   }
-   /* altitude: the valleys sit in their own shade, the crest does not */
-   col=_mix(sh(col,-0.30),col,Math.pow(prof,0.58));
-   col=_mix(col,_rgb('#8ba4c6'),(1-prof)*0.15);
-   /* light it, then put it in the shadow of whatever is uphill */
-   const t=Math.max(-0.52,Math.min(0.62,(lam-0.56)*2.05));
-   col=sh(col,t);
-   const shd=sAt(x,y);
-   if(shd>0.01) col=_mix(col,sh(col,-0.44),Math.min(0.62,shd*0.78));
-   const o=((y*W)+x)<<2;
-   D[o]=col[0]|0; D[o+1]=col[1]|0; D[o+2]=col[2]|0; D[o+3]=255;
-  }
- }
- q.putImageData(img,0,0);
-
- /* ---- things that stand on it, back to front ---- */
- const items=[];
- for(let Y=A-OVER;Y<Bq+OVER;Y++){
-  const mi=mileOfRow(Y), alp=alpineAt(Math.max(0,mi));
-  const px=pathX(Y), pw=pathW();
-  /* two candidate slots per row, thinned hard so they do not carpet */
-  for(let s=0;s<4;s++){
-   const r=hash((Y*1709+s*7919)|0);
-   if(r>0.085) continue;
-   const x=Math.round(hash((Y*131+s*31)|0)*W);
-   if(Math.abs(x-px)<pw*2.1) continue;                 // keep the trail clear
-   const h=terrainH(x,Y);
-   const steep=Math.abs(terrainH(x+2,Y)-terrainH(x-2,Y))*0.25
-              +Math.abs(terrainH(x,Y+2)-terrainH(x,Y-2))*0.25;
-   const g2=fbm(x*0.030,Y*0.030);
-   const pr=profAt(x,Y);
-   const treeOK=alp<0.52&&steep<1.8&&g2>0.12&&pr<0.72
-               &&hash((Y*97+s*311)|0)>pr*0.85;   /* thinning out uphill */
-   const kind=treeOK&&hash((Y*53+s*17)|0)<0.62?'tree'
-             :hash((Y*97+s*41)|0)<0.42?'rock'
-             :alp>0.5?'rock':(hash((Y*29+s*13)|0)<0.5?'bush':'fern');
-   items.push({x,Y,kind,s,alp,mi});
-  }
-  /* trailside markers: a cairn every so often, more of them up high */
-  if(hash((Y*4409)|0)<0.006+alp*0.012){
-   items.push({x:Math.round(px+(hash((Y*13)|0)<0.5?-1:1)*pw*2.1),Y,kind:'cairn',s:0,alp,mi});}
- }
- items.sort((a,b)=>a.Y-b.Y);
- for(const it of items){
-  const sy=it.Y-A;
-  const B=biomeAt(Math.max(0,it.mi));
-  if(it.kind==='tree'){
-   const vr=Math.floor(hash((it.Y*17+it.s*5)|0)*4);
-   const hgt=Math.round((7+hash((it.Y*311+it.s)|0)*13)*(1-it.alp*0.55));
-   if(hgt<4) continue;
-   const spc=it.alp>0.3?'fir':B.tree==='fir'?(vr<3?'fir':'hard')
-                              :(vr===0?'birch':vr===1?'fir':'hard');
-   const spr=treeSprite(spc,hgt,B,[0,0,0],0,Math.round(it.mi/7),
-                        hash((it.Y*7)|0)<0.16,vr);
-   /* a soft cast shadow downslope of the key light */
-   const sw=spr.width*0.42, sh2=Math.max(1,hgt*0.085);
-   q.fillStyle='rgba(12,18,34,.32)';
-   for(let d2=-sh2;d2<=sh2;d2++){
-    const ww=Math.round(sw*Math.sqrt(Math.max(0,1-(d2/sh2)*(d2/sh2))));
-    if(ww>0) q.fillRect(Math.round(it.x+sw*0.75-ww),Math.round(sy+d2),ww*2,1);}
-   q.drawImage(spr,Math.round(it.x-spr.width/2),Math.round(sy-spr.height+2));
-  }else if(it.kind==='cairn'){
-   const s2=Math.max(1,Math.round(1+hash((it.Y*3)|0)*1.4));
-   q.fillStyle='rgba(12,18,34,.30)';
-   q.fillRect(it.x-s2*2,sy-1,s2*4,2);
-   for(let i=0;i<5;i++){
-    const w2=s2*(2.4-i*0.38);
-    q.fillStyle=_css(sh(_rgb('#8b8798'),-0.22+i*0.10));
-    q.fillRect(Math.round(it.x-w2),Math.round(sy-i*s2*1.1-s2),Math.round(w2*2),Math.round(s2*1.2));
-    q.fillStyle=_css(sh(_rgb('#8b8798'),0.22+i*0.06));
-    q.fillRect(Math.round(it.x-w2),Math.round(sy-i*s2*1.1-s2),Math.round(w2*0.9),Math.round(s2*0.5));}
-  }else{
-   const s2=Math.max(1,Math.round(1+hash((it.Y*211+it.s)|0)*1.6));
-   const spr=undergrowth(it.kind,s2,B,[0,0,0],0,Math.round(it.alp*4),
-     Math.floor(hash((it.Y*523+it.s*71)|0)*4));
-   q.drawImage(spr,Math.round(it.x-spr.width/2),Math.round(sy-spr.height+1));
+   /* altitude, light, then the shadow of whatever is uphill */
+   col=_mix(sh(col,-0.26),col,Math.pow(0.25+open*0.75,0.55));
+   col=sh(col,Math.max(-0.50,Math.min(0.60,(lam-0.56)*1.95)));
+   const s2=SHD[k];
+   if(s2>0.01) col=_mix(col,sh(col,-0.46),Math.min(0.66,s2*0.80));
+   C[k]=0xff000000|((col[2]|0)<<16)|((col[1]|0)<<8)|(col[0]|0);
   }
  }
 
- /* ---- landmarks sit at their real mileage ---- */
- for(const L of TRAIL){
-  const Y=rowOfMile(L.m);
-  if(Y<A-OVER||Y>=Bq+OVER) continue;
-  const sy=Y-A, B=biomeAt(L.m);
-  const side=hash(Math.round(L.m*10))<0.5?-1:1;
-  const lx=Math.round(pathX(Y)+side*pathW()*2.2);
-  q.fillStyle='rgba(12,18,34,.30)';
-  q.fillRect(lx-5,sy-1,10,2);
-  landmark(q,lx,sy,0.62,L.k,B,false);
+ /* scenery, placed on a coarse lattice and thinned hard */
+ const objs=[];
+ for(let j=0;j<TILE;j+=3)for(let i=0;i<TILE;i+=3){
+  const wx=ox+i, wy=oy+j;
+  const r=hash((wx*1709+wy*7919)|0); if(r>0.26) continue;
+  const cxx=trailX(wy); if(Math.abs(wx-cxx)<TRAILW*2.1) continue;
+  const k=j*TILE+i, h=Hh[k];
+  const open=Math.max(0,Math.min(1,(h-52)/145));
+  const mi=Math.max(0,mileOfRow(wy)), alp=alpineAt(mi);
+  const hx=Math.abs(Hh[k+1]-Hh[k-1])*0.5, hy=Math.abs(Hh[Math.min(TILE*TILE-1,k+TILE)]-Hh[Math.max(0,k-TILE)])*0.5;
+  const steep=Math.sqrt(hx*hx+hy*hy);
+  const g2=fbm(wx*0.0085,wy*0.0085);
+  const treeOK=alp<0.52&&steep<1.5&&g2>0.14&&open<0.78&&hash((wy*97+i*311)|0)>open*0.75;
+  const kind=treeOK?'tree':(hash((wy*53+i*17)|0)<0.55?'rock':alp>0.5?'rock':'bush');
+  objs.push({wx,wy,h,kind,alp,mi,s:(hash((wx*31+wy*17)|0)*1000)|0});
  }
- return c;
+ objs.sort((a,b)=>a.wy-b.wy);
+ return {h:Hh,c:C,objs};
 }
-function chunkAt(ci){
- let c=CHUNK.get(ci);
- if(!c){ c=buildChunk(ci); CHUNK.set(ci,c);
-  if(CHUNK.size>7){ const ks=[...CHUNK.keys()].sort((a,b)=>a-b);
-   /* drop whichever cached chunk is furthest from the camera */
-   const cur=Math.floor(camTopRow()/CH);
-   ks.sort((a,b)=>Math.abs(b-cur)-Math.abs(a-cur));
-   CHUNK.delete(ks[0]); } }
- return c;
+let _tkx=1e9,_tky=1e9,_tcur=null;
+function tileAt(tx,ty){
+ if(tx===_tkx&&ty===_tky&&_tcur) return _tcur;
+ const k=tx+','+ty;
+ let T=TILES.get(k);
+ if(!T){ T=buildTile(tx,ty); TILES.set(k,T);
+  if(TILES.size>36){ const it=TILES.keys(); TILES.delete(it.next().value); } }
+ _tkx=tx;_tky=ty;_tcur=T; return T;
+}
+function hAt(wx,wy){
+ const tx=Math.floor(wx/TILE), ty=Math.floor(wy/TILE), T=tileAt(tx,ty);
+ return T.h[(((wy-ty*TILE)|0)*TILE)+((wx-tx*TILE)|0)];
+}
+function cAt(wx,wy){
+ const tx=Math.floor(wx/TILE), ty=Math.floor(wy/TILE), T=tileAt(tx,ty);
+ return T.c[(((wy-ty*TILE)|0)*TILE)+((wx-tx*TILE)|0)];
+}
+/* Interpolated along the screen row only. Depth steps are a third of a
+   world unit, so the vertical axis is already oversampled; it is the
+   horizontal that staircases. Two lookups instead of four. */
+const _S2=[0,0,0,0];
+function sampleRow(wx,wy){
+ const xi=Math.floor(wx), fx=wx-xi;
+ const ty=Math.floor(wy/TILE), ly=((wy-ty*TILE)|0)*TILE;
+ let tx=Math.floor(xi/TILE), T=tileAt(tx,ty);
+ let k=ly+(xi-tx*TILE);
+ const h0=T.h[k], c0=T.c[k];
+ const xj=xi+1, tx2=Math.floor(xj/TILE);
+ if(tx2!==tx){ T=tileAt(tx2,ty); k=ly+(xj-tx2*TILE); } else k++;
+ const h1=T.h[k], c1=T.c[k];
+ _S2[0]=h0+(h1-h0)*fx;
+ const g=1-fx;
+ _S2[1]=((c0&255)*g+(c1&255)*fx);
+ _S2[2]=(((c0>>>8)&255)*g+((c1>>>8)&255)*fx);
+ _S2[3]=(((c0>>>16)&255)*g+((c1>>>16)&255)*fx);
 }
 
 /* ===================================================================
@@ -819,37 +687,88 @@ function landmark(g,x,gy,sc,k,B){
 }
 
 /* ---------- the climber, from behind ---------- */
-const BACK=[
-["...kkkk...","..kkkkkk..","..kwwwwk..","...hhhh...",".rrrrrrrr.","rrrrrrrrrr",
- "rPPPPPPPPr","rPbbbbbbPr","rPbbbbbbPr","rPPPPPPPPr",".rPPPPPPr.","..llllll..",
- "..l.LL.l..","..l.LL.l..","..s....s..",".ss....ss."],
-["...kkkk...","..kkkkkk..","..kwwwwk..","...hhhh...",".rrrrrrrr.","rrrrrrrrrr",
- "rPPPPPPPPr","rPbbbbbbPr","rPbbbbbbPr","rPPPPPPPPr",".rPPPPPPr.","..llllll..",
- "..l.LL.l..","...lLL.l..","...s...s..","..ss...ss."],
-["...kkkk...","..kkkkkk..","..kwwwwk..","...hhhh...",".rrrrrrrr.","rrrrrrrrrr",
- "rPPPPPPPPr","rPbbbbbbPr","rPbbbbbbPr","rPPPPPPPPr",".rPPPPPPr.","..llllll..",
- "..l.LL.l..","..l.LLl...","..s...s...",".ss...ss.."]];
-const BPAL={k:'#d4b070',w:'#8e7440',h:'#e0c396',r:'#d85c32',P:'#a8431f',
-            b:'#6f2c18',l:'#364a60',L:'#2a3a4e',s:'#1a222e'};
+/* ---------- the climber: the Summit Wizard, from behind ----------
+   Palette lifted straight out of HERO_ART in the game, so he is the same
+   character: yellow hair, red robe with a blue sash, white boots, and the
+   staff with its cyan orb. The front-facing portrait is no use here since
+   he is walking away from you, so this is the same wardrobe redrawn as a
+   back view with a three frame shuffle under the hem. */
+const WIZ=[
+["....yyyy......",
+ "...yyyyyy..c..",
+ "..yyYYYYyy.ccc",
+ "..yyYYYYyy.ccc",
+ "...oooooo..c..",
+ "..orrrrrro..s.",
+ ".orRRRRRRro.s.",
+ "orRRRRRRRRros.",
+ "orRbbbbbbRros.",
+ "orRRRRRRRRros.",
+ "orRRRRRRRRros.",
+ ".oRRRRRRRRo.s.",
+ ".oKRRRRRRKo.s.",
+ ".oKKRRRRKKo.s.",
+ ".oKK.oo.KKo.s.",
+ "..ww....ww..s.",
+ "..o......o..s.",
+ "............s."],
+["....yyyy......",
+ "...yyyyyy..c..",
+ "..yyYYYYyy.ccc",
+ "..yyYYYYyy.ccc",
+ "...oooooo..c..",
+ "..orrrrrro..s.",
+ ".orRRRRRRro.s.",
+ "orRRRRRRRRros.",
+ "orRbbbbbbRros.",
+ "orRRRRRRRRros.",
+ "orRRRRRRRRros.",
+ ".oRRRRRRRRo.s.",
+ ".oKRRRRRRKo.s.",
+ ".oKKRRRRKKo.s.",
+ ".oKKK..KKKo.s.",
+ "...ww..ww...s.",
+ "...o....o...s.",
+ "............s."],
+["....yyyy......",
+ "...yyyyyy..c..",
+ "..yyYYYYyy.ccc",
+ "..yyYYYYyy.ccc",
+ "...oooooo..c..",
+ "..orrrrrro..s.",
+ ".orRRRRRRro.s.",
+ "orRRRRRRRRros.",
+ "orRbbbbbbRros.",
+ "orRRRRRRRRros.",
+ "orRRRRRRRRros.",
+ ".oRRRRRRRRo.s.",
+ ".oKRRRRRRKo.s.",
+ ".oKKRRRRKKo.s.",
+ ".oKK.oo.KKo.s.",
+ ".ww......ww.s.",
+ ".o........o.s."]];
+const WPAL={y:'#fbf236',Y:'#b7b130',o:'#0a0b14',r:'#c74c4a',R:'#ac3232',
+            K:'#782126',b:'#6398ff',w:'#ffffff',s:'#8f563b',c:'#5fcde4'};
 function climber(g,x,y,s,f,lamp){
- const sp=BACK[f];
- g.fillStyle='rgba(12,16,26,.60)';
- for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
-  if(sp[r][c]!=='.')continue;
-  const n=(r>0&&sp[r-1][c]!=='.')||(r<sp.length-1&&sp[r+1][c]!=='.')
-        ||(c>0&&sp[r][c-1]!=='.')||(c<sp[r].length-1&&sp[r][c+1]!=='.');
-  if(n) g.fillRect(x+c*s,y+r*s,s,s);}
- for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
-  const ch=sp[r][c]; if(ch==='.')continue;
-  g.fillStyle=_css(sh(_rgb(BPAL[ch]),c<4?.22:c>6?-.24:0));
-  g.fillRect(x+c*s,y+r*s,s,s);}
- g.fillStyle=_css(sh(_rgb('#8a6f42'),0));
- const sw=Math.max(1,Math.round(s*.6));
- g.fillRect(x-s,y+s*5,sw,s*11); g.fillRect(x+s*10,y+s*6,sw,s*10);
- if(lamp){
-  g.fillStyle='rgba(255,241,200,.16)';
-  for(let i=1;i<10;i++) g.fillRect(x+s*5-i*s,y-i*s*1.7,i*s*2,s*1.7);
-  g.fillStyle='rgba(255,245,215,.9)'; g.fillRect(x+s*3,y+s*3,s*4,s);}
+ const sp=WIZ[f%WIZ.length];
+ /* the orb carries its own light, and at night it is the only light */
+ const ox=x+12*s, oy=y+2*s;
+ const glow=lamp?0.55:0.22;
+ const rg=g.createRadialGradient(ox,oy,0,ox,oy,s*13);
+ rg.addColorStop(0,'rgba(120,220,245,'+glow.toFixed(2)+')');
+ rg.addColorStop(0.45,'rgba(95,205,228,'+(glow*0.30).toFixed(2)+')');
+ rg.addColorStop(1,'rgba(95,205,228,0)');
+ g.fillStyle=rg; g.fillRect(ox-s*13,oy-s*13,s*26,s*26);
+ for(let r=0;r<sp.length;r++){
+  const row=sp[r];
+  for(let c=0;c<row.length;c++){
+   const ch=row[c]; if(ch==='.')continue;
+   let col=_rgb(WPAL[ch]);
+   /* key light over the left shoulder, same as the terrain */
+   if(ch!=='o'&&ch!=='c') col=sh(col,c<5?.18:c>8?-.20:0);
+   g.fillStyle=_css(col);
+   g.fillRect(x+c*s,y+r*s,s,s);}
+ }
 }
 
 /* ---------- wildlife ---------- */
@@ -887,220 +806,300 @@ function sprite(g,rows,pal,x,y,s,flip){
    g.fillRect(x+(flip?(w-1-c):c)*s,y+r*s,s,s);}}
 }
 
+
 /* ===================================================================
    THE FRAME
    =================================================================== */
-const CLY=()=> Math.round(H*0.70);          // where the climber stands
-const progress=()=> shownMi*RPM+drift;      // rows climbed
-const camTopRow=()=> -progress()-CLY();     // world row at screen y = 0
-const screenY=Y=> Y-camTopRow();
+let ZB=null;
+function ensureBufs(){ if(!ZB||ZB.length!==W*H) ZB=new Float32Array(W*H); }
 
-let fauna=[], motes=[], nextSpawn=0, pending=[];
+/* Sprites are rasterised into the same buffer the terrain is, so a tree
+   is occluded by the ridge in front of it and occludes the one behind.
+   That needs their pixels, not their canvases. */
+const PXC=new Map();
+function pixOf(key,cnv){
+ let S=PXC.get(key); if(S) return S;
+ const q=cnv.getContext('2d');
+ const d=q.getImageData(0,0,cnv.width,cnv.height);
+ S={w:cnv.width,h:cnv.height,px:new Uint32Array(d.data.buffer.slice(0))};
+ if(PXC.size>900) PXC.clear();
+ PXC.set(key,S); return S;
+}
+function treePix(spc,hgt,B,tint,blaze,vr){
+ const hb=hbucket(hgt);
+ return pixOf('T'+spc+hb+tint+(blaze?1:0)+vr,
+              treeSprite(spc,hgt,B,[0,0,0],0,tint,blaze,vr));
+}
+function underPix(kind,s,B,alpLv,vb){
+ return pixOf('U'+kind+s+alpLv+vb, undergrowth(kind,s,B,[0,0,0],0,alpLv,vb));
+}
 
-function spawn(now,alp){
+function drawBill(S,sx,sy,scale,d,fog,hz3){
+ const dw=Math.max(1,Math.round(S.w*scale)), dh=Math.max(1,Math.round(S.h*scale));
+ if(dw>W*2||dh>H*2) return;
+ const x0=Math.round(sx-dw/2), y0=Math.round(sy-dh);
+ if(x0>W||x0+dw<0||y0>H) return;
+ const nf=1-fog, r0=hz3[0]*fog, g0=hz3[1]*fog, b0=hz3[2]*fog;
+ const sxr=S.w/dw, syr=S.h/dh;
+ for(let yy=0;yy<dh;yy++){
+  const py=y0+yy; if(py<0||py>=H) continue;
+  const row=((yy*syr)|0)*S.w, base=py*W;
+  for(let xx=0;xx<dw;xx++){
+   const px2=x0+xx; if(px2<0||px2>=W) continue;
+   const i=base+px2; if(d>=ZB[i]) continue;
+   const s=S.px[row+((xx*sxr)|0)];
+   if((s>>>24)<128) continue;
+   const r=((s&255)*nf+r0)|0, g2=(((s>>>8)&255)*nf+g0)|0, b=(((s>>>16)&255)*nf+b0)|0;
+   terBuf[i]=0xff000000|(b<<16)|(g2<<8)|r;
+   ZB[i]=d;
+  }
+ }
+}
+
+/* ---------- the sky ---------- */
+function paintSky(g,now,S2,B){
+ const hz=HZN();
+ let A,Bk,mt;
+ if(S2.day){
+  if(S2.tt<0.15){A=SKYR.dawn;Bk=SKYR.day;mt=S2.tt/0.15;}
+  else if(S2.tt>0.85){A=SKYR.day;Bk=SKYR.dusk;mt=(S2.tt-0.85)/0.15;}
+  else {A=SKYR.day;Bk=SKYR.day;mt=0;}
+ }else{
+  if(S2.tt<0.20){A=SKYR.dusk;Bk=SKYR.night;mt=S2.tt/0.20;}
+  else if(S2.tt>0.80){A=SKYR.night;Bk=SKYR.dawn;mt=(S2.tt-0.80)/0.20;}
+  else {A=SKYR.night;Bk=SKYR.night;mt=0;}
+ }
+ const bd=i=>_mix(_rgb(A[i]),_rgb(Bk[i]),mt);
+ const zen=bd(0), mid=bd(1), hor=bd(2);
+ const gr=g.createLinearGradient(0,0,0,hz+2);
+ gr.addColorStop(0,_css(zen)); gr.addColorStop(0.58,_css(mid)); gr.addColorStop(1,_css(hor));
+ g.fillStyle=gr; g.fillRect(0,0,W,hz+3);
+ /* below the horizon the sky is only ever seen through haze */
+ g.fillStyle=_css(hor); g.fillRect(0,hz+2,W,H-hz);
+
+ const starA=S2.day?Math.max(0,1-S2.el*5):Math.min(1,0.32+S2.el);
+ if(starA>0.03) for(let i=0;i<200;i++){
+  const b=hash(i*3+9), tw=0.62+0.38*Math.sin(now/((i%7)*170+430)+i);
+  const y=(hash(i*13+5)*hz)|0;
+  g.fillStyle='rgba(255,255,255,'+((b<.10?.9:b<.42?.5:.24)*starA*tw*(1-y/hz*0.5)).toFixed(3)+')';
+  g.fillRect((hash(i*7+1)*W)|0,y,1,1);}
+
+ const sx=Math.round(W*S2.x), sy=Math.round(hz*S2.y*0.92);
+ const disc=S2.day?_mix(_rgb('#fff6cc'),_rgb('#ffb55e'),S2.warm):_rgb('#eef3ff');
+ const halo=S2.day?_mix(_rgb('#ffd98a'),_rgb('#ff8a4a'),S2.warm):_rgb('#9fb6e0');
+ const rg=g.createRadialGradient(sx,sy,0,sx,sy,W*(S2.day?0.46:0.28));
+ rg.addColorStop(0,'rgba('+(halo[0]|0)+','+(halo[1]|0)+','+(halo[2]|0)+','+(S2.day?0.58:0.30)+')');
+ rg.addColorStop(0.34,'rgba('+(halo[0]|0)+','+(halo[1]|0)+','+(halo[2]|0)+','+(S2.day?0.18:0.09)+')');
+ rg.addColorStop(1,'rgba('+(halo[0]|0)+','+(halo[1]|0)+','+(halo[2]|0)+',0)');
+ g.fillStyle=rg; g.fillRect(0,0,W,hz+3);
+ const R2=Math.round(W*(S2.day?0.040:0.032));
+ g.fillStyle=_css(disc);
+ for(let y=-R2;y<=R2;y++){const w2=Math.round(Math.sqrt(Math.max(0,R2*R2-y*y)));
+  if(sy+y<hz+3) g.fillRect(sx-w2,sy+y,w2*2+1,1);}
+ if(!S2.day){g.fillStyle=_css(_mix(disc,_rgb('#9aa8c4'),.34));
+  g.fillRect(sx-R2*.45,sy-R2*.35,R2*.42,R2*.36);
+  g.fillRect(sx+R2*.12,sy+R2*.22,R2*.38,R2*.32);}
+
+ /* cloud, three ranks. One column at a time so the alpha never doubles
+    where lobes overlap, which is what makes a soft shape out of hard
+    pixels. */
+ const lit=_mix(_rgb('#ffffff'),_mix(_rgb('#ffd3a0'),_rgb('#5c6f9a'),S2.day?0:0.75),
+                S2.warm*0.8+(S2.day?0:0.45));
+ const shd=_mix(_mix(hor,zen,.42),_rgb('#59688f'),0.32);
+ for(let L=0;L<3;L++){
+  const n=[6,7,8][L], spd=[0.0038,0.0078,0.0142][L], sc=[1.0,0.78,0.58][L];
+  const yb=hz*[0.18,0.40,0.62][L], al=[0.92,0.76,0.58][L]*(S2.day?1:0.48);
+  for(let k=0;k<n;k++){
+   const cw=Math.round((W*0.26+hash(k*17+L*53)*W*0.44)*sc);
+   const ch2=(hz*0.075+hash(k*41+L*7)*hz*0.11)*sc;
+   let cx2=((hash(k*11+L*31)*W*2.6-now*spd)%(W+cw*1.4));
+   if(cx2<-cw*1.2) cx2+=W+cw*1.4;
+   const cy=yb+hash(k*23+L*13)*hz*0.14;
+   const sd=k*7+L*101+3, m=3+((hash(sd*31)*3)|0), LB=[];
+   for(let q=0;q<m;q++) LB.push({x:(q+0.5)/m*cw+(hash(sd*17+q*7)-0.5)*cw*0.16,
+                                 r:ch2*(0.62+hash(sd*13+q*11)*0.85)});
+   g.fillStyle='rgba('+(shd[0]|0)+','+(shd[1]|0)+','+(shd[2]|0)+','+(al*0.58).toFixed(2)+')';
+   const colH=new Float32Array(cw);
+   for(let x=0;x<cw;x++){let mx=ch2*0.26;
+    for(const o of LB){const dx=x-o.x, v=o.r*o.r-dx*dx*0.72; if(v>0) mx=Math.max(mx,Math.sqrt(v));}
+    colH[x]=mx;
+    const hh=Math.round(mx); if(hh>0) g.fillRect(Math.round(cx2+x),Math.round(cy-hh),1,hh);}
+   g.fillStyle='rgba('+(lit[0]|0)+','+(lit[1]|0)+','+(lit[2]|0)+','+(al*0.94).toFixed(2)+')';
+   for(let x=0;x<cw;x++){const hh=Math.round(colH[x]); if(hh>0)
+    g.fillRect(Math.round(cx2+x),Math.round(cy-hh),1,Math.max(1,Math.round(hh*0.40)));}
+  }
+ }
+ return hor;
+}
+
+/* ---------- wildlife ---------- */
+let fauna=[], nextSpawn=0;
+function spawn(now,alp,camX,camY){
  const r=Math.random();
  const type=alp>.6 ? (r<.42?'hawk':r<.74?'goat':'bird')
                    : (r<.26?'deer':r<.42?'rabbit':r<.56?'fox':r<.68?'turkey':r<.87?'bird':'hawk');
  const air=(type==='bird'||type==='hawk');
- const top=camTopRow();
  const side=Math.random()<.5?-1:1;
- fauna.push({type,air,
-  x:side<0?-14:W+14, Y:top+Math.random()*H*0.75,
-  vx:-side*(7+Math.random()*16), vY:(Math.random()-.35)*9,
-  born:Math.random()*6.28, flip:side>0});
- nextSpawn=now+2600+Math.random()*5200;
-}
-
-/* ---- cloud, seen from inside it ----
-   There is no horizon, so weather cannot live in a sky. At this altitude
-   it lives where you are: shadows crossing the ground under you and torn
-   banks of cloud drifting over the camera. */
-function drawCloudShadows(g,now,S2){
- if(!(S2.el>0.10)) return;
- for(let k=0;k<5;k++){
-  const cw=W*(0.40+hash(k*29)*0.62), chh=H*(0.12+hash(k*61)*0.17);
-  let cx=((hash(k*17)*W*2.4-now*0.0055)%(W+cw*1.3)); if(cx<-cw*1.2) cx+=W+cw*1.3;
-  const cy=((hash(k*41)*H*1.6+now*0.0026)%(H*1.6))-chh*0.5;
-  if(cy>H) continue;
-  const sg=g.createRadialGradient(cx+cw/2,cy+chh/2,0,cx+cw/2,cy+chh/2,cw*0.55);
-  const a2=0.30*Math.min(1,S2.el*1.6);
-  sg.addColorStop(0,'rgba(16,24,48,'+a2.toFixed(3)+')');
-  sg.addColorStop(0.55,'rgba(16,24,48,'+(a2*0.5).toFixed(3)+')');
-  sg.addColorStop(1,'rgba(16,24,48,0)');
-  g.fillStyle=sg; g.fillRect(Math.max(0,cx),Math.max(0,cy),cw,chh);
- }
-}
-function drawCloudBanks(g,now,S2){
- /* the cloud itself, torn and drifting between you and the mountain */
- const lit=_mix(_rgb('#ffffff'),_rgb('#ffcfa0'),S2.warm*0.8);
- const dim=_mix(lit,_rgb('#5f7099'),S2.dark*0.8);
- for(let k=0;k<3;k++){
-  const cw=W*(0.62+hash(k*53)*0.7), chh=H*(0.07+hash(k*71)*0.09);
-  let cx=((hash(k*23)*W*3.0-now*0.0135)%(W+cw*1.2)); if(cx<-cw*1.1) cx+=W+cw*1.2;
-  const cy=((hash(k*37)*H*1.9+now*0.0042)%(H*1.9))-chh;
-  if(cy>H||cy+chh<0) continue;
-  const base=(0.045+hash(k*13)*0.045)*(1-S2.dark*0.45);
-  for(let i=0;i<4;i++){
-   const lw=cw*(0.30+hash(k*31+i*7)*0.42), lh=chh*(0.55+hash(k*17+i*5)*0.70);
-   const lx=cx+hash(k*11+i*3)*cw*0.72, ly=cy+hash(k*41+i*9)*chh*0.5;
-   const rg=g.createRadialGradient(lx+lw/2,ly+lh/2,0,lx+lw/2,ly+lh/2,Math.max(lw,lh)*0.55);
-   rg.addColorStop(0,'rgba('+(lit[0]|0)+','+(lit[1]|0)+','+(lit[2]|0)+','+base.toFixed(3)+')');
-   rg.addColorStop(0.5,'rgba('+(dim[0]|0)+','+(dim[1]|0)+','+(dim[2]|0)+','+(base*0.5).toFixed(3)+')');
-   rg.addColorStop(1,'rgba('+(dim[0]|0)+','+(dim[1]|0)+','+(dim[2]|0)+',0)');
-   g.fillStyle=rg; g.fillRect(lx,ly,lw,lh);}
- }
+ const d=90+Math.random()*160;
+ fauna.push({type,air,wx:camX+side*(60+Math.random()*90),wy:camY-d,
+  vx:-side*(9+Math.random()*16), vy:6+Math.random()*16,
+  hgt:air?(14+Math.random()*22):0, born:Math.random()*6.28, flip:side>0});
+ nextSpawn=now+2400+Math.random()*4600;
 }
 
 function paint(now,dt){
- const g=ctx;
- const mi=shownMi, B=biomeAt(Math.max(0,mi)), alp=alpineAt(Math.max(0,mi));
- const top=camTopRow();
+ const g=ctx; ensureBufs();
  const S2=solar();
- const night=S2.dark, dusk=S2.warm*(S2.day?1:0.6);
+ const mi=shownMi, B=biomeAt(Math.max(0,mi)), alp=alpineAt(Math.max(0,mi));
+ const hzY=HZN(), FOC=W*FOCB;
+ const camY=camWY(), camX=trailX(camY);
+ const camZ=terrainH(camX,camY)+EYE;
 
- /* ---- the mountain you are on, blitted from baked chunks ---- */
- const c0=Math.floor(top/CH), c1=Math.floor((top+H)/CH);
- for(let ci=c0;ci<=c1;ci++) g.drawImage(chunkAt(ci),0,Math.round(ci*CH-top));
+ const hor=paintSky(g,now,S2,B);
+ const HZC=[hor[0],hor[1],hor[2]];
 
- drawCloudShadows(g,now,S2);
+ /* ---- the ray march ---- */
+ terBuf.fill(0); ZB.fill(1e9);
+ for(let x=0;x<W;x++) YB[x]=H;
+ let d=DNEAR, dz=0.32;
+ while(d<DFAR){
+  const sc=FOC/d, wy=camY-d, stepW=1/sc;
+  const fog=Math.min(0.92,Math.max(0,(d-95)/470));
+  const nf=1-fog, r0=HZC[0]*fog, g0=HZC[1]*fog, b0=HZC[2]*fog;
+  let wx=camX-(W*0.5)*stepW;
+  for(let x=0;x<W;x++,wx+=stepW){
+   sampleRow(wx,wy);
+   const sy=hzY+(camZ-_S2[0])*sc;
+   const yb=YB[x];
+   if(sy<yb){
+    const gn=((hash(((wx*167)|0)*7919+((wy*1193)|0))-0.5)
+             +(hash(((wx*613)|0)*5471+((wy*389)|0))-0.5)*0.6)*17*nf;
+    const r=(_S2[1]*nf+r0+gn)|0, g2=(_S2[2]*nf+g0+gn)|0, b=(_S2[3]*nf+b0+gn)|0;
+    const cc=0xff000000|(b<<16)|(g2<<8)|r;
+    let top=sy<0?0:sy|0; const bot=yb>H?H:yb|0;
+    for(let y=top;y<bot;y++){const i=y*W+x; terBuf[i]=cc; ZB[i]=d;}
+    YB[x]=sy;
+   }
+  }
+  d+=dz; dz*=1.0085;
+ }
 
- /* ---- the next landmark gets a beacon you can see coming ---- */
+ /* ---- scenery, far to near, straight into the same buffer ---- */
+ const DOBJ=460;
+ const halfW=(W*0.5)*DOBJ/FOC;
+ const t0=Math.floor((camX-halfW)/TILE), t1=Math.floor((camX+halfW)/TILE);
+ const r0t=Math.floor((camY-DOBJ)/TILE), r1t=Math.floor((camY-DNEAR)/TILE);
+ const vis=[];
+ for(let ty=r0t;ty<=r1t;ty++)for(let tx=t0;tx<=t1;tx++){
+  const T=tileAt(tx,ty);
+  for(const o of T.objs){
+   const dd=camY-o.wy; if(dd<42||dd>DOBJ) continue;
+   const sc=FOC/dd, sx=W*0.5+(o.wx-camX)*sc;
+   if(sx<-60||sx>W+60) continue;
+   vis.push({o,dd,sc,sx});
+  }
+ }
+ vis.sort((a,b)=>b.dd-a.dd);
+ for(const v of vis){
+  const o=v.o, sy=hzY+(camZ-o.h)*v.sc;
+  const fog=Math.min(0.92,Math.max(0,(v.dd-95)/470));
+  const Bb=biomeAt(Math.max(0,o.mi));
+  if(o.kind==='tree'){
+   const worldH=7+(o.s%10); const pxH=Math.min(H*0.55,worldH*v.sc);
+   if(pxH<2) continue;
+   const vr=o.s&3;
+   const spc=o.alp>0.42?'fir':Bb.tree==='fir'?(vr<3?'fir':'hard')
+                              :(vr===0?'birch':vr===1?'fir':'hard');
+   const S3=treePix(spc,Math.min(60,pxH),Bb,Math.round(o.mi/7),(o.s%37)<6,vr);
+   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog,HZC);
+  }else{
+   const worldH=1.6+(o.s%3); const pxH=Math.min(H*0.25,worldH*v.sc);
+   if(pxH<2) continue;
+   const S3=underPix(o.kind,Math.max(1,Math.min(5,Math.round(pxH/4))),Bb,
+                     Math.round(o.alp*4),(o.s>>2)&3);
+   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog,HZC);
+  }
+ }
+
+ /* the terrain and everything standing in it go down in one blit */
+ terCtx.putImageData(terImg,0,0);
+ g.drawImage(terCan,0,0);
+
+ /* ---- landmarks, on their real mileage ----
+    Drawn on the canvas rather than into the buffer: there are a handful
+    of them and they are always the thing you are meant to see. */
  for(const L of TRAIL){
-  if(L.m<=mi) continue;
-  const sy=screenY(rowOfMile(L.m));
-  if(sy<-30||sy>H) continue;
-  const side=hash(Math.round(L.m*10))<0.5?-1:1;
-  const lx=Math.round(pathX(rowOfMile(L.m))+side*pathW()*2.2);
-  const pul=.5+.5*Math.sin(now/330);
-  g.fillStyle='rgba(245,198,81,'+(pul*.9).toFixed(2)+')';
-  g.fillRect(lx,Math.round(sy-16),1,4);
-  g.fillStyle='rgba(245,198,81,'+(pul*.22).toFixed(2)+')';
-  g.fillRect(lx-2,Math.round(sy-18),5,8);
-  break;
+  const wy=rowOfMile(L.m), dd=camY-wy;
+  if(dd<DNEAR||dd>DOBJ) continue;
+  const sc=FOC/dd, side=hash(Math.round(L.m*10))<0.5?-1:1;
+  const lwx=trailX(wy)+side*TRAILW*2.6;
+  const sx=W*0.5+(lwx-camX)*sc, sy=hzY+(camZ-hAt(lwx,wy))*sc;
+  if(sx<-70||sx>W+70||sy<-40||sy>H+40) continue;
+  const fog=Math.min(0.80,Math.max(0,(dd-95)/470));
+  landmark(g,sx,sy,Math.max(0.30,sc*1.15),L.k,biomeAt(L.m));
+  if(fog>0.02){ g.fillStyle='rgba('+(HZC[0]|0)+','+(HZC[1]|0)+','+(HZC[2]|0)+','+fog.toFixed(2)+')';
+   g.fillRect(Math.round(sx-sc*9),Math.round(sy-sc*20),Math.round(sc*18),Math.round(sc*21)); }
+  if(L.m>mi&&dd<DOBJ*0.8){
+   const pul=.5+.5*Math.sin(now/330);
+   g.fillStyle='rgba(245,198,81,'+(pul*.9).toFixed(2)+')';
+   g.fillRect(Math.round(sx),Math.round(sy-sc*26),1,Math.max(2,sc*5));}
  }
 
- /* ---- wildlife, live, sorted so the near ones pass in front ---- */
- fauna.sort((a,b)=>a.Y-b.Y);
+ /* ---- wildlife ---- */
  for(const A of fauna){
-  const sy=screenY(A.Y); if(sy<-20||sy>H+20) continue;
-  const F=FAUNA[A.type];
-  let rows=F.r;
+  const dd=camY-A.wy; if(dd<DNEAR||dd>DOBJ) continue;
+  const sc=FOC/dd, sx=W*0.5+(A.wx-camX)*sc;
+  const sy=hzY+(camZ-hAt(A.wx,A.wy)-A.hgt)*sc;
+  if(sx<-40||sx>W+40) continue;
+  const F=FAUNA[A.type]; let rows=F.r;
   if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
-  const ss=Math.max(1,Math.round(F.s*1.5));
-  const run=A.air?Math.sin(now/80+A.born)*ss*1.4
-                 :(A.type==='rabbit'?Math.abs(Math.sin(now/95+A.born))*ss*2.2
-                                    :Math.abs(Math.sin(now/130+A.born))*ss*.7);
-  if(!A.air){g.fillStyle='rgba(10,14,28,.30)';
-   g.fillRect(Math.round(A.x),Math.round(sy),rows[0].length*ss,Math.max(1,ss));}
-  sprite(g,rows,F.p,Math.round(A.x),Math.round(sy-ss*rows.length-run),ss,A.flip);
+  const ss=Math.max(1,Math.round(F.s*0.55*sc));
+  const run=A.air?Math.sin(now/80+A.born)*ss*1.2
+                 :(A.type==='rabbit'?Math.abs(Math.sin(now/95+A.born))*ss*2:0);
+  if(!A.air){g.fillStyle='rgba(10,14,28,.28)';
+   g.fillRect(Math.round(sx-rows[0].length*ss/2),Math.round(sy),rows[0].length*ss,Math.max(1,ss));}
+  sprite(g,rows,F.p,Math.round(sx-rows[0].length*ss/2),
+         Math.round(sy-ss*rows.length-run),ss,A.flip);
  }
 
- /* ---- the climber ---- */
- {const Yc=-progress(), cx=pathX(Yc), cy=CLY();
-  const s=Math.max(2,Math.round(W/82));
-  const bob=Math.round(Math.sin(walkPhase*2)*s*.6);
+ /* ---- the climber, always in front ---- */
+ {const dd=78, sc=FOC/dd;
+  const wy=camY-dd, cx=trailX(wy);
+  const sx=W*0.5+(cx-camX)*sc, sy=hzY+(camZ-hAt(cx,wy))*sc;
+  const s=Math.max(1,Math.round(11*sc/16));
+  const bob=Math.round(Math.sin(walkPhase*2)*s*0.6);
   g.fillStyle='rgba(10,16,30,.34)';
-  g.fillRect(Math.round(cx-s*3),Math.round(cy-s*.4),s*10,Math.max(1,Math.round(s*1.2)));
-  climber(g,Math.round(cx-s*5),Math.round(cy-s*16+bob),s,[0,1,0,2][(walkPhase|0)%4],night>.45);}
+  g.fillRect(Math.round(sx-s*3),Math.round(sy-s*.4),s*10,Math.max(1,Math.round(s*1.1)));
+  climber(g,Math.round(sx-s*6),Math.round(sy-s*18+bob),s,[0,1,0,2][(walkPhase|0)%4],S2.dark>.45);}
 
- /* ---- weather ---- */
- for(const p of motes){ g.fillStyle=p.c; g.fillRect(p.x|0,p.y|0,p.s,p.s); }
- if(alp>.45){
-  for(let k=0;k<120;k++){
-   const t=(now/1400+hash(k*13))%1;
-   const x=((hash(k*7)*W*1.5-t*W*1.5)%W+W)%W;
-   const y=(hash(k*31)*H+t*H*.45)%H;
-   g.fillStyle='rgba(248,252,255,'+(0.10+0.30*hash(k*5)).toFixed(2)+')';
-   g.fillRect(x|0,y|0,1,hash(k*3)<.3?2:1);}
- }
-
- /* ---- distance ----
-    There is no horizon. Everything that sells depth is here: a haze that
-    thickens toward the top of the frame, so the far ridges sit back
-    without a single extra thing being drawn. */
-
-
- /* ---- the hour, as a wash over everything ---- */
- /* the hour, washed over the ground only: the sky already has it */
- if(night>0.02){
-  g.fillStyle='rgba(16,26,60,'+(night*0.60).toFixed(3)+')';
-  g.fillRect(0,0,W,H);
-  g.fillStyle='rgba(88,118,198,'+(night*0.09).toFixed(3)+')';
-  g.fillRect(0,0,W,H);
- }
- if(dusk>0.02){
-  g.fillStyle='rgba(255,150,80,'+(dusk*0.20).toFixed(3)+')';
-  g.fillRect(0,0,W,H);
- }
- /* sun raking across, only in the middle of the day */
- if(S2.day&&S2.el>0.18){
-  const lean=(S2.x-0.5)*W*0.9;
-  for(let k=0;k<3;k++){
-   const xx=((hash(k*211)*W*1.7-progress()*.10)%(W+160)+W+160)%(W+160)-80;
-   const lg=g.createLinearGradient(xx,0,xx+lean*0.5,H);
-   lg.addColorStop(0,'rgba(255,246,214,0)');
-   lg.addColorStop(0.42,'rgba(255,246,214,'+(0.10*S2.el).toFixed(3)+')');
-   lg.addColorStop(1,'rgba(255,246,214,0)');
-   g.fillStyle=lg; g.fillRect(Math.max(0,xx-12),0,W*0.32,H);}
- }
-
- drawCloudBanks(g,now,S2);
-
- /* ---- vignette ---- */
+ /* ---- the hour, and the air ---- */
+ if(S2.dark>0.02){
+  g.fillStyle='rgba(16,26,60,'+(S2.dark*0.46).toFixed(3)+')'; g.fillRect(0,hzY,W,H-hzY);}
+ if(S2.warm>0.02&&S2.day){
+  g.fillStyle='rgba(255,150,80,'+(S2.warm*0.16).toFixed(3)+')'; g.fillRect(0,0,W,H);}
  const vw=Math.round(W*0.13);
- let vg2=g.createLinearGradient(0,0,vw,0);
- vg2.addColorStop(0,'rgba(8,12,24,0.42)'); vg2.addColorStop(1,'rgba(8,12,24,0)');
- g.fillStyle=vg2; g.fillRect(0,0,vw,H);
- vg2=g.createLinearGradient(W,0,W-vw,0);
- vg2.addColorStop(0,'rgba(8,12,24,0.42)'); vg2.addColorStop(1,'rgba(8,12,24,0)');
- g.fillStyle=vg2; g.fillRect(W-vw,0,vw,H);
- vg2=g.createLinearGradient(0,H,0,H-Math.round(H*0.08));
- vg2.addColorStop(0,'rgba(8,12,24,0.38)'); vg2.addColorStop(1,'rgba(8,12,24,0)');
- g.fillStyle=vg2; g.fillRect(0,H-Math.round(H*0.08),W,Math.round(H*0.08));
+ let vg=g.createLinearGradient(0,0,vw,0);
+ vg.addColorStop(0,'rgba(8,12,24,0.38)'); vg.addColorStop(1,'rgba(8,12,24,0)');
+ g.fillStyle=vg; g.fillRect(0,0,vw,H);
+ vg=g.createLinearGradient(W,0,W-vw,0);
+ vg.addColorStop(0,'rgba(8,12,24,0.38)'); vg.addColorStop(1,'rgba(8,12,24,0)');
+ g.fillStyle=vg; g.fillRect(W-vw,0,vw,H);
 }
 
 /* ---------- motion ---------- */
 function step(dt,now){
  const target=miles(), d=target-shownMi;
- /* The mountain keeps moving when you have banked nothing. This is a
-    screen you leave open, and a climber standing still is a dead screen.
-    The mile count underneath is still only ever your real steps.
-    Thirteen rows a second is a walk: a screen height takes half a minute. */
+ /* The mountain keeps coming while you watch. The mile count underneath
+    is still only ever your real steps. */
  surge=Math.max(0,surge-dt*.00070);
- drift+=(9+surge*300)*dt/1000;
+ drift+=(26+surge*900)*dt/1000;
  if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/900);
  walkPhase+=dt/190*(1+surge*4.5);
-
- /* build at most one chunk per frame, so a new one never costs a hitch */
- if(pending.length){
-  const ci=pending.shift();
-  if(!CHUNK.has(ci)) CHUNK.set(ci,buildChunk(ci));
- }
-
- const night=solar().dark;
+ const camY=camWY(), camX=trailX(camY);
  const alp=alpineAt(Math.max(0,shownMi));
- if(now>nextSpawn) spawn(now,alp);
- const top=camTopRow();
- for(const A of fauna){ A.x+=A.vx*dt/1000; A.Y+=A.vY*dt/1000; }
- fauna=fauna.filter(A=>A.x>-40&&A.x<W+40&&A.Y>top-60&&A.Y<top+H+60).slice(-10);
-
- if(night>.45&&alp<.5){
-  if(Math.random()<dt/300&&motes.length<34)
-   motes.push({x:Math.random()*W,y:H*.35+Math.random()*H*.6,vx:(Math.random()-.5)*8,
-    vy:(Math.random()-.5)*6,s:1,life:2800+Math.random()*2800,t:0,c:'rgba(190,255,140,.9)'});
-  for(const p of motes){ p.t+=dt;
-   p.x+=p.vx*dt/1000; p.y+=p.vy*dt/1000;
-   p.vx+=(Math.random()-.5)*12*dt/1000; p.vy+=(Math.random()-.5)*10*dt/1000;
-   const a=Math.max(0,Math.sin(p.t/p.life*Math.PI))*(0.45+0.55*Math.sin(p.t/160));
-   p.c='rgba(200,255,152,'+a.toFixed(2)+')';}
-  motes=motes.filter(p=>p.t<p.life);
- }else if(alp<.5){
-  if(Math.random()<dt/420&&motes.length<22)
-   motes.push({x:Math.random()*W,y:-2,vx:-5-Math.random()*11,vy:11+Math.random()*16,s:1,
-    t:0,life:9e9,c:Math.random()<.5?'rgba(214,160,72,.85)':'rgba(166,186,116,.75)'});
-  for(const p of motes){ p.x+=p.vx*dt/1000; p.y+=p.vy*dt/1000; p.x+=Math.sin(p.y/8)*.4; }
-  motes=motes.filter(p=>p.y<H+3&&p.x>-5&&p.life>1e9);
- }else motes.length=0;
+ if(now>nextSpawn) spawn(now,alp,camX,camY);
+ for(const A of fauna){ A.wx+=A.vx*dt/1000; A.wy+=A.vy*dt/1000; }
+ fauna=fauna.filter(A=>Math.abs(A.wx-camX)<420&&(camY-A.wy)>0&&(camY-A.wy)<520).slice(-8);
 }
 /* ===================================================================
    CHEST — opened, not awarded
