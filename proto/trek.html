@@ -53,6 +53,56 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .btn:active{transform:translate(2px,2px);box-shadow:none}
 .devnote{font-size:9px;color:#5c6a7c;letter-spacing:1px;margin-top:7px;text-align:center}
 
+/* ---- pack ---- */
+.packbtn{position:absolute;right:9px;bottom:9px;flex:0 0 auto;width:auto;
+ padding:8px 10px;color:var(--gold);border-color:var(--gold);
+ background:rgba(60,46,12,.70)}
+#pack{position:fixed;inset:0;z-index:40;display:none;background:rgba(3,6,11,.94);
+ flex-direction:column;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
+#pack.open{display:flex}
+.pbar{display:flex;align-items:center;gap:8px;border-bottom:3px solid var(--edge);
+ padding-bottom:9px;margin-bottom:9px}
+.ptitle{font-family:var(--pix);font-size:10px;letter-spacing:2px;color:var(--gold);flex:1}
+.pcount{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:1px}
+.pclose{flex:0 0 auto;width:auto;padding:7px 9px}
+.pbody{flex:1;display:flex;gap:10px;min-height:0}
+.pleft{flex:0 0 118px;display:flex;flex-direction:column;gap:6px}
+.pslot{display:flex;align-items:center;gap:7px;border:2px solid var(--edge2);
+ background:var(--panel2);padding:5px 6px;cursor:pointer;min-height:36px}
+.pslot.on{border-color:var(--gold)}
+.pslot canvas{image-rendering:pixelated;flex:0 0 auto}
+.pslotxt{font-size:9px;line-height:1.3;letter-spacing:.5px;overflow:hidden}
+.pslotxt b{display:block;font-family:var(--pix);font-size:6px;color:var(--dim);
+ letter-spacing:1px;margin-bottom:3px}
+.pslotxt span{color:var(--ink);word-break:break-word}
+.pwiz{border:2px solid var(--edge2);background:var(--panel2);display:flex;
+ align-items:center;justify-content:center;padding:8px 0;margin-top:auto}
+.pwiz canvas{image-rendering:pixelated}
+.pright{flex:1;display:flex;flex-direction:column;min-width:0}
+.ptabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
+.ptab{font-family:var(--pix);font-size:6px;letter-spacing:1px;padding:6px 5px;
+ background:var(--solid2);border:2px solid var(--edge);color:var(--dim);cursor:pointer}
+.ptab.on{border-color:var(--gold);color:var(--gold)}
+.pgrid{flex:1;overflow-y:auto;display:grid;gap:5px;align-content:start;
+ grid-template-columns:repeat(auto-fill,minmax(42px,1fr));
+ border:2px solid var(--edge);background:rgba(8,14,22,.6);padding:6px}
+.cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+ border:2px solid #2b3a50;background:#0c141f;cursor:pointer}
+.cell canvas{image-rendering:pixelated;width:76%;height:76%}
+.cell.locked{opacity:.42}
+.cell.locked canvas{filter:grayscale(1) brightness(.35)}
+.cell.eq{box-shadow:inset 0 0 0 2px var(--gold)}
+.cell .dup{position:absolute;right:1px;bottom:0;font-family:var(--pix);font-size:6px;
+ color:var(--ink);text-shadow:1px 1px 0 #000}
+.pdetail{margin-top:7px;border:2px solid var(--edge);background:var(--panel2);
+ padding:8px 9px;min-height:54px;font-size:11px;letter-spacing:.5px;color:var(--dim)}
+.pdetail b{font-family:var(--pix);font-size:8px;letter-spacing:1px;display:block;margin-bottom:5px}
+.pdetail .rr{font-family:var(--pix);font-size:6px;letter-spacing:1px}
+@media(max-width:430px){
+ .pleft{flex:0 0 96px}
+ .pwiz{display:none}
+}
+
 /* ---- chest ---- */
 #chest{position:fixed;inset:0;z-index:30;display:none;background:rgba(3,6,11,.90)}
 #chest.open{display:block}
@@ -81,6 +131,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="trailname">★ APPALACHIAN TRAIL · NOBO</div>
     <div class="mile"><span id="mile">0.0</span> <small>MI OF 2197</small></div>
     <div class="biome" id="biome">Georgia hardwood</div>
+    <button class="btn packbtn" id="packopen">★ PACK</button>
   </div>
   <div class="frame btm">
     <div class="nextrow">
@@ -110,6 +161,22 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="citem" id="citem"></div>
     <div class="ckind" id="ckind"></div>
     <button class="btn" id="cok">KEEP WALKING ▶</button>
+  </div>
+</div>
+
+<div id="pack">
+  <div class="pbar">
+    <span class="ptitle">★ THE PACK</span>
+    <span class="pcount" id="pcount">0 / 115</span>
+    <button class="btn pclose" id="pclose">✕</button>
+  </div>
+  <div class="pbody">
+    <div class="pleft" id="pleft"></div>
+    <div class="pright">
+      <div class="ptabs" id="ptabs"></div>
+      <div class="pgrid" id="pgrid"></div>
+      <div class="pdetail" id="pdetail">Every piece is cosmetic. Nothing here walks for you.</div>
+    </div>
   </div>
 </div>
 
@@ -273,7 +340,7 @@ function ridged(x,y){
 
 /* ---------- state ---------- */
 const KEY='sq_trek_proto4';
-let S={steps:0,today:0,day:1,opened:[]};
+let S={steps:0,today:0,day:1,opened:[],own:{},eq:{}};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const miles=()=>S.steps/SPM;
@@ -777,9 +844,28 @@ const WIZ=[
   "....ww.ww...s.",
   "....oo.ww...s.",
   ".......oo...s."]];
-const WPAL={y:'#fbf236',Y:'#b7b130',o:'#0a0b14',r:'#c74c4a',R:'#ac3232',
+/* The Wizard as he comes out of the box. Equipping a piece swaps the
+   colours of the part of him it covers: the hat, the robe, the boots,
+   the staff and the light at the top of it. He is fourteen pixels wide,
+   so a helmet cannot have its own silhouette out here; what it can do
+   is be unmistakably a different helmet. */
+const WBASE={y:'#fbf236',Y:'#b7b130',o:'#0a0b14',r:'#c74c4a',R:'#ac3232',
             K:'#782126',b:'#6398ff',w:'#ffffff',s:'#8f563b',c:'#5fcde4'};
+let WPAL=Object.assign({},WBASE), WSIG='-';
 const WCAN=[];
+function wizApply(){
+ const P=Object.assign({},WBASE), eq=S.eq||{};
+ const get=k=>eq[k]&&BYID[eq[k]]?BYID[eq[k]]:null;
+ const head=get('head'), body=get('body'), feet=get('feet'), hand=get('hand');
+ if(head){const q=PAL[head[4]]; P.y=q[1]; P.Y=q[0];}
+ if(body){const q=PAL[body[4]]; P.r=q[1]; P.R=q[0]; P.K=q[2]; P.b=q[2];}
+ if(feet){const q=PAL[feet[4]]; P.w=q[1];}
+ if(hand){const q=PAL[hand[4]]; P.s=q[0]; P.c=q[2];}
+ WPAL=P;
+ const sig=SLOTS.map(k=>eq[k]||'-').join(',');
+ if(sig!==WSIG){WSIG=sig; WCAN.length=0;}
+ return P;
+}
 function wizFrame(f){
  if(WCAN[f]) return WCAN[f];
  const sp=WIZ[f], c=document.createElement('canvas');
@@ -799,13 +885,21 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  const sc=pxH/c.height, dw=c.width*sc;
  const x=cx-dw*0.46, y=footY-pxH;
  const ox=x+12*sc, oy=y+2*sc, glow=lamp?0.55:0.22, rr=Math.max(4,sc*13);
+ const oc=_rgb(WPAL.c), ocs=(oc[0]|0)+','+(oc[1]|0)+','+(oc[2]|0);
  const rg=g.createRadialGradient(ox,oy,0,ox,oy,rr);
- rg.addColorStop(0,'rgba(120,220,245,'+glow.toFixed(2)+')');
- rg.addColorStop(0.45,'rgba(95,205,228,'+(glow*0.30).toFixed(2)+')');
- rg.addColorStop(1,'rgba(95,205,228,0)');
+ rg.addColorStop(0,'rgba('+ocs+','+glow.toFixed(2)+')');
+ rg.addColorStop(0.45,'rgba('+ocs+','+(glow*0.30).toFixed(2)+')');
+ rg.addColorStop(1,'rgba('+ocs+',0)');
  g.fillStyle=rg; g.fillRect(ox-rr,oy-rr,rr*2,rr*2);
  g.imageSmoothingEnabled=false;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
+ /* You see him from behind, so the off hand is the one slot that can
+    have a silhouette of its own out here: the shield rides on his back. */
+ const oid=S.eq&&S.eq.off, og=oid?BYID[oid]:null;
+ if(og){
+  const ss=Math.max(5,pxH*0.34);
+  g.drawImage(gearCanvas(og,false),
+   Math.round(x+dw*0.32), Math.round(y+pxH*0.38), Math.round(ss), Math.round(ss));}
 }
 function climber(g,x,y,s,f,lamp){
  const sp=WIZ[f%WIZ.length];
@@ -1136,7 +1230,18 @@ function paint(now,dt){
   g.fillStyle='rgba(10,16,30,.34)';
   g.fillRect(Math.round(sx-pxH*0.26),Math.round(sy-pxH*0.03),
              Math.round(pxH*0.56),Math.max(1,Math.round(pxH*0.07)));
-  climberAt(g,sx,sy+bob,pxH,[0,1,0,2][(walkPhase|0)%4],S2.dark>.45);}
+  climberAt(g,sx,sy+bob,pxH,[0,1,0,2][(walkPhase|0)%4],S2.dark>.45);
+ /* the companion keeps pace a stride off his left shoulder */
+ const pid=S.eq&&S.eq.pet, pg=pid?BYID[pid]:null;
+ if(pg){
+  const fly=(pg[3]===2||pg[3]===4);          // birds and drakes do not walk
+  const ps=Math.max(6,pxH*(fly?0.44:0.50)), pf=(((walkPhase*(fly?1.2:0.5))|0)%2)===1;
+  const pb=Math.sin(walkPhase*Math.PI*(fly?1.1:0.5)+1.2)*ps*(fly?0.16:0.07);
+  g.imageSmoothingEnabled=false;
+  g.drawImage(gearCanvas(pg,pf),
+   Math.round(sx-pxH*0.90), Math.round(sy+bob+pb-ps-(fly?pxH*0.55:0)),
+   Math.round(ps), Math.round(ps));}
+ }
 
  /* ---- the hour, and the air ---- */
  if(S2.dark>0.02){
@@ -1174,84 +1279,357 @@ function step(dt,now){
  fauna=fauna.filter(A=>Math.abs(A.wx-camX)<420&&(camY-A.wy)>0&&(camY-A.wy)<520).slice(-8);
 }
 /* ===================================================================
-   CHEST — opened, not awarded
+   GEAR — 100 pieces of equipment and 15 companions
+
+   Everything here is cosmetic. Nothing changes how far a step carries
+   you; it changes who is doing the walking.
+
+   A piece is six fields: name, category, rarity, silhouette, palette.
+   The silhouette says what it is at a glance, which is the only job a
+   12x12 sprite can do; the palette says which one it is. Two hundred
+   hand-drawn sprites would have taken a month and looked worse than
+   thirty good ones worn in thirty different metals.
    =================================================================== */
 const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
-           ['EPIC','#b978f0'],['LEGENDARY','#f5c651']];
-/* Terraria's actual shape: a pick, a blade, a ranged thing, a hook, a
-   light source, an accessory, a mount, a potion. Named for a mountain
-   instead of a dungeon, and every one of them cosmetic. */
-const LOOT={
- pick   :['COPPER TRAIL PICK','IRON CRAG PICK','TUNGSTEN SPLITTER','MOLTEN RIDGE PICK','SUMMIT DRILL'],
- blade  :['WHITTLED SHORTSWORD','BLAZED MACHETE','GRANITE CLEAVER','FROSTBRAND','NIGHT ON THE BALD'],
- ranged :['HICKORY SHORTBOW','SHALE SLINGSHOT','SWITCHBACK REPEATER','STORMCALLER BOW'],
- hook   :['VINE GRAPPLE','IVY HOOK','AMETHYST HOOK','DUAL CRAG HOOK','SKYLINE HOOK'],
- light  :['TIN LANTERN','FIREFLY JAR','MINER HELM','WISP IN A BOTTLE','SUNSTONE CROWN'],
- wings  :['LEAF GLIDER','HARPY WINGS','SPECTRE WINGS','SOLAR UPDRAFT'],
- mount  :['TRAIL MULE','RIDGE GOAT','GRAY JAY WHISTLE','BLACK BEAR CUB'],
- shield :['BARK BUCKLER','COBALT SHIELD','TORTOISE SHELL','ANKH SHIELD'],
- potion :['SPRING WATER FLASK','IRONSKIN TONIC','GRAVITATION BREW','ENDLESS COFFEE'],
- trinket:['CLOUD IN A BOTTLE','HERMES BOOTS','LUCKY HORSESHOE','BEZOAR','SHINY RED BALLOON']};
-/* Twelve by twelve, two tones plus an outline, in Terraria's read-at-a-
-   glance silhouette style: the shape has to say what it is at 24 pixels. */
-const ICON={
- pick   :["....ooooo...",".oooHHHHoo..","oHHHoo...oo.","oHo...o.....","oo...o......",
-          "....o.......","...oSo......","..oSSo......",".oSSo.......","oSSo........",
-          "oSo.........",".o.........."],
- blade  :["........ooo.",".......oBBo.","......oBBBo.",".....oBBBo..","....oBBBo...",
-          "...oBBBo....","..oBBBo.....",".ooBBo......","oGGoo.......","oGGo........",
-          ".oHo........","..o........."],
- ranged :["...ooo......",".oo...oo....","o......Bo...",".o......Bo..","..o......o..",
-          "..WWWWWWWWW.","..o......o..",".o......Bo..","o......Bo...",".oo...oo....",
-          "...ooo......","............"],
- hook   :["...o...o....","..oHo.oHo...","..oHo.oHo...","...oHoHo....","....oHo.....",
-          "....oHo.....","....oWo.....","....oWo.....","...oWo......","..oWo.......",
-          ".oWo........","oWo........."],
- light  :["....ooo.....","...oHHHo....","...o...o....","..ooooooo...",".oFFFFFFFo..",
-          ".oFYYYYYFo..",".oFYWWWYFo..",".oFYYYYYFo..",".oFFFFFFFo..","..ooooooo...",
-          "...o...o....","....ooo....."],
- wings  :["..oo....oo..",".oWWo..oWWo.","oWWWWooWWWWo","oWWWWooWWWWo",".oWWWooWWWo.",
-          ".oWWWooWWWo.","..oWWooWWo..","..oWWooWWo..","...oWooWo...","...oWooWo...",
-          "....oooo....","............"],
- mount  :["..........oo","..oooo....oo",".oBBBBo..oBo",".oBBBBBooBBo","oBBBBBBBBBBo",
-          "oBBBBBBBBBo.","oBBBBBBBBo..",".oBBBBBBo...",".o.oo.oo.o..",".o.oo.oo.o..",
-          ".o.oo.oo.o..","............"],
- shield :["..oooooooo..",".oSSSSSSSSo.","oSSGGGGGGSSo","oSSGHHHHGSSo","oSSGHHHHGSSo",
-          "oSSGGGGGGSSo","oSSSSSSSSSSo",".oSSSSSSSSo.","..oSSSSSSo..","...oSSSSo...",
-          "....oSSo....",".....oo....."],
- potion :["....oooo....","....oWWo....","...oooooo...","..oGGGGGGo..",".oGHHHHHHGo.",
-          ".oGHWWWWHGo.",".oGHWWWWHGo.",".oGHHHHHHGo.",".oGGGGGGGGo.","..oGGGGGGo..",
-          "...oooooo...","............"],
- trinket:["....oooo....","...oHHHHo...","..oHWWWWHo..",".oHWWWWWWHo.",".oHWWWWWWHo.",
-          "..oHWWWWHo..","...oHHHHo...","....oGGo....","....oGGo....","...oGGGGo...",
-          "....oooo....","............"]};
-const IPAL={o:'#1b1620',H:'#8e8aa0',W:'#f2f5fb',B:'#c9ccd6',G:'#6b4e2c',
-            S:'#4e7aa8',F:'#d8a63a',Y:'#ffe9a0'};
+           ['MYTHIC','#b978f0'],['LEGENDARY','#f5c651']];
+/* which body slot each category fills */
+const CAT2SLOT={sword:'hand',staff:'hand',shield:'off',helm:'head',
+                chest:'body',outfit:'body',shoes:'feet',pet:'pet'};
+const SLOTS=['hand','off','head','body','feet','pet'];
+const SLOTNAME={hand:'HAND',off:'OFF HAND',head:'HEAD',body:'BODY',
+                feet:'FEET',pet:'COMPANION'};
+
+/* [primary, highlight, accent] — the accent is the gem, trim or glow */
+const PAL={
+ iron:['#6f7682','#a9b2c0','#474d58'], steel:['#8e96a4','#d4dbe6','#5b616e'],
+ copper:['#b4713a','#e0a060','#6e4220'], bronze:['#9a6a30','#d09a52','#5c3d18'],
+ silver:['#a8b0bd','#eef2f8','#6d7482'], gold:['#d2a233','#f5d775','#85601a'],
+ obsid:['#2e2a3a','#4d4760','#9a74e0'], bone:['#cdc4ab','#f0ead6','#8d856e'],
+ wood:['#7b5a33','#a67f4c','#4b351c'], leather:['#8a5f3a','#b5855a','#543720'],
+ frost:['#6fa8d6','#bfe4f7','#3f6e97'], ember:['#d2512f','#f59356','#ffd27a'],
+ venom:['#5f9e3f','#93d46a','#d4f06a'], storm:['#6c7fd2','#a9b8f5','#e8f0ff'],
+ rose:['#c25a7a','#ef9ab2','#7d3147'], amethyst:['#8a5fd0','#c3a1f5','#55357f'],
+ jade:['#3f9e86','#7fd6bd','#236053'], crimson:['#a83232','#d96a62','#6a1a1c'],
+ ash:['#5c5c62','#8e8e96','#35353a'], ivory:['#e4ddcb','#fffaf0','#a9a08c'],
+ cobalt:['#3f6fb8','#7aa6e8','#244678'], moss:['#5d7a3c','#8fae63','#37491f'],
+ sun:['#e8a13a','#ffd98a','#fff3c4'], void:['#3b2a52','#6a4f91','#b89cf0'],
+ mithril:['#7fb6b0','#c3e8e3','#4a7a75'], blood:['#7c1f28','#b9434a','#4a0e15'],
+ sea:['#357b8f','#6fc0cf','#1d4d5c'], dusk:['#6a5a7c','#9a89b2','#413553']};
+
+/* o = outline, A = primary, B = highlight, C = accent */
+const SHAPE={
+sword:[
+["........oooo",".......oABBo","......oABBo.",".....oABBo..","....oABBo...",
+ "...oABBo....","..oABBo.....",".oABBo......","oCCCCCCo....",".ooAAoo.....",
+ "..oAAo......","..oCCo......"],
+["......ooooo.",".....oABBBo.","....oABBoo..","...oABBo....","..oABBo.....",
+ ".oABBo......",".oABo.......","oCCCo.......",".oCCo.......",".oAAo.......",
+ ".oAAo.......",".oCCo......."],
+[".....oooo...","....oABBo...","....oABBo...","....oABBo...","....oABBo...",
+ "....oABBo...","....oABBo...","..oCCCCCCo..","...oCCCCo...","....oAAo....",
+ "....oAAo....","...oCCCCo..."],
+["........oooo",".......oABBo","......oAoBo.",".....oABBo..","....oAoBo...",
+ "...oABBo....","..oAoBo.....",".oCCCCCo....","..oCAAo.....","..oAAo......",
+ "..oCCo......","...oo......."],
+["........oo..",".......oBo..","......oBo...",".....oBo....","....oBo.....",
+ "...oBo......","..oBo.......",".oCCCo......","oCoAoCo.....",".oCAAo......",
+ "..oAo.......","..oCo......."]],
+staff:[
+["...ooo......","..oCCCo.....",".oCBBCo.....",".oCCCCo.....","..oCCo......",
+ "...oAo......","...oAo......","..ooAo......","...oAo......","...oAoo.....",
+ "...oAo......","...oAo......"],
+["....o.......","...oCo......","..oCCCo.....","..oCBCo.....","..oCCCo.....",
+ "...oCo......","...oAo......","...oAo......","...oAo......","...oAo......",
+ "...oAo......","...oAo......"],
+[".oo.....oo..","oCCo...oCCo.","oCBo...oCBo.",".oCo...oCo..","..oCo.oCo...",
+ "...oCCCo....","....oAo.....","....oAo.....","....oAo.....","....oAo.....",
+ "....oAo.....","....oAo....."],
+["...ooo......","..oAAAo.....","..o...o.....",".ooooooo....",".oCCCCCo....",
+ ".oCBBBCo....",".oCBBBCo....",".oCCCCCo....",".ooooooo....","...oAo......",
+ "...oAo......","...oAo......"]],
+shield:[
+["...oooooo...","..oAAAAAAo..",".oAABBBBAAo.","oAABCCCCBAAo","oABCCCCCCBAo",
+ "oABCCCCCCBAo","oAABCCCCBAAo",".oAABBBBAAo.","..oAAAAAAo..","...oAAAAo...",
+ "....oAAo....",".....oo....."],
+["oooooooooo..","oAAAAAAAAo..","oABBBBBBAo..","oABCCCCBAo..","oABCCCCBAo..",
+ ".oABBBBAo...",".oAAAAAAo...","..oAAAAo....","..oAAAAo....","...oAAo.....",
+ "...oAo......","....o......."],
+[".oooooooo...",".oAAAAAAo...",".oABBBBAo...",".oABCCBAo...",".oABCCBAo...",
+ ".oABCCBAo...",".oABCCBAo...",".oABBBBAo...",".oAAAAAAo...",".oAAAAAAo...",
+ "..oAAAAo....","...oooo....."],
+["............","...oooooo...","..oAAAAAAo..",".oABBBBBBAo.",".oABCCCCBAo.",
+ ".oABCCCCBAo.",".oABBBBBBAo.","..oAAAAAAo..","...oooooo...","............",
+ "............","............"]],
+helm:[
+["....oooo....","...oAAAAo...","..oABBBBAo..",".oABBBBBBAo.",".oAB....BAo.",
+ ".oAB....BAo.",".oAoo..ooAo.",".oAo....oAo.","..oAo..oAo..","..oAAooAAo..",
+ "...oAAAAo...","....oooo...."],
+["oo........oo","oCooooooooCo","oCoAAAAAAoCo","oCCABBBBACCo",".oABBBBBBAo.",
+ ".oAo....oAo.",".oAo....oAo.",".oABBBBBBAo.",".oABBBBBBAo.","..oAAAAAAo..",
+ "..oAAAAAAo..","...oooooo..."],
+["...oooooo...","..oAAAAAAo..",".oABBBBBBAo.",".oAoooooAAo.",".oAoCCCCoAo.",
+ ".oAoooooAAo.",".oABBBBBBAo.",".oAoBooBoAo.",".oABBBBBBAo.",".oAAAAAAAAo.",
+ "..oAAAAAAo..","...oooooo..."],
+["............","..o..oo..o..",".oCooCCooCo.",".oCCCCCCCCo.","oABBBBBBBBAo",
+ "oACCCCCCCCAo","oABBBBBBBBAo",".oAAAAAAAAo.","..oooooooo..","............",
+ "............","............"]],
+chest:[
+[".oo......oo.","oAAo....oAAo","oAAAooooAAAo","oAABBBBBBAAo",".oABBBBBBAo.",
+ ".oABCCCCBAo.",".oABCCCCBAo.",".oABBBBBBAo.",".oABBBBBBAo.",".oAABBBBAAo.",
+ "..oAAAAAAo..","...oooooo..."],
+[".oo......oo.","oAAo....oAAo","oAAAooooAAAo",".oABABABAo..",".oABABABAo..",
+ ".oABABABAo..",".oABABABAo..",".oABABABAo..",".oABABABAo..",".oAABBBBAo..",
+ "..oAAAAAo...","...ooooo...."],
+["..oo....oo..",".oAAooooAAo.",".oAABBBBAAo.","..oABBBBAo..","..oACCCCAo..",
+ "..oABBBBAo..","..oABBBBAo..",".oAABBBBAAo.",".oAABBBBAAo.",".oAAAAAAAAo.",
+ ".oAAAAAAAAo.","..oooooooo.."]],
+outfit:[
+["...oooooo...","..oABBBBAo..","..oABBBBAo..",".oAABBBBAAo.",".oABCCCCBAo.",
+ ".oABBBBBBAo.",".oABBBBBBAo.",".oAABBBBAAo.","oAAABBBBAAAo","oAAAAAAAAAAo",
+ ".oAAoooAAo..","..oo...oo..."],
+["...oooooo...","..oAAAAAAo..","..oABBBBAo..",".oAoAAAAoAo.","oAAABBBBAAAo",
+ "oAAABCCBAAAo","oAAABBBBAAAo",".oAABBBBAAo.","..oABBBBAo..","..oAo..oAo..",
+ "..oAo..oAo..","..ooo..ooo.."],
+["..oooooooo..",".oAAAAAAAAo.","oAABBBBBBAAo","oAABBBBBBAAo","oAAoBBBBoAAo",
+ "oAAoBCCBoAAo","oAAoBBBBoAAo",".oAoBBBBoAo.","..ooBBBBoo..","...oBooBo...",
+ "...oBo.oBo..","...ooo.ooo.."]],
+shoes:[
+["............","..oo....oo..",".oAAo..oAAo.",".oAAo..oAAo.",".oBBo..oBBo.",
+ ".oAAo..oAAo.",".oAAo..oAAo.",".oAAo..oAAo.","oAAAo..oAAAo","oCCCo..oCCCo",
+ "ooooo..ooooo","............"],
+["..oo....oo..",".oAAo..oAAo.",".oBBo..oBBo.",".oAAo..oAAo.",".oBBo..oBBo.",
+ ".oAAo..oAAo.",".oCCo..oCCo.",".oAAo..oAAo.","oAAAo..oAAAo","oAAAo..oAAAo",
+ "oCCCo..oCCCo","ooooo..ooooo"],
+["............","............","............","............","..oo....oo..",
+ ".oAAo..oAAo.",".oCCo..oCCo.","oAAAo..oAAAo","oBBBo..oBBBo","oAAAo..oAAAo",
+ "ooooo..ooooo","............"]],
+pet:[
+/* 0 dog */
+["............",".oo.........",".oAo....oo..",".oAoooooAAo.","oAAAAAAAAAo.",
+ "oABBAAAACAo.","oAAAAAAAAo..",".oAAAAAAo...",".oAo..oAo...",".oAo..oAo...",
+ ".ooo..ooo...","............"],
+/* 1 frog */
+["............","............","..oo..oo....",".oACo.oACo..","oAAAAAAAAo..",
+ "oABBBBBBAo..","oAAAAAAAAo..",".oAAAAAAo...","oAo.oo.oAo..","ooo....ooo..",
+ "............","............"],
+/* 2 bird */
+["............","..oo........",".oBBo.......",".oBBBoo.....","..oBBBBoo...",
+ "...oAAAAAo..","..oAAAAAAACo","...oAAAAAo..","....oooooo..","............",
+ "............","............"],
+/* 3 golem */
+["...oooooo...","..oAAAAAAo..","..oACCCCAo..","..oAAAAAAo..",".ooAAAAAAoo.",
+ "oAoABBBBAoAo","oAoABBBBAoAo","oAoAAAAAAoAo",".ooAAAAAAoo.","...oAo.oAo..",
+ "...oAo.oAo..","...ooo.ooo.."],
+/* 4 dragon */
+["............",".......oo...","..oo..oAAo..",".oBBo.oAACo.",".oBBBoAAAo..",
+ "oBBBBBAAo...","oBBBBAAAAo..",".oBBAAAAAAo.","..oAAAAAAo..","..oAo.oAoo..",
+ "..ooo.ooo.oo","............"]]};
+/* the second frame of a companion: what moves when it is beside you */
+const PETALT={
+0:["............",".oo.........",".oAo....oo..",".oAoooooAAo.","oAAAAAAAAAo.",
+   "oABBAAAACAo.","oAAAAAAAAo..",".oAAAAAAo...","..oAo.oAo...","..oAo.oAo...",
+   "..ooo.ooo...","............"],
+1:["............","............","..oo..oo....",".oACo.oACo..","oAAAAAAAAo..",
+   "oABBBBBBAo..","oAAAAAAAAo..",".oAAAAAAo...",".oAooooAo...","..ooooo.....",
+   "............","............"],
+2:["............","............","............","...oAAAAAo..","..oAAAAAAACo",
+   "...oAAAAAo..","..oBBBBoo...",".oBBBoo.....",".oBBo.......","..oo........",
+   "............","............"],
+3:["...oooooo...","..oAAAAAAo..","..oACCCCAo..","..oAAAAAAo..",".ooAAAAAAoo.",
+   "oAoABBBBAoAo","oAoABBBBAoAo","oAoAAAAAAoAo",".ooAAAAAAoo.","..oAo..oAo..",
+   "..oAo..oAo..","..ooo..ooo.."],
+4:["............",".......oo...","......oAAo..","......oAACo.","..oo..oAAo..",
+   ".oBBooAAAo..","oBBBBBAAAAo.",".oBBAAAAAAo.","..oAAAAAAo..","..oAo.oAoo..",
+   "..ooo.ooo.oo","............"]};
+
+/* [name, category, rarity, shape index, palette key] */
+const GEAR=[
+/* --- SWORDS, 18 : 9/5/2/1/1 --- */
+['Notched Shortsword','sword',0,0,'iron'],
+['Militia Arming Blade','sword',0,0,'steel'],
+["Hunter's Falchion",'sword',0,1,'bronze'],
+['Rusted Gladius','sword',0,2,'copper'],
+['Carved Oak Waster','sword',0,0,'wood'],
+['Tin Cutter','sword',0,4,'iron'],
+["Poacher's Dirk",'sword',0,4,'ash'],
+['Ridge Cleaver','sword',0,2,'ash'],
+["Scavenger's Saber",'sword',0,1,'leather'],
+['Steel Longsword','sword',1,0,'steel'],
+['Ashveil Saber','sword',1,1,'ash'],
+['Bronze Kopis','sword',1,1,'bronze'],
+['Wolfsbane Blade','sword',1,3,'moss'],
+['Frostbitten Edge','sword',1,0,'frost'],
+['Emberfang Greatsword','sword',2,2,'ember'],
+['Tidecaller Rapier','sword',2,4,'sea'],
+['Nightsong Greatblade','sword',3,2,'void'],
+["Oathbreaker's Dawn",'sword',4,0,'sun'],
+/* --- STAFFS, 14 : 7/4/2/1/0 --- */
+['Hazel Walking Staff','staff',0,0,'wood'],
+["Acolyte's Rod",'staff',0,1,'wood'],
+['Cracked Quartz Staff','staff',0,1,'bone'],
+['Birch Cane','staff',0,0,'ivory'],
+["Tinker's Rod",'staff',0,3,'copper'],
+['Hedgewitch Staff','staff',0,2,'moss'],
+["Pilgrim's Crook",'staff',0,0,'leather'],
+['Amberheart Staff','staff',1,1,'sun'],
+['Riverstone Staff','staff',1,0,'sea'],
+["Sparrow's Rod",'staff',1,2,'ash'],
+['Gravebloom Staff','staff',1,2,'venom'],
+['Stormcaller Staff','staff',2,1,'storm'],
+['Frostmantle Scepter','staff',2,3,'frost'],
+['Scepter of the Hollow Dark','staff',3,2,'void'],
+/* --- SHIELDS, 14 : 7/4/2/1/0 --- */
+['Bark Buckler','shield',0,3,'wood'],
+['Strapped Planks','shield',0,2,'wood'],
+['Tin Roundshield','shield',0,0,'iron'],
+['Militia Kite','shield',0,1,'iron'],
+['Hide Targe','shield',0,3,'leather'],
+['Scrap Heater','shield',0,1,'ash'],
+['Cobbled Boss','shield',0,0,'bronze'],
+['Steel Kite Shield','shield',1,1,'steel'],
+['Bronze Aspis','shield',1,0,'bronze'],
+['Thornwood Guard','shield',1,2,'moss'],
+['Glacier Targe','shield',1,3,'frost'],
+['Bulwark of the Gorge','shield',2,2,'obsid'],
+['Tidewall','shield',2,0,'sea'],
+['Aegis of the Still Hour','shield',3,1,'mithril'],
+/* --- HELMS, 16 : 8/4/2/1/1 --- */
+['Woolen Hood','helm',0,0,'leather'],
+['Straw Sunhat','helm',0,3,'bone'],
+['Trail Cap','helm',0,0,'moss'],
+['Tin Skullcap','helm',0,2,'iron'],
+['Leather Coif','helm',0,0,'leather'],
+["Ranger's Hood",'helm',0,0,'moss'],
+['Padded Arming Cap','helm',0,2,'ash'],
+["Miner's Helm",'helm',0,2,'copper'],
+['Steel Barbute','helm',1,2,'steel'],
+['Horned Raider Helm','helm',1,1,'bronze'],
+["Mage's Peaked Hat",'helm',1,0,'dusk'],
+['Wolfpelt Hood','helm',1,0,'wood'],
+['Crown of Brambles','helm',2,3,'jade'],
+['Visage of the Ember Jarl','helm',2,1,'ember'],
+['Helm of the Nine Peaks','helm',3,1,'mithril'],
+['Diadem of the Last Light','helm',4,3,'gold'],
+/* --- CHESTPLATES, 14 : 7/4/1/1/1 --- */
+['Padded Gambeson','chest',0,2,'leather'],
+['Trail Vest','chest',0,2,'moss'],
+['Tin Cuirass','chest',0,0,'iron'],
+['Hide Jerkin','chest',0,2,'leather'],
+['Scale Shirt','chest',0,1,'bronze'],
+['Woolen Robe-Top','chest',0,2,'ivory'],
+['Scrap Plate','chest',0,0,'ash'],
+['Steel Cuirass','chest',1,0,'steel'],
+['Lamellar Harness','chest',1,1,'bronze'],
+['Rangerwool Jerkin','chest',1,2,'moss'],
+['Frostlinen Vest','chest',1,2,'frost'],
+['Breastplate of the Granite Oath','chest',2,0,'obsid'],
+['Carapace of the Riven Sky','chest',3,1,'storm'],
+['Heart of the Mountain','chest',4,0,'gold'],
+/* --- OUTFITS, 12 : 6/2/2/1/1 --- */
+["Pilgrim's Garb",'outfit',0,0,'leather'],
+["Woodsman's Kit",'outfit',0,2,'wood'],
+['Acolyte Robes','outfit',0,0,'ivory'],
+["Drover's Coat",'outfit',0,2,'ash'],
+['Marsh Wanderer','outfit',0,0,'moss'],
+["Tinker's Overalls",'outfit',0,1,'copper'],
+['Stormwatch Regalia','outfit',1,1,'cobalt'],
+["Crimson Duelist's Attire",'outfit',1,2,'crimson'],
+['Shroud of the Silent Order','outfit',2,0,'obsid'],
+['Vestments of the Verdant Rite','outfit',2,0,'jade'],
+['Panoply of the Hollow King','outfit',3,1,'void'],
+['Raiment of the First Ascent','outfit',4,0,'sun'],
+/* --- SHOES, 12 : 6/2/1/2/1 --- */
+['Worn Trail Boots','shoes',0,0,'leather'],
+['Hobnail Boots','shoes',0,0,'iron'],
+['Woven Sandals','shoes',0,2,'bone'],
+['Hide Wrappings','shoes',0,2,'wood'],
+['Mud-Caked Boots','shoes',0,0,'ash'],
+["Pilgrim's Clogs",'shoes',0,2,'wood'],
+['Steel Sabatons','shoes',1,1,'steel'],
+['Rangerstride Boots','shoes',1,0,'moss'],
+['Boots of the Quiet Step','shoes',2,2,'dusk'],
+['Greaves of the Shattered Vale','shoes',3,1,'obsid'],
+['Stridewind Sabatons','shoes',3,1,'storm'],
+['Treads of the Endless Mile','shoes',4,1,'gold'],
+/* --- COMPANIONS, 15 : 7 common / 4 rare / 1 mythic / 3 legendary --- */
+['Trail Mutt','pet',0,0,'leather'],
+['Brindle Pup','pet',0,0,'wood'],
+['Bog Frog','pet',0,1,'moss'],
+['Mossback Toad','pet',0,1,'venom'],
+['Gray Jay','pet',0,2,'ash'],
+['Sparrowhawk','pet',0,2,'bone'],
+['Pebble Mite','pet',0,3,'iron'],
+['Ridge Hound','pet',2,0,'ash'],
+['Copper Golem','pet',2,3,'copper'],
+['Peregrine','pet',2,2,'steel'],
+['Emberfrog','pet',2,1,'ember'],
+['Quartz Titan','pet',3,3,'mithril'],
+['Storm Eagle','pet',4,2,'storm'],
+['Frost Wyrmling','pet',4,4,'frost'],
+['Cinder Drake','pet',4,4,'ember']];
+/* a stable id, so a save survives the list being reordered */
+const GID=g=>g[1][0]+g[0].toLowerCase().replace(/[^a-z0-9]/g,'');
+const BYID={}; GEAR.forEach((g,i)=>{g.id=GID(g); g.n=i; BYID[g.id]=g;});
+const OUTLINE='#141019';
+
+/* ---- drawing a piece ---- */
+const GCAN={};
+function gearCanvas(g,alt){
+ const k=g.id+(alt?'#a':'');
+ if(GCAN[k]) return GCAN[k];
+ const sp=(alt&&g[1]==='pet')?PETALT[g[3]]:SHAPE[g[1]][g[3]];
+ const P=PAL[g[4]], map={o:OUTLINE,A:P[0],B:P[1],C:P[2]};
+ const c=document.createElement('canvas'); c.width=12; c.height=12;
+ const q=c.getContext('2d');
+ for(let r=0;r<sp.length;r++) for(let x=0;x<sp[r].length;x++){
+  const ch=sp[r][x]; if(ch==='.') continue;
+  let col=_rgb(map[ch]);
+  if(ch!=='o') col=sh(col,x<5?.16:x>7?-.16:0);
+  q.fillStyle=_css(col); q.fillRect(x,r,1,1);}
+ GCAN[k]=c; return c;
+}
+function drawGear(g,ctx2,x,y,px,alt){
+ ctx2.imageSmoothingEnabled=false;
+ ctx2.drawImage(gearCanvas(g,alt),x|0,y|0,12*px,12*px);
+}
+
+/* ===================================================================
+   CHEST — opened, not awarded
+   =================================================================== */
 const fx=document.getElementById('fx'), fg=fx.getContext('2d');
 let anim=null, chestQ=[];
 
 function startChest(){
  if(!chestQ.length) return;
- const L=chestQ[0], d=roll(L.t), R=RAR[d.rar];
+ const L=chestQ[0], d=roll(L.t), R=RAR[d[2]];
+ const isNew=grant(d);
  anim={L,d,R,t0:performance.now(),done:false,sp:[]};
  const box=document.getElementById('chest');
  box.classList.add('open');
  document.getElementById('clm').innerHTML=L.n+'<br>MILE '+L.m.toFixed(1);
  document.getElementById('crar').textContent=R[0];
  document.getElementById('crar').style.color=R[1];
- document.getElementById('citem').textContent=d.item;
+ document.getElementById('citem').textContent=d[0];
  document.getElementById('citem').style.color=R[1];
- document.getElementById('ckind').textContent=d.kind;
+ document.getElementById('ckind').textContent=
+  (isNew?'NEW · ':'ALREADY YOURS · ')+SLOTNAME[CAT2SLOT[d[1]]];
  for(const id of ['clm','crar','citem','ckind','cok'])
   document.getElementById(id).classList.remove('show');
  setTimeout(()=>document.getElementById('clm').classList.add('show'),250);
  requestAnimationFrame(fxFrame);
 }
+/* The mile you are at tilts the roll. It does not guarantee anything,
+   and a legendary can fall out of the first chest on Springer. */
 function roll(tier){
- const r=Math.random()+tier*0.11;
- const i=r>1.30?4:r>1.05?3:r>0.78?2:r>0.42?1:0;
- const kinds=Object.keys(LOOT), k=kinds[(Math.random()*kinds.length)|0];
- return {rar:i,kind:k,item:LOOT[k][(Math.random()*LOOT[k].length)|0]};
+ const r=Math.random()+tier*0.085;
+ let rar=r>1.34?4:r>1.14?3:r>0.88?2:r>0.52?1:0;
+ /* about one chest in six holds a companion instead of a piece of kit */
+ const pet=Math.random()<0.17;
+ const pool=GEAR.filter(g=>(g[1]==='pet')===pet);
+ let at=pool.filter(g=>g[2]===rar);
+ while(!at.length&&rar>0){rar--; at=pool.filter(g=>g[2]===rar);}
+ if(!at.length) at=pool;
+ return at[(Math.random()*at.length)|0];
 }
 
 /* the whole reveal, on one timeline, in milliseconds */
@@ -1403,19 +1781,15 @@ function fxFrame(now){
   const e=1-Math.pow(1-p,3);
   const hover=(t>T_RISE)?Math.sin((t-T_RISE)/420)*S*.4:0;
   const iy=by-bh-e*S*6.4+hover;
-  const sp=ICON[anim.d.kind]||ICON.trinket, IS=Math.max(1,Math.round(S*.50*e));
+  const IS=Math.max(1,Math.round(S*.50*e));
   /* a halo in the rarity colour, as a real radial glow */
   const rg=fg.createRadialGradient(cx,iy-IS*6,0,cx,iy-IS*6,IS*13);
   rg.addColorStop(0,'rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(.55*e).toFixed(3)+')');
   rg.addColorStop(.45,'rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(.18*e).toFixed(3)+')');
   rg.addColorStop(1,'rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+',0)');
   fg.fillStyle=rg; fg.fillRect(cx-IS*14,iy-IS*20,IS*28,IS*28);
-  for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
-   const ch=sp[r][c]; if(ch==='.')continue;
-   let ic=_rgb(IPAL[ch]||'#f2f5fb');
-   if(ch!=='o') ic=_mix(ic,col,.34);                 // rarity tints the metal
-   fg.fillStyle=_css(ic);
-   fg.fillRect(cx-IS*6+c*IS,iy-IS*12+r*IS,IS,IS);}
+  fg.imageSmoothingEnabled=false;
+  fg.drawImage(gearCanvas(anim.d,false),Math.round(cx-IS*6),Math.round(iy-IS*12),IS*12,IS*12);
 
   /* sparkles orbiting it */
   if(!anim.sp.length) for(let i=0;i<26;i++)
@@ -1479,7 +1853,8 @@ document.getElementById('b5k').onclick=()=>addSteps(5000);
 document.getElementById('bday').onclick=()=>{
  S.day++; S.today=0; save(); addSteps(3000+((Math.random()*6000)|0));};
 document.getElementById('brst').onclick=()=>{
- S={steps:0,today:0,day:1,opened:[]}; chestQ=[]; anim=null; shownMi=0; drift=0; save(); hud();};
+ S={steps:0,today:0,day:1,opened:[],own:{},eq:{}}; chestQ=[]; anim=null;
+ shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();};
 
 /* ---------- loop ---------- */
 let last=performance.now();
@@ -1490,6 +1865,115 @@ function frame(now){
  catch(e){ if(_errs++<3) console.error('frame',e); }
  requestAnimationFrame(frame);
 }
+
+/* ===================================================================
+   THE PACK — what the chests are for
+
+   A chest that hands you a thing you cannot look at again is a slot
+   machine. This is the other half: everything you have found, what is
+   still missing, and the five slots that decide who walks the trail.
+   =================================================================== */
+const CATS=[['all','ALL'],['sword','SWORDS'],['staff','STAFFS'],['shield','SHIELDS'],
+            ['helm','HELMS'],['chest','ARMOR'],['outfit','OUTFITS'],
+            ['shoes','BOOTS'],['pet','PETS']];
+let pcat='all', psel=null;
+const pack=document.getElementById('pack');
+
+function owned(id){return (S.own&&S.own[id])|0;}
+function grant(g){
+ if(!S.own) S.own={};
+ const was=owned(g.id); S.own[g.id]=was+1;
+ /* A new piece goes straight on if the slot is empty or if it outranks
+    what is already there, so the reward shows up without a trip through
+    a menu. It never quietly takes a legendary off you. */
+ if(!was){
+  if(!S.eq) S.eq={};
+  const sl=CAT2SLOT[g[1]], cur=S.eq[sl]?BYID[S.eq[sl]]:null;
+  if(!cur||g[2]>cur[2]){S.eq[sl]=g.id; wizApply();}
+ }
+ save(); return !was;
+}
+function equip(g){
+ if(!owned(g.id)) return;
+ if(!S.eq) S.eq={};
+ const sl=CAT2SLOT[g[1]];
+ S.eq[sl]=(S.eq[sl]===g.id)?null:g.id;
+ wizApply(); save(); drawPack();
+}
+
+function iconCell(g,px,dim){
+ const c=document.createElement('canvas');
+ c.width=12*px; c.height=12*px;
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
+ q.drawImage(gearCanvas(g,false),0,0,12*px,12*px);
+ return c;
+}
+function drawSlots(){
+ const L=document.getElementById('pleft'); L.innerHTML='';
+ for(const sl of SLOTS){
+  const id=S.eq&&S.eq[sl], g=id?BYID[id]:null;
+  const d=document.createElement('div');
+  d.className='pslot'+(g?' on':'');
+  const box=document.createElement('div');
+  box.style.cssText='width:24px;height:24px;flex:0 0 24px;display:flex;align-items:center;justify-content:center';
+  if(g) box.appendChild(iconCell(g,2));
+  else box.innerHTML='<span style="color:#3a4a60;font-size:16px">·</span>';
+  const t=document.createElement('div'); t.className='pslotxt';
+  t.innerHTML='<b>'+SLOTNAME[sl]+'</b><span style="color:'+(g?RAR[g[2]][1]:'#4a5a70')+'">'
+             +(g?g[0]:'empty')+'</span>';
+  d.appendChild(box); d.appendChild(t);
+  if(g) d.onclick=()=>equip(g);
+  L.appendChild(d);
+ }
+ const w=document.createElement('div'); w.className='pwiz';
+ const c=document.createElement('canvas'); c.width=14*4; c.height=18*4;
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
+ q.drawImage(wizFrame(0),0,0,14*4,18*4);
+ w.appendChild(c); L.appendChild(w);
+}
+function drawTabs(){
+ const T=document.getElementById('ptabs'); T.innerHTML='';
+ for(const [k,label] of CATS){
+  const b=document.createElement('div');
+  b.className='ptab'+(k===pcat?' on':''); b.textContent=label;
+  b.onclick=()=>{pcat=k; drawPack();};
+  T.appendChild(b);
+ }
+}
+function drawGrid(){
+ const G=document.getElementById('pgrid'); G.innerHTML='';
+ const list=GEAR.filter(g=>pcat==='all'||g[1]===pcat)
+   .sort((a,b)=>CATS.findIndex(c=>c[0]===a[1])-CATS.findIndex(c=>c[0]===b[1])||a[2]-b[2]);
+ for(const g of list){
+  const n=owned(g.id), has=n>0;
+  const d=document.createElement('div');
+  d.className='cell'+(has?'':' locked')+((S.eq&&S.eq[CAT2SLOT[g[1]]]===g.id)?' eq':'');
+  if(has) d.style.borderColor=RAR[g[2]][1];
+  d.appendChild(iconCell(g,3));
+  if(n>1){const s=document.createElement('span'); s.className='dup'; s.textContent='x'+n; d.appendChild(s);}
+  d.onclick=()=>{psel=g; if(has) equip(g); else drawPack();};
+  G.appendChild(d);
+ }
+}
+function drawDetail(){
+ const D=document.getElementById('pdetail');
+ if(!psel){D.innerHTML='Every piece is cosmetic. Nothing here walks for you.'; return;}
+ const g=psel, has=owned(g.id), R=RAR[g[2]];
+ D.innerHTML='<b style="color:'+R[1]+'">'+(has?g[0]:'? ? ?')+'</b>'
+  +'<span class="rr" style="color:'+R[1]+'">'+R[0]+'</span> &nbsp;·&nbsp; '
+  +SLOTNAME[CAT2SLOT[g[1]]]
+  +(has?(owned(g.id)>1?' &nbsp;·&nbsp; '+owned(g.id)+' found':'')
+       :'<br><span style="color:#5c6a7c">Not found yet. Keep walking.</span>');
+}
+function drawPack(){
+ const tot=GEAR.length, got=GEAR.filter(g=>owned(g.id)).length;
+ document.getElementById('pcount').textContent=got+' / '+tot;
+ drawSlots(); drawTabs(); drawGrid(); drawDetail();
+}
+document.getElementById('packopen').onclick=()=>{pack.classList.add('open'); drawPack();};
+document.getElementById('pclose').onclick=()=>pack.classList.remove('open');
+
+wizApply(); drawPack();
 resize(); hud(); addEventListener('resize',resize);
 requestAnimationFrame(frame);
 </script>
