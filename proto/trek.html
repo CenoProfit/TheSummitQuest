@@ -710,60 +710,65 @@ function landmark(g,x,gy,sc,k,B){
    staff with its cyan orb. The front-facing portrait is no use here since
    he is walking away from you, so this is the same wardrobe redrawn as a
    back view with a three frame shuffle under the hem. */
+/* Three frames that differ only below the hem. The legs used to be
+   separated by two outline pixels, which at this size reads as a black
+   blob between his feet, and the third frame was a row shorter than the
+   other two, so he bobbed a pixel every cycle on top of his own bob. */
 const WIZ=[
-["....yyyy......",
- "...yyyyyy..c..",
- "..yyYYYYyy.ccc",
- "..yyYYYYyy.ccc",
- "...oooooo..c..",
- "..orrrrrro..s.",
- ".orRRRRRRro.s.",
- "orRRRRRRRRros.",
- "orRbbbbbbRros.",
- "orRRRRRRRRros.",
- "orRRRRRRRRros.",
- ".oRRRRRRRRo.s.",
- ".oKRRRRRRKo.s.",
- ".oKKRRRRKKo.s.",
- ".oKK.oo.KKo.s.",
- "..ww....ww..s.",
- "..o......o..s.",
- "............s."],
-["....yyyy......",
- "...yyyyyy..c..",
- "..yyYYYYyy.ccc",
- "..yyYYYYyy.ccc",
- "...oooooo..c..",
- "..orrrrrro..s.",
- ".orRRRRRRro.s.",
- "orRRRRRRRRros.",
- "orRbbbbbbRros.",
- "orRRRRRRRRros.",
- "orRRRRRRRRros.",
- ".oRRRRRRRRo.s.",
- ".oKRRRRRRKo.s.",
- ".oKKRRRRKKo.s.",
- ".oKKK..KKKo.s.",
- "...ww..ww...s.",
- "...o....o...s.",
- "............s."],
-["....yyyy......",
- "...yyyyyy..c..",
- "..yyYYYYyy.ccc",
- "..yyYYYYyy.ccc",
- "...oooooo..c..",
- "..orrrrrro..s.",
- ".orRRRRRRro.s.",
- "orRRRRRRRRros.",
- "orRbbbbbbRros.",
- "orRRRRRRRRros.",
- "orRRRRRRRRros.",
- ".oRRRRRRRRo.s.",
- ".oKRRRRRRKo.s.",
- ".oKKRRRRKKo.s.",
- ".oKK.oo.KKo.s.",
- ".ww......ww.s.",
- ".o........o.s."]];
+ ["....yyyy......",
+  "...yyyyyy..c..",
+  "..yyYYYYyy.ccc",
+  "..yyYYYYyy.ccc",
+  "...oooooo..c..",
+  "..orrrrrro..s.",
+  ".orRRRRRRro.s.",
+  "orRRRRRRRRros.",
+  "orRbbbbbbRros.",
+  "orRRRRRRRRros.",
+  "orRRRRRRRRros.",
+  ".oRRRRRRRRo.s.",
+  ".oKRRRRRRKo.s.",
+  ".oKKRRRRKKo.s.",
+  ".oKK....KKo.s.",
+  "..ww....ww..s.",
+  "..o......o..s.",
+  "............s."],
+ ["....yyyy......",
+  "...yyyyyy..c..",
+  "..yyYYYYyy.ccc",
+  "..yyYYYYyy.ccc",
+  "...oooooo..c..",
+  "..orrrrrro..s.",
+  ".orRRRRRRro.s.",
+  "orRRRRRRRRros.",
+  "orRbbbbbbRros.",
+  "orRRRRRRRRros.",
+  "orRRRRRRRRros.",
+  ".oRRRRRRRRo.s.",
+  ".oKRRRRRRKo.s.",
+  ".oKKRRRRKKo.s.",
+  ".oKKK..KKKo.s.",
+  "...ww..ww...s.",
+  "...o....o...s.",
+  "............s."],
+ ["....yyyy......",
+  "...yyyyyy..c..",
+  "..yyYYYYyy.ccc",
+  "..yyYYYYyy.ccc",
+  "...oooooo..c..",
+  "..orrrrrro..s.",
+  ".orRRRRRRro.s.",
+  "orRRRRRRRRros.",
+  "orRbbbbbbRros.",
+  "orRRRRRRRRros.",
+  "orRRRRRRRRros.",
+  ".oRRRRRRRRo.s.",
+  ".oKRRRRRRKo.s.",
+  ".oKKRRRRKKo.s.",
+  ".oKK....KKo.s.",
+  ".ww......ww.s.",
+  ".o........o.s.",
+  "............s."]];
 const WPAL={y:'#fbf236',Y:'#b7b130',o:'#0a0b14',r:'#c74c4a',R:'#ac3232',
             K:'#782126',b:'#6398ff',w:'#ffffff',s:'#8f563b',c:'#5fcde4'};
 const WCAN=[];
@@ -837,11 +842,22 @@ const FAUNA={
  goat:{s:0.70,p:{o:'#2b2722',w:'#f2eee2',s:'#c2bba8',a:'#6b5a3e'},r:[
   '..........aa..','.........oaao.','.........owwo.','........owwwo.','ooooooooowwo..',
   'owwwwwwwwwo...','owssswwwwo....','owwwwwwwwo....','.o.oo..oo.o...','.o.oo..oo.o...']},
- bird:{s:0.34,p:{o:'#2b3340',w:'#99a6b8'},r:['o.....o','.oo.oo.','..owo..','...o...']},
+ bird:{s:0.34,p:{o:'#2b3340',w:'#99a6b8'},
+  r:['.........','ooo...ooo','..ooooo..','....o....','.........'],
+  f:[['oo.....oo','.oo...oo.','..oo.oo..','...ooo...','....o....'],
+     ['.........','ooo...ooo','..ooowo..','....o....','.........'],
+     ['.........','.........','.ooo.ooo.','oo..w..oo','....o....'],
+     ['.........','ooo...ooo','..ooowo..','....o....','.........']]},
  hawk:{s:0.82,p:{o:'#54432f',b:'#e4d6b6',d:'#33281b'},r:[
   'oo.......oo','.oo.....oo.','..ooobooo..','...obbbo...','...odbdo...',
-  '....ooo....','.....o.....']}};
-const BIRD2=['.......','oo...oo','.oowoo.','...o...'];
+  '....ooo....','.....o.....'],
+  /* a hawk soars rather than flaps: the wings only tip and settle */
+  f:[['oo.......oo','.oo.....oo.','..ooobooo..','...obbbo...','...odbdo...',
+      '....ooo....','.....o.....'],
+     ['.o.........','.oooo.oooo.','..ooobooo..','...obbbo...','...odbdo...',
+      '....ooo....','.....o.....'],
+     ['.........o.','.oooo.oooo.','..ooobooo..','...obbbo...','...odbdo...',
+      '....ooo....','.....o.....']]}};
 function sprite(g,rows,pal,x,y,s,flip){
  const w=rows[0].length;
  for(let r=0;r<rows.length;r++){const row=rows[r];
@@ -1110,9 +1126,10 @@ function paint(now,dt){
   const sc=FOC/dd, sx=W*0.5+(A.wx-camX)*sc;
   const sy=hzY+(camZ-hAt(A.wx,A.wy)-A.hgt)*sc;
   if(sx<-40||sx>W+40) continue;
-  const F=FAUNA[A.type]; let rows=F.r;
-  if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
-  const ss=Math.max(1,Math.round(F.s*0.55*sc));
+  const F=FAUNA[A.type];
+  const per=A.type==='hawk'?520:135;          // a hawk soars, a bird beats
+  const rows=F.f?F.f[(Math.floor(now/per+A.born*2.7)%F.f.length+F.f.length)%F.f.length]:F.r;
+  const ss=Math.max(2,Math.round(F.s*0.75*sc));
   const run=Math.sin(now/260+A.born)*ss*1.6;   // a slow rise and fall
   const top=Math.round(sy-ss*rows.length-run), bw2=rows[0].length*ss;
   const x0=Math.round(sx-bw2/2);
@@ -1161,9 +1178,9 @@ function step(dt,now){
  /* The mountain keeps coming while you watch. The mile count underneath
     is still only ever your real steps. */
  surge=Math.max(0,surge-dt*.00070);
- drift+=(26+surge*900)*dt/1000;
+ drift+=(15+surge*620)*dt/1000;
  if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/900);
- walkPhase+=dt/190*(1+surge*4.5);
+ walkPhase+=dt/330*(1+surge*4.5);
  const camY=camWY(), camX=trailX(camY);
  const alp=alpineAt(Math.max(0,shownMi));
  if(now>nextSpawn) spawn(now,alp,camX,camY);
