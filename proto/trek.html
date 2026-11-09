@@ -826,42 +826,16 @@ function climber(g,x,y,s,f,lamp){
 }
 
 /* ---------- wildlife ---------- */
+/* One species. The hawk was big enough that its silhouette had to hold up
+   to a proper look, and it did not; everything else in here stopped being
+   spawned when the ground animals came out. */
 const FAUNA={
- deer:{s:1.00,p:{o:'#241a10',a:'#6d5236',b:'#95663c',l:'#e0cba2',c:'#eedcb8'},r:[
-  '..........a..a..','...a...a..a.a...','....a.a...aa....','.....aaa..aa....',
-  '......oooooo....','.......obbbo....','.......obbcco...','......obbbccco..',
-  '....oobbbbbco...','ooooobbbbbbo....','obbbbbbbbbbo....','obbbbbbbbbo.....',
-  'obbllllbbbo.....','obbbbbbbbo......','.o.oo..oo.o.....','.o.oo..oo.o.....']},
- rabbit:{s:0.52,p:{o:'#1d1a20',g:'#a6aebc',c:'#f4efe9',p:'#e58ba8'},r:[
-  '....o..oo...','...opo.opo..','...opo.opo..','...ogo.ogo..','..oogooogo..',
-  '.oggggcccco.','ogggggccccpo','oggggggccco.','oggggggggo..','.oggggggco..',
-  '..occcccco..','...oooooo...']},
- fox:{s:0.62,p:{o:'#241610',f:'#cf6d2c',d:'#9a4a1b',c:'#f5ecde'},r:[
-  '..........o.o.','c.........ooo.','co.......offfo','cfo.....offcfo',
-  '.cffoooofffffo','..offffffffffo','..offfcccffffo','...offffffffo.',
-  '...o.oo.oo.o..','...o.oo.oo.o..']},
- turkey:{s:0.58,p:{o:'#1a1510',b:'#50422f',d:'#6b5940',r:'#c0392b',y:'#c9a227'},r:[
-  '.....oo....','....obbo.r.','...obbboro.','..obddboo..','.obddddbo..',
-  'obddddddbo.','obdddddddo.','.obdddddo..','..obbbbo...','...o.oo....','...y.yy....']},
- goat:{s:0.70,p:{o:'#2b2722',w:'#f2eee2',s:'#c2bba8',a:'#6b5a3e'},r:[
-  '..........aa..','.........oaao.','.........owwo.','........owwwo.','ooooooooowwo..',
-  'owwwwwwwwwo...','owssswwwwo....','owwwwwwwwo....','.o.oo..oo.o...','.o.oo..oo.o...']},
  bird:{s:0.34,p:{o:'#2b3340',w:'#99a6b8'},
   r:['.........','ooo...ooo','..ooooo..','....o....','.........'],
   f:[['oo.....oo','.oo...oo.','..oo.oo..','...ooo...','....o....'],
      ['.........','ooo...ooo','..ooowo..','....o....','.........'],
      ['.........','.........','.ooo.ooo.','oo..w..oo','....o....'],
-     ['.........','ooo...ooo','..ooowo..','....o....','.........']]},
- hawk:{s:0.82,p:{o:'#54432f',b:'#e4d6b6',d:'#33281b'},r:[
-  'oo.......oo','.oo.....oo.','..ooobooo..','...obbbo...','...odbdo...',
-  '....ooo....','.....o.....'],
-  /* a hawk soars rather than flaps: the wings only tip and settle */
-  f:[['oo.......oo','.oo.....oo.','..ooobooo..','...obbbo...','...odbdo...',
-      '....ooo....','.....o.....'],
-     ['.o.........','.oooo.oooo.','..ooobooo..','...obbbo...','...odbdo...',
-      '....ooo....','.....o.....'],
-     ['.........o.','.oooo.oooo.','..ooobooo..','...obbbo...','...odbdo...',
-      '....ooo....','.....o.....']]}};
+     ['.........','ooo...ooo','..ooowo..','....o....','.........']]}};
 function sprite(g,rows,pal,x,y,s,flip){
  const w=rows[0].length;
  for(let r=0;r<rows.length;r++){const row=rows[r];
@@ -1002,22 +976,20 @@ let fauna=[], nextSpawn=0;
 function spawn(now,alp,camX,camY){
  /* birds only. A deer bounding past at this scale reads as a cartoon;
     something riding the updraught off the ridge does not. */
- const type=Math.random()<0.34?'hawk':'bird';
+ const type='bird';
  const side=Math.random()<.5?-1:1;
  const d=120+Math.random()*220;
  const n=1+((Math.random()*3)|0);            // they travel in loose groups
- const FOC=Math.max(H*FOCV,W*0.62), hzY=HZN();
- const camZ=terrainH(camX,camY)+EYE;
+ const hzY=HZN();
  for(let i=0;i<n;i++){
   const wx=camX+side*(70+Math.random()*120)+i*(8+Math.random()*14);
   const wy=camY-d+i*(10+Math.random()*22);
-  const dd=Math.max(DNEAR+1,camY-wy), sc=FOC/dd;
-  /* where in the sky band this one should fly, as a fraction of it */
-  const ty=hzY*(0.20+Math.random()*0.56);
-  const hgt=Math.max(30,(camZ-hAt(wx,wy))+(hzY-ty)/sc);
   fauna.push({type,air:true,wx,wy,
    vx:-side*(11+Math.random()*18), vy:4+Math.random()*14,
-   hgt, born:Math.random()*6.28, flip:side>0});
+   /* its height is held in screen terms, so closing on it makes it
+      bigger without lifting it out of the frame */
+   ty:hzY*(0.52+Math.random()*0.38), vty:(Math.random()-0.5)*3.0,
+   born:Math.random()*6.28, flip:side>0});
  }
  nextSpawn=now+3200+Math.random()*6000;
 }
@@ -1128,10 +1100,10 @@ function paint(now,dt){
  for(const A of fauna){
   const dd=camY-A.wy; if(dd<DNEAR||dd>DOBJ) continue;
   const sc=FOC/dd, sx=W*0.5+(A.wx-camX)*sc;
-  const sy=hzY+(camZ-hAt(A.wx,A.wy)-A.hgt)*sc;
+  const sy=A.ty;                              // held in the sky band
   if(sx<-40||sx>W+40) continue;
   const F=FAUNA[A.type];
-  const per=A.type==='hawk'?520:135;          // a hawk soars, a bird beats
+  const per=135;
   const rows=F.f?F.f[(Math.floor(now/per+A.born*2.7)%F.f.length+F.f.length)%F.f.length]:F.r;
   const ss=Math.max(2,Math.round(F.s*0.75*sc));
   const run=Math.sin(now/260+A.born)*ss*1.6;   // a slow rise and fall
@@ -1188,7 +1160,13 @@ function step(dt,now){
  const camY=camWY(), camX=trailX(camY);
  const alp=alpineAt(Math.max(0,shownMi));
  if(now>nextSpawn) spawn(now,alp,camX,camY);
- for(const A of fauna){ A.wx+=A.vx*dt/1000; A.wy+=A.vy*dt/1000; }
+ for(const A of fauna){
+  A.wx+=A.vx*dt/1000; A.wy+=A.vy*dt/1000;
+  A.ty+=A.vty*dt/1000;                        // a slow rise and fall
+  const lo=HZN()*0.44, hi=HZN()*0.95;
+  if(A.ty<lo){A.ty=lo; A.vty=Math.abs(A.vty);}
+  if(A.ty>hi){A.ty=hi; A.vty=-Math.abs(A.vty);}
+ }
  fauna=fauna.filter(A=>Math.abs(A.wx-camX)<420&&(camY-A.wy)>0&&(camY-A.wy)<520).slice(-8);
 }
 /* ===================================================================
