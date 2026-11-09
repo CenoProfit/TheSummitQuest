@@ -224,8 +224,8 @@ const RPM  = 2600;   // world units per trail mile
 const TILE = 256;    // heightfield tile edge, world units
 const HSTEP= 4;      // coarse height sampling inside a tile
 const FOCB = 1.02;   // focal length, as a multiple of screen width
-const EYE  = 58;     // camera height above the ground it stands on
-const DNEAR= 34, DFAR = 980;
+const EYE  = 44;     // camera height above the ground it stands on
+const DNEAR= 28, DFAR = 980;
 
 const _qh=new URLSearchParams(location.search).get('t');
 const _qm=new URLSearchParams(location.search).get('m');
@@ -1004,7 +1004,7 @@ function paint(now,dt){
  for(let ty=r0t;ty<=r1t;ty++)for(let tx=t0;tx<=t1;tx++){
   const T=tileAt(tx,ty);
   for(const o of T.objs){
-   const dd=camY-o.wy; if(dd<42||dd>DOBJ) continue;
+   const dd=camY-o.wy; if(dd<36||dd>DOBJ) continue;
    const sc=FOC/dd, sx=W*0.5+(o.wx-camX)*sc;
    if(sx<-60||sx>W+60) continue;
    vis.push({o,dd,sc,sx});
@@ -1075,10 +1075,10 @@ function paint(now,dt){
  }
 
  /* ---- the climber, always in front ---- */
- {const dd=78, sc=FOC/dd;
+ {const dd=64, sc=FOC/dd, CHAR=1.45;
   const wy=camY-dd, cx=trailX(wy);
   const sx=W*0.5+(cx-camX)*sc, sy=hzY+(camZ-hAt(cx,wy))*sc;
-  const s=Math.max(1,Math.round(11*sc/16));
+  const s=Math.max(2,Math.round(11*sc*CHAR/16));
   const bob=Math.round(Math.sin(walkPhase*2)*s*0.6);
   g.fillStyle='rgba(10,16,30,.34)';
   g.fillRect(Math.round(sx-s*3),Math.round(sy-s*.4),s*10,Math.max(1,Math.round(s*1.1)));
