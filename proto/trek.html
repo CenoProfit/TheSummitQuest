@@ -11,53 +11,42 @@
  --pix:'Press Start 2P','Courier New',monospace;
  --body:'Courier New',Courier,monospace;
  --bg:#080d14; --solid:#111823; --solid2:#1a2432;
- --panel:rgba(14,22,33,.62); --panel2:rgba(24,34,48,.52);
+ --panel:rgba(14,22,33,.60); --panel2:rgba(24,34,48,.52);
  --edge:#33445c; --edge2:#5a7392; --ink:#e9f0f6; --dim:#8695a8;
  --gold:#f5c651; --xp:#74e84f;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
- display:flex;flex-direction:column;overflow:hidden;
- -webkit-user-select:none;user-select:none}
-
-/* ---- the scene fills the screen, chrome floats over it ---- */
+ overflow:hidden;-webkit-user-select:none;user-select:none}
 #scene{position:fixed;inset:0;width:100%;height:100%;z-index:0;image-rendering:pixelated}
 .wrap{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;
  padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
-
 .frame{background:var(--panel);border:3px solid var(--edge);position:relative;
- box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--edge2),4px 4px 0 4px rgba(0,0,0,.5)}
-/* same 3px dither the game uses, so these read as the same material */
-.frame{background-image:
- repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
- repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
-
-/* ---- top: where you are ---- */
-.top{padding:9px 11px}
+ box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--edge2),4px 4px 0 4px rgba(0,0,0,.5);
+ background-image:
+  repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
+.top{padding:8px 11px}
 .trailname{font-family:var(--pix);font-size:8px;letter-spacing:2px;color:var(--gold);
  text-shadow:2px 2px 0 rgba(0,0,0,.7)}
-.mile{font-family:var(--pix);font-size:17px;color:var(--ink);
- text-shadow:2px 2px 0 rgba(0,0,0,.75);margin:7px 0 2px;letter-spacing:1px}
+.mile{font-family:var(--pix);font-size:17px;margin:7px 0 3px;letter-spacing:1px;
+ text-shadow:2px 2px 0 rgba(0,0,0,.75)}
 .mile small{font-size:8px;color:var(--dim);letter-spacing:2px}
 .biome{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
-
-/* ---- bottom: what is next ---- */
 .btm{margin-top:auto;padding:10px 11px 11px}
 .nextrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
 .nextname{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--gold);
  text-shadow:1px 1px 0 rgba(0,0,0,.7);line-height:1.5}
-.nextdist{font-family:var(--pix);font-size:8px;color:var(--ink);white-space:nowrap}
-.track{height:13px;background:#0a121c;border:2px solid var(--edge2);position:relative;overflow:hidden;
+.nextdist{font-family:var(--pix);font-size:8px;white-space:nowrap}
+.track{height:13px;background:#0a121c;border:2px solid var(--edge2);overflow:hidden;
  background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
 .fill{height:100%;background:linear-gradient(#9bf07a,#48b82e);width:0%;transition:width .5s ease-out}
 .steprow{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;
  letter-spacing:1px;color:var(--dim)}
 .steprow b{color:var(--xp);font-family:var(--pix);font-size:9px}
 .steprow i{color:var(--gold);font-family:var(--pix);font-size:9px;font-style:normal}
-
-/* ---- dev controls, prototype only ---- */
-.dev{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.dev{margin-top:8px;display:flex;gap:6px}
 .btn{font-family:var(--pix);font-size:7px;letter-spacing:1px;padding:8px 7px;flex:1;
  background:var(--solid2);color:var(--ink);border:2px solid var(--edge2);cursor:pointer;
  box-shadow:2px 2px 0 rgba(0,0,0,.6)}
@@ -65,16 +54,22 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .devnote{font-size:9px;color:#5c6a7c;letter-spacing:1px;margin-top:7px;text-align:center}
 
 /* ---- chest ---- */
-#chest{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;
- background:rgba(4,8,14,.82);padding:20px}
-#chest.open{display:flex}
-.cbox{max-width:330px;width:100%;text-align:center;padding:20px 18px;background:var(--solid)}
-.clm{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:2px;margin-bottom:12px;line-height:1.7}
-#chestcv{width:84px;height:84px;image-rendering:pixelated;margin:4px auto 12px;display:block}
-.crar{font-family:var(--pix);font-size:11px;letter-spacing:2px;margin-bottom:8px;
- text-shadow:2px 2px 0 rgba(0,0,0,.7)}
-.citem{font-family:var(--pix);font-size:10px;color:var(--ink);line-height:1.8;margin-bottom:4px}
-.ckind{font-size:10px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+#chest{position:fixed;inset:0;z-index:30;display:none;background:rgba(3,6,11,.90)}
+#chest.open{display:block}
+#fx{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.cinfo{position:absolute;left:0;right:0;bottom:0;padding:0 22px max(22px,env(safe-area-inset-bottom));
+ text-align:center}
+.clm{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:2px;line-height:1.8;
+ margin-bottom:14px;opacity:0;transition:opacity .5s}
+.crar{font-family:var(--pix);font-size:12px;letter-spacing:3px;margin-bottom:9px;
+ text-shadow:0 0 10px currentColor,2px 2px 0 rgba(0,0,0,.8);opacity:0;transform:scale(.6);
+ transition:opacity .35s,transform .35s cubic-bezier(.2,1.7,.5,1)}
+.citem{font-family:var(--pix);font-size:11px;line-height:1.8;margin-bottom:5px;opacity:0;
+ transition:opacity .4s}
+.ckind{font-size:10px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;
+ margin-bottom:18px;opacity:0;transition:opacity .4s}
+#cok{opacity:0;transition:opacity .4s;width:100%;flex:none;padding:12px}
+.show{opacity:1 !important;transform:none !important}
 </style>
 </head>
 <body>
@@ -86,7 +81,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="mile"><span id="mile">0.0</span> <small>MI OF 2197</small></div>
     <div class="biome" id="biome">Georgia hardwood</div>
   </div>
-
   <div class="frame btm">
     <div class="nextrow">
       <span class="nextname" id="nextname">STOVER CREEK SHELTER</span>
@@ -98,8 +92,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
       <span>DAY <i id="day">1</i></span>
     </div>
     <div class="dev">
-      <button class="btn" id="b1k">+1,000 STEPS</button>
-      <button class="btn" id="b5k">+5,000 STEPS</button>
+      <button class="btn" id="b1k">+1,000</button>
+      <button class="btn" id="b5k">+5,000</button>
       <button class="btn" id="bday">NEXT DAY</button>
       <button class="btn" id="brst">RESET</button>
     </div>
@@ -107,324 +101,1232 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   </div>
 </div>
 
-<div id="chest"><div class="frame cbox">
-  <div class="clm" id="clm">HAWK MOUNTAIN SHELTER<br>MILE 8.1</div>
-  <canvas id="chestcv" width="28" height="28"></canvas>
-  <div class="crar" id="crar">UNCOMMON</div>
-  <div class="citem" id="citem">LAUREL CLOAK</div>
-  <div class="ckind" id="ckind">climber skin</div>
-  <button class="btn" id="cok" style="flex:none;width:100%">KEEP WALKING ▶</button>
-</div></div>
+<div id="chest">
+  <canvas id="fx"></canvas>
+  <div class="cinfo">
+    <div class="clm" id="clm"></div>
+    <div class="crar" id="crar"></div>
+    <div class="citem" id="citem"></div>
+    <div class="ckind" id="ckind"></div>
+    <button class="btn" id="cok">KEEP WALKING ▶</button>
+  </div>
+</div>
 
 <script>
 /* ===================================================================
-   SUMMIT QUEST — DAILY TREK (prototype)
+   SUMMIT QUEST — DAILY TREK (prototype, perspective rebuild)
 
-   Your real steps walk your climber up a real long trail. Nothing here
-   gates or is gated by the summit game: the trail is its own reward,
-   and the next landmark is never more than a few days away.
+   You walk away from the camera, up a winding trail that recedes to the
+   horizon, and the world comes at you continuously.
 
-   Everything is drawn with the same vocabulary as the region scenes in
-   index.html: a canvas sized at 1:3 and scaled back up with
-   image-rendering:pixelated, so every fillRect below is a 3px block.
+   The renderer is the pseudo-3D ground plane that racing games used:
+   the trail is a chain of fixed-length segments in world space, each
+   projected to a screen row by y = horizon + FOCAL/z. Drawing them from
+   nearest to furthest and refusing to draw above the lowest row already
+   covered gives hidden-surface removal for free, which is what lets the
+   ground roll over hills instead of lying flat.
+
+   Everything is on the same 1:3 pixel grid as the rest of the game.
    =================================================================== */
 
-const PX  = 3;      // screen pixels per drawn pixel
-const PPM = 250;    // drawn pixels per trail mile
-const SPM = 2100;   // steps per mile, ~30in stride
+const PX   = 2;    // screen pixels per drawn pixel
+const SEG  = 0.5;    // world units per trail segment
+const MPZ  = 160;    // world units per trail mile
+const SPM  = 2100;   // steps per mile, ~30in stride
+const NSEG = 620;  // segments drawn ahead
 
-/* ---------- colour helpers, lifted from the game ---------- */
+/* ---------- colour ---------- */
 const _rgb=h=>{h=h.replace('#','');
  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];};
-const _css=a=>'rgb('+Math.round(a[0])+','+Math.round(a[1])+','+Math.round(a[2])+')';
+const _css=a=>'rgb('+(a[0]|0)+','+(a[1]|0)+','+(a[2]|0)+')';
 const _mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
 const _dark=(a,t)=>_mix(a,[0,0,0],t), _lite=(a,t)=>_mix(a,[255,255,255],t);
 
-/* Stateless hash rather than a seeded stream. The world scrolls past, so
-   every feature has to be derivable from its own world coordinate alone;
-   a sequential PRNG would make trees change as the camera moves. */
+/* Stateless. Every feature has to be derivable from its own world slot
+   alone, because the world streams past the camera forever. */
 function hash(n){let t=(n|0)+0x6D2B79F5|0;t=Math.imul(t^t>>>15,1|t);
  t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;}
 
-/* ---------- the first stretch of the AT, northbound ----------
-   Mileages are the standard NOBO figures from Springer. Approximate, and
-   they shift a little every year as the trail is rerouted, which is true
-   of the paper guides too. Tier drives the chest. */
-const TRAIL = [
- {m:  0.0,n:'SPRINGER MOUNTAIN',      k:'summit', t:3},
+/* ---------- the trail, northbound from Springer ---------- */
+const TRAIL=[
+ {m:  0.0,n:'SPRINGER MOUNTAIN',      k:'summit', t:3,a:.18},
  {m:  2.8,n:'STOVER CREEK SHELTER',   k:'shelter',t:0},
  {m:  4.9,n:'THREE FORKS',            k:'water',  t:0},
  {m:  5.2,n:'LONG CREEK FALLS',       k:'water',  t:1},
  {m:  8.1,n:'HAWK MOUNTAIN SHELTER',  k:'shelter',t:1},
  {m: 15.8,n:'GOOCH MOUNTAIN SHELTER', k:'shelter',t:1},
  {m: 20.5,n:'WOODY GAP',              k:'gap',    t:1},
- {m: 28.8,n:'BLOOD MOUNTAIN',         k:'summit', t:4},
+ {m: 28.8,n:'BLOOD MOUNTAIN',         k:'summit', t:4,a:1.0},
  {m: 31.7,n:'NEEL GAP',               k:'town',   t:3},
  {m: 37.4,n:'HOGPEN GAP',             k:'gap',    t:1},
  {m: 43.2,n:'LOW GAP SHELTER',        k:'shelter',t:1},
  {m: 50.5,n:'BLUE MOUNTAIN SHELTER',  k:'shelter',t:1},
  {m: 52.9,n:'UNICOI GAP',             k:'gap',    t:2},
- {m: 56.0,n:'TRAY MOUNTAIN',          k:'summit', t:3},
+ {m: 56.0,n:'TRAY MOUNTAIN',          k:'summit', t:3,a:.60},
  {m: 69.6,n:'DICKS CREEK GAP',        k:'town',   t:2},
  {m: 78.1,n:'BLY GAP',                k:'border', t:4},
- {m: 85.5,n:'STANDING INDIAN',        k:'summit', t:3},
- {m: 99.6,n:'ALBERT MOUNTAIN',        k:'summit', t:4},
- {m:100.0,n:'ONE HUNDRED MILES',      k:'mark',   t:4},
+ {m: 85.5,n:'STANDING INDIAN',        k:'summit', t:3,a:.70},
+ {m: 99.6,n:'ALBERT MOUNTAIN',        k:'summit', t:4,a:.80},
+ {m:100.0,n:'ONE HUNDRED MILES',      k:'mark',   t:4,a:.45},
  {m:106.4,n:'ROCK GAP',               k:'gap',    t:1},
- {m:109.8,n:'WINDING STAIR GAP',      k:'town',   t:3}
-];
+ {m:109.8,n:'WINDING STAIR GAP',      k:'town',   t:3}];
 
-/* ---------- biomes, interpolated by mile ----------
-   The screen has to look different a month from now without anybody
-   hand-drawing a month of trail, so the palette is a keyframed ramp and
-   the tree shape changes with it. */
-const BIOMES = [
- {m:  0,n:'Georgia hardwood',  sky:['#15263c','#53728a'],far:'#2f4556',mid:'#31503c',near:'#1f3527',gnd:'#4a3a26',tree:'hard'},
- {m: 22,n:'Laurel ridge',      sky:['#162a3e','#5b7d93'],far:'#2b4252',mid:'#2b4a39',near:'#1b3124',gnd:'#453523',tree:'hard'},
- {m: 28,n:'Blood Mountain bald',sky:['#1b2c3e','#7d8fa0'],far:'#3b4a58',mid:'#4a5048',near:'#36382e',gnd:'#5b5244',tree:'bald'},
- {m: 34,n:'Chattahoochee ridge',sky:['#152840','#52768f'],far:'#2d4454',mid:'#2e4d3b',near:'#1d3326',gnd:'#473826',tree:'hard'},
- {m: 56,n:'Tray Mountain spruce',sky:['#122440','#47708c'],far:'#27404f',mid:'#234434',near:'#16291f',gnd:'#3b3124',tree:'fir'},
- {m: 78,n:'North Carolina balsam',sky:['#101f3a','#3e6988'],far:'#223b4c',mid:'#1e3e30',near:'#12241b',gnd:'#342c22',tree:'fir'},
- {m: 99,n:'Nantahala high country',sky:['#0e1c36','#3a6485'],far:'#1f3647',mid:'#1b3a2d',near:'#102019',gnd:'#302a21',tree:'fir'}
-];
+/* ---------- biomes, a keyframed ramp by mile ---------- */
+const BIOMES=[
+ {m:  0,n:'Georgia hardwood',      sky:['#2c6cb4','#aed8f0'],mtn:'#5d7fa2',fst:'#2f5c3a',
+  gnd:'#527f3c',gn2:'#467134',pth:'#8f6e41',cnp:'#3f7d36',trk:'#4c3722',fer:'#63a043',rck:'#857f74'},
+ {m: 22,n:'Laurel ridge',          sky:['#2a68b0','#a6d2ec'],mtn:'#57799c',fst:'#2b5536',
+  gnd:'#4c7838',gn2:'#406a31',pth:'#88683d',cnp:'#397532',trk:'#48331f',fer:'#5d9a3f',rck:'#7f7a70'},
+ {m: 28,n:'Blood Mountain bald',   sky:['#3376bc','#bcdff2'],mtn:'#6c8aa8',fst:'#4a5a44',
+  gnd:'#7a7a58',gn2:'#6e7150',pth:'#9c8a66',cnp:'#5a6646',trk:'#5c4e38',fer:'#8a8a58',rck:'#a39d92'},
+ {m: 34,n:'Chattahoochee ridge',   sky:['#2764ac',"#a1cfea"],mtn:'#53759a',fst:'#285234',
+  gnd:'#487434',gn2:'#3d662e',pth:'#84653a',cnp:'#357130',trk:'#45311d',fer:'#58953b',rck:'#7b766c'},
+ {m: 56,n:'Tray Mountain spruce',  sky:['#235ea6','#96c6e6'],mtn:'#4a6c92',fst:'#20472e',
+  gnd:'#3d6a30',gn2:'#345c2a',pth:'#7a5c35',cnp:'#2a6630',trk:'#3b2a1a',fer:'#4c8a38',rck:'#737066'},
+ {m: 78,n:'North Carolina balsam', sky:['#1f58a0','#8dbfe2'],mtn:'#44648a',fst:'#1c4229',
+  gnd:'#36612b',gn2:'#2d5325',pth:'#715437',cnp:'#245c2c',trk:'#352618',fer:'#448030',rck:'#6d6a62'},
+ {m: 99,n:'Nantahala high country',sky:['#1b529a','#85b9de'],mtn:'#3e5c82',fst:'#193d26',
+  gnd:'#315a28',gn2:'#294d22',pth:'#6b4f33',cnp:'#1f5628',trk:'#312317',fer:'#3e7a2c',rck:'#67645c'}];
+const BK=['mtn','fst','gnd','gn2','pth','cnp','trk','fer','rck'];
 function biomeAt(mi){
  let a=BIOMES[0],b=BIOMES[0];
  for(let i=0;i<BIOMES.length;i++){ if(BIOMES[i].m<=mi) a=BIOMES[i];
   if(BIOMES[i].m>mi){b=BIOMES[i];break;} b=a; }
- const span=Math.max(.001,b.m-a.m), t=Math.min(1,Math.max(0,(mi-a.m)/span));
- const L=(x,y)=>_mix(_rgb(x),_rgb(y),t);
- return {name:(t<.5?a.n:b.n),
-  sky0:L(a.sky[0],b.sky[0]), sky1:L(a.sky[1],b.sky[1]),
-  far:L(a.far,b.far), mid:L(a.mid,b.mid), near:L(a.near,b.near), gnd:L(a.gnd,b.gnd),
-  tree:(t<.5?a.tree:b.tree)};
+ const t=Math.min(1,Math.max(0,(mi-a.m)/Math.max(.001,b.m-a.m)));
+ const o={name:(t<.5?a.n:b.n),tree:(t<.5?a.tree:b.tree),
+  sky0:_mix(_rgb(a.sky[0]),_rgb(b.sky[0]),t), sky1:_mix(_rgb(a.sky[1]),_rgb(b.sky[1]),t)};
+ for(const k of BK) o[k]=_mix(_rgb(a[k]),_rgb(b[k]),t);
+ return o;
 }
 
+/* ===================================================================
+   RENDER CORE
+
+   Three things carry this scene, and none of them is "more objects":
+
+   1. Warm/cool light. Shadows go blue, highlights go warm. A palette
+      that only darkens toward black is the single biggest reason pixel
+      art reads as cheap, and fixing it costs nothing.
+   2. Ordered dithering. Gradients are quantised and dithered on a 4x4
+      Bayer grid, served as canvas patterns so a whole band costs one
+      fill. Smooth gradients are what make pixel art look like a photo
+      someone shrank.
+   3. Sprite caches. The summit, the sky and every tree are rendered
+      once into offscreen canvases and blitted. That is what buys the
+      detail: a tree can cost two thousand operations to draw because
+      it is drawn once, not sixty times a second.
+   =================================================================== */
+const LIN=0.064;
+const pathAt=z=> .62*Math.sin(z*.0290)+.34*Math.sin(z*.0631+2.1)+.14*Math.sin(z*.1270+4.4);
+const tri=x=> Math.asin(Math.sin(x))*0.6366;
+const swbk=z=> 2.35*tri(z*.0392)+0.55*tri(z*.0970+1.2);
+const laneAt=z=> pathAt(z)*0.42+swbk(z);
+const hillAt=z=> LIN*z + .30*Math.sin(z*.0180)+.13*Math.sin(z*.0410+1.3)+.05*Math.sin(z*.0950+3.1);
+const dropAt=z=> Math.sin(z*.0034+1.1)>0?1:-1;
+const edgeAt=z=> laneAt(z)+dropAt(z)*(1.25+.55*Math.sin(z*.0190)+.22*Math.sin(z*.071));
+const _qh=new URLSearchParams(location.search).get('t');
+const HOUR=()=> _qh!==null?(+_qh):new Date().getHours();
+const _qm=new URLSearchParams(location.search).get('m');
+
+/* ---- light ----
+   SHADE is warm at the top of the ramp and cool at the bottom. Everything
+   that stands up gets lit by it, and the key is over your left shoulder. */
+const COOL=[26,34,78], WARM=[255,242,201];
+const sh=(c,t)=> t<0?_mix(c,COOL,Math.min(.85,-t*.92)):_mix(c,WARM,Math.min(.85,t*.82));
+
+/* ---- ordered dither, served as patterns ---- */
+const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+const _pat=new Map();
+function dpat(a,b,lv){                     /* lv 0..16 : sixteenths of b */
+ lv=Math.max(0,Math.min(16,Math.round(lv)));
+ const k=a+'|'+b+'|'+lv;
+ let p=_pat.get(k); if(p) return p;
+ if(lv<=0) p=a; else if(lv>=16) p=b;
+ else{
+  const c=document.createElement('canvas'); c.width=4; c.height=4;
+  const q=c.getContext('2d'); q.fillStyle=a; q.fillRect(0,0,4,4); q.fillStyle=b;
+  const thr=lv;
+  for(let y=0;y<4;y++)for(let x=0;x<4;x++) if(BAYER[(y<<2)|x]<thr) q.fillRect(x,y,1,1);
+  p=ctx.createPattern(c,'repeat');
+ }
+ if(_pat.size>1400) _pat.clear();
+ _pat.set(k,p); return p;
+}
+/* blend two colours with dithering instead of a flat average */
+function dmix(a,b,t){
+ return dpat(_css(a),_css(b),Math.round(t*16));
+}
+function vnoise(x,y){
+ const xi=Math.floor(x), yi=Math.floor(y), fx=x-xi, fy=y-yi;
+ const h00=hash(xi*374761+yi*668265), h10=hash((xi+1)*374761+yi*668265);
+ const h01=hash(xi*374761+(yi+1)*668265), h11=hash((xi+1)*374761+(yi+1)*668265);
+ const sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy);
+ return (h00*(1-sx)+h10*sx)*(1-sy)+(h01*(1-sx)+h11*sx)*sy;
+}
+function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.1,y*2.1)*.28+vnoise(x*4.3,y*4.3)*.17;}
+
 /* ---------- state ---------- */
-const KEY='sq_trek_proto';
+const KEY='sq_trek_proto2';
 let S={steps:0,today:0,day:1,opened:[]};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const miles=()=>S.steps/SPM;
 
-let shown=miles();          // camera, eases toward the real figure
-let walking=false, tAnim=0;
+if(_qm!==null) S.steps=Math.round((+_qm)*SPM);
+let shownMi=miles(), drift=0, surge=0, walkPhase=0, shake=0;
 
-/* ---------- sprites ---------- */
-/* Two frame walk cycle. Pack on the back, trekking pole, because at this
-   size the silhouette is the only thing carrying the character. */
-const HIKER=[
-[".ggg....","gbbbg...","gbbbg..p",".ggg...p","rrrrr..p","rrrrrk.p","rrrrrk.p",".rr.rr.p",
- ".kk..kk.",".kk..kk.","bb....bb"],
-[".ggg....","gbbbg...","gbbbg..p",".ggg...p","rrrrr..p","rrrrrk.p","rrrrrk.p",".rrrr..p",
- "..kkk...",".kk.kk..","bb...bb."]];
-const HPAL={g:'#3f6b3a',b:'#e8c49a',r:'#c8552f',k:'#2b3a4a',p:'#9b7b4a'};
-function hiker(g,x,y,f){
- const sp=HIKER[f];
+const cv=document.getElementById('scene');
+const ctx=cv.getContext('2d');
+let W=0,H=0,hzY=0,FOC=0;
+function resize(){
+ const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
+ W=Math.max(1,Math.ceil(w/PX)); H=Math.max(1,Math.ceil(h/PX));
+ cv.width=W; cv.height=H; ctx.imageSmoothingEnabled=false;
+ hzY=Math.round(H*.56); FOC=H*2.6;
+ skyKey=''; peakKey=''; TC.clear(); _pat.clear();
+}
+/* How far above the treeline this mile feels. Driven by the nearest summit
+   AND by how bald that summit actually is, so Springer stays in the
+   hardwood and Blood Mountain genuinely strips down to rock. */
+function alpineAt(mi){
+ let v=0;
+ for(const L of TRAIL){
+  if(!L.a) continue;
+  const d=Math.abs(L.m-mi);
+  if(d>2.6) continue;
+  v=Math.max(v,L.a*(1-d/2.6));
+ }
+ return Math.max(0,Math.min(1,v));
+}
+
+/* ===================================================================
+   SKY — baked once per hour and per stretch of trail
+   =================================================================== */
+let skyCan=null, skyKey='';
+function buildSky(B,hr,night,dusk,s0,s1,vanY){
+ const c=skyCan||(skyCan=document.createElement('canvas'));
+ c.width=W; c.height=H;
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
+ const img=q.createImageData(W,H), D=img.data;
+ /* the sky is a nine stop ramp, dithered between stops. A smooth
+    gradient on a 188 pixel canvas bands horribly; this does not. */
+ const N=9, ramp=[];
+ for(let i=0;i<N;i++){
+  const t=i/(N-1);
+  let c2=_mix(s0,s1,Math.pow(t,1.35));
+  c2=sh(c2,(0.5-t)*0.18);
+  ramp.push(c2);
+ }
+ const valley=[];
+ for(let i=0;i<5;i++) valley.push(_mix(s1,_mix(B.fst,COOL,.35),Math.pow(i/4,.8)));
+ const put=(x,y,c2)=>{const o=(y*W+x)<<2;
+  D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0; D[o+3]=255;};
+ for(let y=0;y<H;y++){
+  const above=y<hzY;
+  const f=above?(y/Math.max(1,hzY))*(N-1):((y-hzY)/Math.max(1,H-hzY))*4;
+  const i=Math.floor(f), fr=f-i;
+  const A=above?ramp[Math.min(N-1,i)]:valley[Math.min(4,i)];
+  const Bc=above?ramp[Math.min(N-1,i+1)]:valley[Math.min(4,i+1)];
+  for(let x=0;x<W;x++)
+   put(x,y,((BAYER[((y&3)<<2)|(x&3)]+0.5)/16)<fr?Bc:A);
+ }
+ /* the sun or the moon. The halo is baked into the pixel pass above so
+    it dithers into the sky ramp instead of sitting on top of it. */
+ const sx=Math.round(W*.21), sy=Math.round(vanY*(night>.4?.30:.40));
+ const disc=night>.4?_rgb('#f2f6ff'):_rgb('#fff6cc');
+ const halo=night>.4?_rgb('#aec6ef'):_rgb('#ffd27a');
+ const HR=W*(night>.4?.26:.40);
+ for(let y=0;y<Math.min(H,hzY+2);y++)for(let x=0;x<W;x++){
+  const dx=x-sx, dy2=(y-sy)*1.08, r=Math.sqrt(dx*dx+dy2*dy2);
+  if(r>HR) continue;
+  const a=Math.pow(1-r/HR,2.6)*(night>.4?.55:.80);
+  const o=(y*W+x)<<2;
+  if(((BAYER[((y&3)<<2)|(x&3)]+0.5)/16)<a){
+   const c2=_mix([D[o],D[o+1],D[o+2]],halo,Math.min(1,a*1.3));
+   D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0;}
+ }
+ const R=Math.round(W*(night>.4?.030:.038));
+ for(let y=-R;y<=R;y++){
+  const w2=Math.round(Math.sqrt(Math.max(0,R*R-y*y)));
+  for(let x=-w2;x<=w2;x++){
+   const X=sx+x, Y=sy+y; if(X<0||X>=W||Y<0||Y>=H) continue;
+   let c2=disc;
+   if(night>.4){                      /* craters */
+    const n=fbm(x*.45+3,y*.45);
+    if(n<.38) c2=_mix(disc,COOL,.26); else if(n>.74) c2=_lite(disc,.3);
+   }else{
+    const d=Math.sqrt(x*x+y*y)/R;
+    c2=_mix(disc,[255,236,170],d*.5);
+   }
+   const o=(Y*W+X)<<2; D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0;}
+ }
+ q.putImageData(img,0,0);
+ /* stars, baked, with a size and brightness spread */
+ if(night>.25){
+  for(let i=0;i<420;i++){
+   const b=hash(i*3+9), x=(hash(i*7+1)*W)|0, y=(hash(i*13+5)*vanY)|0;
+   const a=(b<.06?.95:b<.30?.55:b<.62?.30:.16)*night;
+   q.fillStyle='rgba(255,255,255,'+a.toFixed(2)+')';
+   q.fillRect(x,y,1,1);
+   if(b<.045){q.fillStyle='rgba(255,255,255,'+(a*.45).toFixed(2)+')';
+    q.fillRect(x-1,y,1,1); q.fillRect(x+1,y,1,1); q.fillRect(x,y-1,1,1); q.fillRect(x,y+1,1,1);}
+  }
+  /* the milky way, a faint diagonal wash */
+  for(let i=0;i<900;i++){
+   const t=hash(i*17), x=(t*W)|0;
+   const y=(vanY*.22+Math.sin(t*2.1)*vanY*.16+(fbm(t*9,i*.01)-.5)*vanY*.30)|0;
+   if(y<0||y>vanY) continue;
+   q.fillStyle='rgba(205,220,255,'+(0.05+hash(i*5)*0.10).toFixed(3)+')';
+   q.fillRect(x,y,1,1);}
+ }
+ return c;
+}
+
+/* ===================================================================
+   THE SUMMIT — baked, so it can afford to be expensive
+   =================================================================== */
+let peakCan=null, peakKey='';
+function buildPeak(w,h,seed,snowy,night,s1){
+ const c=peakCan||(peakCan=document.createElement('canvas'));
+ c.width=Math.max(1,w*2+2); c.height=Math.max(1,Math.ceil(h)+2);
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
+ const img=q.createImageData(c.width,c.height), D=img.data;
+ const baseY=c.height-1, cx=w+1;
+ const rk=_rgb('#8a8396'), rkD=_rgb('#4a4759'), rkW=_rgb('#b3aec0');
+ const sn=_rgb('#ffffff'), snM=_rgb('#dce8fb'), snD=_rgb('#93a8cf');
+ const prof=x=>{
+  const t=Math.min(1,Math.abs(x)/w);
+  let y=baseY-h*Math.pow(1-t,0.60);
+  const sp1=Math.max(0,1-Math.abs(x+w*.47)/(w*.40));
+  const sp2=Math.max(0,1-Math.abs(x-w*.54)/(w*.34));
+  y-=h*.28*Math.pow(sp1,1.5); y-=h*.21*Math.pow(sp2,1.5);
+  y+=Math.sin(x*.168+seed)*h*.030
+    +Math.sin(x*.391+seed*2.1)*h*.017
+    +Math.sin(x*1.07+seed*3.7)*h*.0075
+    +(fbm(x*.055+seed,seed*3)-.5)*h*.075;
+  return y;
+ };
+ const gull=[];
+ for(let k=0;k<9;k++) gull.push({x:(hash(k*53+seed*131)*2-1)*w*.88,
+   w:w*(.012+hash(k*17+seed*7)*.026), lean:(hash(k*29)*2-1)*.26});
+ const summitY=prof(0);
+ const put=(x,y,c2)=>{ if(x<0||x>=c.width||y<0||y>=c.height) return;
+  const o=((y|0)*c.width+(x|0))<<2;
+  D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0; D[o+3]=255;};
+ for(let x=-w;x<=w;x++){
+  const X=cx+x;
+  const y0=Math.round(prof(x)); if(y0>=baseY) continue;
+  const slope=prof(x+2)-prof(x-2);
+  const litF=Math.max(-1,Math.min(1,slope/(h*.05)));   // -1 shadow, +1 full sun
+  const depth0=baseY-y0;
+  const snowY=y0+depth0*((snowy?.44:.24)+litF*.055
+    +Math.sin(x*.23+seed*1.9)*.065+(fbm(x*.10+9,seed)-.5)*.16);
+  /* the summit ridge throws a shadow down the lee face */
+  for(let y=y0;y<baseY;y++){
+   const d=(y-y0)/Math.max(1,depth0);
+   let ing=false, ingD=0;
+   for(const g2 of gull){
+    const dx=Math.abs(x-(g2.x+(y-y0)*g2.lean)), wd=g2.w*(0.55+d*1.5);
+    if(dx<wd){ing=true; ingD=1-dx/wd; break;}}
+   let c2;
+   if(y<snowY){
+    const n=fbm(x*.26,y*.26);
+    c2=_mix(snM,sn,n);
+    c2=sh(c2,litF*.26-.10+(n-.5)*.18);
+    if(ing) c2=_mix(c2,sh(snD,-.30),.35+ingD*.35);
+    /* wind crust catching the light along the ridges */
+    if(n>.72&&litF>0) c2=_mix(c2,WARM,.22);
+    if(n<.26) c2=_mix(c2,snD,.45);
+   }else{
+    const n=fbm(x*.19,y*.17), n2=vnoise(x*.8+5,y*.7);
+    /* strata run across the face, bending with the slope */
+    const strat=Math.sin((y*0.9+x*slope*0.5)*0.22+n*2.4);
+    c2=_mix(rkD,rkW,n*.75+(strat>0?.18:0));
+    c2=sh(c2,litF*.30-.16-d*.10);
+    if(ing) c2=_mix(c2,sh(rkD,-.25),.5+ingD*.3);
+    if(n2>.80) c2=sh(c2,.16); else if(n2<.15) c2=sh(c2,-.14);
+    if(!ing&&y<snowY+depth0*.22&&n>.58) c2=_mix(c2,sh(snM,-.08),.66);
+    /* a hanging glacier on the shaded flank */
+    if(litF<-.2&&y<y0+depth0*.46&&fbm(x*.09,y*.06)>.62) c2=_mix(c2,sh(snM,-.22),.72);
+   }
+   c2=_mix(c2,s1,.07+d*.20);
+   c2=_mix(c2,[8,12,26],night*.60);
+   put(X,y,c2);
+  }
+  const high=y0<summitY+h*.34;
+  put(X,y0,_mix(_mix(sh(high?sn:rkW,.30),s1,.05),[12,16,28],night*.5));
+  put(X,y0+1,_mix(_mix(sh(high?snM:rk,.12),s1,.18),[12,16,28],night*.55));
+ }
+ q.putImageData(img,0,0);
+ return c;
+}
+
+/* ===================================================================
+   TREES — baked per species, per size bucket, per haze step.
+
+   A tree gets drawn once and blitted thereafter, so it can afford a
+   trunk with branches, a canopy built from overlapping crowns, a lit
+   side, a shaded side, sky holes punched through it, and an outline.
+   That is the whole difference between a forest and a field of
+   broccoli.
+   =================================================================== */
+const TC=new Map();
+const hbucket=h=> h<10?Math.round(h):h<26?Math.round(h/2)*2
+                : h<70?Math.round(h/6)*6:Math.round(h/16)*16;
+function treeSprite(sp,h,B,s1,fogLv,tint,blaze,vr){
+ vr=vr&3;
+ const hb=hbucket(h), key=sp+'|'+hb+'|'+fogLv+'|'+tint+'|'+(blaze?1:0)+'|'+vr;
+ let c=TC.get(key); if(c) return c;
+ const fog=fogLv/6;
+ const CW=Math.max(3,Math.ceil(hb*(sp==='fir'?1.0:1.35)))|1;
+ const CH=Math.max(3,Math.ceil(hb*1.06));
+ c=document.createElement('canvas'); c.width=CW; c.height=CH;
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
+ const cx=(CW>>1), gy=CH-1;
+ const F=cc=>_css(_mix(cc,s1,fog));
+ /* a different cast per tree: olive, blue-green, yellow-green, deep */
+ const VT=[[0,0],[ -0.05,.16],[ .07,.0],[-0.02,-.10]][vr];
+ let base=sp==='birch'?_mix(B.cnp,_rgb('#a8cc62'),.46)
+         :sp==='fir'  ?_mix(B.cnp,COOL,.14)
+                      :B.cnp;
+ base=_mix(base,_rgb(VT[0]>0?'#b9cc56':'#2f6a4e'),Math.abs(VT[0])*4);
+ base=sh(base,VT[1]);
+ const lit=sh(base,.34), mid=sh(base,.04), dk=sh(base,-.26), out=sh(base,-.50);
+ const trk=sp==='birch'?_rgb('#d8d8cc'):B.trk;
+ const dot=(x,y,w2,h2,col)=>{q.fillStyle=col; q.fillRect(Math.round(x),Math.round(y),
+   Math.max(1,Math.round(w2)),Math.max(1,Math.round(h2)));};
+ const crown=(x,y,r,col)=>{q.fillStyle=col;
+  for(let i=-r;i<=r;i++){const w2=Math.round(Math.sqrt(Math.max(0,r*r-i*i))*(1-Math.abs(i)/(r*3.4)));
+   if(w2>0) q.fillRect(Math.round(x-w2),Math.round(y+i),w2*2+1,1);}};
+
+ if(sp==='fir'){
+  const th=hb*.14, tw=Math.max(1,Math.round(hb*.075));
+  dot(cx-tw/2,gy-th,tw,th+1,F(sh(trk,-.18)));
+  dot(cx-tw/2,gy-th,Math.max(1,tw/2),th+1,F(sh(trk,.10)));
+  const ch=hb-th, tiers=Math.max(4,Math.round(hb/5));
+  for(let t=tiers-1;t>=0;t--){
+   const p=t/(tiers-1);
+   const by=gy-th-ch*p*0.90;
+   const r=Math.max(1,hb*.40*(1-p*.80)+(hb>18?1:0));
+   /* each bough is a flattened skirt: dark underside, lit upper left */
+   q.fillStyle=F(out);
+   for(let i=0;i<=r*1.05;i++) q.fillRect(Math.round(cx-r+i*.5),Math.round(by-i*.9),
+     Math.max(1,Math.round((r-i*.5)*2)),1);
+   q.fillStyle=F(dk);
+   for(let i=0;i<=r;i++) q.fillRect(Math.round(cx-r+i*.5)+1,Math.round(by-i*.9)-1,
+     Math.max(1,Math.round((r-i*.5)*2)-1),1);
+   q.fillStyle=F(mid);
+   for(let i=0;i<=r*.9;i++) q.fillRect(Math.round(cx-r*.9+i*.5)+1,Math.round(by-i*.9)-2,
+     Math.max(1,Math.round((r*.9-i*.5)*1.5)),1);
+   q.fillStyle=F(lit);
+   for(let i=0;i<=r*.6;i++) q.fillRect(Math.round(cx-r*.85+i*.4)+1,Math.round(by-i*.9)-2,
+     Math.max(1,Math.round((r*.55-i*.35))),1);
+  }
+  dot(cx,gy-hb,1,Math.max(1,hb*.09),F(lit));       // the spire
+ }else{
+  const th=hb*.44, tw=Math.max(1,Math.round(hb*.085));
+  /* trunk, then two branches reaching into the canopy */
+  dot(cx-tw/2,gy-th,tw,th+1,F(sh(trk,-.22)));
+  dot(cx-tw/2,gy-th,Math.max(1,Math.round(tw*.45)),th+1,F(sh(trk,.14)));
+  if(hb>14){
+   q.fillStyle=F(sh(trk,-.14));
+   for(let i=0;i<hb*.22;i++){q.fillRect(Math.round(cx-i*.8),Math.round(gy-th*.75-i*.55),1,1);
+    q.fillRect(Math.round(cx+i*.75),Math.round(gy-th*.85-i*.5),1,1);}
+   if(sp==='birch'){q.fillStyle=F(sh(trk,-.60));
+    for(let i=0;i<4;i++) q.fillRect(cx-tw/2,Math.round(gy-th*(0.2+i*0.2)),Math.max(1,tw-1),1);}
+  }
+  const ch=hb-th, w=hb*.52;
+  const CLS=[
+   [[0,-ch*.62,.62],[-w*.54,-ch*.44,.52],[w*.52,-ch*.46,.50],
+    [-w*.30,-ch*.82,.44],[w*.30,-ch*.80,.42],[0,-ch*.95,.33],
+    [-w*.62,-ch*.68,.30],[w*.60,-ch*.70,.28]],
+   [[0,-ch*.70,.55],[-w*.46,-ch*.38,.60],[w*.58,-ch*.52,.44],
+    [-w*.18,-ch*.92,.38],[w*.36,-ch*.86,.34],[-w*.70,-ch*.56,.26]],
+   [[0,-ch*.55,.70],[-w*.62,-ch*.58,.44],[w*.44,-ch*.40,.56],
+    [w*.14,-ch*.90,.40],[-w*.36,-ch*.86,.30],[w*.66,-ch*.74,.24]],
+   [[0,-ch*.78,.48],[-w*.40,-ch*.52,.54],[w*.40,-ch*.54,.54],
+    [0,-ch*.40,.62],[-w*.22,-ch*1.0,.30],[w*.24,-ch*.98,.28]]];
+  const cl=CLS[vr];
+  for(const o of cl) crown(cx+o[0],gy-th+o[1],Math.max(1,w*o[2]+1),F(out));   // outline
+  for(const o of cl) crown(cx+o[0],gy-th+o[1],Math.max(1,w*o[2]),F(dk));
+  for(const o of cl) crown(cx+o[0]-w*.13,gy-th+o[1]-w*.11,Math.max(1,w*o[2]*.80),F(mid));
+  for(const o of cl) crown(cx+o[0]-w*.26,gy-th+o[1]-w*.22,Math.max(1,w*o[2]*.48),F(lit));
+  /* sky holes, so the canopy is foliage and not a painted lump */
+  if(hb>12){
+   const im=q.getImageData(0,0,CW,CH), DD=im.data;
+   for(let i=0;i<Math.round(hb*1.3);i++){
+    const px=Math.round(cx+(hash(i*31+hb)*2-1)*w*.85);
+    const py=Math.round(gy-th-ch*(0.30+hash(i*17+hb)*0.60));
+    if(px<0||px>=CW||py<0||py>=CH) continue;
+    const o=(py*CW+px)<<2; if(DD[o+3]) DD[o+3]=0;}
+   q.putImageData(im,0,0);
+  }
+ }
+ /* the white blaze: two by six inches on a trunk every ninety metres, and
+    the most recognisable thing about this trail */
+ if(blaze&&hb>12){
+  const bw=Math.max(1,Math.round(hb*.055)), bh2=Math.max(2,Math.round(hb*.11));
+  q.fillStyle=_css(_mix(sh([248,250,254],.06),s1,fog*.5));
+  q.fillRect(cx-Math.ceil(bw/2),Math.round(gy-(sp==='fir'?hb*.11:hb*.40)*0.74)-bh2,bw,bh2);}
+ if(TC.size>2400) TC.clear();
+ TC.set(key,c); return c;
+}
+
+/* ---------- understory, also cached ---------- */
+const UC=new Map();
+function undergrowth(kind,s,B,s1,fogLv,alpLv){
+ const key=kind+'|'+s+'|'+fogLv+'|'+alpLv;
+ let c=UC.get(key); if(c) return c;
+ const fog=fogLv/6, alp=alpLv/4;
+ const SZ=Math.max(3,s*10);
+ c=document.createElement('canvas'); c.width=SZ; c.height=SZ;
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
+ const cx=SZ>>1, gy=SZ-1;
+ const F=cc=>_css(_mix(cc,s1,fog));
+ const rock=_mix(B.rck,_rgb('#9c968a'),alp*.45);
+ if(kind==='fern'){
+  for(let b=-4;b<=4;b++){
+   const hh=s*(5-Math.abs(b)*.9), lean=b*.5;
+   q.fillStyle=F(sh(B.fer,b<0?.26:-.20));
+   for(let i=0;i<hh;i++) q.fillRect(Math.round(cx+b*s+lean*i*.12),Math.round(gy-i),Math.max(1,s*.8),1);
+   q.fillStyle=F(sh(B.fer,b<0?.40:-.05));
+   q.fillRect(Math.round(cx+b*s+lean*hh*.12),Math.round(gy-hh),Math.max(1,s*.8),Math.max(1,s));}
+ }else if(kind==='rock'){
+  const rs=s*(1.4+alp*1.8);
+  q.fillStyle=F(sh(rock,-.40));
+  q.fillRect(cx-rs*1.5,gy-rs*1.9,rs*3,rs*2);
+  q.fillStyle=F(sh(rock,-.06));
+  q.fillRect(cx-rs*1.4,gy-rs*1.8,rs*2.6,rs*1.5);
+  q.fillStyle=F(sh(rock,.26));
+  q.fillRect(cx-rs*1.3,gy-rs*1.8,rs*1.5,rs*.8);
+  q.fillStyle=F(sh(rock,-.26));
+  q.fillRect(cx+rs*.4,gy-rs*1.5,rs*1.1,rs*1.4);
+  if(alp<.5){q.fillStyle=F(sh(_mix(B.fer,_rgb('#6f8f3e'),.5),-.10));
+   q.fillRect(cx-rs*1.4,gy-rs*1.9,rs*1.1,Math.max(1,rs*.4));}
+ }else if(kind==='bush'){
+  const r=s*2.4;
+  const cl=[[0,-r*.7,1],[-r*.7,-r*.45,.75],[r*.7,-r*.5,.7],[0,-r*1.15,.6]];
+  const dr=cc=>{for(const o of cl){const rr=Math.max(1,r*o[2]);
+   for(let i=-rr;i<=rr;i++){const w2=Math.round(Math.sqrt(Math.max(0,rr*rr-i*i)));
+    q.fillRect(Math.round(cx+o[0]-w2),Math.round(gy+o[1]+i),w2*2+1,1);}}};
+  q.fillStyle=F(sh(B.cnp,-.50)); dr();
+  q.fillStyle=F(sh(B.cnp,-.16)); cl.forEach(o=>o[2]*=.88); dr();
+  q.fillStyle=F(sh(B.cnp,.22));  cl.forEach(o=>{o[0]-=r*.18;o[1]-=r*.16;o[2]*=.62;}); dr();
+ }else if(kind==='log'){
+  const lw=s*9, lh=Math.max(2,s*1.8);
+  q.fillStyle=F(sh(B.trk,-.42)); q.fillRect(cx-lw/2,gy-lh,lw,lh);
+  q.fillStyle=F(sh(B.trk,-.06)); q.fillRect(cx-lw/2,gy-lh,lw,Math.max(1,lh*.6));
+  q.fillStyle=F(sh(B.trk,.22));  q.fillRect(cx-lw/2,gy-lh,lw,Math.max(1,lh*.28));
+  q.fillStyle=F(sh(_mix(B.fer,_rgb('#7fa84a'),.5),-.05));
+  for(let i=0;i<5;i++) q.fillRect(cx-lw/2+Math.round(hash(i*13)*lw),gy-lh-1,Math.max(1,s),1);
+ }else{  /* flowers */
+  q.fillStyle=F(sh(B.fer,-.10));
+  q.fillRect(cx,gy-s*4,Math.max(1,s*.8),s*4);
+  const fc=_rgb(hash(s*7)<.5?'#e8dc84':'#d892b8');
+  q.fillStyle=F(sh(fc,-.20)); q.fillRect(cx-s,gy-s*5,s*3,s);
+  q.fillStyle=F(sh(fc,.30));  q.fillRect(cx-s,gy-s*5,s*1.5,s);
+ }
+ if(UC.size>900) UC.clear();
+ UC.set(key,c); return c;
+}
+
+/* ---------- the climber ---------- */
+const BACK=[
+["...kkkk...","..kkkkkk..","..kwwwwk..","...hhhh...",".rrrrrrrr.","rrrrrrrrrr",
+ "rPPPPPPPPr","rPbbbbbbPr","rPbbbbbbPr","rPPPPPPPPr",".rPPPPPPr.","..llllll..",
+ "..l.LL.l..","..l.LL.l..","..s....s..",".ss....ss."],
+["...kkkk...","..kkkkkk..","..kwwwwk..","...hhhh...",".rrrrrrrr.","rrrrrrrrrr",
+ "rPPPPPPPPr","rPbbbbbbPr","rPbbbbbbPr","rPPPPPPPPr",".rPPPPPPr.","..llllll..",
+ "..l.LL.l..","...lLL.l..","...s...s..","..ss...ss."],
+["...kkkk...","..kkkkkk..","..kwwwwk..","...hhhh...",".rrrrrrrr.","rrrrrrrrrr",
+ "rPPPPPPPPr","rPbbbbbbPr","rPbbbbbbPr","rPPPPPPPPr",".rPPPPPPr.","..llllll..",
+ "..l.LL.l..","..l.LLl...","..s...s...",".ss...ss.."]];
+const BPAL={k:'#d4b070',w:'#8e7440',h:'#e0c396',r:'#d85c32',P:'#a8431f',
+            b:'#6f2c18',l:'#364a60',L:'#2a3a4e',s:'#1a222e'};
+function climber(g,x,y,s,f,lamp,s1,fog){
+ const sp=BACK[f];
  for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
   const ch=sp[r][c]; if(ch==='.')continue;
-  g.fillStyle=HPAL[ch]||'#fff'; g.fillRect(x+c,y+r,1,1);}
+  let col=_rgb(BPAL[ch]);
+  col=sh(col,c<4?.20:c>6?-.22:0);
+  g.fillStyle=_css(_mix(col,s1,fog));
+  g.fillRect(x+c*s,y+r*s,s,s);}
+ /* an outline, so he reads against any ground */
+ g.fillStyle='rgba(12,14,20,.55)';
+ for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
+  if(sp[r][c]!=='.')continue;
+  const n=(r>0&&sp[r-1][c]!=='.')||(r<sp.length-1&&sp[r+1][c]!=='.')
+        ||(c>0&&sp[r][c-1]!=='.')||(c<sp[r].length-1&&sp[r][c+1]!=='.');
+  if(n) g.fillRect(x+c*s,y+r*s,s,s);}
+ g.fillStyle=_css(_mix(_rgb('#8a6f42'),s1,fog));
+ const sw=Math.max(1,Math.round(s*.6));
+ g.fillRect(x-s,y+s*5,sw,s*11); g.fillRect(x+s*10,y+s*6,sw,s*10);
+ if(lamp){
+  g.fillStyle='rgba(255,241,200,.20)';
+  for(let i=1;i<9;i++) g.fillRect(x+s*5-i*s*.9,y-i*s*1.5,i*s*1.8,s*1.5);
+  g.fillStyle='rgba(255,245,215,.85)'; g.fillRect(x+s*3,y+s*3,s*4,s);}
 }
 
-function drawTree(g,x,gy,h,col,kind){
- g.fillStyle=col;
- if(kind==='fir'){
-  const w=Math.max(1,Math.round(h*.40));
-  for(let i=0;i<h;i++){const r=Math.round(w*(i/Math.max(1,h-1)));
-   g.fillRect(x-r,gy-h+i,r*2+1,1);}
-  g.fillRect(x,gy,1,Math.max(1,Math.round(h*.18)));
-  return;
- }
- if(kind==='bald'){ /* wind-stunted scrub and rock, nothing with a crown */
-  const hb=Math.max(2,Math.round(h*.45));
-  for(let i=0;i<hb;i++){const r=Math.max(0,Math.round(hb*.55*Math.sin((i+.5)/hb*Math.PI)));
-   g.fillRect(x-r,gy-hb+i,r*2+1,1);}
-  return;
- }
- /* hardwood: a broad round crown on a visible trunk */
- const hb=Math.max(3,Math.round(h*.58)), rad=Math.max(1,Math.round(h*.46));
- for(let i=0;i<hb;i++){const r=Math.max(0,Math.round(rad*Math.sin((i+.4)/hb*Math.PI)));
-  g.fillRect(x-r,gy-h+i,r*2+1,1);}
- g.fillRect(x,gy-h+hb,1,Math.max(1,h-hb));
+/* ---------- wildlife ----------
+   Full sprites with their own outline and shading. At the size these land
+   on screen a flat silhouette reads as a smudge; the dark outline is what
+   makes a deer legible against a dark forest. */
+const FAUNA={
+ deer:{s:1.00,p:{o:'#241a10',a:'#6d5236',b:'#95663c',l:'#e0cba2',c:'#eedcb8'},r:[
+  '..........a..a..','...a...a..a.a...','....a.a...aa....','.....aaa..aa....',
+  '......oooooo....','.......obbbo....','.......obbcco...','......obbbccco..',
+  '....oobbbbbco...','ooooobbbbbbo....','obbbbbbbbbbo....','obbbbbbbbbo.....',
+  'obbllllbbbo.....','obbbbbbbbo......','.o.oo..oo.o.....','.o.oo..oo.o.....']},
+ rabbit:{s:0.52,p:{o:'#1d1a20',g:'#a6aebc',c:'#f4efe9',p:'#e58ba8'},r:[
+  '....o..oo...','...opo.opo..','...opo.opo..','...ogo.ogo..','..oogooogo..',
+  '.oggggcccco.','ogggggccccpo','oggggggccco.','oggggggggo..','.oggggggco..',
+  '..occcccco..','...oooooo...']},
+ fox:{s:0.62,p:{o:'#241610',f:'#cf6d2c',d:'#9a4a1b',c:'#f5ecde'},r:[
+  '..........o.o.','c.........ooo.','co.......offfo','cfo.....offcfo',
+  '.cffoooofffffo','..offffffffffo','..offfcccffffo','...offffffffo.',
+  '...o.oo.oo.o..','...o.oo.oo.o..']},
+ turkey:{s:0.58,p:{o:'#1a1510',b:'#50422f',d:'#6b5940',r:'#c0392b',y:'#c9a227'},r:[
+  '.....oo....','....obbo.r.','...obbboro.','..obddboo..','.obddddbo..',
+  'obddddddbo.','obdddddddo.','.obdddddo..','..obbbbo...','...o.oo....','...y.yy....']},
+ goat:{s:0.70,p:{o:'#2b2722',w:'#f2eee2',s:'#c2bba8',a:'#6b5a3e'},r:[
+  '..........aa..','.........oaao.','.........owwo.','........owwwo.','ooooooooowwo..',
+  'owwwwwwwwwo...','owssswwwwo....','owwwwwwwwo....','.o.oo..oo.o...','.o.oo..oo.o...']},
+ bird:{s:0.34,p:{o:'#2b3340',w:'#99a6b8'},r:['o.....o','.oo.oo.','..owo..','...o...']},
+ hawk:{s:0.82,p:{o:'#54432f',b:'#e4d6b6',d:'#33281b'},r:[
+  'oo.......oo','.oo.....oo.','..ooobooo..','...obbbo...','...odbdo...',
+  '....ooo....','.....o.....']}};
+const BIRD2=['.......','oo...oo','.oowoo.','...o...'];
+function sprite(g,rows,pal,x,y,s,flip,s1,fog){
+ const w=rows[0].length;
+ for(let r=0;r<rows.length;r++){const row=rows[r];
+  for(let c=0;c<w;c++){const ch=row[c]; if(!ch||ch==='.')continue;
+   const col=pal[ch]; if(!col)continue;
+   g.fillStyle=_css(_mix(_rgb(col),s1,fog));
+   g.fillRect(x+(flip?(w-1-c):c)*s,y+r*s,s,s);}}
+}
+let fauna=[], motes=[], nextSpawn=0;
+function spawn(camZ,now,alp){
+ const r=Math.random();
+ const type=alp>.6 ? (r<.42?'hawk':r<.74?'goat':'bird')
+                   : (r<.26?'deer':r<.42?'rabbit':r<.56?'fox':r<.68?'turkey':r<.87?'bird':'hawk');
+ const air=(type==='bird'||type==='hawk');
+ const side=Math.random()<.5?-1:1;
+ fauna.push({type,air,
+  z:camZ+(air?55+Math.random()*80:26+Math.random()*58),
+  lat:laneAt(camZ+50)+side*(0.9+Math.random()*1.3),
+  vl:-side*(0.20+Math.random()*0.52),
+  vz:air?-9:-(1+Math.random()*6),
+  hgt:air?(0.5+Math.random()*0.7):0, born:Math.random()*6.28});
+ nextSpawn=now+600+Math.random()*1700;
 }
 
-/* Landmarks get a shape you can read at a glance from across the screen,
-   because seeing Blood Mountain coming is most of the point. */
-function marker(g,x,gy,k,col,lit){
- g.fillStyle=col;
- if(k==='shelter'){
-  g.fillRect(x-5,gy-5,11,5);               // body
-  for(let i=0;i<6;i++) g.fillRect(x-6+i,gy-5-i,1,1), g.fillRect(x+6-i,gy-5-i,1,1);
-  g.fillStyle=_css(_dark(_rgb(col),.45)); g.fillRect(x-3,gy-4,6,4);
+/* ---------- landmarks ---------- */
+function landmark(g,x,gy,sc,k,B,passed,fog,s1){
+ const s=Math.max(1,sc);
+ const U=(a,b,w,h,col)=>{g.fillStyle=col;
+  g.fillRect(Math.round(x+a*s),Math.round(gy+b*s),
+   Math.max(1,Math.round(w*s)),Math.max(1,Math.round(h*s)));};
+ const F=c=>_css(_mix(c,s1,fog));
+ const wood=_rgb('#6b4e2c'), stone=B.rck, gold=_rgb('#f5c651');
+ if(k==='shelter'||k==='town'){
+  const wd=k==='town'?11:8, ht=k==='town'?5.5:4.2;
+  U(-wd/2,-ht,wd,ht,F(sh(wood,-.30)));
+  U(-wd/2,-ht,wd*.45,ht,F(sh(wood,.06)));
+  for(let i=0;i<=wd+2;i++){const rr=-ht-Math.min(i,wd+2-i)*.78;
+   U(-wd/2-1+i,rr,1.05,1.15,F(sh(_rgb('#4a3621'),i<wd*.5?.14:-.22)));}
+  U(-wd*.20,-ht*.80,wd*.40,ht*.80,F(sh(_rgb('#1b1309'),-.1)));
+  U(-wd/2,-ht*.46,wd,.55,F(sh(wood,.22)));
+  if(k==='town'){U(-wd*.34,-ht*.62,1.5,1.5,'#ffe9a8'); U(wd*.14,-ht*.62,1.5,1.5,'#ffe9a8');}
+  else{U(wd*.34,-1.9,1.5,1.9,F(sh(stone,-.2))); U(wd*.36,-2.6,1.1,.9,'#e8773c');
+       U(wd*.40,-3.2,.7,.7,'rgba(240,160,80,.6)');}
  }else if(k==='summit'||k==='mark'){
-  for(let i=0;i<9;i++) g.fillRect(x-i,gy-9+i,i*2+1,1);   // cairn
-  g.fillStyle='#f5c651'; g.fillRect(x,gy-12,1,3); g.fillRect(x,gy-12,4,2);
- }else if(k==='town'){
-  g.fillRect(x-6,gy-7,12,7);
-  for(let i=0;i<7;i++) g.fillRect(x-7+i,gy-7-i,1,1), g.fillRect(x+7-i,gy-7-i,1,1);
-  g.fillStyle='#f5c651'; g.fillRect(x-2,gy-4,2,2); g.fillRect(x+1,gy-4,2,2);
+  for(let i=0;i<10;i++){const w=10-i;
+   U(-w/2,-10+i,w,1.06,F(sh(stone,-.30-i*.01)));
+   U(-w/2,-10+i,w*.42,1.06,F(sh(stone,.22)));}
+  U(-.45,-15.5,1,5.6,F(sh(wood,.0)));
+  U(-.45,-15.5,4.4,2.4,'#f5c651'); U(.4,-14.9,3,1.1,'#8a5f12');
  }else if(k==='water'){
-  g.fillStyle='#4a86a8';
-  for(let i=0;i<5;i++) g.fillRect(x-6+i*3,gy-1-((i%2)?1:0),3,1);
+  for(let i=0;i<8;i++) U(-9+i*2.4,-((i%2)?1.5:.5),2.4,1.4,F(sh(_rgb('#3d84ab'),(i%2)?-.2:.1)));
+  U(-9,-1.8,18,.6,F(sh(_rgb('#b6e2f2'),.2)));
  }else if(k==='border'){
-  g.fillRect(x,gy-14,1,14);
-  g.fillStyle='#f5c651'; g.fillRect(x+1,gy-14,8,5);
- }else{ /* gap: a trail sign */
-  g.fillRect(x,gy-10,1,10);
-  g.fillStyle=lit?'#f5c651':'#8a6a3a'; g.fillRect(x-5,gy-10,11,4);
+  U(-.5,-16,1.2,16,F(sh(wood,-.1)));
+  U(.7,-16,8.5,5.2,'#f5c651'); U(1.6,-14.6,6.8,2.4,'#6b4c0c');
+ }else{
+  U(-.5,-12,1.2,12,F(sh(wood,-.08)));
+  U(-4.8,-12,9.6,4,passed?'#f5c651':F(sh(_rgb('#9a7840'),0)));
+  U(-3.6,-10.9,7.2,1.5,F(sh(_rgb('#2a1f12'),0)));
  }
 }
 
-/* ---------- the scene ---------- */
-const cv=document.getElementById('scene');
-function paint(cam,t){
- const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
- const W=Math.max(1,Math.ceil(w/PX)), H=Math.max(1,Math.ceil(h/PX));
- if(cv.width!==W) cv.width=W; if(cv.height!==H) cv.height=H;
- const g=cv.getContext('2d'); g.imageSmoothingEnabled=false;
+/* ===================================================================
+   THE FRAME
+   =================================================================== */
+const PY=new Float32Array(NSEG+4), PXx=new Float32Array(NSEG+4),
+      PW=new Float32Array(NSEG+4), PV=new Uint8Array(NSEG+4),
+      PL=new Float32Array(NSEG+4), PR=new Float32Array(NSEG+4);
 
- const B=biomeAt(cam);
- const ox=cam*PPM, hx=Math.round(W*0.34);   // climber sits here, always
+function paint(now,dt){
+ const g=ctx, mi=shownMi;
+ const bobY=Math.sin(walkPhase*2)*1.3+ (shake?Math.sin(now/37)*shake*2:0);
+ const sway=Math.sin(walkPhase)*0.009;
+ const HZ=hzY+bobY;
+ const camZ=mi*MPZ+drift, camX=laneAt(camZ)+sway, camH=hillAt(camZ);
+ const yaw=(laneAt(camZ+4)-laneAt(camZ-4))/8;
+ const PRJ=(lat,z,dy)=> W/2+((lat-camX)-yaw*z)*dy;
+ const B=biomeAt(mi), alp=alpineAt(mi), alpLv=Math.round(alp*4);
+ const vanY=HZ-FOC*LIN;
 
- /* sky, washed toward the real hour so the screen at 6am is not the screen
-    at 9pm. The same idea as the region scenes, cheaper. */
- const hr=new Date().getHours();
- const night=(hr<5||hr>=22)?.85:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
- const s0=_mix(B.sky0,[6,10,22],night*.75), s1=_mix(B.sky1,[14,22,40],night*.7);
- const grd=g.createLinearGradient(0,0,0,H*.70);
- grd.addColorStop(0,_css(s0)); grd.addColorStop(1,_css(s1));
- g.fillStyle=grd; g.fillRect(0,0,W,H);
+ const hr=HOUR();
+ const night=(hr<5||hr>=22)?.9:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
+ const dusk=Math.max(0,1-Math.abs(hr-19)/2.6)*(1-night*.5);
+ let s0=_mix(B.sky0,[6,10,22],night*.82), s1=_mix(B.sky1,[16,26,44],night*.74);
+ s0=_mix(s0,[86,42,66],dusk*.50); s1=_mix(s1,[244,142,74],dusk*.60);
 
- if(night>.4){
-  for(let i=0;i<90;i++){
-   const sx=Math.floor(hash(i*7+1)*W), sy=Math.floor(hash(i*13+5)*H*.45), b=hash(i*3+9);
-   g.fillStyle='rgba(255,255,255,'+(b<.15?.72*night:b<.5?.40*night:.21*night)+')';
-   g.fillRect(sx,sy,1,1);}
+ /* ---- sky, baked ---- */
+ const sk=W+'x'+H+'|'+hr+'|'+Math.round(mi/7);
+ if(sk!==skyKey){ buildSky(B,hr,night,dusk,s0,s1,hzY-FOC*LIN); skyKey=sk; }
+ g.drawImage(skyCan,0,Math.round(bobY));
+ if(bobY>0) { g.fillStyle=_css(s0); g.fillRect(0,0,W,Math.ceil(bobY)); }
+
+ /* ---- clouds, live ---- */
+ const cd=camZ*.05;
+ for(let k=0;k<13;k++){
+  const cw=10+hash(k*17)*30, ch2=2+hash(k*41)*5;
+  const cy=4+hash(k*31)*Math.max(8,vanY*.84);
+  let cx2=((hash(k*11)*W*2.4-cd)%(W+90)); if(cx2<-80)cx2+=W+90;
+  const al=(.10+hash(k*5)*.13)*(1-night*.5);
+  const lv=Math.max(2,Math.min(13,Math.round(al*44)));
+  const body=dpat('rgba(0,0,0,0)',_css(_mix([255,255,255],s1,.15)),lv);
+  const top =dpat('rgba(0,0,0,0)',_css(_mix(sh([255,255,255],.35),s1,.1)),lv);
+  g.fillStyle=body;
+  for(let x=0;x<cw;x++){
+   const t=x/cw;
+   const h2=Math.round(Math.sin(t*Math.PI)*ch2+Math.sin(t*Math.PI*3+1.1)*ch2*.3+Math.sin(t*Math.PI*7)*ch2*.14);
+   if(h2>0) g.fillRect(Math.round(cx2+x),Math.round(cy-h2),1,h2);}
+  g.fillStyle=top;
+  for(let x=0;x<cw;x++){
+   const t=x/cw;
+   const h2=Math.round(Math.sin(t*Math.PI)*ch2+Math.sin(t*Math.PI*3+1.1)*ch2*.3+Math.sin(t*Math.PI*7)*ch2*.14);
+   if(h2>0) g.fillRect(Math.round(cx2+x),Math.round(cy-h2),1,Math.max(1,h2*.4));}
  }
 
- /* three ridge layers at different parallax. Continuous sums of sines of the
-    world coordinate, so the horizon never repeats and never seams. */
- const ridge=(wx,f,a,base)=>base-a*(
-   .55*Math.sin(wx*f*1.00)+.28*Math.sin(wx*f*2.70+1.7)+.17*Math.sin(wx*f*5.30+4.1));
- const haze=(c,t)=>_mix(c,s1,t);
- const layers=[
-  {p:0.11,col:haze(B.far ,.54),f:.016,a:H*.125,b:H*.44,tree:0},
-  {p:0.26,col:haze(B.far ,.32),f:.024,a:H*.100,b:H*.56,tree:1},
-  {p:0.52,col:haze(B.mid ,.13),f:.037,a:H*.070,b:H*.67,tree:1},
-  {p:1.00,col:_dark(B.near,.20),f:.055,a:H*.030,b:H*.73,tree:2}];
-
- for(const L of layers){
-  const col=_css(L.col), rim=_css(_lite(L.col,L.p<.3?.07:L.p<.6?.13:.20));
-  const prev=[];
+ /* ---- the ranges across the valley ---- */
+ const ridge=(wx,f,a,base)=>base-a*(.55*Math.sin(wx*f)+.28*Math.sin(wx*f*2.7+1.7)+.17*Math.sin(wx*f*5.3+4.1));
+ const PAR=[.012,.028,.055,.095], MF=[.016,.024,.037,.055];
+ const MH=[.30,.24,.17,.11], MB=[.80,.92,1.04,1.14], MM=[.74,.56,.36,.18];
+ for(let L=0;L<4;L++){
+  const col=_mix(sh(B.mtn,-.10+L*.06),s1,MM[L]);
+  const cc=_css(col), rim=_css(sh(col,.22+L*.06));
+  const snowy=(mi>95||alp>.5)&&L<2;
   for(let x=0;x<W;x++){
-   const wx=(ox*L.p)+x;
-   const y=Math.round(ridge(wx,L.f,L.a,L.b));
-   g.fillStyle=col; g.fillRect(x,y,1,H-y);
+   const y=Math.round(ridge(camZ*PAR[L]+x+yaw*FOC*PAR[L]*7,MF[L],HZ*MH[L],HZ*MB[L]-HZ*.22));
+   if(y>=H) continue;
+   g.fillStyle=cc; g.fillRect(x,y,1,H-y);
    g.fillStyle=rim; g.fillRect(x,y,1,1);
-   prev[x]=y;
+   if(snowy&&hash(x*7+L)<.45){g.fillStyle=_css(_mix(sh([236,243,255],.1),s1,MM[L]));
+    g.fillRect(x,y,1,1+((hash(x*3+L)*3)|0));}}
+  /* haze stacking up between the ranges */
+  for(let b=0;b<4;b++){
+   g.fillStyle=dpat('rgba(0,0,0,0)',_css(s1),(L<2?7:4)-b*1.6);
+   g.fillRect(0,Math.round(HZ*MB[L]-HZ*.22+HZ*MH[L]*.30+b*HZ*.018),W,Math.round(HZ*.02)+1);}
+ }
+
+ /* ---- the summit you are climbing toward ---- */
+ let nextSum=null;
+ for(const L of TRAIL) if((L.k==='summit'||L.k==='mark')&&L.m>mi){nextSum=L;break;}
+ const dm=nextSum?nextSum.m-mi:9;
+ const grow=Math.max(0,Math.min(1,1-dm/7));
+ const pkH=Math.round(H*(0.22+0.64*grow*grow)), pkW=Math.round(W*(0.30+0.52*grow));
+ const seed=nextSum?(nextSum.m%7)+1:3;
+ const pk=pkW+'|'+pkH+'|'+seed+'|'+(alp>.45||mi>95?1:0)+'|'+Math.round(night*5)+'|'+Math.round(s1[0]);
+ if(pk!==peakKey){ buildPeak(pkW,pkH,seed,alp>.45||mi>95,night,s1); peakKey=pk; }
+ const aim=Math.max(pkW*.55,Math.min(W-pkW*.55,
+  W/2+Math.max(-W*.20,Math.min(W*.20,(PRJ(laneAt(camZ+120),120,FOC/120)-W/2)*0.40))));
+ g.drawImage(peakCan,Math.round(aim-pkW-1),Math.round(vanY+5-peakCan.height));
+
+ /* ===========================================================
+    THE MOUNTAINSIDE
+    =========================================================== */
+ const n0=Math.floor(camZ/SEG)+1;
+ let maxY=H+2, topY=H+2;
+ const rockBase=_mix(B.rck,_rgb('#9c968a'),.30);
+ for(let i=0;i<NSEG;i++){
+  const n=n0+i, zA=n*SEG, z=zA-camZ;
+  PV[i]=0;
+  if(z<1.0) continue;
+  const dy=FOC/z;
+  const y=Math.round(HZ+dy*(1-(hillAt(zA)-camH)));
+  if(y>=maxY||y<-3) continue;
+  PY[i]=y; PXx[i]=PRJ(laneAt(zA),z,dy); PW[i]=0.050*dy; PV[i]=1;
+  const ds=dropAt(zA), ex=PRJ(edgeAt(zA),z,dy);
+  PL[i]=ds>0?-2:ex; PR[i]=ds>0?ex:W+2;
+  const yTop=Math.max(0,y), yBot=maxY;
+  if(yBot<=yTop) continue;
+  const fog=Math.min(.52,Math.max(0,(z-18)/100));
+  const xl=Math.max(0,Math.round(PL[i])), xr=Math.min(W,Math.round(PR[i]));
+  if(xr<=xl){ maxY=yTop; topY=Math.min(topY,yTop); continue; }
+
+  /* the slope is lit by where it faces, and dithered between two tones
+     rather than striped, so it has grain instead of corduroy */
+  const face=((hillAt(zA+2)-hillAt(zA-2))*0.25-LIN)*6.0;
+  /* two materials, blended by a slow noise, so the slope reads as meadow
+     giving way to scree rather than as one flat field of colour */
+  const meadow=_mix(sh(_mix(B.gnd,rockBase,alp*.86),-.18+face*.30),s1,fog);
+  const scree =_mix(sh(_mix(_mix(B.pth,rockBase,.45),B.gn2,.52),.02+face*.30),s1,fog);
+  const patch=fbm(n*.075,7);
+  const lv=Math.round(Math.max(0,Math.min(1,(patch-.42)*2.4+alp*.60))*16);
+  g.fillStyle=dpat(_css(meadow),_css(scree),lv);
+  g.fillRect(xl,yTop,xr-xl,yBot-yTop);
+  /* a second, finer grain on top so it is never a solid tone */
+  g.fillStyle=dpat('rgba(0,0,0,0)',_css(sh(meadow,-.22)),2+Math.round(fbm(n*.11,2)*3));
+  g.fillRect(xl,yTop,xr-xl,yBot-yTop);
+
+  /* the lip of the drop */
+  const lipX=ds>0?xr-1:xl;
+  if(lipX>1&&lipX<W-2){
+   g.fillStyle=_css(_mix(sh(meadow,.46),s1,fog*.4));
+   g.fillRect(lipX-(ds>0?1:0),yTop,2,yBot-yTop);
+   g.fillStyle=dpat('rgba(0,0,0,0)','rgba(12,18,34,1)',6);
+   g.fillRect(ds>0?lipX+1:lipX-2,yTop,2,yBot-yTop);}
+
+  /* scree, tussock and litter */
+  if(dy>5){
+   const cnt=dy>60?7:dy>24?5:3;
+   for(let q=0;q<cnt;q++){
+    const h1=hash(n*641+q*97); if(h1>.78) continue;
+    const gx=xl+((h1*(xr-xl))|0), gy2=yTop+((hash(n*131+q)*(yBot-yTop))|0);
+    const warm=hash(n*53+q)<.5;
+    const c=alp>.5?sh(rockBase,warm?.26:-.30):sh(hash(n*11+q)<.5?B.fer:B.gnd,warm?.26:-.30);
+    g.fillStyle=_css(_mix(c,s1,fog));
+    g.fillRect(gx,gy2,1+((hash(n*29+q)*2)|0),1);}
   }
-  if(!L.tree) continue;
-  /* trees anchored to world slots so they hold still as the camera moves */
-  const sp=L.tree===2?7:11, tc=_css(_dark(L.col,L.tree===2?.34:.16));
-  const k0=Math.floor((ox*L.p)/sp)-1, k1=k0+Math.ceil(W/sp)+3;
-  for(let k=k0;k<k1;k++){
-   const jitter=hash(k*31+L.tree*977)*sp;
-   const x=Math.round(k*sp+jitter-(ox*L.p));
-   if(x<-8||x>W+8) continue;
-   const hh=(L.tree===2?6:3)+Math.round(hash(k*17+L.tree*541)*(L.tree===2?9:5));
-   const gy=Math.round(ridge((ox*L.p)+x,L.f,L.a,L.b))+1;
-   if(L.tree===2 && hash(k*53+7)<.30) continue;   // gaps you can see through
-   drawTree(g,x,gy,hh,tc,B.tree);
+
+  /* ---- the tread ---- */
+  const nx=(i>0&&PV[i-1])?PXx[i-1]:PXx[i];
+  const nw=(i>0&&PV[i-1])?PW[i-1]:PW[i];
+  const ny=(i>0&&PV[i-1])?PY[i-1]:yBot;
+  const pB=_mix(B.pth,rockBase,alp*.65);
+  const pc=_css(_mix(sh(pB,-.04),s1,fog));
+  const pl=_css(_mix(sh(pB,.26),s1,fog));
+  const ec=_css(_mix(sh(pB,-.40),s1,fog));
+  const gr=_css(_mix(sh(alp>.5?rockBase:B.fer,-.34),s1,fog));
+  for(let yy=yTop;yy<yBot;yy++){
+   const t=ny>y?Math.min(1,(yy-y)/(ny-y)):0;
+   const px=PXx[i]+(nx-PXx[i])*t, pw=PW[i]+(nw-PW[i])*t;
+   const L=Math.round(px-pw), R=Math.round(px+pw);
+   if(R<xl||L>xr) continue;
+   g.fillStyle=gr; g.fillRect(L-1,yy,R-L+3,1);
+   g.fillStyle=ec; g.fillRect(L,yy,Math.max(1,R-L+1),1);
+   g.fillStyle=pc; g.fillRect(L+1,yy,Math.max(1,R-L-1),1);
+   if(pw>2){g.fillStyle=pl; g.fillRect(Math.round(px-pw*.40),yy,Math.max(1,Math.round(pw*.8)),1);}
+   if(pw>2.2&&hash(n*97+yy*7)<.22){
+    g.fillStyle=_css(_mix(sh(rockBase,hash(n*5+yy)<.5?.20:-.26),s1,fog));
+    g.fillRect(Math.round(px-pw+hash(n*31+yy)*pw*2),yy,1+(pw>8?1:0),1);}
+  }
+  if(hash(n*911)<.05+alp*.09&&dy>12){
+   const stepH=Math.max(1,Math.round(dy*.014));
+   g.fillStyle=_css(_mix(sh(alp>.5?rockBase:B.trk,-.34),s1,fog));
+   g.fillRect(Math.round(PXx[i]-PW[i]*1.2),yTop,Math.round(PW[i]*2.4),stepH);
+   g.fillStyle=_css(_mix(sh(alp>.5?rockBase:B.trk,.28),s1,fog));
+   g.fillRect(Math.round(PXx[i]-PW[i]*1.2),yTop,Math.round(PW[i]*2.4),1);}
+
+  /* ---- a stream coming off the mountain ---- */
+  if(n%173===0&&dy>2.0){
+   const bh=Math.max(1,Math.round(dy*.05));
+   const wA=_css(_mix(sh(_rgb('#2d6c96'),-.18),s1,fog*.7));
+   const wB=_css(_mix(sh(_rgb('#4e9cc4'),.10),s1,fog*.7));
+   g.fillStyle=dpat(wA,wB,2); g.fillRect(xl,yTop,xr-xl,bh);
+   g.fillStyle=_css(_mix(sh(_rgb('#b9e6f7'),.25),s1,fog*.7)); g.fillRect(xl,yTop,xr-xl,1);
+   g.fillStyle=_css(_mix(sh(_rgb('#17405c'),-.1),s1,fog*.7)); g.fillRect(xl,yTop+bh-1,xr-xl,1);
+   for(let q=xl;q<xr;q+=2) if(hash(q*7+((now/180)|0)*13)<.32){
+    g.fillStyle='rgba(222,245,255,.75)'; g.fillRect(q,yTop+((bh>2)?1:0),2,1);}
+   g.fillStyle=_css(_mix(sh(B.trk,-.30),s1,fog));
+   g.fillRect(Math.round(PXx[i]-PW[i]*1.7),yTop-(bh>2?1:0),Math.round(PW[i]*3.4),Math.max(1,bh));
+   g.fillStyle=_css(_mix(sh(B.trk,.24),s1,fog));
+   g.fillRect(Math.round(PXx[i]-PW[i]*1.7),yTop-(bh>2?1:0),Math.round(PW[i]*3.4),1);
+  }
+  maxY=yTop; topY=Math.min(topY,yTop);
+ }
+ if(topY>Math.round(vanY)){
+  const far=_mix(sh(_mix(B.gnd,rockBase,alp*.8),-.12),s1,.54);
+  g.fillStyle=_css(far);
+  g.fillRect(0,Math.round(vanY),W,topY-Math.round(vanY)+1);}
+ /* the far side of the valley: a band of forest under the ranges, so the
+    slope does not simply stop against open sky */
+ {const fy=Math.round(vanY);
+  const fc=_css(_mix(sh(B.fst,-.06),s1,.46));
+  const fl=_css(_mix(sh(B.fst,.22),s1,.42));
+  for(let x=0;x<W;x++){
+   const hgt=2+Math.round(fbm(x*.09+camZ*.006,1)*5);
+   g.fillStyle=fc; g.fillRect(x,fy-hgt,1,hgt+1);
+   g.fillStyle=fl; g.fillRect(x,fy-hgt,1,1);}
+  for(let b=0;b<8;b++){
+   g.fillStyle=dpat('rgba(0,0,0,0)',_css(s1),12-b*1.5);
+   g.fillRect(0,fy-8+b,W,1);}}
+
+ /* ===========================================================
+    EVERYTHING STANDING ON IT — far to near
+    =========================================================== */
+ const sorted=fauna.slice().sort((a,b)=>b.z-a.z);
+ let fi=0;
+ const CZ=7.4;
+ let drewClimber=false;
+ for(let i=NSEG-1;i>=0;i--){
+  if(!PV[i]) continue;
+  const n=n0+i, zA=n*SEG, z=zA-camZ, dy=FOC/z, y=PY[i];
+  if(dy<1.1) continue;
+  const fog=Math.min(.52,Math.max(0,(z-18)/100)), fogLv=Math.round(fog*6);
+  const xl=PL[i], xr=PR[i];
+
+  while(fi<sorted.length&&sorted[fi].z>zA-SEG&&sorted[fi].z<=zA+SEG){
+   const A=sorted[fi++], az=A.z-camZ;
+   if(az>1.0){
+    const ady=FOC/az;
+    const ax=PRJ(A.lat,az,ady);
+    const ay=HZ+ady*(1-(hillAt(A.z)-camH))-A.hgt*ady;
+    const s=Math.max(1,ady*.020);
+    const F=FAUNA[A.type];
+    let rows=F.r;
+    if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
+    const ss=Math.max(1,Math.round(s*F.s*1.9));
+    const run=A.air?Math.sin(now/80+A.born)*ss*1.3
+                   :(A.type==='rabbit'?Math.abs(Math.sin(now/95+A.born))*ss*2.2
+                                      :Math.abs(Math.sin(now/130+A.born))*ss*.7);
+    if(!A.air){g.fillStyle='rgba(10,14,28,.30)';
+     g.fillRect(Math.round(ax),Math.round(ay),rows[0].length*ss,Math.max(1,ss));}
+    sprite(g,rows,F.p,Math.round(ax),Math.round(ay-ss*rows.length-run),ss,A.vl>0,s1,fog);
+   }
+  }
+
+  for(const L of TRAIL){
+   const lz=(L.m-mi)*MPZ;
+   if(lz<=z-SEG||lz>z+SEG||lz<1.0) continue;
+   const ldy=FOC/lz, side=(hash(Math.round(L.m*10))<.5?-1:1);
+   const lx=PRJ(laneAt(camZ+lz)+side*.38,lz,ldy);
+   const ly=HZ+ldy*(1-(hillAt(camZ+lz)-camH));
+   g.fillStyle='rgba(10,14,28,.26)';
+   g.fillRect(Math.round(lx-ldy*.07),Math.round(ly-ldy*.012),Math.round(ldy*.16),Math.max(1,Math.round(ldy*.022)));
+   landmark(g,lx,ly,ldy*.024,L.k,B,mi>=L.m,fog,s1);
+   if(ldy>6){
+    const pul=.5+.5*Math.sin(now/300);
+    g.fillStyle='rgba(245,198,81,'+(pul*.85).toFixed(2)+')';
+    g.fillRect(Math.round(lx),Math.round(ly-ldy*.36),1,Math.max(1,Math.round(ldy*.08)));
+    g.fillStyle='rgba(245,198,81,'+(pul*.22).toFixed(2)+')';
+    g.fillRect(Math.round(lx-1),Math.round(ly-ldy*.38),3,Math.max(1,Math.round(ldy*.12)));}
+  }
+
+  if(!drewClimber&&z<=CZ){
+   drewClimber=true;
+   const cdy=FOC/CZ;
+   const cx=PRJ(laneAt(camZ+CZ),CZ,cdy);
+   const cy=HZ+cdy*(1-(hillAt(camZ+CZ)-camH));
+   const s=Math.max(1,Math.round(cdy*.0125));
+   const bob=Math.round(Math.sin(walkPhase*2)*s*.7);
+   g.fillStyle='rgba(10,14,28,.32)';
+   g.fillRect(Math.round(cx-s*3),Math.round(cy-s*.5),s*11,Math.max(1,s*1.3));
+   climber(g,Math.round(cx-s*5),Math.round(cy-s*16+bob),s,[0,1,0,2][(walkPhase|0)%4],night>.45,s1,fog*.5);
+  }
+
+  /* ---- forest ---- */
+  const dens=[.70,.62,.80].map(v=>v*(1-alp*0.94));
+  for(let side=-1;side<=1;side+=2){
+   for(let rank=0;rank<3;rank++){
+    const hk=hash(n*(side>0?131:197)+rank*7919);
+    if(hk>dens[rank]) continue;
+    const jit=(hash(n*911+rank*37+(side>0?3:8))-.5)*[.34,.62,1.2][rank];
+    const lat=laneAt(zA)+side*([.42,1.00,1.85][rank]+hk*[.42,.70,1.5][rank])+jit;
+    if(dropAt(zA)*(lat-edgeAt(zA))>0) continue;
+    const x=Math.round(PRJ(lat,z,dy));
+    if(x<-70||x>W+70) continue;
+    const sz=hash(n*(side>0?53:71)+rank*313);
+    const th=dy*(0.20+sz*sz*0.62)*(1-alp*.55);
+    if(th<1.4||th>H*0.78) continue;   /* skip the ones level with you */
+    const vr=hash(n*379+rank*31+(side>0?1:0));
+    const spc=alp>.62?'fir':B.tree==='fir'?(vr<.80?'fir':'hard')
+                              :(vr<.16?'birch':vr<.38?'fir':'hard');
+    const spr=treeSprite(spc,th,B,s1,fogLv,Math.round(mi/7),
+      vr<.16&&Math.abs(lat-laneAt(zA))<.95,Math.floor(hash(n*17+rank*5+(side>0?2:9))*4));
+    /* a cast shadow, thrown downslope away from the key light */
+    if(dy>7){
+     const sw2=spr.width*.52, sh2=Math.max(1,th*.045);
+     g.fillStyle='rgba(10,16,30,'+(0.30*(1-fog)).toFixed(2)+')';
+     for(let q=-sh2;q<=sh2;q++){
+      const ww=Math.round(sw2*Math.sqrt(Math.max(0,1-(q/sh2)*(q/sh2))));
+      if(ww>0) g.fillRect(Math.round(x+sw2*.55-ww),Math.round(y+q),ww*2,1);}}
+    g.drawImage(spr,Math.round(x-spr.width/2),Math.round(y-spr.height+1));
+   }
+  }
+
+  /* ---- understory ---- */
+  if(dy>7){
+   for(let q=0;q<7;q++){
+    const h1=hash(n*311+q*17); if(h1>.78) continue;
+    const lat=laneAt(zA)+(h1<.32?-1:1)*(.10+hash(n*7+q)*1.05);
+    if(dropAt(zA)*(lat-edgeAt(zA))>0) continue;
+    const x=Math.round(PRJ(lat,z,dy)), s=Math.max(1,Math.round(dy*.012));
+    if(x<xl-14||x>xr+14) continue;
+    const kk=hash(n*53+q*29)*(1-alp*.85)+alp*.46;
+    const kind=kk<.40?'fern':kk<.66?'rock':kk<.76?'bush':kk<.88?'log':'flower';
+    const spr=undergrowth(kind,Math.min(6,s),B,s1,fogLv,alpLv);
+    g.drawImage(spr,Math.round(x-spr.width/2),Math.round(y-spr.height+1));
+   }
   }
  }
 
- /* the trail itself: a dirt tread along the near ridge line */
- const groundAt=x=>Math.round(ridge(ox+x,.055,H*.030,H*.73))+1;
- const dirt=_rgb('#000000');
- for(let x=0;x<W;x++){
-  const y=groundAt(x);
-  g.fillStyle=_css(_lite(B.gnd,.10)); g.fillRect(x,y,1,1);
-  g.fillStyle=_css(B.gnd);            g.fillRect(x,y+1,1,2);
-  g.fillStyle=_css(_dark(B.gnd,.40)); g.fillRect(x,y+3,1,2);
- }
-
- /* landmarks, drawn in world space so they arrive on their own mileage */
- for(const L of TRAIL){
-  const x=Math.round((L.m-cam)*PPM+hx);
-  if(x<-20||x>W+20) continue;
-  const passed=cam>=L.m;
-  marker(g,x,groundAt(x),L.k,_css(passed?_lite(B.near,.34):_lite(B.near,.20)),passed);
-  /* name only when it is close enough to matter */
-  if(Math.abs(x-hx)<W*.46){
-   const a=Math.max(.15,1-Math.abs(x-hx)/(W*.46));
-   g.fillStyle='rgba(245,198,81,'+a.toFixed(2)+')';
-   g.fillRect(x,groundAt(x)-17,1,3);
+ /* ---- canopy overhead ---- */
+ if(alp<.55){
+  for(let k=0;k<8;k++){
+   const ph=((camZ*.9+k*260)%900)/900;
+   if(ph>.36) continue;
+   const bx=hash(k*61)*W, br=(12+hash(k*83)*26)*(0.5+ph*2.4)*(1-alp);
+   if(br<2) continue;
+   const by=-br*.55+ph*H*.30;
+   const dcol=_css(sh(B.cnp,-.62)), lcol=_css(sh(B.cnp,-.30));
+   g.fillStyle=dcol;
+   for(let i=-br;i<=br;i++){const w2=Math.round(Math.sqrt(Math.max(0,br*br-i*i)));
+    g.fillRect(Math.round(bx-w2),Math.round(by+i),w2*2+1,1);}
+   g.fillStyle=lcol;
+   const br2=br*.55;
+   for(let i=-br2;i<=br2;i++){const w2=Math.round(Math.sqrt(Math.max(0,br2*br2-i*i)));
+    g.fillRect(Math.round(bx+br*.35-w2),Math.round(by-br*.28+i),w2*2+1,1);}
   }
+  g.fillStyle=dpat('rgba(0,0,0,0)',_css(sh(B.cnp,-.70)),Math.round(6*(1-alp)));
+  g.fillRect(0,0,W,Math.round(H*.05));
  }
-
- /* the climber */
- const gy=groundAt(hx);
- const frame=walking?(Math.floor(t/150)%2):0;
- g.fillStyle='rgba(0,0,0,.30)'; g.fillRect(hx-3,gy+1,8,1);     // contact shadow
- hiker(g,hx-3,gy-10,frame);
-
- /* foreground grass, fastest parallax, sells the motion */
- const fg=_css(_dark(B.near,.55)), fox=ox*1.7;
- for(let k=Math.floor(fox/5)-1;k<fox/5+W/5+2;k++){
-  const x=Math.round(k*5+hash(k*71)*5-fox);
-  if(x<-4||x>W+4) continue;
-  const hh=2+Math.round(hash(k*29)*4);
-  g.fillStyle=fg; g.fillRect(x,H-hh,1,hh); g.fillRect(x+1,H-hh+1,1,hh);
+ /* ---- spindrift once you are high ---- */
+ if(alp>.45){
+  for(let k=0;k<110;k++){
+   const t=(now/820+hash(k*13))%1;
+   const x=((hash(k*7)*W*1.5-t*W*1.5)%W+W)%W;
+   const y=(hash(k*31)*H+t*H*.40)%H;
+   g.fillStyle='rgba(248,252,255,'+(0.10+0.32*hash(k*5)).toFixed(2)+')';
+   g.fillRect(x|0,y|0,1,hash(k*3)<.3?2:1);}
  }
+ /* ---- light raking across the slope ---- */
+ /* sun breaking through the canopy. One pixel in sixteen, and only in the
+    middle distance, where it reads as light rather than as confetti. */
+ if(night<.4&&alp<.6){
+  g.fillStyle=dpat('rgba(0,0,0,0)',_css(sh([255,246,220],.1)),1);
+  for(let k=0;k<3;k++){
+   const sx2=((hash(k*211)*W*1.7-camZ*.42)%(W+90)); const xx=sx2<-60?sx2+W+90:sx2;
+   for(let q=0;q<13;q++) g.fillRect(Math.round(xx+q*1.4),Math.round(vanY)+8+q*3,4,3);}
+ }
+ for(const p of motes){ g.fillStyle=p.c; g.fillRect(p.x|0,p.y|0,p.s,p.s); }
+
+ /* ---- vignette ---- */
+ const VG=[4,3,2,1];
+ for(let i=0;i<VG.length;i++){
+  g.fillStyle=dpat('rgba(0,0,0,0)','rgba(6,9,18,1)',VG[i]);
+  g.fillRect(i*2,0,2,H); g.fillRect(W-2-i*2,0,2,H);}
 }
 
-/* ---------- chest ---------- */
+/* ---------- motion ---------- */
+function step(dt,now){
+ const target=miles(), d=target-shownMi;
+ /* The mountain keeps moving when you have banked nothing. This is a
+    screen you leave open, and a climber standing still is a dead screen.
+    The mile count underneath is still only ever your real steps. */
+ surge=Math.max(0,surge-dt*.00085);
+ shake=Math.max(0,shake-dt*.003);
+ drift+=(9+surge*90)*dt/1000;
+ if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/500);
+ walkPhase+=dt/145*(1+surge*5);
+
+ const hr=HOUR(), night=(hr<5||hr>=22)?.9:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
+ const alp=alpineAt(shownMi);
+ if(now>nextSpawn) spawn(shownMi*MPZ+drift,now,alp);
+ const camZ=shownMi*MPZ+drift, cx0=laneAt(camZ);
+ for(const A of fauna){ A.lat+=A.vl*dt/1000; A.z+=A.vz*dt/1000; }
+ fauna=fauna.filter(A=>A.z>camZ-2&&A.z<camZ+190&&Math.abs(A.lat-cx0)<7).slice(-18);
+
+ if(night>.45&&alp<.5){
+  if(Math.random()<dt/240&&motes.length<40)
+   motes.push({x:Math.random()*W,y:H*.45+Math.random()*H*.5,vx:(Math.random()-.5)*9,
+    vy:(Math.random()-.5)*7,s:1,life:2600+Math.random()*2600,t:0,c:'rgba(190,255,140,.9)'});
+  for(const p of motes){ p.t+=dt;
+   p.x+=p.vx*dt/1000; p.y+=p.vy*dt/1000;
+   p.vx+=(Math.random()-.5)*14*dt/1000; p.vy+=(Math.random()-.5)*12*dt/1000;
+   const a=Math.max(0,Math.sin(p.t/p.life*Math.PI))*(0.45+0.55*Math.sin(p.t/160));
+   p.c='rgba(200,255,152,'+a.toFixed(2)+')';}
+  motes=motes.filter(p=>p.t<p.life);
+ }else if(alp<.5){
+  if(Math.random()<dt/260&&motes.length<34)
+   motes.push({x:Math.random()*W,y:-2,vx:-7-Math.random()*16,vy:9+Math.random()*20,s:1,
+    t:0,life:9e9,c:Math.random()<.5?'rgba(214,160,72,.85)':'rgba(166,186,116,.75)'});
+  for(const p of motes){ p.x+=p.vx*dt/1000; p.y+=p.vy*dt/1000; p.x+=Math.sin(p.y/8)*.4; }
+  motes=motes.filter(p=>p.y<H+3&&p.x>-5&&p.life>1e9);
+ }else motes.length=0;
+}
+
+/* ===================================================================
+   CHEST — opened, not awarded
+   =================================================================== */
 const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
            ['EPIC','#b978f0'],['LEGENDARY','#f5c651']];
 const LOOT={
- skin  :['LAUREL CLOAK','BLAZE ORANGE SHELL','WOOL FLANNEL','SPRINGER GREY','BALSAM PARKA','THRU-HIKER BEARD'],
- pet   :['TRAIL DOG','GRAY JAY','BOX TURTLE','RIDGE FOX','CAMP MOUSE'],
- map   :['LINEN TOPO','RANGER BLUEPRINT','FADED GUIDEBOOK','MOSS GREEN'],
+ skin   :['LAUREL CLOAK','BLAZE ORANGE SHELL','WOOL FLANNEL','SPRINGER GREY','BALSAM PARKA'],
+ pet    :['TRAIL DOG','GRAY JAY','BOX TURTLE','RIDGE FOX','CAMP MOUSE'],
+ map    :['LINEN TOPO','RANGER BLUEPRINT','FADED GUIDEBOOK','MOSS GREEN'],
  journal:['BIRCH BARK COVER','DUCT TAPE COVER','SHELTER LOG STAMP'],
- gear  :['CARBON POLES (SKIN)','ENAMEL MUG','BRASS COMPASS']
-};
-/* Tier is the landmark's weight, not a paid variable. Springer and Katahdin
-   should feel different from a gap you walked over at lunchtime. */
-function roll(tier){
- const r=Math.random()+tier*0.11;
- const i=r>1.30?4:r>1.05?3:r>0.78?2:r>0.42?1:0;
- const kinds=Object.keys(LOOT), k=kinds[Math.floor(Math.random()*kinds.length)];
- const pool=LOOT[k];
- return {rar:i,kind:k,item:pool[Math.floor(Math.random()*pool.length)]};
-}
-function chestArt(col){
- const c=document.getElementById('chestcv'),g=c.getContext('2d');
- g.imageSmoothingEnabled=false; g.clearRect(0,0,28,28);
- const body=_rgb('#7a5430'), band=_rgb(col);
- g.fillStyle=_css(body);            g.fillRect(5,13,18,11);
- g.fillStyle=_css(_dark(body,.35)); g.fillRect(5,22,18,2);
- g.fillStyle=_css(_lite(body,.18)); g.fillRect(5,8,18,6);
- g.fillStyle=_css(band);            g.fillRect(5,13,18,2); g.fillRect(12,8,4,16);
- g.fillStyle=_css(_lite(band,.45)); g.fillRect(13,16,2,3);
- for(let i=0;i<10;i++){ // sparkle
-  g.fillStyle='rgba(255,255,255,'+(.25+hash(i*13)*.5).toFixed(2)+')';
-  g.fillRect(2+Math.floor(hash(i*7)*24),1+Math.floor(hash(i*17)*7),1,1);}
-}
-let chestQ=[];
-function showChest(){
+ gear   :['CARBON POLES','ENAMEL MUG','BRASS COMPASS']};
+const ICON={
+ skin   :["....aaaa....","...aaaaaa...","..aa.aa.aa..",".aaaaaaaaaa.","aaaabaabaaaa",
+          "aaaabaabaaaa",".aaabaabaaa.",".aaaaaaaaaa.",".aaa.aa.aaa.",".aaa.aa.aaa.",
+          "..aa.aa.aa..","............"],
+ pet    :["............","..a......a..","..aa....aa..","..aaaaaaaa..",".aaaaaaaaaa.",
+          ".ab.aaaa.ba.",".aaaabaaaaa.","..aaaaaaaa..","...aaaaaa...","...aa..aa...",
+          "..aaa..aaa..","............"],
+ map    :["............",".bbbbbbbbbb.",".baaaaaaaab.",".ba.b....ab.",".ba..bb..ab.",
+          ".ba.b..b.ab.",".ba.b....ab.",".ba...bb.ab.",".baaaaaaaab.",".bbbbbbbbbb.",
+          "............","............"],
+ journal:["...aaaaaaa..","..abbbbbbba.",".ab.......ba","ab..bbbbb..a","ab.........a",
+          "ab..bbbbb..a","ab.........a","ab..bbb....a",".ab.......ba","..abbbbbbba.",
+          "...aaaaaaa..","............"],
+ gear   :["....aaaa....","..aa....aa..",".a........a.","a....b.....a","a...bbb....a",
+          "a..bbbbb...a","a....b.....a","a....b.....a",".a........a.","..aa....aa..",
+          "....aaaa....","............"]};
+
+const fx=document.getElementById('fx'), fg=fx.getContext('2d');
+let anim=null, chestQ=[];
+
+function startChest(){
  if(!chestQ.length) return;
  const L=chestQ[0], d=roll(L.t), R=RAR[d.rar];
+ anim={L,d,R,t0:performance.now(),done:false,sp:[]};
+ const box=document.getElementById('chest');
+ box.classList.add('open');
  document.getElementById('clm').innerHTML=L.n+'<br>MILE '+L.m.toFixed(1);
  document.getElementById('crar').textContent=R[0];
  document.getElementById('crar').style.color=R[1];
  document.getElementById('citem').textContent=d.item;
+ document.getElementById('citem').style.color=R[1];
  document.getElementById('ckind').textContent=d.kind;
- chestArt(R[1]);
- document.getElementById('chest').classList.add('open');
+ for(const id of ['clm','crar','citem','ckind','cok'])
+  document.getElementById(id).classList.remove('show');
+ setTimeout(()=>document.getElementById('clm').classList.add('show'),250);
+ requestAnimationFrame(fxFrame);
+}
+function roll(tier){
+ const r=Math.random()+tier*0.11;
+ const i=r>1.30?4:r>1.05?3:r>0.78?2:r>0.42?1:0;
+ const kinds=Object.keys(LOOT), k=kinds[(Math.random()*kinds.length)|0];
+ return {rar:i,kind:k,item:LOOT[k][(Math.random()*LOOT[k].length)|0]};
+}
+
+/* the whole reveal, on one timeline, in milliseconds */
+const T_DROP=420, T_SHAKE=1750, T_BURST=1900, T_RISE=2700, T_SETTLE=3150;
+function fxFrame(now){
+ if(!anim) return;
+ const w=fx.clientWidth||innerWidth, h=fx.clientHeight||innerHeight;
+ const FW=Math.max(1,Math.ceil(w/PX)), FH=Math.max(1,Math.ceil(h/PX));
+ if(fx.width!==FW){fx.width=FW;fx.height=FH;}
+ fg.imageSmoothingEnabled=false; fg.clearRect(0,0,FW,FH);
+ const t=now-anim.t0, R=anim.R, col=_rgb(R[1]);
+ const cx=Math.round(FW/2), cy=Math.round(FH*0.40);
+ const S=Math.max(2,Math.round(FW/26));     // chest unit size
+
+ /* --- 1. it falls in and lands --- */
+ let dy=0, squash=0;
+ if(t<T_DROP){ const p=t/T_DROP; dy=-(1-p)*(1-p)*FH*.55; }
+ else if(t<T_DROP+140){ const p=(t-T_DROP)/140; squash=Math.sin(p*Math.PI)*.45; }
+
+ /* --- 2. it shakes, harder and harder, and light leaks out --- */
+ let sx=0, lid=0, glow=0;
+ if(t>T_DROP && t<T_SHAKE){
+  const p=(t-T_DROP)/(T_SHAKE-T_DROP);
+  sx=Math.sin(t/(46-p*30))*S*(.18+p*.85);
+  glow=p*p;
+  if(p>.55) lid=(p-.55)/.45*0.30;
+ }
+ /* --- 3. the lid goes, and the flash --- */
+ if(t>=T_SHAKE && t<T_BURST){ const p=(t-T_SHAKE)/(T_BURST-T_SHAKE); lid=.30+p*1.4; glow=1; }
+ if(t>=T_BURST){ lid=1.7; glow=1; }
+
+ /* flash ring */
+ if(t>T_SHAKE-60 && t<T_SHAKE+320){
+  const p=Math.max(0,Math.min(1,(t-(T_SHAKE-60))/380));
+  fg.fillStyle='rgba(255,255,255,'+((1-p)*.85).toFixed(2)+')';
+  const r=p*FW*.9;
+  fg.fillRect(cx-r/2,cy-r/2*.5,r,r*.5);
+ }
+
+ /* --- the beam --- */
+ if(glow>0){
+  const bw=Math.max(1,Math.round(S*(1.2+glow*2.4)));
+  for(let i=0;i<10;i++){
+   const a=(glow*(.22-i*.02)*(0.6+0.4*Math.sin(now/180+i))).toFixed(3);
+   fg.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+a+')';
+   fg.fillRect(cx-bw/2-i*2,cy-S*2-i*S*1.1,bw+i*4,S*2+i*S*1.1);
+  }
+ }
+
+ /* --- the chest itself --- */
+ const by=cy+dy, wood=_rgb('#7a5430');
+ const bw=S*6, bh=S*4;
+ const drawBox=()=>{
+  fg.fillStyle=_css(_dark(wood,.15+squash*.2));
+  fg.fillRect(cx-bw/2+sx,by-bh*(1-squash),bw,bh*(1-squash)+bh*squash);
+  fg.fillStyle=_css(_dark(wood,.45));
+  fg.fillRect(cx-bw/2+sx,by-S*.8,bw,S*.8);
+  fg.fillStyle=_css(col);
+  fg.fillRect(cx-S*.7+sx,by-bh*(1-squash),S*1.4,bh*(1-squash));
+ };
+ const drawLid=()=>{
+  fg.save();
+  fg.translate(cx+sx,by-bh*(1-squash));
+  fg.rotate(-lid);
+  fg.fillStyle=_css(_lite(wood,.18));
+  fg.fillRect(-bw/2,-S*2.2,bw,S*2.2);
+  fg.fillStyle=_css(col); fg.fillRect(-S*.7,-S*2.2,S*1.4,S*2.2);
+  fg.fillStyle=_css(_lite(col,.5)); fg.fillRect(-S*.4,-S*.9,S*.8,S*.7);
+  fg.restore();
+ };
+ if(t>T_RISE+260){ drawLid(); drawBox(); } else { drawBox(); drawLid(); }
+
+ /* --- the item rises out, glowing --- */
+ if(t>T_BURST){
+  const p=Math.min(1,(t-T_BURST)/(T_RISE-T_BURST));
+  const e=1-Math.pow(1-p,3);
+  const hover=(t>T_RISE)?Math.sin((t-T_RISE)/420)*S*.4:0;
+  const iy=by-bh-e*S*5.2+hover;
+  const sp=ICON[anim.d.kind], IS=Math.max(1,Math.round(S*.62*e));
+  /* halo */
+  for(let i=5;i>0;i--){
+   fg.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(.07*e).toFixed(3)+')';
+   fg.fillRect(cx-IS*6-i*2,iy-IS*12-i*2,IS*12+i*4,IS*12+i*4);
+  }
+  for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
+   const ch=sp[r][c]; if(ch==='.')continue;
+   fg.fillStyle=ch==='a'?_css(_lite(col,.12)):_css(_dark(col,.42));
+   fg.fillRect(cx-IS*6+c*IS,iy-IS*12+r*IS,IS,IS);}
+
+  /* sparkles orbiting it */
+  if(!anim.sp.length) for(let i=0;i<26;i++)
+   anim.sp.push({a:Math.random()*6.28,r:S*(1.2+Math.random()*3.4),
+                 v:(Math.random()<.5?-1:1)*(.6+Math.random()*1.5),
+                 o:Math.random()*6.28,s:Math.random()<.3?2:1});
+  for(const q of anim.sp){
+   const ang=q.a+(t-T_BURST)/900*q.v;
+   const rr=q.r*(0.6+0.4*Math.sin(ang*2+q.o));
+   const px=cx+Math.cos(ang)*rr, py=iy-IS*6+Math.sin(ang)*rr*.55;
+   fg.fillStyle='rgba(255,255,255,'+(.25+.55*Math.abs(Math.sin(ang+q.o))).toFixed(2)+')';
+   fg.fillRect(px|0,py|0,q.s,q.s);}
+ }
+
+ /* --- the text, after the item has arrived --- */
+ if(t>T_SETTLE && !anim.done){
+  anim.done=true;
+  document.getElementById('crar').classList.add('show');
+  setTimeout(()=>document.getElementById('citem').classList.add('show'),180);
+  setTimeout(()=>document.getElementById('ckind').classList.add('show'),340);
+  setTimeout(()=>document.getElementById('cok').classList.add('show'),560);
+ }
+ requestAnimationFrame(fxFrame);
 }
 document.getElementById('cok').onclick=()=>{
- chestQ.shift();
+ chestQ.shift(); anim=null;
  document.getElementById('chest').classList.remove('open');
- if(chestQ.length) setTimeout(showChest,220);
+ if(chestQ.length) setTimeout(startChest,260);
 };
 
 /* ---------- hud ---------- */
@@ -434,58 +1336,45 @@ function hud(){
  document.getElementById('biome').textContent=biomeAt(mi).name;
  document.getElementById('today').textContent=S.today.toLocaleString();
  document.getElementById('day').textContent=S.day;
-
  let prev={m:0}, next=null;
  for(const L of TRAIL){ if(L.m<=mi) prev=L; else {next=L;break;} }
  if(next){
   document.getElementById('nextname').textContent=next.n;
   document.getElementById('nextdist').textContent=(next.m-mi).toFixed(1)+' MI';
-  const span=Math.max(.01,next.m-prev.m);
   document.getElementById('fill').style.width=
-   Math.max(0,Math.min(100,((mi-prev.m)/span)*100)).toFixed(1)+'%';
+   Math.max(0,Math.min(100,((mi-prev.m)/Math.max(.01,next.m-prev.m))*100)).toFixed(1)+'%';
  }else{
   document.getElementById('nextname').textContent='TRAIL END (PROTOTYPE)';
   document.getElementById('nextdist').textContent='—';
   document.getElementById('fill').style.width='100%';
  }
 }
-
-/* ---------- walking ---------- */
 function addSteps(n){
- const before=miles();
- S.steps+=n; S.today+=n;
- const after=miles();
- for(const L of TRAIL){
-  if(L.m>before && L.m<=after && S.opened.indexOf(L.m)<0){
-   S.opened.push(L.m); chestQ.push(L);}
- }
+ const before=miles(); S.steps+=n; S.today+=n; const after=miles();
+ for(const L of TRAIL)
+  if(L.m>before && L.m<=after && S.opened.indexOf(L.m)<0){S.opened.push(L.m);chestQ.push(L);}
+ surge=Math.min(.55,surge+n/22000);
  save(); hud();
- if(chestQ.length && !document.getElementById('chest').classList.contains('open'))
-  setTimeout(showChest,900);   // let them watch it arrive first
+ if(chestQ.length && !anim) setTimeout(startChest,1100);
 }
-
 document.getElementById('b1k').onclick=()=>addSteps(1000);
 document.getElementById('b5k').onclick=()=>addSteps(5000);
 document.getElementById('bday').onclick=()=>{
- S.day++; S.today=0; save();
- addSteps(3000+Math.floor(Math.random()*6000));
-};
+ S.day++; S.today=0; save(); addSteps(3000+((Math.random()*6000)|0));};
 document.getElementById('brst').onclick=()=>{
- S={steps:0,today:0,day:1,opened:[]}; chestQ=[]; shown=0; save(); hud();
-};
+ S={steps:0,today:0,day:1,opened:[]}; chestQ=[]; anim=null; shownMi=0; drift=0; save(); hud();};
 
 /* ---------- loop ---------- */
-let last=0;
-function frame(t){
- const target=miles(), d=target-shown;
- walking=Math.abs(d)>0.0015;
- if(walking) shown+=d*Math.min(1,(t-last)/420);   // eases in, never snaps
- last=t;
- paint(shown,t);
+let last=performance.now();
+let _errs=0;
+function frame(now){
+ const dt=Math.min(60,now-last); last=now;
+ try{ step(dt,now); paint(now,dt); }
+ catch(e){ if(_errs++<3) console.error('frame',e); }
  requestAnimationFrame(frame);
 }
-hud(); requestAnimationFrame(frame);
-addEventListener('resize',()=>paint(shown,performance.now()));
+resize(); hud(); addEventListener('resize',resize);
+requestAnimationFrame(frame);
 </script>
 </body>
 </html>
