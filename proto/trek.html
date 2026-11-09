@@ -718,6 +718,10 @@ function landmark(g,x,gy,sc,k,B){
    one foot planted and back while the other swings forward and lifts. The
    boots trade places vertically and the hem never moves, because a robe
    does not scissor. The cycle runs passing, left, passing, right. */
+/* The legs run from under the hem to the ground without a break. There
+   used to be an empty row between the two, which at this size reads as a
+   pair of boots floating below the robe. A stride shows as one sole
+   landing a row before the other, not as the feet moving apart. */
 const WIZ=[
  ["....yyyy......",
   "...yyyyyy..c..",
@@ -733,10 +737,10 @@ const WIZ=[
   ".oRRRRRRRRo.s.",
   ".oKRRRRRRKo.s.",
   ".oKKRRRRKKo.s.",
-  ".oKK....KKo.s.",
-  "............s.",
+  ".oKKKKKKKKo.s.",
   "....ww.ww...s.",
-  "....o...o...s."],
+  "....ww.ww...s.",
+  "....oo.oo...s."],
  ["....yyyy......",
   "...yyyyyy..c..",
   "..yyYYYYyy.ccc",
@@ -751,10 +755,10 @@ const WIZ=[
   ".oRRRRRRRRo.s.",
   ".oKRRRRRRKo.s.",
   ".oKKRRRRKKo.s.",
-  ".oKK....KKo.s.",
-  ".......ww...s.",
-  "....ww..o...s.",
-  "....o.......s."],
+  ".oKKKKKKKKo.s.",
+  "....ww.ww...s.",
+  "....ww.oo...s.",
+  "....oo......s."],
  ["....yyyy......",
   "...yyyyyy..c..",
   "..yyYYYYyy.ccc",
@@ -769,10 +773,10 @@ const WIZ=[
   ".oRRRRRRRRo.s.",
   ".oKRRRRRRKo.s.",
   ".oKKRRRRKKo.s.",
-  ".oKK....KKo.s.",
-  "....ww......s.",
-  "....o...ww..s.",
-  "........o...s."]];
+  ".oKKKKKKKKo.s.",
+  "....ww.ww...s.",
+  "....oo.ww...s.",
+  ".......oo...s."]];
 const WPAL={y:'#fbf236',Y:'#b7b130',o:'#0a0b14',r:'#c74c4a',R:'#ac3232',
             K:'#782126',b:'#6398ff',w:'#ffffff',s:'#8f563b',c:'#5fcde4'};
 const WCAN=[];
