@@ -57,8 +57,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 #chest{position:fixed;inset:0;z-index:30;display:none;background:rgba(3,6,11,.90)}
 #chest.open{display:block}
 #fx{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
-.cinfo{position:absolute;left:0;right:0;bottom:0;padding:0 22px max(22px,env(safe-area-inset-bottom));
- text-align:center}
+.cinfo{position:absolute;left:0;right:0;bottom:0;
+ padding:18px 22px max(22px,env(safe-area-inset-bottom));text-align:center;
+ background:linear-gradient(rgba(3,6,11,0) 0%,rgba(3,6,11,.92) 16%,rgba(3,6,11,.98) 100%)}
 .clm{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:2px;line-height:1.8;
  margin-bottom:14px;opacity:0;transition:opacity .5s}
 .crar{font-family:var(--pix);font-size:12px;letter-spacing:3px;margin-bottom:9px;
@@ -200,44 +201,40 @@ function biomeAt(mi){
 }
 
 /* ===================================================================
-   RENDER CORE
+   RENDER CORE  —  three-quarter view, orthographic, chunk-baked
 
-   Three things carry this scene, and none of them is "more objects":
+   The mountain is not projected every frame. It is a tall vertical
+   strip of world that gets baked, once, into offscreen chunks and then
+   scrolled. That is what a tile-based game does, and it is the only way
+   to afford this much detail: a chunk costs millions of operations to
+   shade, but it is paid once every twenty seconds instead of sixty
+   times a second.
 
-   1. Warm/cool light. Shadows go blue, highlights go warm. A palette
-      that only darkens toward black is the single biggest reason pixel
-      art reads as cheap, and fixing it costs nothing.
-   2. Ordered dithering. Gradients are quantised and dithered on a 4x4
-      Bayer grid, served as canvas patterns so a whole band costs one
-      fill. Smooth gradients are what make pixel art look like a photo
-      someone shrank.
-   3. Sprite caches. The summit, the sky and every tree are rendered
-      once into offscreen canvases and blitted. That is what buys the
-      detail: a tree can cost two thousand operations to draw because
-      it is drawn once, not sixty times a second.
+   The terrain itself is a ridged-multifractal heightfield lit by a
+   surface normal. Ridges, gullies, spurs and faces all fall out of that
+   for free, which is why it reads as a mountain range rather than as a
+   texture. Material comes from altitude and steepness: forest low,
+   meadow and scree above it, bare rock on anything steep, snow at the
+   top. There is no horizon and no sky. Distance is carried entirely by
+   a screen-space haze that thickens toward the top of the frame, so the
+   far ridges sit back without a single extra polygon.
    =================================================================== */
-const LIN=0.064;
-const pathAt=z=> .62*Math.sin(z*.0290)+.34*Math.sin(z*.0631+2.1)+.14*Math.sin(z*.1270+4.4);
-const tri=x=> Math.asin(Math.sin(x))*0.6366;
-const swbk=z=> 2.35*tri(z*.0392)+0.55*tri(z*.0970+1.2);
-const laneAt=z=> pathAt(z)*0.42+swbk(z);
-const hillAt=z=> LIN*z + .30*Math.sin(z*.0180)+.13*Math.sin(z*.0410+1.3)+.05*Math.sin(z*.0950+3.1);
-const dropAt=z=> Math.sin(z*.0034+1.1)>0?1:-1;
-const edgeAt=z=> laneAt(z)+dropAt(z)*(1.25+.55*Math.sin(z*.0190)+.22*Math.sin(z*.071));
+const RPM  = 900;    // world rows per trail mile
+const CH   = 256;    // chunk height, world rows
+const OVER = 96;     // how far an object may overhang the chunk above it
 const _qh=new URLSearchParams(location.search).get('t');
 const HOUR=()=> _qh!==null?(+_qh):new Date().getHours();
 const _qm=new URLSearchParams(location.search).get('m');
 
-/* ---- light ----
-   SHADE is warm at the top of the ramp and cool at the bottom. Everything
-   that stands up gets lit by it, and the key is over your left shoulder. */
-const COOL=[26,34,78], WARM=[255,242,201];
-const sh=(c,t)=> t<0?_mix(c,COOL,Math.min(.85,-t*.92)):_mix(c,WARM,Math.min(.85,t*.82));
+/* ---- light ---- */
+const COOL=[44,52,76], WARM=[255,243,205];
+const sh=(c,t)=> t<0?_mix(c,COOL,Math.min(.72,-t*.80)):_mix(c,WARM,Math.min(.86,t*.82));
+const LX=-0.62, LY=-0.56, LZ=0.55;          // key light, over the left shoulder
 
-/* ---- ordered dither, served as patterns ---- */
+/* ---- ordered dither, served as canvas patterns ---- */
 const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
 const _pat=new Map();
-function dpat(a,b,lv){                     /* lv 0..16 : sixteenths of b */
+function dpat(a,b,lv){
  lv=Math.max(0,Math.min(16,Math.round(lv)));
  const k=a+'|'+b+'|'+lv;
  let p=_pat.get(k); if(p) return p;
@@ -245,16 +242,11 @@ function dpat(a,b,lv){                     /* lv 0..16 : sixteenths of b */
  else{
   const c=document.createElement('canvas'); c.width=4; c.height=4;
   const q=c.getContext('2d'); q.fillStyle=a; q.fillRect(0,0,4,4); q.fillStyle=b;
-  const thr=lv;
-  for(let y=0;y<4;y++)for(let x=0;x<4;x++) if(BAYER[(y<<2)|x]<thr) q.fillRect(x,y,1,1);
+  for(let y=0;y<4;y++)for(let x=0;x<4;x++) if(BAYER[(y<<2)|x]<lv) q.fillRect(x,y,1,1);
   p=ctx.createPattern(c,'repeat');
  }
  if(_pat.size>1400) _pat.clear();
  _pat.set(k,p); return p;
-}
-/* blend two colours with dithering instead of a flat average */
-function dmix(a,b,t){
- return dpat(_css(a),_css(b),Math.round(t*16));
 }
 function vnoise(x,y){
  const xi=Math.floor(x), yi=Math.floor(y), fx=x-xi, fy=y-yi;
@@ -264,251 +256,321 @@ function vnoise(x,y){
  return (h00*(1-sx)+h10*sx)*(1-sy)+(h01*(1-sx)+h11*sx)*sy;
 }
 function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.1,y*2.1)*.28+vnoise(x*4.3,y*4.3)*.17;}
+/* Ridged multifractal. Folding the noise at its midpoint turns rounded
+   hills into sharp crests, which is the difference between a landscape
+   and a duvet. */
+function ridged(x,y){
+ let s=0,a=1,f=1,w=0;
+ for(let i=0;i<5;i++){
+  const n=1-Math.abs(vnoise(x*f,y*f)*2-1);
+  s+=n*n*a; w+=a; a*=.52; f*=2.07;
+ }
+ return s/w;
+}
 
 /* ---------- state ---------- */
-const KEY='sq_trek_proto2';
+const KEY='sq_trek_proto3';
 let S={steps:0,today:0,day:1,opened:[]};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const miles=()=>S.steps/SPM;
-
 if(_qm!==null) S.steps=Math.round((+_qm)*SPM);
-let shownMi=miles(), drift=0, surge=0, walkPhase=0, shake=0;
+
+let shownMi=miles(), drift=0, surge=0, walkPhase=0;
 
 const cv=document.getElementById('scene');
 const ctx=cv.getContext('2d');
-let W=0,H=0,hzY=0,FOC=0;
+let W=0,H=0;
 function resize(){
  const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
  W=Math.max(1,Math.ceil(w/PX)); H=Math.max(1,Math.ceil(h/PX));
  cv.width=W; cv.height=H; ctx.imageSmoothingEnabled=false;
- hzY=Math.round(H*.56); FOC=H*2.6;
- skyKey=''; peakKey=''; TC.clear(); _pat.clear();
+ CHUNK.clear(); TC.clear(); UC.clear(); _pat.clear();
 }
-/* How far above the treeline this mile feels. Driven by the nearest summit
-   AND by how bald that summit actually is, so Springer stays in the
-   hardwood and Blood Mountain genuinely strips down to rock. */
+
+/* ---- where you are on the mountain ----
+   World rows run downhill, so climbing means the camera row decreases.
+   Row zero is Springer. Everything in the world is addressed by its row. */
+const rowOfMile=m=> -m*RPM;
+const mileOfRow=Y=> -Y/RPM;
+
+/* How far above the treeline a mile feels, from the nearest bald summit. */
 function alpineAt(mi){
  let v=0;
  for(const L of TRAIL){
   if(!L.a) continue;
-  const d=Math.abs(L.m-mi);
-  if(d>2.6) continue;
+  const d=Math.abs(L.m-mi); if(d>2.6) continue;
   v=Math.max(v,L.a*(1-d/2.6));
  }
  return Math.max(0,Math.min(1,v));
 }
 
-/* ===================================================================
-   SKY — baked once per hour and per stretch of trail
-   =================================================================== */
-let skyCan=null, skyKey='';
-function buildSky(B,hr,night,dusk,s0,s1,vanY){
- const c=skyCan||(skyCan=document.createElement('canvas'));
- c.width=W; c.height=H;
- const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
- const img=q.createImageData(W,H), D=img.data;
- /* the sky is a nine stop ramp, dithered between stops. A smooth
-    gradient on a 188 pixel canvas bands horribly; this does not. */
- const N=9, ramp=[];
- for(let i=0;i<N;i++){
-  const t=i/(N-1);
-  let c2=_mix(s0,s1,Math.pow(t,1.35));
-  c2=sh(c2,(0.5-t)*0.18);
-  ramp.push(c2);
- }
- const valley=[];
- for(let i=0;i<5;i++) valley.push(_mix(s1,_mix(B.fst,COOL,.35),Math.pow(i/4,.8)));
- const put=(x,y,c2)=>{const o=(y*W+x)<<2;
-  D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0; D[o+3]=255;};
- for(let y=0;y<H;y++){
-  const above=y<hzY;
-  const f=above?(y/Math.max(1,hzY))*(N-1):((y-hzY)/Math.max(1,H-hzY))*4;
-  const i=Math.floor(f), fr=f-i;
-  const A=above?ramp[Math.min(N-1,i)]:valley[Math.min(4,i)];
-  const Bc=above?ramp[Math.min(N-1,i+1)]:valley[Math.min(4,i+1)];
-  for(let x=0;x<W;x++)
-   put(x,y,((BAYER[((y&3)<<2)|(x&3)]+0.5)/16)<fr?Bc:A);
- }
- /* the sun or the moon. The halo is baked into the pixel pass above so
-    it dithers into the sky ramp instead of sitting on top of it. */
- const sx=Math.round(W*.21), sy=Math.round(vanY*(night>.4?.30:.40));
- const disc=night>.4?_rgb('#f2f6ff'):_rgb('#fff6cc');
- const halo=night>.4?_rgb('#aec6ef'):_rgb('#ffd27a');
- const HR=W*(night>.4?.26:.40);
- for(let y=0;y<Math.min(H,hzY+2);y++)for(let x=0;x<W;x++){
-  const dx=x-sx, dy2=(y-sy)*1.08, r=Math.sqrt(dx*dx+dy2*dy2);
-  if(r>HR) continue;
-  const a=Math.pow(1-r/HR,2.6)*(night>.4?.55:.80);
-  const o=(y*W+x)<<2;
-  if(((BAYER[((y&3)<<2)|(x&3)]+0.5)/16)<a){
-   const c2=_mix([D[o],D[o+1],D[o+2]],halo,Math.min(1,a*1.3));
-   D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0;}
- }
- const R=Math.round(W*(night>.4?.030:.038));
- for(let y=-R;y<=R;y++){
-  const w2=Math.round(Math.sqrt(Math.max(0,R*R-y*y)));
-  for(let x=-w2;x<=w2;x++){
-   const X=sx+x, Y=sy+y; if(X<0||X>=W||Y<0||Y>=H) continue;
-   let c2=disc;
-   if(night>.4){                      /* craters */
-    const n=fbm(x*.45+3,y*.45);
-    if(n<.38) c2=_mix(disc,COOL,.26); else if(n>.74) c2=_lite(disc,.3);
-   }else{
-    const d=Math.sqrt(x*x+y*y)/R;
-    c2=_mix(disc,[255,236,170],d*.5);
-   }
-   const o=(Y*W+X)<<2; D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0;}
- }
- q.putImageData(img,0,0);
- /* stars, baked, with a size and brightness spread */
- if(night>.25){
-  for(let i=0;i<420;i++){
-   const b=hash(i*3+9), x=(hash(i*7+1)*W)|0, y=(hash(i*13+5)*vanY)|0;
-   const a=(b<.06?.95:b<.30?.55:b<.62?.30:.16)*night;
-   q.fillStyle='rgba(255,255,255,'+a.toFixed(2)+')';
-   q.fillRect(x,y,1,1);
-   if(b<.045){q.fillStyle='rgba(255,255,255,'+(a*.45).toFixed(2)+')';
-    q.fillRect(x-1,y,1,1); q.fillRect(x+1,y,1,1); q.fillRect(x,y-1,1,1); q.fillRect(x,y+1,1,1);}
-  }
-  /* the milky way, a faint diagonal wash */
-  for(let i=0;i<900;i++){
-   const t=hash(i*17), x=(t*W)|0;
-   const y=(vanY*.22+Math.sin(t*2.1)*vanY*.16+(fbm(t*9,i*.01)-.5)*vanY*.30)|0;
-   if(y<0||y>vanY) continue;
-   q.fillStyle='rgba(205,220,255,'+(0.05+hash(i*5)*0.10).toFixed(3)+')';
-   q.fillRect(x,y,1,1);}
- }
- return c;
+/* ---- the crest ----
+   Long traverses with hard kinks, which is what a ridge actually does.
+   A triangle wave gives the reversal; the slow wander keeps it from
+   looking mechanical. */
+function crestX(Y){
+ const a=Math.asin(Math.sin(Y*0.0040))*0.6366;
+ const b=Math.asin(Math.sin(Y*0.0129+1.7))*0.6366;
+ return W*0.50 + a*W*0.25 + b*W*0.125 + (fbm(Y*0.0055,11)-0.5)*W*0.11;
+}
+/* how broad the top of the spine is: wide saddles, narrow knife edges */
+function crestW(Y){
+ return W*(0.105+0.055*Math.sin(Y*0.0072)+0.026*Math.sin(Y*0.0185+2.1));
+}
+/* One over the crest, falling to zero down the flanks. Pulled out of the
+   height function because the shading needs it too: high ground is open to
+   the sky and reads brighter, and that is most of what makes a ridge look
+   like a ridge rather than a stripe. */
+function crestProf(x,Y){
+ const cx=crestX(Y), wd=crestW(Y), tilt=crestTilt(Y);
+ const dx=x-cx, d=Math.abs(dx), side=dx<0?-1:1;
+ if(d<wd) return 1-0.20*(d/wd)*(d/wd);
+ const e=(d-wd)/(W*0.56)*(1.0+side*tilt*0.62);
+ return 0.80*Math.exp(-e*2.2)/(1+e*1.25);
+}
+/* which flank falls away harder. It swaps over long distances, so the
+   exposure changes shoulder to shoulder as you walk. */
+function crestTilt(Y){ return Math.sin(Y*0.0029+0.7)*0.62+Math.sin(Y*0.0071)*0.25; }
+
+const pathX=Y=> crestX(Y);
+const pathW=()=> Math.max(3,W*0.030);
+
+/* ---- terrain ----
+   prof is one on the crest and falls toward zero down the flanks. A steep,
+   asymmetric falloff is what produces a spine with a cliff on one side and
+   a scree slope on the other; the lambert shading then does the rest by
+   itself, because a drop is simply a surface whose normal has rolled over. */
+function terrainH(x,Y){
+ const prof=crestProf(x,Y);
+ let h=-Y*0.30 + prof*88;
+ /* spurs and the range beyond, mostly out on the flanks */
+ h+=ridged(x*0.0082,Y*0.0082)*34*(0.20+0.80*(1-prof));
+ h+=ridged(x*0.021+30,Y*0.021)*9;
+ h+=fbm(x*0.034,Y*0.034)*4.5;
+ return h;
 }
 
+/* Everything a pixel needs to know about itself. */
+const MAT={ROCK:0,SCREE:1,MEADOW:2,FOREST:3,SNOW:4,PATH:5,WATER:6};
+
 /* ===================================================================
-   THE SUMMIT — baked, so it can afford to be expensive
+   CHUNKS
    =================================================================== */
-let peakCan=null, peakKey='';
-function buildPeak(w,h,seed,snowy,night,s1){
- const c=peakCan||(peakCan=document.createElement('canvas'));
- c.width=Math.max(1,w*2+2); c.height=Math.max(1,Math.ceil(h)+2);
+const CHUNK=new Map();
+let chunkBudget=0;
+
+function buildChunk(ci,B0){
+ const A=ci*CH, Bq=A+CH;
+ const c=document.createElement('canvas'); c.width=W; c.height=CH;
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
- const img=q.createImageData(c.width,c.height), D=img.data;
- const baseY=c.height-1, cx=w+1;
- const rk=_rgb('#8a8396'), rkD=_rgb('#4a4759'), rkW=_rgb('#b3aec0');
- const sn=_rgb('#ffffff'), snM=_rgb('#dce8fb'), snD=_rgb('#93a8cf');
- const prof=x=>{
-  const t=Math.min(1,Math.abs(x)/w);
-  let y=baseY-h*Math.pow(1-t,0.60);
-  const sp1=Math.max(0,1-Math.abs(x+w*.47)/(w*.40));
-  const sp2=Math.max(0,1-Math.abs(x-w*.54)/(w*.34));
-  y-=h*.28*Math.pow(sp1,1.5); y-=h*.21*Math.pow(sp2,1.5);
-  y+=Math.sin(x*.168+seed)*h*.030
-    +Math.sin(x*.391+seed*2.1)*h*.017
-    +Math.sin(x*1.07+seed*3.7)*h*.0075
-    +(fbm(x*.055+seed,seed*3)-.5)*h*.075;
-  return y;
+ const img=q.createImageData(W,CH), D=img.data;
+
+ /* The heightfield is sampled at half resolution and interpolated. The
+    shading needs gradients, not detail, and this makes a chunk four
+    times cheaper without anyone being able to tell. */
+ const GW=(W>>1)+3, GH=(CH>>1)+3;
+ const G=new Float32Array(GW*GH);
+ for(let gy=0;gy<GH;gy++)for(let gx=0;gx<GW;gx++)
+  G[gy*GW+gx]=terrainH((gx-1)*2,A+(gy-1)*2);
+ const gAt=(x,y)=>{                       // bilinear back to full res
+  const fx=x*0.5+1, fy=y*0.5+1;
+  const xi=Math.min(GW-2,Math.max(0,Math.floor(fx))), yi=Math.min(GH-2,Math.max(0,Math.floor(fy)));
+  const tx=fx-xi, ty=fy-yi, o=yi*GW+xi;
+  return (G[o]*(1-tx)+G[o+1]*tx)*(1-ty)+(G[o+GW]*(1-tx)+G[o+GW+1]*tx)*ty;
  };
- const gull=[];
- for(let k=0;k<9;k++) gull.push({x:(hash(k*53+seed*131)*2-1)*w*.88,
-   w:w*(.012+hash(k*17+seed*7)*.026), lean:(hash(k*29)*2-1)*.26});
- const summitY=prof(0);
- const put=(x,y,c2)=>{ if(x<0||x>=c.width||y<0||y>=c.height) return;
-  const o=((y|0)*c.width+(x|0))<<2;
-  D[o]=c2[0]|0; D[o+1]=c2[1]|0; D[o+2]=c2[2]|0; D[o+3]=255;};
- for(let x=-w;x<=w;x++){
-  const X=cx+x;
-  const y0=Math.round(prof(x)); if(y0>=baseY) continue;
-  const slope=prof(x+2)-prof(x-2);
-  const litF=Math.max(-1,Math.min(1,slope/(h*.05)));   // -1 shadow, +1 full sun
-  const depth0=baseY-y0;
-  const snowY=y0+depth0*((snowy?.44:.24)+litF*.055
-    +Math.sin(x*.23+seed*1.9)*.065+(fbm(x*.10+9,seed)-.5)*.16);
-  /* the summit ridge throws a shadow down the lee face */
-  for(let y=y0;y<baseY;y++){
-   const d=(y-y0)/Math.max(1,depth0);
-   let ing=false, ingD=0;
-   for(const g2 of gull){
-    const dx=Math.abs(x-(g2.x+(y-y0)*g2.lean)), wd=g2.w*(0.55+d*1.5);
-    if(dx<wd){ing=true; ingD=1-dx/wd; break;}}
-   let c2;
-   if(y<snowY){
-    const n=fbm(x*.26,y*.26);
-    c2=_mix(snM,sn,n);
-    c2=sh(c2,litF*.26-.10+(n-.5)*.18);
-    if(ing) c2=_mix(c2,sh(snD,-.30),.35+ingD*.35);
-    /* wind crust catching the light along the ridges */
-    if(n>.72&&litF>0) c2=_mix(c2,WARM,.22);
-    if(n<.26) c2=_mix(c2,snD,.45);
-   }else{
-    const n=fbm(x*.19,y*.17), n2=vnoise(x*.8+5,y*.7);
-    /* strata run across the face, bending with the slope */
-    const strat=Math.sin((y*0.9+x*slope*0.5)*0.22+n*2.4);
-    c2=_mix(rkD,rkW,n*.75+(strat>0?.18:0));
-    c2=sh(c2,litF*.30-.16-d*.10);
-    if(ing) c2=_mix(c2,sh(rkD,-.25),.5+ingD*.3);
-    if(n2>.80) c2=sh(c2,.16); else if(n2<.15) c2=sh(c2,-.14);
-    if(!ing&&y<snowY+depth0*.22&&n>.58) c2=_mix(c2,sh(snM,-.08),.66);
-    /* a hanging glacier on the shaded flank */
-    if(litF<-.2&&y<y0+depth0*.46&&fbm(x*.09,y*.06)>.62) c2=_mix(c2,sh(snM,-.22),.72);
+
+ for(let y=0;y<CH;y++){
+  const Y=A+y;
+  const mi=mileOfRow(Y);
+  const B=biomeAt(Math.max(0,mi)), alp=alpineAt(Math.max(0,mi));
+  const px=pathX(Y), pw=pathW();
+  const rock=_mix(B.rck,_rgb('#9c968a'),.22);
+  for(let x=0;x<W;x++){
+   const h=gAt(x,y);
+   const hx=(gAt(x+1,y)-gAt(x-1,y))*0.5;
+   const hy=(gAt(x,y+1)-gAt(x,y-1))*0.5;
+   const inv=1/Math.sqrt(hx*hx+hy*hy+1);
+   let lam=(-hx*LX-hy*LY+LZ)*inv;              // lambert on the surface
+   const steep=Math.sqrt(hx*hx+hy*hy);
+   const prof=crestProf(x,Y);
+   /* sky exposure: the crest is open, the gullies are not */
+   const amb=0.42+0.38*inv+0.34*prof;
+   lam=Math.max(-0.35,lam)*0.95+amb*0.30;
+
+   /* ---- material ---- */
+   const dpx=Math.abs(x-px);
+   const grain=fbm(x*0.030,Y*0.030);          // patches, tens of pixels
+   const fine =fbm(x*0.26,Y*0.26);           // texture, a few pixels
+   let m, col;
+   if(dpx<pw*(0.9+grain*0.35)){
+    m=MAT.PATH;
+   }else if(steep>2.30-grain*0.6){
+    m=MAT.ROCK;
+   }else if(alp>0.72||steep>1.45){
+    m=(alp>0.86&&grain>0.34)?MAT.SNOW:MAT.SCREE;
+   }else if(alp>0.34+grain*0.22){
+    m=MAT.SCREE;
+   }else if(grain>0.26&&steep<1.05&&prof<0.93){
+    m=MAT.FOREST;
+   }else m=MAT.MEADOW;
+
+   switch(m){
+    case MAT.PATH:{
+     const edge=dpx/(pw*(0.9+grain*0.35));
+     col=_mix(B.pth,rock,0.35+alp*0.4);
+     col=sh(col,0.12-edge*0.50+(fine-0.5)*0.26);
+     if(hash((x*7+Y*131)|0)<0.12) col=sh(col,0.26);     // stones in the tread
+     break;}
+    case MAT.ROCK:{
+     const facet=Math.sin(x*0.42+h*0.11)*Math.sin(Y*0.37+fine*2.0);
+     const strat=Math.sin(h*0.34+fine*2.4)+facet*0.55;
+     col=_mix(_rgb('#6e6a78'),_rgb('#b0a9bb'),fine*0.70+(strat>0?0.18:0));
+     col=sh(col,-0.06+(fine-0.5)*0.34+facet*0.12);
+     break;}
+    case MAT.SCREE:
+     col=sh(_mix(rock,B.gn2,0.26+grain*0.3),-0.06+(fine-0.5)*0.36); break;
+    case MAT.SNOW:{
+     col=_mix(_rgb('#dfe9fb'),_rgb('#ffffff'),fine);
+     col=sh(col,0.16+(fine-0.5)*0.18); break;}
+    case MAT.FOREST:
+     col=sh(_mix(B.cnp,B.fst,grain*0.6),-0.26+(fine-0.5)*0.32); break;
+    default:
+     col=sh(_mix(B.gnd,B.gn2,grain),(fine-0.5)*0.36); break;
    }
-   c2=_mix(c2,s1,.07+d*.20);
-   c2=_mix(c2,[8,12,26],night*.60);
-   put(X,y,c2);
+   /* light it */
+   const t=Math.max(-0.40,Math.min(0.56,(lam-0.62)*1.45));
+   col=sh(col,t);
+   const o=((y*W)+x)<<2;
+   D[o]=col[0]|0; D[o+1]=col[1]|0; D[o+2]=col[2]|0; D[o+3]=255;
   }
-  const high=y0<summitY+h*.34;
-  put(X,y0,_mix(_mix(sh(high?sn:rkW,.30),s1,.05),[12,16,28],night*.5));
-  put(X,y0+1,_mix(_mix(sh(high?snM:rk,.12),s1,.18),[12,16,28],night*.55));
  }
  q.putImageData(img,0,0);
+
+ /* ---- things that stand on it, back to front ---- */
+ const items=[];
+ for(let Y=A-OVER;Y<Bq+OVER;Y++){
+  const mi=mileOfRow(Y), alp=alpineAt(Math.max(0,mi));
+  const px=pathX(Y), pw=pathW();
+  /* two candidate slots per row, thinned hard so they do not carpet */
+  for(let s=0;s<4;s++){
+   const r=hash((Y*1709+s*7919)|0);
+   if(r>0.30) continue;
+   const x=Math.round(hash((Y*131+s*31)|0)*W);
+   if(Math.abs(x-px)<pw*2.1) continue;                 // keep the trail clear
+   const h=terrainH(x,Y);
+   const steep=Math.abs(terrainH(x+2,Y)-terrainH(x-2,Y))*0.25
+              +Math.abs(terrainH(x,Y+2)-terrainH(x,Y-2))*0.25;
+   const g2=fbm(x*0.030,Y*0.030);
+   const treeOK=alp<0.52&&steep<1.25&&g2>0.22&&crestProf(x,Y)<0.95;
+   const kind=treeOK&&hash((Y*53+s*17)|0)<0.62?'tree'
+             :hash((Y*97+s*41)|0)<0.42?'rock'
+             :alp>0.5?'rock':(hash((Y*29+s*13)|0)<0.5?'bush':'fern');
+   items.push({x,Y,kind,s,alp,mi});
+  }
+  /* trailside markers: a cairn every so often, more of them up high */
+  if(hash((Y*4409)|0)<0.006+alp*0.012){
+   items.push({x:Math.round(px+(hash((Y*13)|0)<0.5?-1:1)*pw*2.1),Y,kind:'cairn',s:0,alp,mi});}
+ }
+ items.sort((a,b)=>a.Y-b.Y);
+ for(const it of items){
+  const sy=it.Y-A;
+  const B=biomeAt(Math.max(0,it.mi));
+  if(it.kind==='tree'){
+   const vr=Math.floor(hash((it.Y*17+it.s*5)|0)*4);
+   const hgt=Math.round((7+hash((it.Y*311+it.s)|0)*13)*(1-it.alp*0.55));
+   if(hgt<4) continue;
+   const spc=it.alp>0.3?'fir':B.tree==='fir'?(vr<3?'fir':'hard')
+                              :(vr===0?'birch':vr===1?'fir':'hard');
+   const spr=treeSprite(spc,hgt,B,[0,0,0],0,Math.round(it.mi/7),
+                        hash((it.Y*7)|0)<0.16,vr);
+   /* a soft cast shadow downslope of the key light */
+   const sw=spr.width*0.42, sh2=Math.max(1,hgt*0.085);
+   q.fillStyle='rgba(12,18,34,.32)';
+   for(let d2=-sh2;d2<=sh2;d2++){
+    const ww=Math.round(sw*Math.sqrt(Math.max(0,1-(d2/sh2)*(d2/sh2))));
+    if(ww>0) q.fillRect(Math.round(it.x+sw*0.75-ww),Math.round(sy+d2),ww*2,1);}
+   q.drawImage(spr,Math.round(it.x-spr.width/2),Math.round(sy-spr.height+2));
+  }else if(it.kind==='cairn'){
+   const s2=Math.max(1,Math.round(1+hash((it.Y*3)|0)*1.4));
+   q.fillStyle='rgba(12,18,34,.30)';
+   q.fillRect(it.x-s2*2,sy-1,s2*4,2);
+   for(let i=0;i<5;i++){
+    const w2=s2*(2.4-i*0.38);
+    q.fillStyle=_css(sh(_rgb('#8b8798'),-0.22+i*0.10));
+    q.fillRect(Math.round(it.x-w2),Math.round(sy-i*s2*1.1-s2),Math.round(w2*2),Math.round(s2*1.2));
+    q.fillStyle=_css(sh(_rgb('#8b8798'),0.22+i*0.06));
+    q.fillRect(Math.round(it.x-w2),Math.round(sy-i*s2*1.1-s2),Math.round(w2*0.9),Math.round(s2*0.5));}
+  }else{
+   const s2=Math.max(1,Math.round(1+hash((it.Y*211+it.s)|0)*1.6));
+   const spr=undergrowth(it.kind,s2,B,[0,0,0],0,Math.round(it.alp*4),
+     Math.floor(hash((it.Y*523+it.s*71)|0)*4));
+   q.drawImage(spr,Math.round(it.x-spr.width/2),Math.round(sy-spr.height+1));
+  }
+ }
+
+ /* ---- landmarks sit at their real mileage ---- */
+ for(const L of TRAIL){
+  const Y=rowOfMile(L.m);
+  if(Y<A-OVER||Y>=Bq+OVER) continue;
+  const sy=Y-A, B=biomeAt(L.m);
+  const side=hash(Math.round(L.m*10))<0.5?-1:1;
+  const lx=Math.round(pathX(Y)+side*pathW()*2.2);
+  q.fillStyle='rgba(12,18,34,.30)';
+  q.fillRect(lx-5,sy-1,10,2);
+  landmark(q,lx,sy,0.62,L.k,B,false);
+ }
+ return c;
+}
+function chunkAt(ci){
+ let c=CHUNK.get(ci);
+ if(!c){ c=buildChunk(ci); CHUNK.set(ci,c);
+  if(CHUNK.size>7){ const ks=[...CHUNK.keys()].sort((a,b)=>a-b);
+   /* drop whichever cached chunk is furthest from the camera */
+   const cur=Math.floor(camTopRow()/CH);
+   ks.sort((a,b)=>Math.abs(b-cur)-Math.abs(a-cur));
+   CHUNK.delete(ks[0]); } }
  return c;
 }
 
 /* ===================================================================
-   TREES — baked per species, per size bucket, per haze step.
-
-   A tree gets drawn once and blitted thereafter, so it can afford a
-   trunk with branches, a canopy built from overlapping crowns, a lit
-   side, a shaded side, sky holes punched through it, and an outline.
-   That is the whole difference between a forest and a field of
-   broccoli.
+   TREES — baked per species, per size, per variant.
+   A tree is drawn once and blitted thereafter, so it can afford a trunk
+   with branches, a canopy built from overlapping crowns, a lit side, a
+   shaded side, sky holes punched through it, and an outline.
    =================================================================== */
 const TC=new Map();
-const hbucket=h=> h<10?Math.round(h):h<26?Math.round(h/2)*2
-                : h<70?Math.round(h/6)*6:Math.round(h/16)*16;
+const hbucket=h=> h<10?Math.round(h):h<26?Math.round(h/2)*2:Math.round(h/6)*6;
 function treeSprite(sp,h,B,s1,fogLv,tint,blaze,vr){
  vr=vr&3;
- const hb=hbucket(h), key=sp+'|'+hb+'|'+fogLv+'|'+tint+'|'+(blaze?1:0)+'|'+vr;
+ const hb=hbucket(h), key=sp+'|'+hb+'|'+tint+'|'+(blaze?1:0)+'|'+vr;
  let c=TC.get(key); if(c) return c;
- const fog=fogLv/6;
  const CW=Math.max(3,Math.ceil(hb*(sp==='fir'?1.0:1.35)))|1;
- const CH=Math.max(3,Math.ceil(hb*1.06));
- c=document.createElement('canvas'); c.width=CW; c.height=CH;
+ const CHh=Math.max(3,Math.ceil(hb*1.08));
+ c=document.createElement('canvas'); c.width=CW; c.height=CHh;
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
- const cx=(CW>>1), gy=CH-1;
- const F=cc=>_css(_mix(cc,s1,fog));
- /* a different cast per tree: olive, blue-green, yellow-green, deep */
- const VT=[[0,0],[ -0.05,.16],[ .07,.0],[-0.02,-.10]][vr];
+ const cx=(CW>>1), gy=CHh-1;
+ const VT=[[0,0],[-0.05,.16],[.07,0],[-0.02,-.10]][vr];
  let base=sp==='birch'?_mix(B.cnp,_rgb('#a8cc62'),.46)
-         :sp==='fir'  ?_mix(B.cnp,COOL,.14)
-                      :B.cnp;
+         :sp==='fir'  ?_mix(B.cnp,COOL,.14):B.cnp;
  base=_mix(base,_rgb(VT[0]>0?'#b9cc56':'#2f6a4e'),Math.abs(VT[0])*4);
  base=sh(base,VT[1]);
- const lit=sh(base,.34), mid=sh(base,.04), dk=sh(base,-.26), out=sh(base,-.50);
+ const lit=sh(base,.38), mid=sh(base,.05), dk=sh(base,-.28), out=sh(base,-.54);
  const trk=sp==='birch'?_rgb('#d8d8cc'):B.trk;
+ const F=c2=>_css(c2);
  const dot=(x,y,w2,h2,col)=>{q.fillStyle=col; q.fillRect(Math.round(x),Math.round(y),
    Math.max(1,Math.round(w2)),Math.max(1,Math.round(h2)));};
  const crown=(x,y,r,col)=>{q.fillStyle=col;
   for(let i=-r;i<=r;i++){const w2=Math.round(Math.sqrt(Math.max(0,r*r-i*i))*(1-Math.abs(i)/(r*3.4)));
    if(w2>0) q.fillRect(Math.round(x-w2),Math.round(y+i),w2*2+1,1);}};
-
  if(sp==='fir'){
   const th=hb*.14, tw=Math.max(1,Math.round(hb*.075));
   dot(cx-tw/2,gy-th,tw,th+1,F(sh(trk,-.18)));
   dot(cx-tw/2,gy-th,Math.max(1,tw/2),th+1,F(sh(trk,.10)));
-  const ch=hb-th, tiers=Math.max(4,Math.round(hb/5));
-  for(let t=tiers-1;t>=0;t--){
-   const p=t/(tiers-1);
-   const by=gy-th-ch*p*0.90;
+  const ch2=hb-th, tiers=Math.max(4,Math.round(hb/5));
+  for(let tt=tiers-1;tt>=0;tt--){
+   const p=tt/(tiers-1), by=gy-th-ch2*p*0.90;
    const r=Math.max(1,hb*.40*(1-p*.80)+(hb>18?1:0));
-   /* each bough is a flattened skirt: dark underside, lit upper left */
    q.fillStyle=F(out);
    for(let i=0;i<=r*1.05;i++) q.fillRect(Math.round(cx-r+i*.5),Math.round(by-i*.9),
      Math.max(1,Math.round((r-i*.5)*2)),1);
@@ -522,10 +584,9 @@ function treeSprite(sp,h,B,s1,fogLv,tint,blaze,vr){
    for(let i=0;i<=r*.6;i++) q.fillRect(Math.round(cx-r*.85+i*.4)+1,Math.round(by-i*.9)-2,
      Math.max(1,Math.round((r*.55-i*.35))),1);
   }
-  dot(cx,gy-hb,1,Math.max(1,hb*.09),F(lit));       // the spire
+  dot(cx,gy-hb,1,Math.max(1,hb*.09),F(lit));
  }else{
   const th=hb*.44, tw=Math.max(1,Math.round(hb*.085));
-  /* trunk, then two branches reaching into the canopy */
   dot(cx-tw/2,gy-th,tw,th+1,F(sh(trk,-.22)));
   dot(cx-tw/2,gy-th,Math.max(1,Math.round(tw*.45)),th+1,F(sh(trk,.14)));
   if(hb>14){
@@ -535,102 +596,154 @@ function treeSprite(sp,h,B,s1,fogLv,tint,blaze,vr){
    if(sp==='birch'){q.fillStyle=F(sh(trk,-.60));
     for(let i=0;i<4;i++) q.fillRect(cx-tw/2,Math.round(gy-th*(0.2+i*0.2)),Math.max(1,tw-1),1);}
   }
-  const ch=hb-th, w=hb*.52;
+  const ch2=hb-th, w=hb*.52;
   const CLS=[
-   [[0,-ch*.62,.62],[-w*.54,-ch*.44,.52],[w*.52,-ch*.46,.50],
-    [-w*.30,-ch*.82,.44],[w*.30,-ch*.80,.42],[0,-ch*.95,.33],
-    [-w*.62,-ch*.68,.30],[w*.60,-ch*.70,.28]],
-   [[0,-ch*.70,.55],[-w*.46,-ch*.38,.60],[w*.58,-ch*.52,.44],
-    [-w*.18,-ch*.92,.38],[w*.36,-ch*.86,.34],[-w*.70,-ch*.56,.26]],
-   [[0,-ch*.55,.70],[-w*.62,-ch*.58,.44],[w*.44,-ch*.40,.56],
-    [w*.14,-ch*.90,.40],[-w*.36,-ch*.86,.30],[w*.66,-ch*.74,.24]],
-   [[0,-ch*.78,.48],[-w*.40,-ch*.52,.54],[w*.40,-ch*.54,.54],
-    [0,-ch*.40,.62],[-w*.22,-ch*1.0,.30],[w*.24,-ch*.98,.28]]];
+   [[0,-ch2*.62,.62],[-w*.54,-ch2*.44,.52],[w*.52,-ch2*.46,.50],
+    [-w*.30,-ch2*.82,.44],[w*.30,-ch2*.80,.42],[0,-ch2*.95,.33],
+    [-w*.62,-ch2*.68,.30],[w*.60,-ch2*.70,.28]],
+   [[0,-ch2*.70,.55],[-w*.46,-ch2*.38,.60],[w*.58,-ch2*.52,.44],
+    [-w*.18,-ch2*.92,.38],[w*.36,-ch2*.86,.34],[-w*.70,-ch2*.56,.26]],
+   [[0,-ch2*.55,.70],[-w*.62,-ch2*.58,.44],[w*.44,-ch2*.40,.56],
+    [w*.14,-ch2*.90,.40],[-w*.36,-ch2*.86,.30],[w*.66,-ch2*.74,.24]],
+   [[0,-ch2*.78,.48],[-w*.40,-ch2*.52,.54],[w*.40,-ch2*.54,.54],
+    [0,-ch2*.40,.62],[-w*.22,-ch2*1.0,.30],[w*.24,-ch2*.98,.28]]];
   const cl=CLS[vr];
-  for(const o of cl) crown(cx+o[0],gy-th+o[1],Math.max(1,w*o[2]+1),F(out));   // outline
+  for(const o of cl) crown(cx+o[0],gy-th+o[1],Math.max(1,w*o[2]+1),F(out));
   for(const o of cl) crown(cx+o[0],gy-th+o[1],Math.max(1,w*o[2]),F(dk));
   for(const o of cl) crown(cx+o[0]-w*.13,gy-th+o[1]-w*.11,Math.max(1,w*o[2]*.80),F(mid));
   for(const o of cl) crown(cx+o[0]-w*.26,gy-th+o[1]-w*.22,Math.max(1,w*o[2]*.48),F(lit));
-  /* sky holes, so the canopy is foliage and not a painted lump */
   if(hb>12){
-   const im=q.getImageData(0,0,CW,CH), DD=im.data;
+   const im=q.getImageData(0,0,CW,CHh), DD=im.data;
    for(let i=0;i<Math.round(hb*1.3);i++){
-    const px=Math.round(cx+(hash(i*31+hb)*2-1)*w*.85);
-    const py=Math.round(gy-th-ch*(0.30+hash(i*17+hb)*0.60));
-    if(px<0||px>=CW||py<0||py>=CH) continue;
-    const o=(py*CW+px)<<2; if(DD[o+3]) DD[o+3]=0;}
+    const px2=Math.round(cx+(hash(i*31+hb)*2-1)*w*.85);
+    const py=Math.round(gy-th-ch2*(0.30+hash(i*17+hb)*0.60));
+    if(px2<0||px2>=CW||py<0||py>=CHh) continue;
+    const o=(py*CW+px2)<<2; if(DD[o+3]) DD[o+3]=0;}
    q.putImageData(im,0,0);
   }
  }
- /* the white blaze: two by six inches on a trunk every ninety metres, and
-    the most recognisable thing about this trail */
  if(blaze&&hb>12){
   const bw=Math.max(1,Math.round(hb*.055)), bh2=Math.max(2,Math.round(hb*.11));
-  q.fillStyle=_css(_mix(sh([248,250,254],.06),s1,fog*.5));
+  q.fillStyle=_css(sh([248,250,254],.06));
   q.fillRect(cx-Math.ceil(bw/2),Math.round(gy-(sp==='fir'?hb*.11:hb*.40)*0.74)-bh2,bw,bh2);}
  if(TC.size>2400) TC.clear();
  TC.set(key,c); return c;
 }
 
-/* ---------- understory, also cached ---------- */
 const UC=new Map();
-function undergrowth(kind,s,B,s1,fogLv,alpLv){
- const key=kind+'|'+s+'|'+fogLv+'|'+alpLv;
+function undergrowth(kind,s,B,s1,fogLv,alpLv,vb){
+ vb=(vb|0)&3;
+ const key=kind+'|'+s+'|'+alpLv+'|'+vb;
  let c=UC.get(key); if(c) return c;
- const fog=fogLv/6, alp=alpLv/4;
- const SZ=Math.max(3,s*10);
+ const alp=alpLv/4, SZ=Math.max(4,s*11);
  c=document.createElement('canvas'); c.width=SZ; c.height=SZ;
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
- const cx=SZ>>1, gy=SZ-1;
- const F=cc=>_css(_mix(cc,s1,fog));
+ const cx=SZ>>1, gy=SZ-1, F=c2=>_css(c2);
  const rock=_mix(B.rck,_rgb('#9c968a'),alp*.45);
  if(kind==='fern'){
   for(let b=-4;b<=4;b++){
    const hh=s*(5-Math.abs(b)*.9), lean=b*.5;
-   q.fillStyle=F(sh(B.fer,b<0?.26:-.20));
+   q.fillStyle=F(sh(B.fer,b<0?.28:-.22));
    for(let i=0;i<hh;i++) q.fillRect(Math.round(cx+b*s+lean*i*.12),Math.round(gy-i),Math.max(1,s*.8),1);
-   q.fillStyle=F(sh(B.fer,b<0?.40:-.05));
+   q.fillStyle=F(sh(B.fer,b<0?.42:-.05));
    q.fillRect(Math.round(cx+b*s+lean*hh*.12),Math.round(gy-hh),Math.max(1,s*.8),Math.max(1,s));}
  }else if(kind==='rock'){
-  const rs=s*(1.4+alp*1.8);
-  q.fillStyle=F(sh(rock,-.40));
-  q.fillRect(cx-rs*1.5,gy-rs*1.9,rs*3,rs*2);
-  q.fillStyle=F(sh(rock,-.06));
-  q.fillRect(cx-rs*1.4,gy-rs*1.8,rs*2.6,rs*1.5);
-  q.fillStyle=F(sh(rock,.26));
-  q.fillRect(cx-rs*1.3,gy-rs*1.8,rs*1.5,rs*.8);
-  q.fillStyle=F(sh(rock,-.26));
-  q.fillRect(cx+rs*.4,gy-rs*1.5,rs*1.1,rs*1.4);
-  if(alp<.5){q.fillStyle=F(sh(_mix(B.fer,_rgb('#6f8f3e'),.5),-.10));
-   q.fillRect(cx-rs*1.4,gy-rs*1.9,rs*1.1,Math.max(1,rs*.4));}
+  const rs=s*(1.6+alp*1.8);
+  const LOB=[
+   [[0,0,1.00,.74],[-.52,.20,.56,.44],[ .58,.14,.46,.38]],
+   [[0,0,0.92,.82],[ .46,.22,.60,.46],[-.44,.26,.42,.34]],
+   [[-.18,0,1.06,.68],[ .58,-.10,.52,.54],[ .10,.26,.66,.40]],
+   [[0,0,1.12,.62],[-.40,-.26,.50,.48],[ .46,.12,.56,.44]]][vb];
+  const by2=gy-rs*0.80;
+  const ell=(dx,dy,rx,ry,col)=>{q.fillStyle=col;
+   for(let i=-ry;i<=ry;i++){
+    const yy=Math.round(by2+dy+i); if(yy>gy) continue;
+    const w2=Math.round(rx*Math.sqrt(Math.max(0,1-(i/ry)*(i/ry))));
+    if(w2>0) q.fillRect(Math.round(cx+dx-w2),yy,w2*2+1,1);}};
+  /* the shadow it sits in */
+  q.fillStyle='rgba(12,18,34,.34)';
+  for(let i=-rs*.34;i<=rs*.34;i++){
+   const w2=Math.round(rs*1.55*Math.sqrt(Math.max(0,1-(i/(rs*.34))*(i/(rs*.34)))));
+   if(w2>0) q.fillRect(Math.round(cx+rs*.45-w2),Math.round(gy-rs*.12+i),w2*2,1);}
+  const draw=(gx,gy3,shade)=>{for(const L of LOB)
+   ell(L[0]*rs+gx,L[1]*rs+gy3,L[2]*rs,L[3]*rs,_css(sh(rock,shade)));};
+  draw(0,0,-0.58);                          // outline / underside
+  for(const L of LOB) ell(L[0]*rs,L[1]*rs-rs*.10,L[2]*rs*.94,L[3]*rs*.92,_css(sh(rock,-.12)));
+  for(const L of LOB) ell(L[0]*rs-rs*.16,L[1]*rs-rs*.26,L[2]*rs*.70,L[3]*rs*.62,_css(sh(rock,.16)));
+  for(const L of LOB) ell(L[0]*rs-rs*.28,L[1]*rs-rs*.40,L[2]*rs*.40,L[3]*rs*.34,_css(sh(rock,.42)));
+  /* a fracture or two across the lit face */
+  q.fillStyle=_css(sh(rock,-.34));
+  for(let f=0;f<2;f++){
+   const fy=by2-rs*(0.10+hash(vb*7+f+s)*0.55);
+   q.fillRect(Math.round(cx-rs*(0.55+hash(f*31+s)*0.4)),Math.round(fy),
+              Math.max(1,Math.round(rs*(0.6+hash(f*13+s)*0.5))),1);}
+  if(alp<.45){                              /* moss on the uphill side */
+   q.fillStyle=_css(sh(_mix(B.fer,_rgb('#6f8f3e'),.5),-.02));
+   for(let i=0;i<3;i++)
+    q.fillRect(Math.round(cx-rs*(0.9-i*0.3)),Math.round(by2-rs*(0.55-i*0.12)),
+               Math.max(1,Math.round(rs*.45)),Math.max(1,Math.round(s*.7)));}
  }else if(kind==='bush'){
-  const r=s*2.4;
+  const r=s*2.5;
   const cl=[[0,-r*.7,1],[-r*.7,-r*.45,.75],[r*.7,-r*.5,.7],[0,-r*1.15,.6]];
-  const dr=cc=>{for(const o of cl){const rr=Math.max(1,r*o[2]);
+  const dr=()=>{for(const o of cl){const rr=Math.max(1,r*o[2]);
    for(let i=-rr;i<=rr;i++){const w2=Math.round(Math.sqrt(Math.max(0,rr*rr-i*i)));
     q.fillRect(Math.round(cx+o[0]-w2),Math.round(gy+o[1]+i),w2*2+1,1);}}};
-  q.fillStyle=F(sh(B.cnp,-.50)); dr();
+  q.fillStyle=F(sh(B.cnp,-.52)); dr();
   q.fillStyle=F(sh(B.cnp,-.16)); cl.forEach(o=>o[2]*=.88); dr();
-  q.fillStyle=F(sh(B.cnp,.22));  cl.forEach(o=>{o[0]-=r*.18;o[1]-=r*.16;o[2]*=.62;}); dr();
+  q.fillStyle=F(sh(B.cnp,.26));  cl.forEach(o=>{o[0]-=r*.18;o[1]-=r*.16;o[2]*=.62;}); dr();
  }else if(kind==='log'){
   const lw=s*9, lh=Math.max(2,s*1.8);
-  q.fillStyle=F(sh(B.trk,-.42)); q.fillRect(cx-lw/2,gy-lh,lw,lh);
+  q.fillStyle=F(sh(B.trk,-.44)); q.fillRect(cx-lw/2,gy-lh,lw,lh);
   q.fillStyle=F(sh(B.trk,-.06)); q.fillRect(cx-lw/2,gy-lh,lw,Math.max(1,lh*.6));
-  q.fillStyle=F(sh(B.trk,.22));  q.fillRect(cx-lw/2,gy-lh,lw,Math.max(1,lh*.28));
-  q.fillStyle=F(sh(_mix(B.fer,_rgb('#7fa84a'),.5),-.05));
-  for(let i=0;i<5;i++) q.fillRect(cx-lw/2+Math.round(hash(i*13)*lw),gy-lh-1,Math.max(1,s),1);
- }else{  /* flowers */
-  q.fillStyle=F(sh(B.fer,-.10));
-  q.fillRect(cx,gy-s*4,Math.max(1,s*.8),s*4);
+  q.fillStyle=F(sh(B.trk,.24));  q.fillRect(cx-lw/2,gy-lh,lw,Math.max(1,lh*.28));
+ }else{
+  q.fillStyle=F(sh(B.fer,-.10)); q.fillRect(cx,gy-s*4,Math.max(1,s*.8),s*4);
   const fc=_rgb(hash(s*7)<.5?'#e8dc84':'#d892b8');
   q.fillStyle=F(sh(fc,-.20)); q.fillRect(cx-s,gy-s*5,s*3,s);
-  q.fillStyle=F(sh(fc,.30));  q.fillRect(cx-s,gy-s*5,s*1.5,s);
+  q.fillStyle=F(sh(fc,.32));  q.fillRect(cx-s,gy-s*5,s*1.5,s);
  }
  if(UC.size>900) UC.clear();
  UC.set(key,c); return c;
 }
 
-/* ---------- the climber ---------- */
+/* ---------- landmarks ---------- */
+function landmark(g,x,gy,sc,k,B){
+ const s=Math.max(1,sc);
+ const U=(a,b,w,h,col)=>{g.fillStyle=col;
+  g.fillRect(Math.round(x+a*s),Math.round(gy+b*s),
+   Math.max(1,Math.round(w*s)),Math.max(1,Math.round(h*s)));};
+ const wood=_rgb('#6b4e2c'), stone=B.rck, gold='#f5c651';
+ if(k==='shelter'||k==='town'){
+  const wd=k==='town'?13:9, ht=k==='town'?6.5:5;
+  U(-wd/2,-ht,wd,ht,_css(sh(wood,-.32)));
+  U(-wd/2,-ht,wd*.42,ht,_css(sh(wood,.08)));
+  for(let i=0;i<=wd+2;i++){const rr=-ht-Math.min(i,wd+2-i)*.8;
+   U(-wd/2-1+i,rr,1.05,1.2,_css(sh(_rgb('#4a3621'),i<wd*.5?.16:-.24)));}
+  U(-wd*.20,-ht*.80,wd*.40,ht*.80,_css(sh(_rgb('#1b1309'),-.1)));
+  U(-wd/2,-ht*.46,wd,.6,_css(sh(wood,.24)));
+  if(k==='town'){U(-wd*.34,-ht*.62,1.6,1.6,'#ffe9a8'); U(wd*.14,-ht*.62,1.6,1.6,'#ffe9a8');}
+  else{U(wd*.36,-2.2,1.6,2.2,_css(sh(stone,-.2))); U(wd*.38,-3.0,1.2,1.0,'#e8773c');}
+ }else if(k==='summit'||k==='mark'){
+  for(let i=0;i<11;i++){const w=11-i;
+   U(-w/2,-11+i,w,1.06,_css(sh(stone,-.32-i*.01)));
+   U(-w/2,-11+i,w*.40,1.06,_css(sh(stone,.24)));}
+  U(-.45,-17,1.1,6,_css(sh(wood,0)));
+  U(-.45,-17,4.8,2.6,gold); U(.5,-16.3,3.2,1.2,'#8a5f12');
+ }else if(k==='water'){
+  for(let i=0;i<9;i++) U(-10+i*2.4,-((i%2)?1.6:.5),2.4,1.5,
+   _css(sh(_rgb('#3d84ab'),(i%2)?-.22:.12)));
+  U(-10,-1.9,20,.7,_css(sh(_rgb('#b6e2f2'),.22)));
+ }else if(k==='border'){
+  U(-.5,-17,1.3,17,_css(sh(wood,-.1)));
+  U(.8,-17,9,5.6,gold); U(1.8,-15.5,7.2,2.6,'#6b4c0c');
+ }else{
+  U(-.5,-13,1.3,13,_css(sh(wood,-.08)));
+  U(-5.2,-13,10.4,4.3,_css(sh(_rgb('#9a7840'),0)));
+  U(-3.9,-11.8,7.8,1.6,_css(sh(_rgb('#2a1f12'),0)));
+ }
+}
+
+/* ---------- the climber, from behind ---------- */
 const BACK=[
 ["...kkkk...","..kkkkkk..","..kwwwwk..","...hhhh...",".rrrrrrrr.","rrrrrrrrrr",
  "rPPPPPPPPr","rPbbbbbbPr","rPbbbbbbPr","rPPPPPPPPr",".rPPPPPPr.","..llllll..",
@@ -643,34 +756,28 @@ const BACK=[
  "..l.LL.l..","..l.LLl...","..s...s...",".ss...ss.."]];
 const BPAL={k:'#d4b070',w:'#8e7440',h:'#e0c396',r:'#d85c32',P:'#a8431f',
             b:'#6f2c18',l:'#364a60',L:'#2a3a4e',s:'#1a222e'};
-function climber(g,x,y,s,f,lamp,s1,fog){
+function climber(g,x,y,s,f,lamp){
  const sp=BACK[f];
- for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
-  const ch=sp[r][c]; if(ch==='.')continue;
-  let col=_rgb(BPAL[ch]);
-  col=sh(col,c<4?.20:c>6?-.22:0);
-  g.fillStyle=_css(_mix(col,s1,fog));
-  g.fillRect(x+c*s,y+r*s,s,s);}
- /* an outline, so he reads against any ground */
- g.fillStyle='rgba(12,14,20,.55)';
+ g.fillStyle='rgba(12,16,26,.60)';
  for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
   if(sp[r][c]!=='.')continue;
   const n=(r>0&&sp[r-1][c]!=='.')||(r<sp.length-1&&sp[r+1][c]!=='.')
         ||(c>0&&sp[r][c-1]!=='.')||(c<sp[r].length-1&&sp[r][c+1]!=='.');
   if(n) g.fillRect(x+c*s,y+r*s,s,s);}
- g.fillStyle=_css(_mix(_rgb('#8a6f42'),s1,fog));
+ for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
+  const ch=sp[r][c]; if(ch==='.')continue;
+  g.fillStyle=_css(sh(_rgb(BPAL[ch]),c<4?.22:c>6?-.24:0));
+  g.fillRect(x+c*s,y+r*s,s,s);}
+ g.fillStyle=_css(sh(_rgb('#8a6f42'),0));
  const sw=Math.max(1,Math.round(s*.6));
  g.fillRect(x-s,y+s*5,sw,s*11); g.fillRect(x+s*10,y+s*6,sw,s*10);
  if(lamp){
-  g.fillStyle='rgba(255,241,200,.20)';
-  for(let i=1;i<9;i++) g.fillRect(x+s*5-i*s*.9,y-i*s*1.5,i*s*1.8,s*1.5);
-  g.fillStyle='rgba(255,245,215,.85)'; g.fillRect(x+s*3,y+s*3,s*4,s);}
+  g.fillStyle='rgba(255,241,200,.16)';
+  for(let i=1;i<10;i++) g.fillRect(x+s*5-i*s,y-i*s*1.7,i*s*2,s*1.7);
+  g.fillStyle='rgba(255,245,215,.9)'; g.fillRect(x+s*3,y+s*3,s*4,s);}
 }
 
-/* ---------- wildlife ----------
-   Full sprites with their own outline and shading. At the size these land
-   on screen a flat silhouette reads as a smudge; the dark outline is what
-   makes a deer legible against a dark forest. */
+/* ---------- wildlife ---------- */
 const FAUNA={
  deer:{s:1.00,p:{o:'#241a10',a:'#6d5236',b:'#95663c',l:'#e0cba2',c:'#eedcb8'},r:[
   '..........a..a..','...a...a..a.a...','....a.a...aa....','.....aaa..aa....',
@@ -696,428 +803,148 @@ const FAUNA={
   'oo.......oo','.oo.....oo.','..ooobooo..','...obbbo...','...odbdo...',
   '....ooo....','.....o.....']}};
 const BIRD2=['.......','oo...oo','.oowoo.','...o...'];
-function sprite(g,rows,pal,x,y,s,flip,s1,fog){
+function sprite(g,rows,pal,x,y,s,flip){
  const w=rows[0].length;
  for(let r=0;r<rows.length;r++){const row=rows[r];
   for(let c=0;c<w;c++){const ch=row[c]; if(!ch||ch==='.')continue;
    const col=pal[ch]; if(!col)continue;
-   g.fillStyle=_css(_mix(_rgb(col),s1,fog));
+   g.fillStyle=col;
    g.fillRect(x+(flip?(w-1-c):c)*s,y+r*s,s,s);}}
-}
-let fauna=[], motes=[], nextSpawn=0;
-function spawn(camZ,now,alp){
- const r=Math.random();
- const type=alp>.6 ? (r<.42?'hawk':r<.74?'goat':'bird')
-                   : (r<.26?'deer':r<.42?'rabbit':r<.56?'fox':r<.68?'turkey':r<.87?'bird':'hawk');
- const air=(type==='bird'||type==='hawk');
- const side=Math.random()<.5?-1:1;
- fauna.push({type,air,
-  z:camZ+(air?55+Math.random()*80:26+Math.random()*58),
-  lat:laneAt(camZ+50)+side*(0.9+Math.random()*1.3),
-  vl:-side*(0.20+Math.random()*0.52),
-  vz:air?-9:-(1+Math.random()*6),
-  hgt:air?(0.5+Math.random()*0.7):0, born:Math.random()*6.28});
- nextSpawn=now+600+Math.random()*1700;
-}
-
-/* ---------- landmarks ---------- */
-function landmark(g,x,gy,sc,k,B,passed,fog,s1){
- const s=Math.max(1,sc);
- const U=(a,b,w,h,col)=>{g.fillStyle=col;
-  g.fillRect(Math.round(x+a*s),Math.round(gy+b*s),
-   Math.max(1,Math.round(w*s)),Math.max(1,Math.round(h*s)));};
- const F=c=>_css(_mix(c,s1,fog));
- const wood=_rgb('#6b4e2c'), stone=B.rck, gold=_rgb('#f5c651');
- if(k==='shelter'||k==='town'){
-  const wd=k==='town'?11:8, ht=k==='town'?5.5:4.2;
-  U(-wd/2,-ht,wd,ht,F(sh(wood,-.30)));
-  U(-wd/2,-ht,wd*.45,ht,F(sh(wood,.06)));
-  for(let i=0;i<=wd+2;i++){const rr=-ht-Math.min(i,wd+2-i)*.78;
-   U(-wd/2-1+i,rr,1.05,1.15,F(sh(_rgb('#4a3621'),i<wd*.5?.14:-.22)));}
-  U(-wd*.20,-ht*.80,wd*.40,ht*.80,F(sh(_rgb('#1b1309'),-.1)));
-  U(-wd/2,-ht*.46,wd,.55,F(sh(wood,.22)));
-  if(k==='town'){U(-wd*.34,-ht*.62,1.5,1.5,'#ffe9a8'); U(wd*.14,-ht*.62,1.5,1.5,'#ffe9a8');}
-  else{U(wd*.34,-1.9,1.5,1.9,F(sh(stone,-.2))); U(wd*.36,-2.6,1.1,.9,'#e8773c');
-       U(wd*.40,-3.2,.7,.7,'rgba(240,160,80,.6)');}
- }else if(k==='summit'||k==='mark'){
-  for(let i=0;i<10;i++){const w=10-i;
-   U(-w/2,-10+i,w,1.06,F(sh(stone,-.30-i*.01)));
-   U(-w/2,-10+i,w*.42,1.06,F(sh(stone,.22)));}
-  U(-.45,-15.5,1,5.6,F(sh(wood,.0)));
-  U(-.45,-15.5,4.4,2.4,'#f5c651'); U(.4,-14.9,3,1.1,'#8a5f12');
- }else if(k==='water'){
-  for(let i=0;i<8;i++) U(-9+i*2.4,-((i%2)?1.5:.5),2.4,1.4,F(sh(_rgb('#3d84ab'),(i%2)?-.2:.1)));
-  U(-9,-1.8,18,.6,F(sh(_rgb('#b6e2f2'),.2)));
- }else if(k==='border'){
-  U(-.5,-16,1.2,16,F(sh(wood,-.1)));
-  U(.7,-16,8.5,5.2,'#f5c651'); U(1.6,-14.6,6.8,2.4,'#6b4c0c');
- }else{
-  U(-.5,-12,1.2,12,F(sh(wood,-.08)));
-  U(-4.8,-12,9.6,4,passed?'#f5c651':F(sh(_rgb('#9a7840'),0)));
-  U(-3.6,-10.9,7.2,1.5,F(sh(_rgb('#2a1f12'),0)));
- }
 }
 
 /* ===================================================================
    THE FRAME
    =================================================================== */
-const PY=new Float32Array(NSEG+4), PXx=new Float32Array(NSEG+4),
-      PW=new Float32Array(NSEG+4), PV=new Uint8Array(NSEG+4),
-      PL=new Float32Array(NSEG+4), PR=new Float32Array(NSEG+4);
+const CLY=()=> Math.round(H*0.68);          // where the climber stands
+const progress=()=> shownMi*RPM+drift;      // rows climbed
+const camTopRow=()=> -progress()-CLY();     // world row at screen y = 0
+const screenY=Y=> Y-camTopRow();
+
+let fauna=[], motes=[], nextSpawn=0, pending=[];
+
+function spawn(now,alp){
+ const r=Math.random();
+ const type=alp>.6 ? (r<.42?'hawk':r<.74?'goat':'bird')
+                   : (r<.26?'deer':r<.42?'rabbit':r<.56?'fox':r<.68?'turkey':r<.87?'bird':'hawk');
+ const air=(type==='bird'||type==='hawk');
+ const top=camTopRow();
+ const side=Math.random()<.5?-1:1;
+ fauna.push({type,air,
+  x:side<0?-14:W+14, Y:top+Math.random()*H*0.75,
+  vx:-side*(7+Math.random()*16), vY:(Math.random()-.35)*9,
+  born:Math.random()*6.28, flip:side>0});
+ nextSpawn=now+2600+Math.random()*5200;
+}
 
 function paint(now,dt){
- const g=ctx, mi=shownMi;
- const bobY=Math.sin(walkPhase*2)*1.3+ (shake?Math.sin(now/37)*shake*2:0);
- const sway=Math.sin(walkPhase)*0.009;
- const HZ=hzY+bobY;
- const camZ=mi*MPZ+drift, camX=laneAt(camZ)+sway, camH=hillAt(camZ);
- const yaw=(laneAt(camZ+4)-laneAt(camZ-4))/8;
- const PRJ=(lat,z,dy)=> W/2+((lat-camX)-yaw*z)*dy;
- const B=biomeAt(mi), alp=alpineAt(mi), alpLv=Math.round(alp*4);
- const vanY=HZ-FOC*LIN;
-
+ const g=ctx;
+ const mi=shownMi, B=biomeAt(Math.max(0,mi)), alp=alpineAt(Math.max(0,mi));
+ const top=camTopRow();
  const hr=HOUR();
  const night=(hr<5||hr>=22)?.9:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
  const dusk=Math.max(0,1-Math.abs(hr-19)/2.6)*(1-night*.5);
- let s0=_mix(B.sky0,[6,10,22],night*.82), s1=_mix(B.sky1,[16,26,44],night*.74);
- s0=_mix(s0,[86,42,66],dusk*.50); s1=_mix(s1,[244,142,74],dusk*.60);
 
- /* ---- sky, baked ---- */
- const sk=W+'x'+H+'|'+hr+'|'+Math.round(mi/7);
- if(sk!==skyKey){ buildSky(B,hr,night,dusk,s0,s1,hzY-FOC*LIN); skyKey=sk; }
- g.drawImage(skyCan,0,Math.round(bobY));
- if(bobY>0) { g.fillStyle=_css(s0); g.fillRect(0,0,W,Math.ceil(bobY)); }
+ /* ---- the mountain, blitted from baked chunks ---- */
+ const c0=Math.floor(top/CH), c1=Math.floor((top+H)/CH);
+ for(let ci=c0;ci<=c1;ci++) g.drawImage(chunkAt(ci),0,Math.round(ci*CH-top));
+ /* keep one chunk ahead warm so the scroll never stutters into a build */
+ if(!CHUNK.has(c0-1)) pending.push(c0-1);
+ if(!CHUNK.has(c1+1)) pending.push(c1+1);
 
- /* ---- clouds, live ---- */
- const cd=camZ*.05;
- for(let k=0;k<13;k++){
-  const cw=10+hash(k*17)*30, ch2=2+hash(k*41)*5;
-  const cy=4+hash(k*31)*Math.max(8,vanY*.84);
-  let cx2=((hash(k*11)*W*2.4-cd)%(W+90)); if(cx2<-80)cx2+=W+90;
-  const al=(.10+hash(k*5)*.13)*(1-night*.5);
-  const lv=Math.max(2,Math.min(13,Math.round(al*44)));
-  const body=dpat('rgba(0,0,0,0)',_css(_mix([255,255,255],s1,.15)),lv);
-  const top =dpat('rgba(0,0,0,0)',_css(_mix(sh([255,255,255],.35),s1,.1)),lv);
-  g.fillStyle=body;
-  for(let x=0;x<cw;x++){
-   const t=x/cw;
-   const h2=Math.round(Math.sin(t*Math.PI)*ch2+Math.sin(t*Math.PI*3+1.1)*ch2*.3+Math.sin(t*Math.PI*7)*ch2*.14);
-   if(h2>0) g.fillRect(Math.round(cx2+x),Math.round(cy-h2),1,h2);}
-  g.fillStyle=top;
-  for(let x=0;x<cw;x++){
-   const t=x/cw;
-   const h2=Math.round(Math.sin(t*Math.PI)*ch2+Math.sin(t*Math.PI*3+1.1)*ch2*.3+Math.sin(t*Math.PI*7)*ch2*.14);
-   if(h2>0) g.fillRect(Math.round(cx2+x),Math.round(cy-h2),1,Math.max(1,h2*.4));}
+ /* ---- the next landmark gets a beacon you can see coming ---- */
+ for(const L of TRAIL){
+  if(L.m<=mi) continue;
+  const sy=screenY(rowOfMile(L.m));
+  if(sy<-30||sy>H) continue;
+  const side=hash(Math.round(L.m*10))<0.5?-1:1;
+  const lx=Math.round(pathX(rowOfMile(L.m))+side*pathW()*2.2);
+  const pul=.5+.5*Math.sin(now/330);
+  g.fillStyle='rgba(245,198,81,'+(pul*.9).toFixed(2)+')';
+  g.fillRect(lx,Math.round(sy-16),1,4);
+  g.fillStyle='rgba(245,198,81,'+(pul*.22).toFixed(2)+')';
+  g.fillRect(lx-2,Math.round(sy-18),5,8);
+  break;
  }
 
- /* ---- the ranges across the valley ---- */
- const ridge=(wx,f,a,base)=>base-a*(.55*Math.sin(wx*f)+.28*Math.sin(wx*f*2.7+1.7)+.17*Math.sin(wx*f*5.3+4.1));
- const PAR=[.012,.028,.055,.095], MF=[.016,.024,.037,.055];
- const MH=[.30,.24,.17,.11], MB=[.80,.92,1.04,1.14], MM=[.74,.56,.36,.18];
- for(let L=0;L<4;L++){
-  const col=_mix(sh(B.mtn,-.10+L*.06),s1,MM[L]);
-  const cc=_css(col), rim=_css(sh(col,.22+L*.06));
-  const snowy=(mi>95||alp>.5)&&L<2;
-  for(let x=0;x<W;x++){
-   const y=Math.round(ridge(camZ*PAR[L]+x+yaw*FOC*PAR[L]*7,MF[L],HZ*MH[L],HZ*MB[L]-HZ*.22));
-   if(y>=H) continue;
-   g.fillStyle=cc; g.fillRect(x,y,1,H-y);
-   g.fillStyle=rim; g.fillRect(x,y,1,1);
-   if(snowy&&hash(x*7+L)<.45){g.fillStyle=_css(_mix(sh([236,243,255],.1),s1,MM[L]));
-    g.fillRect(x,y,1,1+((hash(x*3+L)*3)|0));}}
-  /* haze stacking up between the ranges */
-  for(let b=0;b<4;b++){
-   g.fillStyle=dpat('rgba(0,0,0,0)',_css(s1),(L<2?7:4)-b*1.6);
-   g.fillRect(0,Math.round(HZ*MB[L]-HZ*.22+HZ*MH[L]*.30+b*HZ*.018),W,Math.round(HZ*.02)+1);}
+ /* ---- wildlife, live, sorted so the near ones pass in front ---- */
+ fauna.sort((a,b)=>a.Y-b.Y);
+ for(const A of fauna){
+  const sy=screenY(A.Y); if(sy<-20||sy>H+20) continue;
+  const F=FAUNA[A.type];
+  let rows=F.r;
+  if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
+  const ss=Math.max(1,Math.round(F.s*1.5));
+  const run=A.air?Math.sin(now/80+A.born)*ss*1.4
+                 :(A.type==='rabbit'?Math.abs(Math.sin(now/95+A.born))*ss*2.2
+                                    :Math.abs(Math.sin(now/130+A.born))*ss*.7);
+  if(!A.air){g.fillStyle='rgba(10,14,28,.30)';
+   g.fillRect(Math.round(A.x),Math.round(sy),rows[0].length*ss,Math.max(1,ss));}
+  sprite(g,rows,F.p,Math.round(A.x),Math.round(sy-ss*rows.length-run),ss,A.flip);
  }
 
- /* ---- the summit you are climbing toward ---- */
- let nextSum=null;
- for(const L of TRAIL) if((L.k==='summit'||L.k==='mark')&&L.m>mi){nextSum=L;break;}
- const dm=nextSum?nextSum.m-mi:9;
- const grow=Math.max(0,Math.min(1,1-dm/7));
- const pkH=Math.round(H*(0.22+0.64*grow*grow)), pkW=Math.round(W*(0.30+0.52*grow));
- const seed=nextSum?(nextSum.m%7)+1:3;
- const pk=pkW+'|'+pkH+'|'+seed+'|'+(alp>.45||mi>95?1:0)+'|'+Math.round(night*5)+'|'+Math.round(s1[0]);
- if(pk!==peakKey){ buildPeak(pkW,pkH,seed,alp>.45||mi>95,night,s1); peakKey=pk; }
- const aim=Math.max(pkW*.55,Math.min(W-pkW*.55,
-  W/2+Math.max(-W*.20,Math.min(W*.20,(PRJ(laneAt(camZ+120),120,FOC/120)-W/2)*0.40))));
- g.drawImage(peakCan,Math.round(aim-pkW-1),Math.round(vanY+5-peakCan.height));
+ /* ---- the climber ---- */
+ {const Yc=-progress(), cx=pathX(Yc), cy=CLY();
+  const s=Math.max(1,Math.round(W/150));
+  const bob=Math.round(Math.sin(walkPhase*2)*s*.6);
+  g.fillStyle='rgba(10,16,30,.34)';
+  g.fillRect(Math.round(cx-s*3),Math.round(cy-s*.4),s*10,Math.max(1,Math.round(s*1.2)));
+  climber(g,Math.round(cx-s*5),Math.round(cy-s*16+bob),s,[0,1,0,2][(walkPhase|0)%4],night>.45);}
 
- /* ===========================================================
-    THE MOUNTAINSIDE
-    =========================================================== */
- const n0=Math.floor(camZ/SEG)+1;
- let maxY=H+2, topY=H+2;
- const rockBase=_mix(B.rck,_rgb('#9c968a'),.30);
- for(let i=0;i<NSEG;i++){
-  const n=n0+i, zA=n*SEG, z=zA-camZ;
-  PV[i]=0;
-  if(z<1.0) continue;
-  const dy=FOC/z;
-  const y=Math.round(HZ+dy*(1-(hillAt(zA)-camH)));
-  if(y>=maxY||y<-3) continue;
-  PY[i]=y; PXx[i]=PRJ(laneAt(zA),z,dy); PW[i]=0.050*dy; PV[i]=1;
-  const ds=dropAt(zA), ex=PRJ(edgeAt(zA),z,dy);
-  PL[i]=ds>0?-2:ex; PR[i]=ds>0?ex:W+2;
-  const yTop=Math.max(0,y), yBot=maxY;
-  if(yBot<=yTop) continue;
-  const fog=Math.min(.52,Math.max(0,(z-18)/100));
-  const xl=Math.max(0,Math.round(PL[i])), xr=Math.min(W,Math.round(PR[i]));
-  if(xr<=xl){ maxY=yTop; topY=Math.min(topY,yTop); continue; }
-
-  /* the slope is lit by where it faces, and dithered between two tones
-     rather than striped, so it has grain instead of corduroy */
-  const face=((hillAt(zA+2)-hillAt(zA-2))*0.25-LIN)*6.0;
-  /* two materials, blended by a slow noise, so the slope reads as meadow
-     giving way to scree rather than as one flat field of colour */
-  const meadow=_mix(sh(_mix(B.gnd,rockBase,alp*.86),-.18+face*.30),s1,fog);
-  const scree =_mix(sh(_mix(_mix(B.pth,rockBase,.45),B.gn2,.52),.02+face*.30),s1,fog);
-  const patch=fbm(n*.075,7);
-  const lv=Math.round(Math.max(0,Math.min(1,(patch-.42)*2.4+alp*.60))*16);
-  g.fillStyle=dpat(_css(meadow),_css(scree),lv);
-  g.fillRect(xl,yTop,xr-xl,yBot-yTop);
-  /* a second, finer grain on top so it is never a solid tone */
-  g.fillStyle=dpat('rgba(0,0,0,0)',_css(sh(meadow,-.22)),2+Math.round(fbm(n*.11,2)*3));
-  g.fillRect(xl,yTop,xr-xl,yBot-yTop);
-
-  /* the lip of the drop */
-  const lipX=ds>0?xr-1:xl;
-  if(lipX>1&&lipX<W-2){
-   g.fillStyle=_css(_mix(sh(meadow,.46),s1,fog*.4));
-   g.fillRect(lipX-(ds>0?1:0),yTop,2,yBot-yTop);
-   g.fillStyle=dpat('rgba(0,0,0,0)','rgba(12,18,34,1)',6);
-   g.fillRect(ds>0?lipX+1:lipX-2,yTop,2,yBot-yTop);}
-
-  /* scree, tussock and litter */
-  if(dy>5){
-   const cnt=dy>60?7:dy>24?5:3;
-   for(let q=0;q<cnt;q++){
-    const h1=hash(n*641+q*97); if(h1>.78) continue;
-    const gx=xl+((h1*(xr-xl))|0), gy2=yTop+((hash(n*131+q)*(yBot-yTop))|0);
-    const warm=hash(n*53+q)<.5;
-    const c=alp>.5?sh(rockBase,warm?.26:-.30):sh(hash(n*11+q)<.5?B.fer:B.gnd,warm?.26:-.30);
-    g.fillStyle=_css(_mix(c,s1,fog));
-    g.fillRect(gx,gy2,1+((hash(n*29+q)*2)|0),1);}
-  }
-
-  /* ---- the tread ---- */
-  const nx=(i>0&&PV[i-1])?PXx[i-1]:PXx[i];
-  const nw=(i>0&&PV[i-1])?PW[i-1]:PW[i];
-  const ny=(i>0&&PV[i-1])?PY[i-1]:yBot;
-  const pB=_mix(B.pth,rockBase,alp*.65);
-  const pc=_css(_mix(sh(pB,-.04),s1,fog));
-  const pl=_css(_mix(sh(pB,.26),s1,fog));
-  const ec=_css(_mix(sh(pB,-.40),s1,fog));
-  const gr=_css(_mix(sh(alp>.5?rockBase:B.fer,-.34),s1,fog));
-  for(let yy=yTop;yy<yBot;yy++){
-   const t=ny>y?Math.min(1,(yy-y)/(ny-y)):0;
-   const px=PXx[i]+(nx-PXx[i])*t, pw=PW[i]+(nw-PW[i])*t;
-   const L=Math.round(px-pw), R=Math.round(px+pw);
-   if(R<xl||L>xr) continue;
-   g.fillStyle=gr; g.fillRect(L-1,yy,R-L+3,1);
-   g.fillStyle=ec; g.fillRect(L,yy,Math.max(1,R-L+1),1);
-   g.fillStyle=pc; g.fillRect(L+1,yy,Math.max(1,R-L-1),1);
-   if(pw>2){g.fillStyle=pl; g.fillRect(Math.round(px-pw*.40),yy,Math.max(1,Math.round(pw*.8)),1);}
-   if(pw>2.2&&hash(n*97+yy*7)<.22){
-    g.fillStyle=_css(_mix(sh(rockBase,hash(n*5+yy)<.5?.20:-.26),s1,fog));
-    g.fillRect(Math.round(px-pw+hash(n*31+yy)*pw*2),yy,1+(pw>8?1:0),1);}
-  }
-  if(hash(n*911)<.05+alp*.09&&dy>12){
-   const stepH=Math.max(1,Math.round(dy*.014));
-   g.fillStyle=_css(_mix(sh(alp>.5?rockBase:B.trk,-.34),s1,fog));
-   g.fillRect(Math.round(PXx[i]-PW[i]*1.2),yTop,Math.round(PW[i]*2.4),stepH);
-   g.fillStyle=_css(_mix(sh(alp>.5?rockBase:B.trk,.28),s1,fog));
-   g.fillRect(Math.round(PXx[i]-PW[i]*1.2),yTop,Math.round(PW[i]*2.4),1);}
-
-  /* ---- a stream coming off the mountain ---- */
-  if(n%173===0&&dy>2.0){
-   const bh=Math.max(1,Math.round(dy*.05));
-   const wA=_css(_mix(sh(_rgb('#2d6c96'),-.18),s1,fog*.7));
-   const wB=_css(_mix(sh(_rgb('#4e9cc4'),.10),s1,fog*.7));
-   g.fillStyle=dpat(wA,wB,2); g.fillRect(xl,yTop,xr-xl,bh);
-   g.fillStyle=_css(_mix(sh(_rgb('#b9e6f7'),.25),s1,fog*.7)); g.fillRect(xl,yTop,xr-xl,1);
-   g.fillStyle=_css(_mix(sh(_rgb('#17405c'),-.1),s1,fog*.7)); g.fillRect(xl,yTop+bh-1,xr-xl,1);
-   for(let q=xl;q<xr;q+=2) if(hash(q*7+((now/180)|0)*13)<.32){
-    g.fillStyle='rgba(222,245,255,.75)'; g.fillRect(q,yTop+((bh>2)?1:0),2,1);}
-   g.fillStyle=_css(_mix(sh(B.trk,-.30),s1,fog));
-   g.fillRect(Math.round(PXx[i]-PW[i]*1.7),yTop-(bh>2?1:0),Math.round(PW[i]*3.4),Math.max(1,bh));
-   g.fillStyle=_css(_mix(sh(B.trk,.24),s1,fog));
-   g.fillRect(Math.round(PXx[i]-PW[i]*1.7),yTop-(bh>2?1:0),Math.round(PW[i]*3.4),1);
-  }
-  maxY=yTop; topY=Math.min(topY,yTop);
- }
- if(topY>Math.round(vanY)){
-  const far=_mix(sh(_mix(B.gnd,rockBase,alp*.8),-.12),s1,.54);
-  g.fillStyle=_css(far);
-  g.fillRect(0,Math.round(vanY),W,topY-Math.round(vanY)+1);}
- /* the far side of the valley: a band of forest under the ranges, so the
-    slope does not simply stop against open sky */
- {const fy=Math.round(vanY);
-  const fc=_css(_mix(sh(B.fst,-.06),s1,.46));
-  const fl=_css(_mix(sh(B.fst,.22),s1,.42));
-  for(let x=0;x<W;x++){
-   const hgt=2+Math.round(fbm(x*.09+camZ*.006,1)*5);
-   g.fillStyle=fc; g.fillRect(x,fy-hgt,1,hgt+1);
-   g.fillStyle=fl; g.fillRect(x,fy-hgt,1,1);}
-  for(let b=0;b<8;b++){
-   g.fillStyle=dpat('rgba(0,0,0,0)',_css(s1),12-b*1.5);
-   g.fillRect(0,fy-8+b,W,1);}}
-
- /* ===========================================================
-    EVERYTHING STANDING ON IT — far to near
-    =========================================================== */
- const sorted=fauna.slice().sort((a,b)=>b.z-a.z);
- let fi=0;
- const CZ=7.4;
- let drewClimber=false;
- for(let i=NSEG-1;i>=0;i--){
-  if(!PV[i]) continue;
-  const n=n0+i, zA=n*SEG, z=zA-camZ, dy=FOC/z, y=PY[i];
-  if(dy<1.1) continue;
-  const fog=Math.min(.52,Math.max(0,(z-18)/100)), fogLv=Math.round(fog*6);
-  const xl=PL[i], xr=PR[i];
-
-  while(fi<sorted.length&&sorted[fi].z>zA-SEG&&sorted[fi].z<=zA+SEG){
-   const A=sorted[fi++], az=A.z-camZ;
-   if(az>1.0){
-    const ady=FOC/az;
-    const ax=PRJ(A.lat,az,ady);
-    const ay=HZ+ady*(1-(hillAt(A.z)-camH))-A.hgt*ady;
-    const s=Math.max(1,ady*.020);
-    const F=FAUNA[A.type];
-    let rows=F.r;
-    if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
-    const ss=Math.max(1,Math.round(s*F.s*1.9));
-    const run=A.air?Math.sin(now/80+A.born)*ss*1.3
-                   :(A.type==='rabbit'?Math.abs(Math.sin(now/95+A.born))*ss*2.2
-                                      :Math.abs(Math.sin(now/130+A.born))*ss*.7);
-    if(!A.air){g.fillStyle='rgba(10,14,28,.30)';
-     g.fillRect(Math.round(ax),Math.round(ay),rows[0].length*ss,Math.max(1,ss));}
-    sprite(g,rows,F.p,Math.round(ax),Math.round(ay-ss*rows.length-run),ss,A.vl>0,s1,fog);
-   }
-  }
-
-  for(const L of TRAIL){
-   const lz=(L.m-mi)*MPZ;
-   if(lz<=z-SEG||lz>z+SEG||lz<1.0) continue;
-   const ldy=FOC/lz, side=(hash(Math.round(L.m*10))<.5?-1:1);
-   const lx=PRJ(laneAt(camZ+lz)+side*.38,lz,ldy);
-   const ly=HZ+ldy*(1-(hillAt(camZ+lz)-camH));
-   g.fillStyle='rgba(10,14,28,.26)';
-   g.fillRect(Math.round(lx-ldy*.07),Math.round(ly-ldy*.012),Math.round(ldy*.16),Math.max(1,Math.round(ldy*.022)));
-   landmark(g,lx,ly,ldy*.024,L.k,B,mi>=L.m,fog,s1);
-   if(ldy>6){
-    const pul=.5+.5*Math.sin(now/300);
-    g.fillStyle='rgba(245,198,81,'+(pul*.85).toFixed(2)+')';
-    g.fillRect(Math.round(lx),Math.round(ly-ldy*.36),1,Math.max(1,Math.round(ldy*.08)));
-    g.fillStyle='rgba(245,198,81,'+(pul*.22).toFixed(2)+')';
-    g.fillRect(Math.round(lx-1),Math.round(ly-ldy*.38),3,Math.max(1,Math.round(ldy*.12)));}
-  }
-
-  if(!drewClimber&&z<=CZ){
-   drewClimber=true;
-   const cdy=FOC/CZ;
-   const cx=PRJ(laneAt(camZ+CZ),CZ,cdy);
-   const cy=HZ+cdy*(1-(hillAt(camZ+CZ)-camH));
-   const s=Math.max(1,Math.round(cdy*.0125));
-   const bob=Math.round(Math.sin(walkPhase*2)*s*.7);
-   g.fillStyle='rgba(10,14,28,.32)';
-   g.fillRect(Math.round(cx-s*3),Math.round(cy-s*.5),s*11,Math.max(1,s*1.3));
-   climber(g,Math.round(cx-s*5),Math.round(cy-s*16+bob),s,[0,1,0,2][(walkPhase|0)%4],night>.45,s1,fog*.5);
-  }
-
-  /* ---- forest ---- */
-  const dens=[.70,.62,.80].map(v=>v*(1-alp*0.94));
-  for(let side=-1;side<=1;side+=2){
-   for(let rank=0;rank<3;rank++){
-    const hk=hash(n*(side>0?131:197)+rank*7919);
-    if(hk>dens[rank]) continue;
-    const jit=(hash(n*911+rank*37+(side>0?3:8))-.5)*[.34,.62,1.2][rank];
-    const lat=laneAt(zA)+side*([.42,1.00,1.85][rank]+hk*[.42,.70,1.5][rank])+jit;
-    if(dropAt(zA)*(lat-edgeAt(zA))>0) continue;
-    const x=Math.round(PRJ(lat,z,dy));
-    if(x<-70||x>W+70) continue;
-    const sz=hash(n*(side>0?53:71)+rank*313);
-    const th=dy*(0.20+sz*sz*0.62)*(1-alp*.55);
-    if(th<1.4||th>H*0.78) continue;   /* skip the ones level with you */
-    const vr=hash(n*379+rank*31+(side>0?1:0));
-    const spc=alp>.62?'fir':B.tree==='fir'?(vr<.80?'fir':'hard')
-                              :(vr<.16?'birch':vr<.38?'fir':'hard');
-    const spr=treeSprite(spc,th,B,s1,fogLv,Math.round(mi/7),
-      vr<.16&&Math.abs(lat-laneAt(zA))<.95,Math.floor(hash(n*17+rank*5+(side>0?2:9))*4));
-    /* a cast shadow, thrown downslope away from the key light */
-    if(dy>7){
-     const sw2=spr.width*.52, sh2=Math.max(1,th*.045);
-     g.fillStyle='rgba(10,16,30,'+(0.30*(1-fog)).toFixed(2)+')';
-     for(let q=-sh2;q<=sh2;q++){
-      const ww=Math.round(sw2*Math.sqrt(Math.max(0,1-(q/sh2)*(q/sh2))));
-      if(ww>0) g.fillRect(Math.round(x+sw2*.55-ww),Math.round(y+q),ww*2,1);}}
-    g.drawImage(spr,Math.round(x-spr.width/2),Math.round(y-spr.height+1));
-   }
-  }
-
-  /* ---- understory ---- */
-  if(dy>7){
-   for(let q=0;q<7;q++){
-    const h1=hash(n*311+q*17); if(h1>.78) continue;
-    const lat=laneAt(zA)+(h1<.32?-1:1)*(.10+hash(n*7+q)*1.05);
-    if(dropAt(zA)*(lat-edgeAt(zA))>0) continue;
-    const x=Math.round(PRJ(lat,z,dy)), s=Math.max(1,Math.round(dy*.012));
-    if(x<xl-14||x>xr+14) continue;
-    const kk=hash(n*53+q*29)*(1-alp*.85)+alp*.46;
-    const kind=kk<.40?'fern':kk<.66?'rock':kk<.76?'bush':kk<.88?'log':'flower';
-    const spr=undergrowth(kind,Math.min(6,s),B,s1,fogLv,alpLv);
-    g.drawImage(spr,Math.round(x-spr.width/2),Math.round(y-spr.height+1));
-   }
-  }
- }
-
- /* ---- canopy overhead ---- */
- if(alp<.55){
-  for(let k=0;k<8;k++){
-   const ph=((camZ*.9+k*260)%900)/900;
-   if(ph>.36) continue;
-   const bx=hash(k*61)*W, br=(12+hash(k*83)*26)*(0.5+ph*2.4)*(1-alp);
-   if(br<2) continue;
-   const by=-br*.55+ph*H*.30;
-   const dcol=_css(sh(B.cnp,-.62)), lcol=_css(sh(B.cnp,-.30));
-   g.fillStyle=dcol;
-   for(let i=-br;i<=br;i++){const w2=Math.round(Math.sqrt(Math.max(0,br*br-i*i)));
-    g.fillRect(Math.round(bx-w2),Math.round(by+i),w2*2+1,1);}
-   g.fillStyle=lcol;
-   const br2=br*.55;
-   for(let i=-br2;i<=br2;i++){const w2=Math.round(Math.sqrt(Math.max(0,br2*br2-i*i)));
-    g.fillRect(Math.round(bx+br*.35-w2),Math.round(by-br*.28+i),w2*2+1,1);}
-  }
-  g.fillStyle=dpat('rgba(0,0,0,0)',_css(sh(B.cnp,-.70)),Math.round(6*(1-alp)));
-  g.fillRect(0,0,W,Math.round(H*.05));
- }
- /* ---- spindrift once you are high ---- */
+ /* ---- weather ---- */
+ for(const p of motes){ g.fillStyle=p.c; g.fillRect(p.x|0,p.y|0,p.s,p.s); }
  if(alp>.45){
-  for(let k=0;k<110;k++){
-   const t=(now/820+hash(k*13))%1;
+  for(let k=0;k<120;k++){
+   const t=(now/1400+hash(k*13))%1;
    const x=((hash(k*7)*W*1.5-t*W*1.5)%W+W)%W;
-   const y=(hash(k*31)*H+t*H*.40)%H;
-   g.fillStyle='rgba(248,252,255,'+(0.10+0.32*hash(k*5)).toFixed(2)+')';
+   const y=(hash(k*31)*H+t*H*.45)%H;
+   g.fillStyle='rgba(248,252,255,'+(0.10+0.30*hash(k*5)).toFixed(2)+')';
    g.fillRect(x|0,y|0,1,hash(k*3)<.3?2:1);}
  }
- /* ---- light raking across the slope ---- */
- /* sun breaking through the canopy. One pixel in sixteen, and only in the
-    middle distance, where it reads as light rather than as confetti. */
- if(night<.4&&alp<.6){
-  g.fillStyle=dpat('rgba(0,0,0,0)',_css(sh([255,246,220],.1)),1);
-  for(let k=0;k<3;k++){
-   const sx2=((hash(k*211)*W*1.7-camZ*.42)%(W+90)); const xx=sx2<-60?sx2+W+90:sx2;
-   for(let q=0;q<13;q++) g.fillRect(Math.round(xx+q*1.4),Math.round(vanY)+8+q*3,4,3);}
+
+ /* ---- distance ----
+    There is no horizon. Everything that sells depth is here: a haze that
+    thickens toward the top of the frame, so the far ridges sit back
+    without a single extra thing being drawn. */
+ const hz=_mix(_mix(B.sky1,[238,245,255],.34),[110,132,168],night*.55);
+ const hg=g.createLinearGradient(0,0,0,Math.round(H*0.60));
+ hg.addColorStop(0,'rgba('+(hz[0]|0)+','+(hz[1]|0)+','+(hz[2]|0)+',0.44)');
+ hg.addColorStop(0.35,'rgba('+(hz[0]|0)+','+(hz[1]|0)+','+(hz[2]|0)+',0.17)');
+ hg.addColorStop(1,'rgba('+(hz[0]|0)+','+(hz[1]|0)+','+(hz[2]|0)+',0)');
+ g.fillStyle=hg; g.fillRect(0,0,W,Math.round(H*0.60));
+
+ /* ---- the hour, as a wash over everything ---- */
+ if(night>0.02){
+  g.fillStyle='rgba(16,26,60,'+(night*0.62).toFixed(3)+')';
+  g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(90,120,200,'+(night*0.10).toFixed(3)+')';
+  g.fillRect(0,0,W,H);
  }
- for(const p of motes){ g.fillStyle=p.c; g.fillRect(p.x|0,p.y|0,p.s,p.s); }
+ if(dusk>0.02){
+  g.fillStyle='rgba(255,138,64,'+(dusk*0.26).toFixed(3)+')';
+  g.fillRect(0,0,W,H);
+ }
+ /* sun raking across, only in the middle of the day */
+ if(night<.35&&dusk<.3){
+  for(let k=0;k<3;k++){
+   const xx=((hash(k*211)*W*1.7-progress()*.10)%(W+160)+W+160)%(W+160)-80;
+   const lg=g.createLinearGradient(xx,0,xx+W*0.22,H*0.75);
+   lg.addColorStop(0,'rgba(255,246,214,0)');
+   lg.addColorStop(0.45,'rgba(255,246,214,0.085)');
+   lg.addColorStop(1,'rgba(255,246,214,0)');
+   g.fillStyle=lg; g.fillRect(Math.max(0,xx-10),0,W*0.30,H*0.78);}
+ }
 
  /* ---- vignette ---- */
- const VG=[4,3,2,1];
- for(let i=0;i<VG.length;i++){
-  g.fillStyle=dpat('rgba(0,0,0,0)','rgba(6,9,18,1)',VG[i]);
-  g.fillRect(i*2,0,2,H); g.fillRect(W-2-i*2,0,2,H);}
+ const vw=Math.round(W*0.13);
+ let vg2=g.createLinearGradient(0,0,vw,0);
+ vg2.addColorStop(0,'rgba(8,12,24,0.42)'); vg2.addColorStop(1,'rgba(8,12,24,0)');
+ g.fillStyle=vg2; g.fillRect(0,0,vw,H);
+ vg2=g.createLinearGradient(W,0,W-vw,0);
+ vg2.addColorStop(0,'rgba(8,12,24,0.42)'); vg2.addColorStop(1,'rgba(8,12,24,0)');
+ g.fillStyle=vg2; g.fillRect(W-vw,0,vw,H);
+ vg2=g.createLinearGradient(0,H,0,H-Math.round(H*0.08));
+ vg2.addColorStop(0,'rgba(8,12,24,0.38)'); vg2.addColorStop(1,'rgba(8,12,24,0)');
+ g.fillStyle=vg2; g.fillRect(0,H-Math.round(H*0.08),W,Math.round(H*0.08));
 }
 
 /* ---------- motion ---------- */
@@ -1125,67 +952,98 @@ function step(dt,now){
  const target=miles(), d=target-shownMi;
  /* The mountain keeps moving when you have banked nothing. This is a
     screen you leave open, and a climber standing still is a dead screen.
-    The mile count underneath is still only ever your real steps. */
- surge=Math.max(0,surge-dt*.00085);
- shake=Math.max(0,shake-dt*.003);
- drift+=(9+surge*90)*dt/1000;
- if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/500);
- walkPhase+=dt/145*(1+surge*5);
+    The mile count underneath is still only ever your real steps.
+    Thirteen rows a second is a walk: a screen height takes half a minute. */
+ surge=Math.max(0,surge-dt*.00070);
+ drift+=(9+surge*300)*dt/1000;
+ if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/900);
+ walkPhase+=dt/190*(1+surge*4.5);
+
+ /* build at most one chunk per frame, so a new one never costs a hitch */
+ if(pending.length){
+  const ci=pending.shift();
+  if(!CHUNK.has(ci)) CHUNK.set(ci,buildChunk(ci));
+ }
 
  const hr=HOUR(), night=(hr<5||hr>=22)?.9:(hr<8?(8-hr)/3:(hr>=19?(hr-19)/3.5:0));
- const alp=alpineAt(shownMi);
- if(now>nextSpawn) spawn(shownMi*MPZ+drift,now,alp);
- const camZ=shownMi*MPZ+drift, cx0=laneAt(camZ);
- for(const A of fauna){ A.lat+=A.vl*dt/1000; A.z+=A.vz*dt/1000; }
- fauna=fauna.filter(A=>A.z>camZ-2&&A.z<camZ+190&&Math.abs(A.lat-cx0)<7).slice(-18);
+ const alp=alpineAt(Math.max(0,shownMi));
+ if(now>nextSpawn) spawn(now,alp);
+ const top=camTopRow();
+ for(const A of fauna){ A.x+=A.vx*dt/1000; A.Y+=A.vY*dt/1000; }
+ fauna=fauna.filter(A=>A.x>-40&&A.x<W+40&&A.Y>top-60&&A.Y<top+H+60).slice(-10);
 
  if(night>.45&&alp<.5){
-  if(Math.random()<dt/240&&motes.length<40)
-   motes.push({x:Math.random()*W,y:H*.45+Math.random()*H*.5,vx:(Math.random()-.5)*9,
-    vy:(Math.random()-.5)*7,s:1,life:2600+Math.random()*2600,t:0,c:'rgba(190,255,140,.9)'});
+  if(Math.random()<dt/300&&motes.length<34)
+   motes.push({x:Math.random()*W,y:H*.35+Math.random()*H*.6,vx:(Math.random()-.5)*8,
+    vy:(Math.random()-.5)*6,s:1,life:2800+Math.random()*2800,t:0,c:'rgba(190,255,140,.9)'});
   for(const p of motes){ p.t+=dt;
    p.x+=p.vx*dt/1000; p.y+=p.vy*dt/1000;
-   p.vx+=(Math.random()-.5)*14*dt/1000; p.vy+=(Math.random()-.5)*12*dt/1000;
+   p.vx+=(Math.random()-.5)*12*dt/1000; p.vy+=(Math.random()-.5)*10*dt/1000;
    const a=Math.max(0,Math.sin(p.t/p.life*Math.PI))*(0.45+0.55*Math.sin(p.t/160));
    p.c='rgba(200,255,152,'+a.toFixed(2)+')';}
   motes=motes.filter(p=>p.t<p.life);
  }else if(alp<.5){
-  if(Math.random()<dt/260&&motes.length<34)
-   motes.push({x:Math.random()*W,y:-2,vx:-7-Math.random()*16,vy:9+Math.random()*20,s:1,
+  if(Math.random()<dt/420&&motes.length<22)
+   motes.push({x:Math.random()*W,y:-2,vx:-5-Math.random()*11,vy:11+Math.random()*16,s:1,
     t:0,life:9e9,c:Math.random()<.5?'rgba(214,160,72,.85)':'rgba(166,186,116,.75)'});
   for(const p of motes){ p.x+=p.vx*dt/1000; p.y+=p.vy*dt/1000; p.x+=Math.sin(p.y/8)*.4; }
   motes=motes.filter(p=>p.y<H+3&&p.x>-5&&p.life>1e9);
  }else motes.length=0;
 }
-
 /* ===================================================================
    CHEST — opened, not awarded
    =================================================================== */
 const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
            ['EPIC','#b978f0'],['LEGENDARY','#f5c651']];
+/* Terraria's actual shape: a pick, a blade, a ranged thing, a hook, a
+   light source, an accessory, a mount, a potion. Named for a mountain
+   instead of a dungeon, and every one of them cosmetic. */
 const LOOT={
- skin   :['LAUREL CLOAK','BLAZE ORANGE SHELL','WOOL FLANNEL','SPRINGER GREY','BALSAM PARKA'],
- pet    :['TRAIL DOG','GRAY JAY','BOX TURTLE','RIDGE FOX','CAMP MOUSE'],
- map    :['LINEN TOPO','RANGER BLUEPRINT','FADED GUIDEBOOK','MOSS GREEN'],
- journal:['BIRCH BARK COVER','DUCT TAPE COVER','SHELTER LOG STAMP'],
- gear   :['CARBON POLES','ENAMEL MUG','BRASS COMPASS']};
+ pick   :['COPPER TRAIL PICK','IRON CRAG PICK','TUNGSTEN SPLITTER','MOLTEN RIDGE PICK','SUMMIT DRILL'],
+ blade  :['WHITTLED SHORTSWORD','BLAZED MACHETE','GRANITE CLEAVER','FROSTBRAND','NIGHT ON THE BALD'],
+ ranged :['HICKORY SHORTBOW','SHALE SLINGSHOT','SWITCHBACK REPEATER','STORMCALLER BOW'],
+ hook   :['VINE GRAPPLE','IVY HOOK','AMETHYST HOOK','DUAL CRAG HOOK','SKYLINE HOOK'],
+ light  :['TIN LANTERN','FIREFLY JAR','MINER HELM','WISP IN A BOTTLE','SUNSTONE CROWN'],
+ wings  :['LEAF GLIDER','HARPY WINGS','SPECTRE WINGS','SOLAR UPDRAFT'],
+ mount  :['TRAIL MULE','RIDGE GOAT','GRAY JAY WHISTLE','BLACK BEAR CUB'],
+ shield :['BARK BUCKLER','COBALT SHIELD','TORTOISE SHELL','ANKH SHIELD'],
+ potion :['SPRING WATER FLASK','IRONSKIN TONIC','GRAVITATION BREW','ENDLESS COFFEE'],
+ trinket:['CLOUD IN A BOTTLE','HERMES BOOTS','LUCKY HORSESHOE','BEZOAR','SHINY RED BALLOON']};
+/* Twelve by twelve, two tones plus an outline, in Terraria's read-at-a-
+   glance silhouette style: the shape has to say what it is at 24 pixels. */
 const ICON={
- skin   :["....aaaa....","...aaaaaa...","..aa.aa.aa..",".aaaaaaaaaa.","aaaabaabaaaa",
-          "aaaabaabaaaa",".aaabaabaaa.",".aaaaaaaaaa.",".aaa.aa.aaa.",".aaa.aa.aaa.",
-          "..aa.aa.aa..","............"],
- pet    :["............","..a......a..","..aa....aa..","..aaaaaaaa..",".aaaaaaaaaa.",
-          ".ab.aaaa.ba.",".aaaabaaaaa.","..aaaaaaaa..","...aaaaaa...","...aa..aa...",
-          "..aaa..aaa..","............"],
- map    :["............",".bbbbbbbbbb.",".baaaaaaaab.",".ba.b....ab.",".ba..bb..ab.",
-          ".ba.b..b.ab.",".ba.b....ab.",".ba...bb.ab.",".baaaaaaaab.",".bbbbbbbbbb.",
-          "............","............"],
- journal:["...aaaaaaa..","..abbbbbbba.",".ab.......ba","ab..bbbbb..a","ab.........a",
-          "ab..bbbbb..a","ab.........a","ab..bbb....a",".ab.......ba","..abbbbbbba.",
-          "...aaaaaaa..","............"],
- gear   :["....aaaa....","..aa....aa..",".a........a.","a....b.....a","a...bbb....a",
-          "a..bbbbb...a","a....b.....a","a....b.....a",".a........a.","..aa....aa..",
-          "....aaaa....","............"]};
-
+ pick   :["....ooooo...",".oooHHHHoo..","oHHHoo...oo.","oHo...o.....","oo...o......",
+          "....o.......","...oSo......","..oSSo......",".oSSo.......","oSSo........",
+          "oSo.........",".o.........."],
+ blade  :["........ooo.",".......oBBo.","......oBBBo.",".....oBBBo..","....oBBBo...",
+          "...oBBBo....","..oBBBo.....",".ooBBo......","oGGoo.......","oGGo........",
+          ".oHo........","..o........."],
+ ranged :["...ooo......",".oo...oo....","o......Bo...",".o......Bo..","..o......o..",
+          "..WWWWWWWWW.","..o......o..",".o......Bo..","o......Bo...",".oo...oo....",
+          "...ooo......","............"],
+ hook   :["...o...o....","..oHo.oHo...","..oHo.oHo...","...oHoHo....","....oHo.....",
+          "....oHo.....","....oWo.....","....oWo.....","...oWo......","..oWo.......",
+          ".oWo........","oWo........."],
+ light  :["....ooo.....","...oHHHo....","...o...o....","..ooooooo...",".oFFFFFFFo..",
+          ".oFYYYYYFo..",".oFYWWWYFo..",".oFYYYYYFo..",".oFFFFFFFo..","..ooooooo...",
+          "...o...o....","....ooo....."],
+ wings  :["..oo....oo..",".oWWo..oWWo.","oWWWWooWWWWo","oWWWWooWWWWo",".oWWWooWWWo.",
+          ".oWWWooWWWo.","..oWWooWWo..","..oWWooWWo..","...oWooWo...","...oWooWo...",
+          "....oooo....","............"],
+ mount  :["..........oo","..oooo....oo",".oBBBBo..oBo",".oBBBBBooBBo","oBBBBBBBBBBo",
+          "oBBBBBBBBBo.","oBBBBBBBBo..",".oBBBBBBo...",".o.oo.oo.o..",".o.oo.oo.o..",
+          ".o.oo.oo.o..","............"],
+ shield :["..oooooooo..",".oSSSSSSSSo.","oSSGGGGGGSSo","oSSGHHHHGSSo","oSSGHHHHGSSo",
+          "oSSGGGGGGSSo","oSSSSSSSSSSo",".oSSSSSSSSo.","..oSSSSSSo..","...oSSSSo...",
+          "....oSSo....",".....oo....."],
+ potion :["....oooo....","....oWWo....","...oooooo...","..oGGGGGGo..",".oGHHHHHHGo.",
+          ".oGHWWWWHGo.",".oGHWWWWHGo.",".oGHHHHHHGo.",".oGGGGGGGGo.","..oGGGGGGo..",
+          "...oooooo...","............"],
+ trinket:["....oooo....","...oHHHHo...","..oHWWWWHo..",".oHWWWWWWHo.",".oHWWWWWWHo.",
+          "..oHWWWWHo..","...oHHHHo...","....oGGo....","....oGGo....","...oGGGGo...",
+          "....oooo....","............"]};
+const IPAL={o:'#1b1620',H:'#8e8aa0',W:'#f2f5fb',B:'#c9ccd6',G:'#6b4e2c',
+            S:'#4e7aa8',F:'#d8a63a',Y:'#ffe9a0'};
 const fx=document.getElementById('fx'), fg=fx.getContext('2d');
 let anim=null, chestQ=[];
 
@@ -1217,17 +1075,22 @@ function roll(tier){
 const T_DROP=420, T_SHAKE=1750, T_BURST=1900, T_RISE=2700, T_SETTLE=3150;
 function fxFrame(now){
  if(!anim) return;
- const w=fx.clientWidth||innerWidth, h=fx.clientHeight||innerHeight;
- const FW=Math.max(1,Math.ceil(w/PX)), FH=Math.max(1,Math.ceil(h/PX));
- if(fx.width!==FW){fx.width=FW;fx.height=FH;}
+ const r=fx.getBoundingClientRect();
+ const w=r.width||fx.clientWidth||innerWidth, h=r.height||fx.clientHeight||innerHeight;
+ const FW=Math.max(8,Math.ceil(w/PX)), FH=Math.max(8,Math.ceil(h/PX));
+ if(fx.width!==FW||fx.height!==FH){fx.width=FW;fx.height=FH;}
  fg.imageSmoothingEnabled=false; fg.clearRect(0,0,FW,FH);
  const t=now-anim.t0, R=anim.R, col=_rgb(R[1]);
- const cx=Math.round(FW/2), cy=Math.round(FH*0.40);
- const S=Math.max(2,Math.round(FW/26));     // chest unit size
+ /* the chest sits in the middle of the room left above the caption,
+    so the lid and the item always have somewhere to go */
+ const info=document.querySelector('.cinfo');
+ const capTop=info?Math.max(FH*0.52,(info.getBoundingClientRect().top-r.top)/PX):FH*0.62;
+ const cx=Math.round(FW/2), cy=Math.round(capTop-FH*0.06);
+ const S=Math.max(2,Math.round(Math.min(FW/22,FH/34)));
 
  /* --- 1. it falls in and lands --- */
  let dy=0, squash=0;
- if(t<T_DROP){ const p=t/T_DROP; dy=-(1-p)*(1-p)*FH*.55; }
+ if(t<T_DROP){ const p=t/T_DROP; dy=-(1-p)*(1-p)*Math.min(FH*.45,cy-S*6); }
  else if(t<T_DROP+140){ const p=(t-T_DROP)/140; squash=Math.sin(p*Math.PI)*.45; }
 
  /* --- 2. it shakes, harder and harder, and light leaks out --- */
@@ -1260,44 +1123,113 @@ function fxFrame(now){
   }
  }
 
- /* --- the chest itself --- */
- const by=cy+dy, wood=_rgb('#7a5430');
- const bw=S*6, bh=S*4;
+ /* --- the chest itself ---
+    Planked body, iron bands, a lock plate, and a half-round lid hinged at
+    the back. Drawn as pixel art rather than as stacked rectangles, because
+    this is the thing the whole animation is about. */
+ const by=cy+dy;
+ const woodD=_rgb('#3f2714'), woodM=_rgb('#7a5430'), woodL=_rgb('#a37747');
+ const iron =_rgb('#4a4a58'),  ironL=_rgb('#9a9aae'), out=_rgb('#17110a');
+ const bw=Math.round(S*7)|1, bh=Math.round(S*4.2*(1-squash)+S*4.2*squash*0.55);
+ const RC=(x,y,w,h,c2)=>{fg.fillStyle=_css(c2);
+  fg.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h)));};
  const drawBox=()=>{
-  fg.fillStyle=_css(_dark(wood,.15+squash*.2));
-  fg.fillRect(cx-bw/2+sx,by-bh*(1-squash),bw,bh*(1-squash)+bh*squash);
-  fg.fillStyle=_css(_dark(wood,.45));
-  fg.fillRect(cx-bw/2+sx,by-S*.8,bw,S*.8);
-  fg.fillStyle=_css(col);
-  fg.fillRect(cx-S*.7+sx,by-bh*(1-squash),S*1.4,bh*(1-squash));
+  const x0=cx-bw/2+sx, y0=by-bh;
+  RC(x0-1,y0-1,bw+2,bh+2,out);
+  for(let i=0;i<bw;i++){
+   const plank=Math.floor(i/Math.max(1,S*1.4))%2;
+   const edge=(i%Math.max(1,Math.round(S*1.4))===0);
+   let c2=plank?woodM:_mix(woodM,woodL,.35);
+   if(edge) c2=woodD;
+   for(let j=0;j<bh;j++){
+    const v=j/bh;
+    RC(x0+i,y0+j,1,1,_mix(c2,v>0.78?woodD:_mix(c2,woodL,(1-v)*0.30),v>0.78?0.7:0.4));}
+  }
+  /* iron bands and the corner straps */
+  RC(x0,y0,Math.max(1,S*.7),bh,iron); RC(x0,y0,Math.max(1,S*.7),Math.max(1,bh*.4),ironL);
+  RC(x0+bw-S*.7,y0,Math.max(1,S*.7),bh,iron);
+  RC(x0+bw-S*.7,y0,Math.max(1,S*.7),Math.max(1,bh*.4),_mix(iron,ironL,.5));
+  RC(x0,y0+bh-S*.5,bw,Math.max(1,S*.5),_mix(iron,out,.45));
+  /* the lock plate, in the rarity colour */
+  const lw=Math.max(2,S*1.7);
+  RC(cx-lw/2+sx,by-bh*.62,lw,lw*.95,_css?_mix(col,out,.35):col);
+  RC(cx-lw/2+sx,by-bh*.62,lw,Math.max(1,lw*.34),_lite(col,.40));
+  RC(cx-lw*.17+sx,by-bh*.62+lw*.30,Math.max(1,lw*.34),Math.max(1,lw*.40),out);
  };
+ const lidOpen=Math.max(0,Math.min(1,lid/1.55));
  const drawLid=()=>{
-  fg.save();
-  fg.translate(cx+sx,by-bh*(1-squash));
-  fg.rotate(-lid);
-  fg.fillStyle=_css(_lite(wood,.18));
-  fg.fillRect(-bw/2,-S*2.2,bw,S*2.2);
-  fg.fillStyle=_css(col); fg.fillRect(-S*.7,-S*2.2,S*1.4,S*2.2);
-  fg.fillStyle=_css(_lite(col,.5)); fg.fillRect(-S*.4,-S*.9,S*.8,S*.7);
-  fg.restore();
+  const lh=Math.max(2,Math.round(S*2.6*(1-lidOpen*0.80)));
+  const ly=Math.round(by-bh-lh-lidOpen*S*1.6);
+  const x0=cx-bw/2+sx;
+  for(let j=0;j<lh;j++){
+   const u=j/lh;                                  // 0 at the crown
+   const w2=Math.round(bw*0.5*Math.sqrt(Math.max(0,1-u*u*0.72)));
+   const yy=ly+j;
+   fg.fillStyle=_css(out); fg.fillRect(cx+sx-w2-1,yy,w2*2+3,1);
+   for(let i=-w2;i<=w2;i++){
+    const lat=(i+w2)/(2*w2+.001);
+    let c2=_mix(woodM,woodL,(1-u)*0.46+(1-lat)*0.34);
+    if(Math.floor((i+w2)/Math.max(1,S*1.4))%2) c2=_mix(c2,woodD,.22);
+    fg.fillStyle=_css(c2); fg.fillRect(cx+sx+i,yy,1,1);}
+  }
+  fg.fillStyle=_css(iron);
+  fg.fillRect(cx+sx-Math.max(1,S*.8),ly,Math.max(2,S*1.6),lh);
+  fg.fillStyle=_css(_lite(col,.34));
+  fg.fillRect(cx+sx-Math.max(1,S*.5),ly,Math.max(1,S*1.0),lh);
+  fg.fillStyle=_css(ironL);
+  fg.fillRect(cx+sx-Math.max(1,S*.8),ly,Math.max(2,S*1.6),1);
+  fg.fillStyle=_css(out); fg.fillRect(x0-1,ly+lh,bw+2,1);
  };
- if(t>T_RISE+260){ drawLid(); drawBox(); } else { drawBox(); drawLid(); }
+ /* the dark inside, revealed as the lid lifts */
+ const drawInside=()=>{
+  if(lidOpen<0.08) return;
+  const ih=Math.round(S*1.9*lidOpen);
+  fg.fillStyle=_css(_mix(out,[0,0,0],.4));
+  fg.fillRect(cx-bw/2+sx+Math.round(S*.7),by-bh-ih,bw-Math.round(S*1.4),ih+1);
+  fg.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(0.5*lidOpen).toFixed(2)+')';
+  fg.fillRect(cx-bw/2+sx+Math.round(S*.9),by-bh-Math.max(1,ih*.5),bw-Math.round(S*1.8),Math.max(1,ih*.5));
+ };
+ /* light spilling out of an open chest, from behind the lid */
+ if(lidOpen>0.18){
+  const op=Math.min(1,(lidOpen-0.18)/0.6), BH=S*11;
+  for(let j=0;j<BH;j++){
+   const u=j/BH;
+   const w2=Math.round(bw*0.46*(1-u*0.30));
+   const a2=op*0.42*Math.pow(1-u,1.5);
+   fg.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+a2.toFixed(3)+')';
+   fg.fillRect(cx+sx-w2,Math.round(by-bh-j),w2*2,1);}
+ }
+ /* once it is open the lid sits behind the box */
+ if(lidOpen>0.3){ drawLid(); drawInside(); drawBox(); }
+ else { drawBox(); drawLid(); }
+ /* dust kicked up on landing */
+ if(t>T_DROP&&t<T_DROP+420){
+  const p=(t-T_DROP)/420;
+  fg.fillStyle='rgba(190,178,160,'+((1-p)*.55).toFixed(2)+')';
+  for(let i=0;i<14;i++){
+   const a2=(i/14)*Math.PI*2, rr=p*S*7*(0.5+hash(i*13)*0.8);
+   fg.fillRect(Math.round(cx+Math.cos(a2)*rr),Math.round(by-p*S*2.2*hash(i*7)),
+               1+(hash(i*3)<.3?1:0),1);}
+ }
 
  /* --- the item rises out, glowing --- */
  if(t>T_BURST){
   const p=Math.min(1,(t-T_BURST)/(T_RISE-T_BURST));
   const e=1-Math.pow(1-p,3);
   const hover=(t>T_RISE)?Math.sin((t-T_RISE)/420)*S*.4:0;
-  const iy=by-bh-e*S*5.2+hover;
-  const sp=ICON[anim.d.kind], IS=Math.max(1,Math.round(S*.62*e));
-  /* halo */
-  for(let i=5;i>0;i--){
-   fg.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(.07*e).toFixed(3)+')';
-   fg.fillRect(cx-IS*6-i*2,iy-IS*12-i*2,IS*12+i*4,IS*12+i*4);
-  }
+  const iy=by-bh-e*S*6.4+hover;
+  const sp=ICON[anim.d.kind]||ICON.trinket, IS=Math.max(1,Math.round(S*.50*e));
+  /* a halo in the rarity colour, as a real radial glow */
+  const rg=fg.createRadialGradient(cx,iy-IS*6,0,cx,iy-IS*6,IS*13);
+  rg.addColorStop(0,'rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(.55*e).toFixed(3)+')');
+  rg.addColorStop(.45,'rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+(.18*e).toFixed(3)+')');
+  rg.addColorStop(1,'rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+',0)');
+  fg.fillStyle=rg; fg.fillRect(cx-IS*14,iy-IS*20,IS*28,IS*28);
   for(let r=0;r<sp.length;r++)for(let c=0;c<sp[r].length;c++){
    const ch=sp[r][c]; if(ch==='.')continue;
-   fg.fillStyle=ch==='a'?_css(_lite(col,.12)):_css(_dark(col,.42));
+   let ic=_rgb(IPAL[ch]||'#f2f5fb');
+   if(ch!=='o') ic=_mix(ic,col,.34);                 // rarity tints the metal
+   fg.fillStyle=_css(ic);
    fg.fillRect(cx-IS*6+c*IS,iy-IS*12+r*IS,IS,IS);}
 
   /* sparkles orbiting it */
