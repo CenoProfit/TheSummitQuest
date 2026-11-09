@@ -130,7 +130,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
    Everything is on the same 1:3 pixel grid as the rest of the game.
    =================================================================== */
 
-const PX   = 2;    // screen pixels per drawn pixel
+let PX     = 2;    // screen pixels per drawn pixel, set from the window
 const SEG  = 0.5;    // world units per trail segment
 const MPZ  = 160;    // world units per trail mile
 const SPM  = 2100;   // steps per mile, ~30in stride
@@ -223,7 +223,7 @@ function biomeAt(mi){
 const RPM  = 2600;   // world units per trail mile
 const TILE = 256;    // heightfield tile edge, world units
 const HSTEP= 4;      // coarse height sampling inside a tile
-const FOCB = 1.02;   // focal length, as a multiple of screen width
+const FOCV = 0.472;  // focal length, as a multiple of screen HEIGHT
 const EYE  = 44;     // camera height above the ground it stands on
 const DNEAR= 28, DFAR = 980;
 
@@ -286,6 +286,8 @@ let W=0,H=0,terCan=null,terCtx=null,terImg=null,terBuf=null,YB=null;
 function HZN(){return Math.round(H*0.345);}
 function resize(){
  const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
+ /* a wide window gets chunkier pixels rather than a wider ray march */
+ PX=Math.max(2,Math.round(w/240));
  W=Math.max(1,Math.ceil(w/PX)); H=Math.max(1,Math.ceil(h/PX));
  cv.width=W; cv.height=H; ctx.imageSmoothingEnabled=false;
  terCan=document.createElement('canvas'); terCan.width=W; terCan.height=H;
@@ -453,8 +455,14 @@ function tileAt(tx,ty){
  if(tx===_tkx&&ty===_tky&&_tcur) return _tcur;
  const k=tx+','+ty;
  let T=TILES.get(k);
- if(!T){ T=buildTile(tx,ty); TILES.set(k,T);
-  if(TILES.size>36){ const it=TILES.keys(); TILES.delete(it.next().value); } }
+ if(!T){ T=buildTile(tx,ty); T.tx=tx; T.ty=ty; TILES.set(k,T);
+  if(TILES.size>84){
+   const cx=trailX(camWY())/TILE, cy=camWY()/TILE;
+   let worst=null,wd=-1;
+   for(const [kk,v] of TILES){
+    const dx=v.tx-cx, dy=v.ty-cy, dd2=dx*dx+dy*dy;
+    if(dd2>wd){wd=dd2;worst=kk;}}
+   if(worst) TILES.delete(worst); } }
  _tkx=tx;_tky=ty;_tcur=T; return T;
 }
 function hAt(wx,wy){
@@ -758,6 +766,34 @@ const WIZ=[
  ".o........o.s."]];
 const WPAL={y:'#fbf236',Y:'#b7b130',o:'#0a0b14',r:'#c74c4a',R:'#ac3232',
             K:'#782126',b:'#6398ff',w:'#ffffff',s:'#8f563b',c:'#5fcde4'};
+const WCAN=[];
+function wizFrame(f){
+ if(WCAN[f]) return WCAN[f];
+ const sp=WIZ[f], c=document.createElement('canvas');
+ c.width=sp[0].length; c.height=sp.length;
+ const q=c.getContext('2d');
+ for(let r=0;r<sp.length;r++){const row=sp[r];
+  for(let cc=0;cc<row.length;cc++){
+   const ch=row[cc]; if(ch==='.')continue;
+   let col=_rgb(WPAL[ch]);
+   if(ch!=='o'&&ch!=='c') col=sh(col,cc<5?.18:cc>8?-.20:0);
+   q.fillStyle=_css(col); q.fillRect(cc,r,1,1);}}
+ WCAN[f]=c; return c;
+}
+/* pxH is the height he should stand, in screen pixels */
+function climberAt(g,cx,footY,pxH,f,lamp){
+ const sp=WIZ[f%WIZ.length], c=wizFrame(f%WIZ.length);
+ const sc=pxH/c.height, dw=c.width*sc;
+ const x=cx-dw*0.46, y=footY-pxH;
+ const ox=x+12*sc, oy=y+2*sc, glow=lamp?0.55:0.22, rr=Math.max(4,sc*13);
+ const rg=g.createRadialGradient(ox,oy,0,ox,oy,rr);
+ rg.addColorStop(0,'rgba(120,220,245,'+glow.toFixed(2)+')');
+ rg.addColorStop(0.45,'rgba(95,205,228,'+(glow*0.30).toFixed(2)+')');
+ rg.addColorStop(1,'rgba(95,205,228,0)');
+ g.fillStyle=rg; g.fillRect(ox-rr,oy-rr,rr*2,rr*2);
+ g.imageSmoothingEnabled=false;
+ g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
+}
 function climber(g,x,y,s,f,lamp){
  const sp=WIZ[f%WIZ.length];
  /* the orb carries its own light, and at night it is the only light */
@@ -944,23 +980,26 @@ function paintSky(g,now,S2,B){
 /* ---------- wildlife ---------- */
 let fauna=[], nextSpawn=0;
 function spawn(now,alp,camX,camY){
- const r=Math.random();
- const type=alp>.6 ? (r<.42?'hawk':r<.74?'goat':'bird')
-                   : (r<.26?'deer':r<.42?'rabbit':r<.56?'fox':r<.68?'turkey':r<.87?'bird':'hawk');
- const air=(type==='bird'||type==='hawk');
+ /* birds only. A deer bounding past at this scale reads as a cartoon;
+    something riding the updraught off the ridge does not. */
+ const type=Math.random()<0.34?'hawk':'bird';
  const side=Math.random()<.5?-1:1;
- const d=90+Math.random()*160;
- fauna.push({type,air,wx:camX+side*(60+Math.random()*90),wy:camY-d,
-  vx:-side*(9+Math.random()*16), vy:6+Math.random()*16,
-  hgt:air?(14+Math.random()*22):0, born:Math.random()*6.28, flip:side>0});
- nextSpawn=now+2400+Math.random()*4600;
+ const d=120+Math.random()*220;
+ const n=1+((Math.random()*3)|0);            // they travel in loose groups
+ for(let i=0;i<n;i++)
+  fauna.push({type,air:true,
+   wx:camX+side*(70+Math.random()*120)+i*(8+Math.random()*14),
+   wy:camY-d+i*(10+Math.random()*22),
+   vx:-side*(11+Math.random()*18), vy:4+Math.random()*14,
+   hgt:26+Math.random()*44, born:Math.random()*6.28, flip:side>0});
+ nextSpawn=now+3200+Math.random()*6000;
 }
 
 function paint(now,dt){
  const g=ctx; ensureBufs();
  const S2=solar();
  const mi=shownMi, B=biomeAt(Math.max(0,mi)), alp=alpineAt(Math.max(0,mi));
- const hzY=HZN(), FOC=W*FOCB;
+ const hzY=HZN(), FOC=Math.max(H*FOCV,W*0.62);
  const camY=camWY(), camX=trailX(camY);
  const camZ=terrainH(camX,camY)+EYE;
 
@@ -970,8 +1009,9 @@ function paint(now,dt){
  /* ---- the ray march ---- */
  terBuf.fill(0); ZB.fill(1e9);
  for(let x=0;x<W;x++) YB[x]=H;
+ const dFar=Math.max(430,Math.min(DFAR,FOC*4.2));
  let d=DNEAR, dz=0.32;
- while(d<DFAR){
+ while(d<dFar){
   const sc=FOC/d, wy=camY-d, stepW=1/sc;
   const fog=Math.min(0.74,Math.max(0,(d-150)/620));
   const nf=1-fog, r0=HZC[0]*fog, g0=HZC[1]*fog, b0=HZC[2]*fog;
@@ -1066,23 +1106,26 @@ function paint(now,dt){
   const F=FAUNA[A.type]; let rows=F.r;
   if(A.type==='bird'&&Math.sin(now/90+A.born)>0) rows=BIRD2;
   const ss=Math.max(1,Math.round(F.s*0.55*sc));
-  const run=A.air?Math.sin(now/80+A.born)*ss*1.2
-                 :(A.type==='rabbit'?Math.abs(Math.sin(now/95+A.born))*ss*2:0);
-  if(!A.air){g.fillStyle='rgba(10,14,28,.28)';
-   g.fillRect(Math.round(sx-rows[0].length*ss/2),Math.round(sy),rows[0].length*ss,Math.max(1,ss));}
+  const run=Math.sin(now/260+A.born)*ss*1.6;   // a slow rise and fall
   sprite(g,rows,F.p,Math.round(sx-rows[0].length*ss/2),
          Math.round(sy-ss*rows.length-run),ss,A.flip);
  }
 
  /* ---- the climber, always in front ---- */
- {const dd=64, sc=FOC/dd, CHAR=1.45;
+ {const CHAR=1.18;
+  /* pick the depth that puts his feet where we want them on screen, rather
+     than fixing the depth and hoping: on a short window a fixed depth lands
+     him below the frame */
+  const dd=Math.max(34,EYE*FOC/(0.62*(H-hzY)));
+  const sc=FOC/dd;
   const wy=camY-dd, cx=trailX(wy);
   const sx=W*0.5+(cx-camX)*sc, sy=hzY+(camZ-hAt(cx,wy))*sc;
-  const s=Math.max(2,Math.round(11*sc*CHAR/16));
-  const bob=Math.round(Math.sin(walkPhase*2)*s*0.6);
+  const pxH=Math.max(10,11*sc*CHAR);
+  const bob=Math.sin(walkPhase*2)*pxH*0.035;
   g.fillStyle='rgba(10,16,30,.34)';
-  g.fillRect(Math.round(sx-s*3),Math.round(sy-s*.4),s*10,Math.max(1,Math.round(s*1.1)));
-  climber(g,Math.round(sx-s*6),Math.round(sy-s*18+bob),s,[0,1,0,2][(walkPhase|0)%4],S2.dark>.45);}
+  g.fillRect(Math.round(sx-pxH*0.26),Math.round(sy-pxH*0.03),
+             Math.round(pxH*0.56),Math.max(1,Math.round(pxH*0.07)));
+  climberAt(g,sx,sy+bob,pxH,[0,1,0,2][(walkPhase|0)%4],S2.dark>.45);}
 
  /* ---- the hour, and the air ---- */
  if(S2.dark>0.02){
