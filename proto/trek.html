@@ -70,7 +70,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .pslot{display:flex;align-items:center;gap:7px;border:2px solid var(--edge2);
  background:var(--panel2);padding:5px 6px;cursor:pointer;min-height:36px}
 .pslot.on{border-color:var(--gold)}
-.pslot canvas{flex:0 0 auto}
+.pslot canvas{flex:0 0 auto;image-rendering:pixelated}
 .pslotxt{font-size:9px;line-height:1.3;letter-spacing:.5px;overflow:hidden}
 .pslotxt b{display:block;font-family:var(--pix);font-size:6px;color:var(--dim);
  letter-spacing:1px;margin-bottom:3px}
@@ -84,11 +84,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  background:var(--solid2);border:2px solid var(--edge);color:var(--dim);cursor:pointer}
 .ptab.on{border-color:var(--gold);color:var(--gold)}
 .pgrid{flex:1;overflow-y:auto;display:grid;gap:6px;align-content:start;
- grid-template-columns:repeat(auto-fill,minmax(68px,1fr));
+ justify-content:center;grid-template-columns:repeat(auto-fill,72px);
  border:2px solid var(--edge);background:rgba(8,14,22,.6);padding:6px}
 .cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
  border:2px solid #2b3a50;background:#0c141f;cursor:pointer}
-.cell canvas{width:82%;height:82%}
+.cell canvas{image-rendering:pixelated}
 .cell.locked{opacity:.42}
 .cell.locked canvas{filter:grayscale(1) brightness(.35)}
 .cell.eq{box-shadow:inset 0 0 0 2px var(--gold)}
@@ -97,18 +97,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .pdetail{margin-top:7px;border:2px solid var(--edge);background:var(--panel2);
  padding:8px 9px;min-height:54px;font-size:11px;letter-spacing:.5px;color:var(--dim);
  display:flex;gap:10px;align-items:center}
-.dart{flex:0 0 auto;width:112px;height:112px;border:2px solid #2b3a50;
+.dart{flex:0 0 auto;width:128px;height:128px;border:2px solid #2b3a50;
  background:#0b121c;display:flex;align-items:center;justify-content:center}
 .dq{font-family:var(--pix);font-size:26px;color:#2b3a50}
 .dtxt{flex:1;min-width:0}
-@media(max-width:430px){.dart{width:74px;height:74px}
- .dart canvas{width:74px!important;height:74px!important}}
+@media(max-width:430px){.dart{width:80px;height:80px}
+ .dart canvas{width:80px!important;height:80px!important}}
 .pdetail b{font-family:var(--pix);font-size:8px;letter-spacing:1px;display:block;margin-bottom:5px}
 .pdetail .rr{font-family:var(--pix);font-size:6px;letter-spacing:1px}
 @media(max-width:430px){
  .pleft{flex:0 0 96px}
  .pwiz{display:none}
- .pgrid{grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:4px}
+ .pgrid{grid-template-columns:repeat(auto-fill,54px);gap:4px}
 }
 
 /* ---- chest ---- */
@@ -915,8 +915,7 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  const oid=S.eq&&S.eq.off, og=oid?BYID[oid]:null;
  if(og){
   const ss=Math.max(6,pxH*0.46), sw=Math.sin(walkPhase*Math.PI*0.5)*ss*0.07;
-  g.drawImage(gearCanvas(og,false),
-   Math.round(x-ss*0.70), Math.round(y+pxH*0.34+sw), Math.round(ss), Math.round(ss));}
+  blitGear(g,og,false,Math.round(x-ss*0.70),Math.round(y+pxH*0.34+sw),Math.round(ss));}
 }
 function climber(g,x,y,s,f,lamp){
  const sp=WIZ[f%WIZ.length];
@@ -1264,14 +1263,10 @@ function paint(now,dt){
    const top=hzY+(sy-hzY)*0.16;
    const sway=Math.sin(now*0.00039)*pxH*0.70;
    const rise=Math.sin(now*0.00117)*ps*0.13;
-   g.drawImage(gearArt(pg,32,pf),
-    Math.round(sx-ps*0.5+sway), Math.round(top+rise-ps*0.5),
-    Math.round(ps), Math.round(ps));
+   blitGear(g,pg,pf,Math.round(sx-ps*0.5+sway),Math.round(top+rise-ps*0.5),Math.round(ps));
   }else{
    const pb=Math.sin(walkPhase*Math.PI*0.5+1.2)*ps*0.07;
-   g.drawImage(gearArt(pg,32,pf),
-    Math.round(sx-pxH*1.38), Math.round(sy+bob+pb-ps),
-    Math.round(ps), Math.round(ps));}}
+   blitGear(g,pg,pf,Math.round(sx-pxH*1.38),Math.round(sy+bob+pb-ps),Math.round(ps));}}
  }
 
  /* ---- the hour, and the air ---- */
@@ -1352,246 +1347,62 @@ const PAL={
    material: a sword is steel AND the leather you hold it by, and saying
    so is most of the difference between a shape and a thing. */
 const SHAPE={
-sword:[
-["........o.......",".......oWo......","......oWBdo.....","......oWBdo.....",
-  "......oWBdo.....","......oWBdo.....","......oWBdo.....","......oWBdo.....",
-  "......oWBdo.....","..oCCCCCCCCCCo..","...oCCCCCCCCo...","......oGHo......",
-  "......oGHo......","......oGHo......",".....oCCCCo.....","......oCCo......"],
-[".........oo.....","........oWBo....",".......oWBBo....","......oWBBdo....",
-  "......oWBBdo....",".....oWBBdo.....",".....oWBBdo.....","....oWBBdo......",
-  "....oWBdo.......","..ooCCCCo.......",".oCCCCCCo.......","..ooGHoo........",
-  "...oGHo.........","...oGHo.........","..oCCCCo........","...oCCo........."],
-[".....oooo.......","....oWWBBo......","....oWBBdo......","....oWBBdo......",
-  "....oWBBdo......","....oWBBdo......","....oWBBdo......","....oWBBdo......",
-  "...ooWBBdoo.....",".ooCCCCCCCCoo...","oCCCCCCCCCCCCo..",".ooCCCCCCCCoo...",
-  ".....oGHo.......",".....oGHo.......","....oCCCCo......",".....oCCo......."],
-["........o.......",".......oWo......","......oWBo......",".....oWBdo......",
-  "......oWBdo.....",".....oWBdo......","......oWBdo.....",".....oWBdo......",
-  "......oWBdo.....","...oCCCCCCCCo...","..oCCCCCCCCCCo..","......oGHo......",
-  "......oGHo......","......oGHo......",".....oCCCCo.....","......oCCo......"],
-["........o.......",".......oWo......",".......oWo......",".......oWo......",
-  ".......oWo......",".......oWo......",".......oWo......",".......oWo......",
-  "....oooWoooo....","...oCCoWoCCo....","...oCCCCCCCo....","....oCCCCCo.....",
-  "......oGHo......","......oGHo......",".....oCCCCo.....","......oCCo......"],
-["....oooooo......","...oWWBBBdo.....","...oWBBBBdo.....","...oWBBBBdo.....",
-  "...oWBBBBdo.....","....oWBBBdo.....",".....oWBBdo.....","......oWBdo.....",
-  "......oCCCo.....","......oCCCo.....","......oGHo......","......oGHo......",
-  "......oGHo......","......oGHo......",".....oCCCCo.....","......oCCo......"],
-[".........oo.....","........oWBo....","........oWBo....",".......oWBo.....",
-  ".......oWBo.....","......oWBo......","......oWBo......",".....oWBo.......",
-  ".....oWBo.......","...oCCCCCo......","...oCCCCCo......","....oGHo........",
-  "....oGHo........","....oGHo........","....oGHo........","...oCCCCo......."],
-["......oo........",".....oWBo.......",".....oWBdo......",".....oWBdo......",
-  "....ooWBdo......",".....oWBdo......",".....oWBdo......","....ooWBdo......",
-  ".....oWBdo......","..oCCCCCCCCo....","..oCCCCCCCCo....",".....oGHo.......",
-  ".....oGHo.......",".....oGHo.......","....oCCCCo......",".....oCCo......."]
-],
-staff:[
-[".....oooo.......","....oCCCCo......","...oCWCCCCo.....","...oCCCCCCo.....",
-  "...oCCCCCCo.....","....oCCCCo......",".....oooo.......","......oGo.......",
-  "......oGHo......","......oGHo......",".....ooGHo......","......oGHo......",
-  "......oGHo......","......oGHoo.....","......oGHo......","......oooo......"],
-[".......o........","......oCo.......","......oCo.......",".....oCWCo......",
-  ".....oCWCo......","....oCCWCCo.....",".....oCCCo......","......oCo.......",
-  "......oGo.......","......oGHo......","......oGHo......","......oGHo......",
-  "......oGHo......","......oGHo......","......oGHo......","......oooo......"],
-["..oo........oo..",".oCCo......oCCo.",".oCWo......oWCo.","..oCo......oCo..",
-  "..oCCo....oCCo..","...oCCo..oCCo...","....oCCooCCo....",".....oCCCCo.....",
-  "......oGHo......","......oGHo......","......oGHo......","......oGHo......",
-  "......oGHo......","......oGHo......","......oGHo......","......oooo......"],
-["......ooo.......",".....oGHGo......",".....o...o......","....ooooooo.....",
-  "....oCCCCCo.....","....oCWWWCo.....","....oCWWWCo.....","....oCWWWCo.....",
-  "....oCCCCCo.....","....ooooooo.....","......oGHo......","......oGHo......",
-  "......oGHo......","......oGHo......","......oGHo......","......oooo......"],
-["....oo....oo....","...oCo....oCo...","...oCo...oCo....","....oCo.oCo.....",
-  ".....oCCCo......","....oCCWCCo.....","....oCCCCCo.....",".....oCCCo......",
-  "......oGo.......","......oGHo......",".....ooGHo......","......oGHo......",
-  "......oGHo......","......oGHoo.....","......oGHo......","......oooo......"],
-[".....oooo.......","....oCCCCo......","...oCWCCWCo.....","...oCCCCCCo.....",
-  "...oCoCCoCo.....","....oCCCCo......",".....oCCo.......","......oGo.......",
-  "......oGHo......","......oGHo......","......oGHo......",".....ooGHoo.....",
-  "......oGHo......","......oGHo......","......oGHo......","......oooo......"]
-],
-shield:[
-[".....oooooo.....","...ooBBBBBBoo...","..oBBAAAAAABBo..",".oBAAAAAAAAAABo.",
-  ".oBAACCCCCCAABo.","oBAACCWWWWCCAABo","oBAACCWWWWCCAABo","oBAACCWWWWCCAABo",
-  "oBAACCWWWWCCAABo","oBAACCCCCCCCAABo",".oBAAAAAAAAAABo.",".oBAAAAAAAAAABo.",
-  "..oBAAAAAAAABo..","...ooBAAAABoo...",".....oBAABo.....","......oooo......"],
-["..oooooooooooo..","..oBBBBBBBBBBo..","..oBAAAAAAAABo..","..oBACCCCCCABo..",
-  "..oBACWWWWCABo..","..oBACWWWWCABo..","..oBACCCCCCABo..","..oBAAAAAAAABo..",
-  "...oBAAAAAABo...","...oBAAAAAABo...","....oBAAAABo....","....oBAAAABo....",
-  ".....oBAABo.....",".....oBAABo.....","......oBBo......",".......oo......."],
-["..oooooooooooo..","..oBBBBBBBBBBo..","..oBAAAAAAAABo..","..oBAoCCCCoABo..",
-  "..oBAoCWWCoABo..","..oBAoCWWCoABo..","..oBAoCWWCoABo..","..oBAoCWWCoABo..",
-  "..oBAoCWWCoABo..","..oBAoCCCCoABo..","..oBAAAAAAAABo..","..oBAAAAAAAABo..",
-  "..oBBBBBBBBBBo..","...oBAAAAAABo...","....oooooooo....","................"],
-["................","................",".....oooooo.....","...ooBBBBBBoo...",
-  "..oBAAAAAAAABo..",".oBAACCCCCCAABo.",".oBACCWWWWCCABo.","oBAACCWWWWCCAABo",
-  "oBAACCWWWWCCAABo",".oBACCCCCCCCABo.",".oBAAAAAAAAAABo.","..oBAAAAAAAABo..",
-  "...ooBBBBBBoo...",".....oooooo.....","................","................"],
-[".oooooooooooooo.",".oBBBBBBBBBBBBo.",".oBAAAAAAAAAABo.",".oBACCCCCCCCABo.",
-  ".oBACWWWWWWCABo.",".oBACWWWWWWCABo.",".oBACCCCCCCCABo.",".oBAAAAAAAAAABo.",
-  "..oBAAAAAAAABo..","..oBAAAAAAAABo..","...oBAAAAAABo...","....oBAAAABo....",
-  ".....oBAABo.....","......oBBo......",".......oo.......","................"],
-["..o...oooo...o..","..oo.oBBBBo.oo..","...ooBAAAABoo...","..oBAAACCAAABo..",
-  ".oBAACCWWCCAABo.","oBAACCWWWWCCAABo","oBAACWWWWWWCAABo","oBAACWWWWWWCAABo",
-  "oBAACCWWWWCCAABo",".oBAACCWWCCAABo.","..oBAAACCAAABo..","...ooBAAAABoo...",
-  "..oo.oBBBBo.oo..","..o...oooo...o..","................","................"]
-],
-helm:[
-["......oooo......","....ooBBBBoo....","...oBBAAAABBo...","..oBAAAAAAAABo..",
-  "..oBAAoooooABo..","..oBAodddddoBo..","..oBAodddddoBo..","..oBAodddddoBo..",
-  "..oBAodddddoBo..","..oBAAodddoABo..","..oBAAAoooAABo..","..oBAAAAAAAABo..",
-  "...oBAAAAAABo...","...oBBAAAABBo...","....ooBBBBoo....","......oooo......"],
-["oo............oo","oCo..oooooo..oCo","oCCo.oBBBBo.oCCo",".oCCoBAAAABoCCo.",
-  "..ooBAAAAAABoo..","..oBAAAAAAAABo..","..oBAAAAAAAABo..","..oBAooooooABo..",
-  "..oBAoCCCCoABo..","..oBAooooooABo..","..oBAAAAAAAABo..","..oBAAoooooABo..",
-  "..oBAAAAAAAABo..","...oBAAAAAABo...","...oBBBBBBBBo...","....oooooooo...."],
-["....oooooooo....","..ooBBBBBBBBoo..",".oBBAAAAAAAABBo.",".oBAAAAAAAAAABo.",
-  ".oBAAoooooooABo.",".oBAAoCCCCCoABo.",".oBAAoooooooABo.",".oBAAAAAAAAAABo.",
-  ".oBAoAoAoAoABo..",".oBAAAAAAAAAABo.",".oBAAAAAAAAAABo.",".oBBAAAAAAAABBo.",
-  "..oBBBBBBBBBBo..","..oBAAAAAAAABo..","...oooooooooo...","................"],
-["................","..o....oo....o..","..oCo.oCCo.oCo..","..oCCooCCCooCCo.",
-  ".oCCCCCCCCCCCCo.","oBAACCWWWWCCAABo","oBAACCCCCCCCAABo","oBAAAAAAAAAAAABo",
-  ".oBBBBBBBBBBBBo.","..oooooooooooo..","................","................",
-  "................","................","................","................"],
-["......oooo......",".....oBAABo.....","....oBAAAABo....","....oBAAAABo....",
-  "...oBAAAAAABo...","...oCCCCCCCCo...","..oBAAAAAAAABo..",".oBAAAAAAAAAABo.",
-  "oBAAAAAAAAAAAABo","oBBBBBBBBBBBBBBo",".oooooooooooooo.","................",
-  "................","................","................","................"],
-[".....oooooo.....","...ooBBBBBBoo...","..oBBAAAAAABBo..",".oBAAAAAAAAAABo.",
-  ".oBAAAAAAAAAABo.",".oBAAAAoooAAABo.",".oBAAoodddooABo.",".oBAodddddddoBo.",
-  ".oBAodddddddoBo.",".oBAAodddddoABo.",".oBAAAodddoAABo.",".oBAAAAoooAAABo.",
-  "..oBAAAAAAAABo..","...oBBAAAABBo...","....ooBBBBoo....","......oooo......"],
-["................","......oooo......","....ooBBBBoo....","...oBBAAAABBo...",
-  "..oBAAAAAAAABo..",".oBAAAAAAAAAABo.",".oBAAAAAAAAAABo.",".oBCCCCCCCCCCBo.",
-  ".oBAAAAAAAAAABo.","..oAAAAAAAAAAo..","..oAAo....oAAo..","..oAo......oAo..",
-  "..ooo......ooo..","................","................","................"]
-],
-chest:[
-["..ooo......ooo..",".oBAAo....oAABo.",".oBAAAooooAAABo.",".oBAAAAAAAAAABo.",
-  "..oBAAAAAAAABo..","..oBACCCCCCABo..","..oBACWWWWCABo..","..oBACCCCCCABo..",
-  "..oBAAAAAAAABo..","..oBAAAAAAAABo..","..oBAAoooAAABo..","..oBAAAAAAAABo..",
-  "...oBAAAAAABo...","...oBBAAAABBo...","....oooooooo....","................"],
-["..ooo......ooo..",".oBAAo....oAABo.",".oBAAAooooAAABo.",".oBAoAoAoAoAoBo.",
-  ".oBoAoAoAoAoABo.",".oBAoAoAoAoAoBo.",".oBoAoAoAoAoABo.",".oBAoAoAoAoAoBo.",
-  ".oBoAoAoAoAoABo.",".oBAoAoAoAoAoBo.","..oBCCCCCCCCBo..","..oBAAAAAAAABo..",
-  "...oBAAAAAABo...","...oBBAAAABBo...","....oooooooo....","................"],
-["...ooo....ooo...","..oBAAooooAABo..","..oBAAAAAAAABo..",".oBAAAAAAAAAABo.",
-  ".oBAAoCCCCoAABo.",".oBAAoCWWCoAABo.",".oBAAoCWWCoAABo.",".oBAAoCCCCoAABo.",
-  ".oBAAAAAAAAAABo.",".oBAAAAAAAAAABo.",".oBBBBBBBBBBBBo.",".oBAAAAAAAAAABo.",
-  ".oBAAAAAAAAAABo.",".oBAAAAAAAAAABo.",".oBBAAAAAAAABBo.","..oooooooooooo.."],
-["..ooo......ooo..",".oBAAo....oAABo.",".oBAAAooooAAABo.",".oBAAAAAAAAAABo.",
-  ".oBAAAAAAAAAABo.",".oooooooooooooo.",".oBAAAAAAAAAABo.",".oooooooooooooo.",
-  ".oBACCCCCCCCABo.",".oooooooooooooo.",".oBAAAAAAAAAABo.",".oooooooooooooo.",
-  "..oBAAAAAAAABo..","...oBBAAAABBo...","....oooooooo....","................"],
-["..ooo......ooo..",".oBAAo....oAABo.",".oBAAAooooAAABo.",".oBAAAAAAAAAABo.",
-  ".oBAoAAAAAAoABo.",".oBAoACCCCAoABo.",".oBAoACWWCAoABo.",".oBAoACCCCAoABo.",
-  ".oBAoAAAAAAoABo.",".oBAAoAAAAoAABo.",".oBAAAoooooAABo.","..oBAAAAAAAABo..",
-  "...oBAAAAAABo...","...oBBAAAABBo...","....oooooooo....","................"]
-],
-shoes:[
-["................","...oooo..oooo...","..oBAABo.oBAABo.","..oBAABo.oBAABo.",
-  "..oBAABo.oBAABo.","..oCCCCo.oCCCCo.","..oBAABo.oBAABo.","..oBAABo.oBAABo.",
-  "..oBAABo.oBAABo.","..oBAABo.oBAABo.",".oBAAABo.oBAAABo",".oBAAABo.oBAAABo",
-  ".oCCCCCo.oCCCCCo",".oooooo..oooooo.","................","................"],
-["..oooo....oooo..",".oBAABo..oBAABo.",".oBAABo..oBAABo.",".oCCCCo..oCCCCo.",
-  ".oBAABo..oBAABo.",".oBAABo..oBAABo.",".oCCCCo..oCCCCo.",".oBAABo..oBAABo.",
-  ".oBAABo..oBAABo.",".oCCCCo..oCCCCo.",".oBAABo..oBAABo.","oBAAABo..oBAAABo",
-  "oBAAABo..oBAAABo","oCCCCCo..oCCCCCo","ooooooo..ooooooo","................"],
-["................","................","................","................",
-  "................","................","...oooo..oooo...","..oBAABo.oBAABo.",
-  "..oCCCCo.oCCCCo.","..oBAABo.oBAABo.",".oBAAABo.oBAAABo",".oCCCCCo.oCCCCCo",
-  ".oBAAABo.oBAAABo",".oooooo..oooooo.","................","................"],
-["................",".oooooo..oooooo.",".oCCCCo..oCCCCo.",".oCCCCo..oCCCCo.",
-  "..oBAABo.oBAABo.","..oBAABo.oBAABo.","..oBAABo.oBAABo.","..oBAABo.oBAABo.",
-  "..oBAABo.oBAABo.","..oBAABo.oBAABo.",".oBAAABo.oBAAABo",".oBAAABo.oBAAABo",
-  ".oCCCCCo.oCCCCCo",".oooooo..oooooo.","................","................"]
-],
-pet:[
-["................","..oo............",".oBo.......ooo..",".oBo......oBAAo.",
-  ".oBAoooooooBAAo.",".oBAAAAAAAABWAo.","oBAAAAAAAAAAoAo.","oBAAAAAAAAAAAoo.",
-  "oBWWAAAAAAAAo...",".oBAAAAAAAAo....",".oBAo...oAAo....",".oBAo...oAAo....",
-  ".oBAo...oAAo....",".oCCo...oCCo....",".oooo...oooo....","................"],
-["...........oo...","..oo.......oBo..","..oBo.....ooBoo.","..oBo....oBAABo.",
-  "..oBooooooBAAWo.",".oBAAAAAAABAAoo.","oBAAAAAAAAAAAo..","oBWWAAAAAAAAAoo.",
-  "oBAAAAAAAAAAAo..",".oBAAAAAAAAAo...",".oBAo....oAAo...",".oBAo....oAAo...",
-  ".oBAo....oAAo...",".oBAo....oAAo...",".oCCo....oCCo...",".oooo....oooo..."],
-["................","................","...oo......oo...","..oCWo....oWCo..",
-  "..oCCo....oCCo..",".ooBAoooooABoo..",".oBAAAAAAAAABo..","oBAAAAAAAAAAABo.",
-  "oBWAAAAAAAAAWBo.","oBAAAAAAAAAAABo.",".oBAAAAAAAAABo..",".oBAAAAAAAAABo..",
-  "oBAAo.....oAABo.","oBAAo.....oAABo.","oooo.......oooo.","................"],
-["................","...ooo....ooo...","..oCWCo..oCWCo..","..oCCCo..oCCCo..",
-  ".ooBAAoooAABoo..",".oBAAAAAAAAABo..","oBAAoAAAAAoAABo.","oBAAAAAAAAAAABo.",
-  "oBWAAoAAAoAAWBo.","oBAAAAAAAAAAABo.","oBAAoAAAAAoAABo.",".oBAAAAAAAAABo..",
-  ".oBAAAAAAAAABo..","oBAAo.....oAABo.","oBAAo.....oAABo.","oooo.......oooo."],
-["................","................",".........oooo...","........oBAAAo..",
-  "........oBAWAoCo",".......ooBAAAoCo","......ooBAAAAAo.","....ooBBBAAAAAo.",
-  "..ooBWWBBAAAAAo.","oooBWWWBBAAAAo..","oBBBWWBBAAAAo...","ooooBBBAAAAo....",
-  "....ooAAAAo.....",".....oAoAo......",".....oCoCo......",".....ooooo......"],
-["................",".........oooo...","........oBAAAo..","........oBAWAo..",
-  "........oBAAAoCo",".......ooBAAAoCo","......ooBAAAAoo.","....ooBBBAAAAAo.",
-  "..ooBWWBBAAAAAo.","ooBBWWWBBAAAAAo.","oBBWWWBBBAAAAo..","oooBBBBBAAAAo...",
-  "...ooooAAAAo....",".....oAAoAAo....","....oCCo.oCCo...","....ooo...ooo..."],
-["......oooo......","....oBAAAABo....","....oBAWWABo....","oo..oBAAAABo..oo",
-  "oBo..ooCCoo..oBo","oBBooBAAAABooBBo",".oBWBAAAAAABWBo.",".oBWWBAAAABWWBo.",
-  "..oBWWBAABWWBo..","..oBWWBAABWWBo..","...oBWBAABWBo...","...oBBBAABBBo...",
-  "....ooBAABoo....",".....oCooCo.....",".....oCooCo.....",".....ooooo......"],
-["................","................","................","....oooooo......",
-  "...oBAAAABo.....","..oBAACCAABo....","..oBACWWCABo....","..oBAACCAABo....",
-  "..oBAAAAAABo....","..oBAAAAAABo....","...oBAAAABo.....","...oAo..oAo.....",
-  "...oAo..oAo.....","...ooo..ooo.....","................","................"],
-["...oooooooo.....","..oBAAAAAABo....",".oBAACCCCAABo...",".oBACWWWWCABo...",
-  ".oBACWWWWCABo...",".oBAACCCCAABo...",".oBAAAAAAAABo...","ooBAAAAAAAABoo..",
-  "oAoBAAAAAABoAo..","oAoBAAAAAABoAo..","oAoBAAAAAABoAo..","ooBAAAAAAAABoo..",
-  "..oBAAAAAAABo...","..oAAo..oAAo....","..oAAo..oAAo....","..oooo..oooo...."],
-["............oo..","..........ooBo..","oo.......oBAABo.","oBBo....oBAWAABo",
-  ".oBWBo..oBAAAACo",".oBWWBooBAAAoCo.","..oBWWBBAAAAoo..","..oBWWBAAAAAAo..",
-  "...oBBAAAAAAABo.","....oBAAAAAAABo.","....oBAAAAAABo..","...ooAAoooAAoo..",
-  "..oAAo...oAAo...","..oAAo...oAAo...","..oCCo...oCCo...","..oooo...oooo..."]
-]};
-const PETALT={
-0:["................","..oo............",".oBo.......ooo..",".oBo......oBAAo.",
-  ".oBAoooooooBAAo.",".oBAAAAAAAABWAo.","oBAAAAAAAAAAoAo.","oBAAAAAAAAAAAoo.",
-  "oBWWAAAAAAAAo...",".oBAAAAAAAAo....","..oBAo..oAAo....","..oBAo..oAAo....",
-  "..oBAo..oAAo....","..oCCo..oCCo....","..oooo..oooo....","................"],
-1:["...........oo...","..oo.......oBo..","..oBo.....ooBoo.","..oBo....oBAABo.",
-  "..oBooooooBAAWo.",".oBAAAAAAABAAoo.","oBAAAAAAAAAAAo..","oBWWAAAAAAAAAoo.",
-  "oBAAAAAAAAAAAo..",".oBAAAAAAAAAo...","..oBAo..oAAo....","..oBAo..oAAo....",
-  "..oBAo..oAAo....","..oBAo..oAAo....","..oCCo..oCCo....","..oooo..oooo...."],
-2:["................","................","................","...oo......oo...",
-  "..oCWo....oWCo..","..oCCo....oCCo..",".ooBAoooooABoo..",".oBAAAAAAAAABo..",
-  "oBAAAAAAAAAAABo.","oBWAAAAAAAAAWBo.","oBAAAAAAAAAAABo.",".oBAAAAAAAAABo..",
-  ".oBAAAAAAAAABo..","oBAAo.....oAABo.","oooo.......oooo.","................"],
-3:["................","...ooo....ooo...","..oCCCo..oCCCo..","..oCCCo..oCCCo..",
-  ".ooBAAoooAABoo..",".oBAAAAAAAAABo..","oBAAoAAAAAoAABo.","oBAAAAAAAAAAABo.",
-  "oBWAAoAAAoAAWBo.","oBAAAAAAAAAAABo.","oBAAoAAAAAoAABo.",".oBAAAAAAAAABo..",
-  ".oBAAAAAAAAABo..",".oBAAo...oAABo..",".oBAAo...oAABo..",".oooo.....oooo.."],
-4:["oo..............","oBo.............",".oBo.....oooo...","..oBo...oBAAAo..",
-  "...oBo..oBAWAoCo","....oBooBAAAoCo.",".....oBBBAAAAAo.","....ooBBBAAAAAo.",
-  "..ooBBBAAAAAAo..","oooBBBAAAAAAo...","oBBBBBAAAAAo....","ooooBBAAAAo.....",
-  "....ooAAAAo.....",".....oAoAo......",".....oCoCo......",".....ooooo......"],
-5:["oo..............","oBo......oooo...",".oBo....oBAAAo..","..oBo...oBAWAo..",
-  "...oBo..oBAAAoCo","....oBooBAAAoCo.",".....oBBBAAAAoo.","....ooBBBAAAAAo.",
-  "...oBBBBBAAAAAo.","..oBBBBBBAAAAAo.","..oBBBBBBBAAAAo.","...oooBBBAAAAo..",
-  "...ooooAAAAo....",".....oAAoAAo....","....oCCo.oCCo...","....ooo...ooo..."],
-6:["......oooo......","....oBAAAABo....","....oBAWWABo....","....oBAAAABo....",
-  ".....ooCCoo.....","...ooBAAAABoo...","..oBWBAAAABWBo..","..oBWWBAABWWBo..",
-  "..oBWWBAABWWBo..","...oBWBAABWBo...","...oBBBAABBBo...","....ooBAABoo....",
-  ".....oBAABo.....",".....oCooCo.....",".....oCooCo.....",".....ooooo......"],
-7:["................","................","................","....oooooo......",
-  "...oBAAAABo.....","..oBAACCAABo....","..oBACWWCABo....","..oBAACCAABo....",
-  "..oBAAAAAABo....","..oBAAAAAABo....","...oBAAAABo.....","..oAo....oAo....",
-  "..oAo....oAo....","..ooo....ooo....","................","................"],
-8:["...oooooooo.....","..oBAAAAAABo....",".oBAACCCCAABo...",".oBACWWWWCABo...",
-  ".oBACWWWWCABo...",".oBAACCCCAABo...",".oBAAAAAAAABo...","ooBAAAAAAAABoo..",
-  "oAoBAAAAAABoAo..","oAoBAAAAAABoAo..","oAoBAAAAAABoAo..","ooBAAAAAAAABoo..",
-  "..oBAAAAAAABo...","...oAAo.oAAo....","...oAAo.oAAo....","...oooo.oooo...."],
-9:["............oo..","..........ooBo..",".........oBAABo.","oo......oBAWAABo",
-  "oBBo....oBAAAACo",".oBWBoooBAAAoCo.",".oBWWBBAAAAAoo..","..oBWWBAAAAAAo..",
-  "...oBBAAAAAAABo.","....oBAAAAAAABo.","....oBAAAAAABo..","...ooAAoooAAoo..",
-  "...oAAo.oAAo....","...oAAo.oAAo....","...oCCo.oCCo....","...oooo.oooo...."]
-};
+ sword:[".756o2.61o2.60o3.60oWdo.59oWd2o.57o2Wd2o.57oAd3o.57oWdAdo.57oWdAdo.57oWdAdo.57oWdAd2o.55o2WdAd2o.55oW2dAd2o.55oA4d2o.55oWA4do.55oWA5o.55oWA5o.54o2WA5o.54oW2A5do.53oW2A5do.53oA7do.53oWA6do.53oWA6do.53oWA7o.52o2WA7o.44o4.4oW2A7o.45ocC2o.2oW2A7do.45oC4o2A9do.46oC6A8do.48oC6A6do.50oC6A4do.52oC6A3o.53oC7Ao.53og2C6o.53og4C6o.51og2G2g2C6o.49og4GHo3C5o.47og6o.3oC2cCo.46og2Gg3o2.4oC3o.46og2G2go.7o4.44o2CG2H2o2.54oC4GHo.55oC6o.56oC5o.57oC5o.58oC3o.60o3.436",
+  ".569o.60o4.56o4B2o.54o3B4Ao.52o3B3A5o.52oB2A3W2A3o.51oA5W2A3o.51oBA4W2A4o.50oBA4W2A5o.49oBA4W2A5o.49oBA4W2A6o.48oBA4W2A6o.48oBA4W2A7o.47oBA4W2A6d2o.46oBA4W2A6d2o.46oBA4W2A6d2o.46oBA4W2A6d2o.46oBA4W2A6d2o.46oBA4W2A6d2o.46oBA4W2A6d2o.47oA4W2A6d2o.47oA4W2A6d2o.47oBA3W2A6d2o.47oBA3W2A6d2o.47oBA3W2A5d3o.47oBA3W2A5d3o.47oBA3W2A5d2o2.47oBA3W2A5d2o.49oA3W2A5d2o.49oA10d2o.49oBA9d2o.43o4.2oBA9d2o.44oC3o2BA9d2o.45oC5A9do2.46oC6A7do.49oC6A5do.49o.oC6A3do.49oCo2C7Ado.50oCo.oC7o.50oCo.3oC6o.49oCo.5oC6o.48oCo.6o2C2cCo.47oCo.9oC3o.47oC2o.9o4.48oC2o2.4o3.49o3CG2C2o5.51oC4o6.52oC4o.58oC4o.59oC2o2.60o2.373",
+  ".567o2.61o2.61o2.61oAo.58o3Ao2.57od3o.58oAd3o.57od4Wo.56od4Wo.56od4Wo.55o2d4Wo.55od5Wo.55od5Wo.55oA3d2W2o.54odA2d2W2o.54odA2d2AWo.53o2dA2d2A2o.53od2A2d2A2o.53od2A2d2A2o.53od2A2d2A2Wo.52oA4d2A2Wo.52odA3d2A2Wo.52odA3d2A3o.51o2dA3d2A3o.51od2A3d2A3o.51od2A3d2A3Wo.50od2A3d2A3Wo.50oA5d2A3Wo.37o2.11odA4d2A4o.37oC2o.8o2dA4d2A4o.37oC4o.6od2A4d2A4o.38oC5o.4od2A4d2A4Wo.39oC5o.2od2A4d2A4Wo.41oC5o2d2GA9Wo.43oC6G4A8o.45oC6G4A6o.47oC6G4A4o.49oC6G4A2Wo.50oC6G4Wo.51oC7G2Wo.51og2C7Wo.51oH2g2C6o.51og2G2g2C6o.49og4Ggo3C5o.47oHg5o.3oC5o.45oH2Gg3o2.4oC5o.43oH2G3go.7oC2cC2o.41ogHG2g2o2.8oC5o.39oH2G3go.11oC4o.38og2G2g2o.13oC2o.37o2C2g2Ggo2.14o2.37oC5g2o.54oC7o2.54oC6o.56oC6o.56o8.56",
+  ".820o2.61o2.60o3.59o2Wdo.58oW3do.57oW3d2o.56oW3d2o.56oW3d2o.56oW3d2o.55o2W3d2o.55oW4d2o.55oAW3d2o.55oW2A3d2o.54oW2A3do2.54oW2A4o.56oWA4o.56oWA4do.53o3BA4do.53oWB2A4do.53oW4A3d2o.51o2W4A4do.52oW4A2d3o.42o2.9oW3A2do3.42oco.9oW2A3o.45oCco.7oW2A3o.46oC2co.2o4BWA4o.47oC2co2WB3A5do.48oC2c2AWA7do.49oC2c2A7do.50oC3c2A5do.52oC3c2A3do.54oC3c2d2o.52o2.2oC3c2do.51ogo.3oC3co.51og3o.3oC3co.49og2G2go.3o2C2co2.46og4GHo2.4oCc2Co.44og6o.7oC3o.43og2Gg3o2.8o3.44og2G2go.55o2CG2H2o2.54oC4GHo.55oC6o.56oC5o.58oC4o.58o2C2o.61o2.372",
+  ".695o.62o2.60o2.61o2.61o2.61oWo.60oW2o.59oW2o.59oW2o.59oW2o.59oW2o.59oW2o.59oW2o.58o2AWo.58oA2o2.58oA2o.59oA2o.59odA2o.58odA2o.58odA2Wo.57odA2Wo.57odA2Wo.57odA2Wo.57odA2Wo.57odA2Wo.57odA2Wo.57odA2Wo.57odA2o2.44o2.11odA2o.45oC2o.9odA2o.47oC2o.7odA3o.47oC3o.5odA3o.48oC4o5dA3Wo.48oC2oC6A3Wo.48oC2o.oC6AWo.48oCo2.3oC6o.48oCo.o.2ogC6o.48oC2o.2og2C6o.48oC2o.og4C5o.47oC4og6CoC2o.47oC3g7o2.oC2o.47oC2g6o.4oC2o.46oC2g6o.3oC3co2.44oC2g5o.2o2C7o.44oC2g3C2o2.oCo4Co.43o2C10oCo.4o.43oC4oC8o.48oC4o.o3C2o3.49oC4o.4o2.52oC3o.60o3.246",
+  ".1326o.62oBo.60oBABo.58oBA3Bo.56oBA5Bo.54oBA7Bo.52oBA9Bo.50oBA11Bo.48oBA13Bo.46oBA15Bo.44oBA17Bo.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oBA17do.42oCA17do.42oC3A15do.42oC5A13do.43oC6A11do.38o2.5oC6A9do.38og2o.5oC6A7do.38og3Go.5oC6A5do.38og2Gg2Ho.5oC6A3do.38og2G3go.7oC6d2o.38og4GHo2.8oC6o.38og2G2g2o.11oC4o.38og3G2Ho2.12oC2o.40oGg2Ho.15o2.38o3.oGgo.55oC3o.o3.55oC4o.58oC4o.58oC4o.59o4.119",
+  ".444o.58o2.2o2.58oBo2Bo.57oA2Bo3.56oBA2o.58oBW2do.58oAW2do.57oA2Wdo.57oBAWdo.58oAW2do.57oA2Wdo.57oBA2do.57oBW2Ado.57oAW2Ao.57oA2Wdo.57oBAWAdo.56oBW3Ao.56oBW3do.57oAW2d2o.56oA2WAdo.56oBAWA2o.56oBW3Ao.56oBW3d2o.55oBW3d2o.55oBW3d2o.55oBW3Ado.55oBW3A2o.55oBW3A2o.55oBW3A2do.54oBW3A2do.54oBW3A2do.54oBW3A2do.53o2BW2A3do.53oB2W2A3do.53oBW3A3do.52o2BW3A2d2o.46o5.oB2W2A3do2.45o2C5oCW2A4do.46oC10A3d2o.47oC10A2do2.47oC12do.49oC12o.50oC11o.51oC11o.51oC11o.50ogC10o.50og2C10o.49og3C8o2.49og2G2H2o6.50og4GHo.55og6o.55og6o2.53o2C4g2o.55oC5Ho2.55oC5o.57oC4o.58o6.118",
+  ".1383o2.63o.194o2.52o2.9o2.50oW2o.59oW2Bo.59oW4o.57oW4ABo2.52o3W4A3Bo.51oB2AW3A4d2o.49oW2A2W2A4d2o.49oBWA2Wd3A2d2o.49oW2A2W2o3Ad2o.49oW2A2W2o.3odo.45o.3oW2A2W2Ao.3odo.44oCo.oW2A2W2A2o.3o2.44oC3oW2A8o4.44oC6A9dBo.46oC6A7d2o.48oC6A5d2o.50oC6A3d2o.51oC7Ad2o.51og2C7do.51og3C7o.51og2G2HC7o.49og3G2Ho3C4o2.47og2Gg2Ho.3oC2o.48og2G3go.5oCo.48og3GHo2.6o.47o2CG2g2o.55oC4GHo2.54oC6o.56oC5o.58oC4o.58o2C2o.61o2.372"],
+ staff:[".164o.59o4co4.53o2c2C2AC2c2o2.50oc2A8c3o.48oc2A11c2o.42o.4ocA2W3A8co.4o.37o2.2ocA2W5A7c2o.2o2.38o2.ocA2W5A8co.o2.39oCocCA2W5A8CcoCo.39oC2cCA3W3A9CcC2o.40oc2A17c2o.41oCcCA15CcCo.41oCcCA15CcCo.42oc2A15c2o.43o2cA14c2o2.45ocA13co.47oc2A11c2o.48oc2A8c3o.50o2c2C2AC2c2o2.53oc6o2.54oC4cCo.56oW6o.56oC6o.56oC6o.56oC6o.56oC6o.56oC6o.56oc5o2.56oG4o.57ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57oG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56o3G2Ho.60o4.98",
+  ".160o9.55oCc3C3o.55oCWc2C4o.53oC2W5C2o.52oC3W5C3o.51oC3W5c2Co.51oC2W6cC2o.50oC3W5C2cC2o.48oC4W5C2c2Co.48oCc3C3cC4c2Co.47oc2C5cC5c2o.46oC8cC6cCo.46o2C6cC8o.48oC5cC6o2.50oC4cC4o2.53oC3cC3o.56o2CcC2o.59oco2.58o2Go.60ogG2o3.56ogG4Ho.55oC6o.56oW6o.56oC6o.56oC6o.56oC6o.56oC6o.56oC6o.56oc5o2.55ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57oG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56o3G2Ho.60o4.98",
+  ".292o.58o5Co5.51o2C11o2.47o2C15o2.32o.11oC19o.11o.19o3.8oC7o7C7o.8o3.20oCo.6oC6o2.7o2C6o.6oCo.22oCo2.3oC6o.11oC6o.3o2Co.23oC3o2.oC5o.13oC5o.o2C3o.23oC5oC5o.6o3.6oC5oC5o.24oC9o.6oW3o.6oC9o.26oC7o.6oW5o.6oC7o.27oC7o.6oW5o.6oC7o.27oC6o.7oW5o.7oC6o.28oC5o.8oW3o.8oC5o.30oC4o.9oWo.9oC4o.31o6.7o2Go.10o6.44ogG2o3.56ogG4Ho.55oC6o.56oW6o.56oC6o.56oC6o.56oC6o.56oC6o.56oC6o.56oc5o2.55ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57oG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56o3G2Ho.60o4.98",
+  ".93o13.50oC13o.48oC15o.44o3C17o3.41oC21o.41oC21o.41oC21o.41oC3cA6cA6cC3o.41oC3cA6cA6cC3o.41oC3cAW7A5cC3o.41oC3cAW7A5cC3o.41oC3cAW7A5cC3o.41oC3cAW7A5cC3o.41oC3cAW7A5cC3o.41oC3cAW7A5cC3o.41oC3cAW7A5cC3o.41oC3cA6cA6cC3o.41oC3cA6cA6cC3o.41oC3cA6cA6cC3o.41oC3cA6cA6cC3o.41oC21o.41oC21o.41o23.176o4.60ogG2o2.56o2C6o.55oW7o.55oC7o.55oC7o.55oC7o.55oC7o.55oC7o.55oc6o2.55ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56o3G2Ho.60o4.98",
+  ".159o5.57o2B5o2.54oB2A5B2o.53oA9o.52oC11o.51oA11o.51oA11o.51oA11o.51oC11o.52oA9o.53oA7d2o.54oA5do2.54oG2A4o.56oGg3Go.56oG2g3G2o.55oG2g3Go.55ogG6o.55o2G4o2.58oG2o.58o2G3o.7o3.48ogG2Ho.5o2HGo.48ogG3Ho.2o2HG3o.48ogG3HGo2HG3o3.49ogG2H2G3go2.52ogG5go2.54ogG3go2.57oG2go.59ogG2o2.58ogGo.58o2G4o.56oG6Ho.55oGg3G2HGo5.49oG2g3G3H3G2o.50oGg3G7go.50oG6o6.44o.5ogG5o.49oHo2.3ogG3Ho.49ogG2Ho.2o2G3Ho.50ogG2Ho2.2oGHo.52o2gG2Ho2G2Ho.54ogG2H2G3Ho.54o2G3H2GHo.56ogG2H3o.57ogG4Ho.57ogG3Ho.57ogG3Ho.57ogG4Ho.57ogG2o3.57ogGo.59oG4o3.56oG6o.56oGg3G2o.55oG2g3G2o.55oG2g3Go.56oG6o.56ogG5o.56ogG3Ho.56ogG4Ho.56ogG4Ho.56o3G2Ho2.59o3.99",
+  ".33o.62oCo.60oC3o.57o2C5o2.54oC9o.52oC11o.51oBC9Bo.50oB2A2C5A2B2o.48oBA13Bo.47oA15o.46oA3o3A5o3A3o.45oA2o5A3o5A2o.45oA2o5A3o5A2o.45oA2o5A3o5A2o.44oA4o3A5o3A3o.45oA17o.45oA17o.45oA17o.45oA17o.46oA2oA2oA2oA2oA3o.47oA2oA2oA2oA2oA3o.48oAoA2oA2oA2oA2o.49oAoA2oA2oA2oA2o.49oAoA2oA2oA2oA2o.46o2.od4oA2oA2od2o.o2.42o2.3o5A2oA2o3.3o2.37o5.8oG4o.7o5.32oCo3Co.6oC6o.5oCo3Co.30oCo.3oCo.5oW6o.4oCo.3oCo.29o2.5o2.5oC6o.4o2.5o2.29o2.5o2.5oC6o.4o2.5o2.29o2.5o2.4oC7o.4o2.5o2.29oCo.3oCo.4oC7o.4oCo.3oCo.30oCo3Co.5oC7o.5oCo3Co.32o5.6oc6o2.6o5.44ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.57oG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.57oG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG4Ho.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3H2o.56ogG3Ho.57ogG3Ho.57ogG3Ho.57ogG3Ho.56ogG3Ho.57o3G2Ho.60o4.98"],
+ shield:[".288o.56o7Co7.46o3C15o3.41o2C21o2.37o2C8A3dCA4C8o2.34oC6dBA5dBA5dBAC6o.31o2C5A2dBA5dBA5dBA3C5o2.28oC5A4dBA5dBA5dBA5C5o.26oC4BA5dBA5dBA5dBA5dBC4o.24oC4dBA5dBA5dBA5dBA5dBAC4o.22oC4AdBA5dBA5dBA5dBA5dBA2C4o.20oC5AdBA5dBA5dBA5dBA5dBA2C5o.19oC3A3dBA5dBA5dBA5dBA5dBA4C3o.18oC3A4dBA5dBA5dBA5dBA5dBA5C3o.16oC3A5dBA5dBA5dBA5dBA5dBA5dC3o.15oC3A5dBA5dBA5dBA5dBA5dBA5dC3o.14oC3BA5dBA5dBA5dBA5dBA5dBA5dBC3o.13oC3BA5dBA5dBA5dBA5dBA5dBA5dBC3o.12oC3dBA5dBA5dBA5dBA5dBA5dBA5dBAC3o.11oC3dBA5dBA5dBA5dCA5dBA5dBA5dBAC3o.11oC2AdBA5dBA5dBA2C9AdBA5dBA5dBA2C2o.10oC3AdBA5dBA5dBAC11dBA5dBA5dBA2C3o.9oC3AdBA5dBA5dBC6WC6BA5dBA5dBA2C3o.9oC3AdBA5dBA5dC4W7C4A5dBA5dBA2C3o.9oC2A2dBA5dBA5C4W4CW4C4A4dBA5dBA3C2o.9oC2A2dBA5dBA5C3W3C5W3C3A4dBA5dBA3C2o.9oC2A2dBA5dBA5C3W2C7W2C3A4dBA5dBA3C2o.9oC2A2dBA5dBA5C3W2C7W2C3A4dBA5dBA3C2o.8oC4AdBA5dBA4C3W2C9W2C3A3dBA5dBA2C4o.8oC2A2dBA5dBA5C3W2C7W2C3A4dBA5dBA3C2o.9oC2A2dBA5dBA5C3W2C7W2C3A4dBA5dBA3C2o.9oC2A2dBA5dBA5C3W3C5W3C3A4dBA5dBA3C2o.9oC2A2dBA5dBA5C4W4CW4C4A4dBA5dBA3C2o.9oC3AdBA5dBA5dC4W7C4A5dBA5dBA2C3o.9oC3AdBA5dBA5dBC6WC6BA5dBA5dBA2C3o.9oC3AdBA5dBA5dBAC11dBA5dBA5dBA2C3o.10oC2AdBA5dBA5dBA2C9AdBA5dBA5dBA2C2o.11oC3dBA5dBA5dBA5dCA5dBA5dBA5dBAC3o.11oC3dBA5dBA5dBA5dBA5dBA5dBA5dBAC3o.12oC3BA5dBA5dBA5dBA5dBA5dBA5dBC3o.13oC3BA5dBA5dBA5dBA5dBA5dBA5dBC3o.14oC3A5dBA5dBA5dBA5dBA5dBA5dC3o.15oC3A5dBA5dBA5dBA5dBA5dBA5dC3o.16oC3A4dBA5dBA5dBA5dBA5dBA5C3o.18oC3A3dBA5dBA5dBA5dBA5dBA4C3o.19oC5AdBA5dBA5dBA5dBA5dBA2C5o.20oC4AdBA5dBA5dBA5dBA5dBA2C4o.22oC4dBA5dBA5dBA5dBA5dBAC4o.24oC4BA5dBA5dBA5dBA5dBC4o.26oC5A4dBA5dBA5dBA5C5o.28o2C5A2dBA5dBA5dBA3C5o2.31oC6dBA5dBA5dBAC6o.34o2C8A3dCA4C8o2.37o2C21o2.41o3C15o3.46o7Co7.56o.223",
+  ".649o47.17oC45o.17oC45o.17oC45o.18oC4A35C4o.19oC3A37C3o.19oC2A39C2o.19oC2A16C7A16C2o.19oC3A15C7A15C3o.19oC3A15C7A15C3o.19oC3A15C7A15C3o.19oC3A15C7A15C3o.19oC3A15C7A15C3o.20oC2A15C7A15C2o.21oC3A14C7A14C3o.21oC3A14C7A14C3o.21oC3A3C29A3C3o.21oC3A3C29A3C3o.21oC3A3C29A3C3o.21oC3A3C29A3C3o.22oC3A2C29A2C3o.23oC4AC29AC4o.23oC5A11C7A11C5o.23oC4A12C7A12C4o.23oC4A12C7A12C4o.24oC3A12C7A12C3o.26oC3A11C7A11C3o.27oC4A10C7A10C4o.28oC4A9C7A9C4o.30oC3A9C7A9C3o.32oC3A8C7A8C3o.33oC4A7C7A7C4o.34oC4A6C7A6C4o.36oC3A6C7A6C3o.38oC3A5C7A5C3o.39oC4A4C7A4C4o.40oC3A15C3o.42oC3A13C3o.44oC3A11C3o.46oC3A9C3o.47oC3A9C3o.48oC3A7C3o.50oC3A5C3o.52oC3A3C3o.53oC3ACAC3o.54oC7o.56oC5o.58oC3o.59oC3o.60o3.286",
+  ".203o43.21oC41o.21oC41o.20oC43o.19oC17WC7cC17o.19oC8A4dBA2CWC7cCA3dBA3C8o.19oC2A3C3A4dBA2CWC7cCA3dBA3C3A3C2o.18oC3A3C3A4dBA2CWC7cCA3dBA3C3A3C3o.17oC3A3C3A4dBA2CWC7cCA3dBA3C3A3C3o.17oC9A4dBA2CWC2A3C2cCA3dBA3C9o.17oC9A4dBA2CWCA5CcCA3dBA3C9o.16oC5A3dBA4dBA2CWCA5CcCA3dBA4dBA2C5o.15oC5A3dBA4dBA2CWCA5CcCA3dBA4dBA2C5o.15oC4A4dBA4dBA2CWC2A3C2cCA3dBA4dBA3C4o.15oC4A4dBA4dBA2CWC7cCA3dBA4dBA3C4o.15oC4A4dBA4dBA2CWC7cCA3dBA4dBA3C4o.15oC4A4dBA4dBA2CWC7cCA3dBA4dBA3C4o.15oC4A4dBA4dBA2CWC7cCA3dBA4dBA3C4o.15oC4A4dBA4dBA2CWC7cCA3dBA4dBA3C4o.15oC4A4dBA4dBA2CWC7cCA3dBA4dBA3C4o.15oC4A4dBA4dBA2CWC7cCA3dBA4dBA3C4o.16oC3A4dBA4dBA2CWC2A3C2cCA3dBA4dBA3C3o.17oC3A4dBA4dBA2CWCA5CcCA3dBA4dBA3C3o.17oC3A4dBA4dBA2CWCA5CcCA3dBA4dBA3C3o.17oC3A4dBA4dBA2CWCA5CcCA3dBA4dBA3C3o.17oC3A4dBA4dBA2CWC2A3C2cCA3dBA4dBA3C3o.17oC3A4dBA4dBA2CWC7cCA3dBA4dBA3C3o.17oC3A4dBA4dBA2CWC7cCA3dBA4dBA3C3o.17oC4A3dBA4dBA2CWC7cCA3dBA4dBA2C4o.17oC4A3dBA4dBA2CWC7cCA3dBA4dBA2C4o.17oC4A3dBA4dBA2CWC7cCA3dBA4dBA2C4o.17oC4A3dBA4dBA2CWC7cCA3dBA4dBA2C4o.17oC4A3dBA4dBA2CWC7cCA3dBA4dBA2C4o.17oC4A3dBA4dBA2CWC2A3C2cCA3dBA4dBA2C4o.17oC4A3dBA4dBA2CWCA5CcCA3dBA4dBA2C4o.17oC4A3dBA4dBA2CWCA5CcCA3dBA4dBA2C4o.16oC8dBA4dBA2CWCA5CcCA3dBA4dC8o.15oC8dBA4dBA2CWC2A3C2cCA3dBA4dC8o.15oC8dBA4dBA2CWC7cCA3dBA4dC8o.15oC2A3C3dBA4dBA2CWC7cCA3dBA4dC3A3C2o.15oC2A3C3dBA4dBA2CWC7cCA3dBA4dC3A3C2o.15oC2A3C3dBA4dBA2CWC7cCA3dBA4dC3A3C2o.15oC8dBA4dBA2CWC7cCA3dBA4dC8o.15o3C6dBA4dBA2CWC7cCA3dBA4dC6o3.18o2C5BA4dBA2CWC7cCA3dBA4C5o2.23oC6A3dBA2CWC7cCA3dBA2C6o.26o2C6AdBA2CWC7cCA3dBC6o2.29oC6dBA2CWC7cCA3dC6o.32o2C5BA3C9A4C5o2.35oC6A2C9A2C6o.38o2C21o2.41oC19o.44o2C15o2.47oC13o.50o2C9o2.53oC7o.56o2C3o2.59o3.222",
+  ".608o.57o6Co6.48o3C13o3.43o2C19o2.40oC7A9C7o.37o2C5A15C5o2.34oC5A19C5o.32oC4A23C4o.30oC4A12cA12C4o.28oC4A8c11A8C4o.27oC3A7c15A7C3o.26oC3A6c5A9c5A6C3o.24oC3A6c4A6CA6c4A6C3o.23oC3A5c3A4C9A4c3A5C3o.22oC3A5c3A3C13A3c3A5C3o.21oC3A5c2A3C5W5C5A3c2A5C3o.21oC2A5c3A2C4W9C4A2c3A5C2o.20oCGCA5c2A2C4W11C4A2c2A5CGCo.19oG2CA4c3A2C3W6CW6C3A2c3A4CG2o.16o3G3A5c2A2C4W3C7W3C4A2c2A5G3o3.11o2G6A5c2A2C3W3C9W3C3A2c2A5G6o2.9oG7A5c2A2C3W3C9W3C3A2c2A5G7o.9oG4C3A5c2A2C3W3C9W3C3A2c2A5C3G4o.9oG4C3A4c3AC4W2C11W2C4Ac3A4C3G4o.9oG4C3A5c2A2C3W3C9W3C3A2c2A5C3G4o.9oG7A5c2A2C4W2C9W2C4A2c2A5G7o.9oG7A5c2A2C4W2C9W2C4A2c2A5G7o.9o2G6A5c2A2C5W2C7W2C5A2c2A5G6o2.11o3G3CA4c3A2C5W4CW4C5A2c3A4CG3o3.16oG2CA5c2A2C7W5C7A2c2A5CG2o.20oC2A5c3A2C17A2c3A5C2o.21oC3A5c2A3C15A3c2A5C3o.21oC3A5c3A3C13A3c3A5C3o.22oC3A5c3A4C9A4c3A5C3o.23oC3A6c4A6CA6c4A6C3o.24oC3A6c5A9c5A6C3o.26oC3A7c15A7C3o.27oC4A8c11A8C4o.28oC4A12cA12C4o.30oC4A23C4o.32oC5A19C5o.34o2C5A15C5o2.37oC7A9C7o.40o2C19o2.43o3C13o3.48o6Co6.57o.543",
+  ".392o49.15oC47o.15oC47o.15oC47o.15oC47o.15oC4A39C4o.15oC4A39C4o.16oC3A39C3o.17oC3A39C3o.17oC3A39C3o.17oC4A37C4o.17oC4A37C4o.17oC4A9C19A9C4o.17oC4A9C19A9C4o.17oC4A10C17A10C4o.17oC4A10C17A10C4o.17oC4A10C3W11C3A10C4o.17oC4A10C3W11C3A10C4o.18oC3A10C4W9C4A10C3o.19oC3A11C3W9C3A11C3o.19oC4A10C3W9C3A10C4o.19oC4A10C3W9C3A10C4o.18oC5A11C3W7C3A11C5o.18oC4A11C3W7C3A11C4o.19oC4A11C4W5C4A11C4o.20oC4A11C3W5C3A11C4o.22oC3A11C4W3C4A11C3o.23oC4A11C3W3C3A11C4o.24oC4A10C9A10C4o.26oC4A10C7A10C4o.28oC3A11C5A11C3o.29oC4A10C5A10C4o.30oC4A10C3A10C4o.32oC4A9C3A9C4o.34oC3A21C3o.35oC4A19C4o.36oC4A17C4o.38oC4A15C4o.40oC3A15C3o.41oC4A13C4o.42oC4A11C4o.44oC4A9C4o.46oC3A9C3o.47oC4A7C4o.48oC4A5C4o.50oC4A3C4o.52oC3A3C3o.53oC9o.54oC7o.56oC5o.58oC3o.59oC3o.60o3.350",
+  ".231o2.62o2.61oCo.60oC2o.59oC3o.59oC4o.54o.2oC5o.48o6Co2C6o.32o3.10o3C15o.33oCo2.6o2C9AC9o2.31oC3o2.3oC5A13C5o.31oC4o3C4A17C4o2.29oC9A21C4o.29oC6A25C3o.28oC5A27C3o.28oC3A29C3o.27oC2A31C2o.26oC2A33C2o.24oC3A8dA24C3o.23oC2A7d5A23C2o.22oC3A7d5A23C3o.21oC2A7d7A4CA18C3o9.12oC2A8d5A2C7A15C9o.13oC2A9d5C5WC5A14C7o.14oC2A11dAC3W7C3A13C5o2.15oC2A13C2W9C2A13C4o.17oC2A12C3W9C3A12C3o.18oC2A12C3W9C3A12C2o.19oC2A12C2W11C2A12C2o.18oC2A12C4W9C4A12C2o.18oC2A12C3W9C3A12C2o.19oC2A12C3W9C3A12C2o.18oC3A12C4W7C4A12C2o.17oC4A13C6WC6d3A10C2o.15o2C5A13C13d4A9C2o.14oC7A14C11d5A9C2o.13oC9A15C7A2d5A8C2o.12o9C3A14dA3CA6d3A9C2o.21oC3A12d3A20C3o.22oC2A11d5A19C2o.23oC3A11d3A19C3o.24oC2A12dA20C2o.26oC2A31C2o.27oC3A29C3o.28oC3A27C5o.28oC3A25C6o.29oC4A21C9o.29o2C4A17C4o3C4o.31oC5A13C5o.3o2C3o.31o2C9AC9o2.6o2Co.33oC15o3.10o3.32oC6o2Co6.48oC5o.2o.54oC4o.59oC3o.59oC2o.60oCo.61o2.62o2.166"],
+ helm:[".534o21.42oB21o.41oA21o.40oA23o.39oA23o.38oA25o.37oA25o.36oA27o.34oBA27Bo.33oA14dA14o.32oA11d9A11o.31oA9d13A9o.30oA9d15A9o.29oA8d17A8o.28oA8d19A8o.27oA8d19A8o.27oA7d21A7o.27oA7d21A7o.27oA6d23A6o.27oA6d23A6o.26oA7d23A7o.25oA7d23A7o.25oA7d23A7o.25oA6d25A6o.25oA7d23A7o.25oA7d23A7o.24oA8d23A8o.23oA8d23A8o.23oA8d23A8o.23oA9d21A9o.23oA9d21A9o.23oA10d19A10o.23oA10d19A10o.23oA11d17A11o.23oA12d15A12o.23oA13d13A13o.23oA15d9A15o.23oA19dA19o.24oA37o.25oA37o.26oA35o.27oA35o.27odA2C29A2do.27o2A2C29A2o2.29oAC29Ao.31oAC28d2o.32oC28do.34o2C25o2.37oC23o.39o25.403",
+  ".134o.51o.9o3.51o3.5o2Co.53oCo2.o2C2o.55oC2o2C3o.55oC2o2C3o.55oC2o2C2o.57oCo2Co.59o3Co.29o.29o3C2o.23o5Bo5.23oCo2C3o.20o2B5AB5o2.20oC2o2C4o.17o2B2A11B2o2.17oC3o2C5o.15oB2A15B2o.15oC4o2C5o.14oBA19Bo.14oC4o2C6o.12oBA21Bo.12oC5o2C7o.10oBA23Bo.10oC6o2C8o.8oBA25Bo.8oC7o2C9o.6oBA27Bo.6oC8o2C10o.5oA29o.5oC9o.oC10o.3oA31o.3oC10o.2oC9o.3oA31o.3oC9o.4oC9o.2oA30o.3oC9o.6oC9o2C32o3C9o.8oC6W41C6o.10oC10WC7WC11WC7WC12o.12oC49o.14oC47o.16oC45o.18oC3oC35oC3o.20o3.oA33o.o3.24od14A7d14o.27od14A7d14o.27od14A7d14o.27od14A7d14o.27od14A7d14o.27od14A7d14o.27od14A7d14o.27od14A7d14o.27od14A7d14o.27od14A7d14o.27o5d10A7d10o5.32oA25o.28o9A27o9.19oB8A27B8o.19oA43o.19oA43o.19oA43o.19oA43o.19oA43o.19oA43o.19oA43o.19oA43o.19oA43o.19od43o.19o45.457",
+  ".397o39.25oB37o.24oA39o.23oA39o.23oA39o.23oA39o.23oA39o.22oA41o.21oA41o.21oA40o.21oA42o2.19oA43o.19oC43o.19oW5C2W8C2W10C2W8C2W4o.19oC43o.19oC43o.19oC43o.19oA43o.19oA43o.19oA43o.19oA2d16A7d16A2o.19oA2d16A7d16A2o.19oA2d16A7d16A2o.19oA2d16A7d16A2o.19oA2d16A7d16A2o.19oA2d16A7d16A2o.19oA2d16A7d16A2o.19oA2d16A7d16A2o.19oA43o.19oA43o.19oA43o.19oA43o.19oA43o.19oA43o.19oC43o.19oW5C2W8C2W10C2W8C2W4o.19oC43o.19oC43o.19oC43o.19oA43o.19oA10d3A3d3A3d3A3d3A12o.19oA10d3A3d3A3d3A3d3A12o.19oA10d3A3d3A3d3A3d3A12o.20oA41o.21oA40do.22oA8d3A3d3A3d3A3d3A10o.24oA7d3A3d3A3d3A3d3A9o.25oA7d3A3d3A3d3A3d3A8do.26oA35o.28oA33o.29oA32do.30oA31o.32od29o.33o31.272",
+  ".666o.11o.50oAo.9oAo.48oA3o.7oA3o.48oAo.9oAo.49o2.10o2.50oCo2.7oC2o.38o.10oC2o.7oC2o.10o.26oAo.9oC2o.7oC2o.9oAo.24oA3o.7oC3o.7oC3o.7oA3o.24oAo.8oC4o.5oC4o.8oAo.25oACo.7oC4o.5oC4o.7oCAo.25oC2o.7oC3o.6oC4o.7oC2o.25oCo.8oC4o2.3oC5o.7oC2o.25oC2o2.5oC6o.3oC6o.5oC3o.25oC3o.5oC6o.3oC6o.5oC3o.25oC4o.4oC6o.3oC6o.4oC4o.25oC4o.4oC7o.oC7o.4oC4o.24oC4o.4oC8o.oC8o.3oC5o.23oC5o2.2oC7o.2oC8o.2oC6o.23oC6o.2oC8o2C9o.2oC6o.23oC5o.3oC19o.2oC6o.23oC6o2.oC19o.oC7o.23oC8oC21oC8o.23oC39o.22oC41o.21oC41o.21oC41o.21oC41o.21oC41o.21oC41o.21oC41o.20oC19A5C19o.19oC18A2W3A2C18o.19oW17A2W5A2W17o.19oC16A2W7A2C16o.19oC16A2W7A2C16o.19oC16A2W7A2C16o.19oC16A3W5A3C16o.19oC16A4W3A4C16o.19oc17A9c17o.19oC18A7C18o.19o45.777",
+  ".284o11.53oB9o.53oA8o.53oA10o2.51oA11o.51oA11o.51oA11o.50oA13o.49oA13o.49oA13o.49oA13o.48oA15o.47oA15o.47oA15o.47oA15o.47oA15o.46oA17o.45oA17o.45oA17o.45oA17o.44oA19o.43oA19o.43oA19o.43oA19o.39o4C21o2.32o5B3W23Bo5.23o4B5A3C23AB5o4.17o2B4A8C23A6B4o2.13o2B2A11C25A9B2o2.9o2B2A13C25A11B2o2.6oB2A53B2o.5oA57o.4oA58o.5oA28dA28o.5od2A9d35A9d2o.6o2d2A2d45A2d2o2.9od51o.11od51o.12o3d45o3.16o5d35o5.24o17do17.46o.1183",
+  ".348o9.55oC7o.55oC7o.55oC7o.55oC7o.41o14BC7Bo14.27oB14C7B14o.27oA14C7A13o.27oA15C7A14o.25oC38o2.23oW3C2W6C2W14C2W6C2W2o.23oC39o.23oC39o.23oC39o.23oC39o.23oA17C5A16o.23oA18C5A17o2.21oA12d5A7d5A12o.21oA12d5A7d5A11o.21oA13d5A7d5A12o2.19oA13d5A7d5A13o.19oA13d5A7d5A13o.19oA13d6A5d6A13o.19oA13d6A5d6A13o.19oA13d6A5d6A13o.19oA13d6A5d6A13o.19oA13d6A5d6A13o.19oA13d6A5d6A13o.20oA12d6A5d6A12o.21oA12d7A3d7A12o.21oA12d7A3d7A12o.21oA12d7A3d7A12o.21oA12d7A3d7A12o.21oA12d17A12o.21oA12d17A12o.21oA12d17A12o.21oA12d17A12o.21oA12d17A12o.21oA12d17A12o.22oA11d17A11o.23oA11d17A11o.23oA11d17A11o.23oA11d17A11o.23oA11d17A11o.23oA11d17A11o.23oA11d17A10do.24oA10d17A10o.26oA35o.27oA34do.28oA32do.30oA30do.32oA29o.34oA27o.35od27o.36o27.274",
+  ".928o.57o6Bo6.48o3B6AB6o3.43o2B3A13B3o2.39o2B2A19B2o2.36oB2A23B2o.34oBA27Bo.32oBA29Bo.30oBA31Bo.29oA33o.28oA35o.27oA35o.26oA37o.25oA37o.25oA37o.25oA37o.24oA39o.23oA39o.23oC39o.23oW39o.23oC4WC7WC11WC7WC6o.23oC39o.23oC39o.23oC39o.21o2G8C25G8o2.19oG9A25G9o.19oG9A25G9o.19oG9A24G10o.19oG10d2A19d2G10o.20oG9o2d3A13d3o2G9o.21oG8o.2o3d6Ad6o3.2oG8o.21oG8o.5o13.5oG8o.21oG8o.23oG8o.21oG8o.23oG8o.21oG8o.23oG8o.21oG9o.21oG9o.21oG9o.21oG9o.21oG9o.21oG9o.22oG7o2.21o2G7o.23oG4o3.25o3G4o.23oG2o2.31o2G2o.23o3.35o3.523"],
+ chest:[".916o.23o.35o5.23o5.27o4C4Ao23AC4o4.18o5C8AB23AC8o5.9o4C13A11WBA12C13o4.5oC16A11WBA12C16o.5oC16A11WBA12C16o.6oC10A16WBA17C10o.7oC5A21WBA22C5o.7oA26WBA27o.7oA26WBA27o.7oA26WBA27o.7oA26WBA27o.7oA8d5A13WBA14d5A8o.8od7o5A13WBA14o5d7o.9o8.5oA12WBA13o.5o8.22oA12WBA13o.35oA12WBA13o.35oA12WBA13o.35oA12WBA13o.35oA12WBA13o.35oA12WBA13o.36oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.37oA11WBA12o.38oA10WBA11o.39oA10WBA11o.39oA10WBA11o.39oA10WBA11o.37o2A11WBA12o2.35oBA11WBA12Bo.33o2C29o2.31oC31o.31oC31o.32oC29o.33o3C25o3.36o25.275",
+  ".914o29.34oW29o.33oC29o.30o3AC29Ao3.23o4B3A2C27A2B3o4.16o3B4A5C27A5B4o3.13oB2A9C27A9B2o.13oA48o.15oA47o.15oA47o.15oA8dA29dA8o.15oA6d3A28d4A6o.16od5o2A30o3d5o.17o6.2oA28o.3o6.25oA28o.35oA27o.32o4A28o.30oA33o.29oA33o.29oA32o2.30o3A28o.35oA26o.35oA28o.34oA28o.34oA28o.35oA27o.32o4A28o.30oA33o.29oA33o.29oA32o2.30o3A28o.35oA26o.35oA28o.34oA28o.34oA27o.36oA25do.33o3.oA26o2.30oA3oBA28o.29oA4BA28o.29oA2o2BA27o2.30o2.2oA26o.35oA26o.35oA4dA5dA5dA5dA4o.35oA4oA5oA5oA5oA4o.35oA2o2.oA2o2.oA2o2.oA2o2.oA2o2.36o2.4o2.4o2.4o2.4o2.276",
+  ".864o.50o13Co13.37oB7d2C7d2B7o.37oA7d2C7d2A7o.37oA7dC9dA7o.34o3A9dC7dA9o3.29o2B3A9dC7dA9B3o2.25o2B2A12d2C5d2A12B2o2.20o3B2A14d4Cd4A14B2o3.15o2B3A16d9A16B3o2.10o3B2A19d9A19B2o3.5o2B3A21d9A21B3o2.3oBA25d7A25Bo.3oA26d7A26o.3oA26d7A26o.3oA26d7A26o.3oA26d7A26o.4oA25d7A25o.5oA26d5A26o.5oA26d5A26o.5oA26d5A26o.5oA57o.5oA13dA29dA13o.5oA11d2oA28o2d2A11o.5oA10do2.oA26o.2o2dA10o.5oA8d2o.2oA28o2.2od2A8o.6oA5d2o2.3oA29o.3o2d2A5o.7oA4do2.2o3C31o3.2o2dA4o.7oA2d2o.4oW35o.4od2A2o.7od2o2.5oC35o.5o2d2o.7o3.7oC35o.7o3.18oC33o.29oC33o.29o2C31o2.31oA29o.33oA29o.33oA29o.33oA29o.33oA29o.33oA29o.32oA31o.31oA31o.31oA31o.31oA31o.31oA31o.31od31o.31o33.271",
+  ".913o31.33oC29o.33oC29o.30o3AC29Ao3.24o3B3AC29AB3o3.18o3B3A4C29A4B3o3.12o3B3A43B3o3.9oB2A49B2o.9oA8B37A7o.11oA10C3A11C3A11C3A10o.11oA10C3A11C3A11C3A10o.11oA10C3A11C3A11C3A10o.11oA7d37A7o.12od6o4d29o4d6o.13o7.4oB27o.4o7.23oC2A11C3A11C2o.33oC2A11C3A11C2o.33oC2A11C3A11C2o.30o3d31o3.27o4d29o4.31oB27o.34oC2A11C3A11C2o.33oC2A11C3A11C2o.33oC2A11C3A11C2o.30o3d31o3.27o4d29o4.31oB27o.34oC2A11C3A11C2o.33oC2A11C3A11C2o.33oC2A11C3A11C2o.30o3d31o3.27o4d29o4.31oB27o.34oC2A11C3A11C2o.33oC2A11C3A11C2o.33oC2A11C3A11C2o.30o3d31o3.27o5d27o5.32oB25o.35o2CA11C3A11Co2.33oC2A11C3A11C2o.33oC2A11C3A11C2o.30o3d31o3.27o37.397",
+  ".788o25.39oB23o.39oA23o.39oA23o.37o2A12CA12o2.32o3B2A10C5A10B2o3.27o2B3A11C7A11B3o2.23o2B2A12C11A12B2o2.18o3B2A16C7A16B2o3.13o2B3A19C5A19B3o2.9o2B2A11d3A10CA10d3A11B2o2.7oBA9d5A10C5A10d5A9Bo.7oA6d5A13C7A13d5A6o.7oA2d5A15C11A15d5A2o.7od3A21C7A21d3o.6oA26C5A26o.5oA28CA28o.5oA26C5A26o.5oA25C7A25o.5oA15d3A5C11A5d3A15o.5oA11d5A9C7A9d5A11o.5oA7d5A14C5A14d5A7o.5oA3d5A20CA20d5A3o.5oAd3A22C5A22d3Ao.4oA26C7A26o.3oA24C11A24o.3oA26C7A26o.3oA27C5A27o.3oA16d3A10CA10d3A16o.4oA11d5A10C5A10d5A11o.5oA7d5A13C7A13d5A7o.6oA2d5A15C11A15d5A2o.7od3A21C7A21d3o.8oA15dA8C5A8dA15o.10oA14oA10CA10oA14o.11oA13o.oA7C5A7o.oA12do.12oA12o.oA6C7A6o.oA12o.14oA10do.oA4C11A4o.odA10o.15oA6d5o.oA6C7A6o.od5A5do.16oAd7o2.2oA7C5A7o.2o2d7Ao.18odA4do.4oA9CA9o.4oA5do.19oA3d2o.5oA7C5A7o.5od2A3o.20od2o2.6oA6C7A6o.6o2d2o.21o3.8oA4C11A4o.8o3.32od6C7d6o.43o21.405"],
+ shoes:[".773o23.7o23.11oG21o.7oG21o.12oG20o.7oG20o.13oG20o.7oG20o.13oG21o.6oG20o.14oG20o.6oG20o.14oG20o.6oG20o.14oG17o4.6o2G18o.15oA16o.12oA17o.16oA16o2.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oAC5A11o.10oC4A13o.16oA5C9A3o.10oA3C9A5o.16oA13C4o.10oA11C5Ao.16oA17o.10oA17o.16oA17o.9oA17o.17oA17o.9oA17o.17oAC5A11o.9oC5A12o.17oA5C9A3o.9oA4C9A4o.17oA13C4o.9oA12C5o.17oA17o.9oA17o.17oA17o.9oA17o.17oA17o.9oA17o.17oAC5A11o.9oC5A12o.17oA5C9A3o.9oA4C9A4o.18oA12C5o.8oA12C5o.18oA17o.8oA17o.18oA17o.8oA17o.18oA17o.8oA17o.18oA17o.8oA17o.18oA17o.8oA17o.18oA17o.8oA17o.18oA18o.7oA17o.18oA18o.7oA18o.17oA18o.7oA18o.16oA19o.7oA18o.16oA19o.6oA19o.16oA19o.6oA19o.16oA19o.6oA19o.15oC21o2.3oC21o2.13oC22o.3oC22o.13oC22o.3oC22o.13oC22o.3oC22o.13o24.3o24.326",
+  ".391o21.8o21.14oB19o.8oB19o.14oA19o.8oA19o.14oA19o.8oA19o.14oA19o.8oA19o.15oA18o.8oA19o.15oA18o.8oA18o.16oA18o.8oA18o.16oA18o.8oA18o.16oA18o.8oA18o.16oA18o.8oA18o.16oA18o.8oA18o.16oA18o.8oA18o.16oA9CA8o.8oA8CA9o.16oA5C9A4o.8oA4C9A5o.16oA4C11A3o.8oA3C11A3o.18oA2C4A5C4A2o.8oA2C4A5C4A2o.18oAC3A9C3Ao.8oAC3A9C3Ao.17oAC3A11C3Ao.6oAC3A11C3Ao.16oAC3A11C3Ao.6oAC3A11C3Ao.16oAC2A5C3A5C2Ao.6oAC2A5C3A5C2Ao.16oAC2A4C5A4C2Ao.6oAC2A4C5A4C2Ao.15oC4A4C5A4C3o.5oC4A4C5A4C3o.16oAC2A4C5A4C2Ao.6oAC2A4C5A4C2Ao.16oAC2A5C3A5C2Ao.6oAC2A5C3A5C2Ao.16oAC3A11C3Ao.6oAC3A11C3Ao.16oAC3A11C3Ao.6oAC3A11C3Ao.17oC4A9C3do.8oC4A9C3do.18oc2C4c5C4c2o.8oc2C4c5C4c2o.18oA3C11A3o.8oA3C11A3o.18oA4C9A4o.8oA4C9A4o.18oA8CA8o.8oA8CA8o.18oA17o.8oA17o.18oA17o.8oA17o.18oc17o.8oc17o.17oA19o.7oA17o.17oA19o.6oA19o.16oA19o.6oA19o.16oA19o.6oA19o.16oA19o.6oA19o.16oc19o.6oc19o.16oA19o.6oA19o.16oA19o.6oA19o.16oA19o.6oA19o.16oA20o.5oA20o.15oA20o.5oA20o.15oA20o.4oA21o.14oA21o.4oA21o.12o2C23o4C23o3.9oC53o.9oC53o.9oC53o.9o55.324",
+  ".1365o5.24o5.27o3C4o.21o3C4o.24o3C6o2.18o3C6o2.20o4C5o4.16o4C5o4.18o4C6o3.5o3.8o4C6o3.5o3.14oGC7o.7oG2o.8oGC7o.6o2G2o.14oGC5G3o7G3o.8oGC5G3o6G4o.15oG17o.10oG17o.17oG6o3G6o.11o2G6o3G6o.19oG4o.3oG4o.14oG4o.3oG4o.21o2G3o3G4o.16oG4o3G3o2.24oG8o.18oG8o.27oG6o.20oG6o.29oG4o.22oG4o.29oG6o.20oG6o.27oG8o.18oG8o.25oG4o3G3o2.14o2G3o3G4o.23oG4o.3oG4o.12oG4o.3oG4o.21oG4o.5oG4o.10oG4o.5oG4o.19oG5Bo5BG5o.8oG5Bo5BG5o.17oG5B9G5o.6oG5B9G5o.16oG3A12G4o.6oG4A12G3o.16oG2A15G2o.6oG2A15G2o.16oA19o.6oA19o.16oA19o.6oA19o.16oA19o.6oA20o.15oA20o.5oA20o.15oA20o.5oA20o.15oA19o.5oA21o.13o2A21o2.2oBA22o.12oBA22o.2oA23o.12oA23o.2oA23o.12oA23o.2oA23o.11oC25o2C25o2.9oC53o.9oC53o.9oC53o.9o55.324",
+  ".592o.29o.26o7Go7.15o7Go7.17o2G15o2.11o2G15o2.13o2G19o2.7o2G19o2.9o2HG2H3G2H3G2H3G2H3G2o.4o2HG2H3G2H3G2H3G2H3G2o.7oH24G2o.2oH24G2o.6oH24G2o.2oH24G2o.6oH24G3o.oH24G3o.6oH2G2H3G2H3G2H3G2H3G3o.3oH2G2H3G2H3G2H3G2H3G3o.7oG25o.3oG25o.8oG23o.5oG23o.10o2G19o2.7o2G19o2.13oG17o.11oG17o.15oAG15Ao.11oAG15Ao.15oA8GA8o.11oA8GA8o.15oA17o.11oA17o.15oA17o.11oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.10oA17o.16oA17o.9oA17o.17oA17o.9oA17o.17oA17o.9oA17o.17oC18o2.6oC19o.16oC15AC3o.6oC15AC3o.16oC14A3C2o.6oC14A3C2o.16oC13A5Co.6oC13A5Co.16oC14A3C2o.6oC14A3C2o.16oC15AC2o2.6oC15AC3o.17oA16o.9oA17o.18oA17o.8oA17o.18oA17o.8oA17o.18oA17o.8oA17o.18oA17o.8oA17o.18oA18o.7oA17o.18oA18o.7oA18o.17oA18o.7oA18o.16oA19o.7oA18o.16oA19o.6oA19o.16oA19o.6oA19o.16oA19o.6oA19o.15oC21o2.3oC21o2.13oC22o.3oC22o.13oC22o.3oC22o.13oC22o.3oC22o.13o24.3o24.326"],
+ pet:[".249o.50o.11o2.50o.11o2.50o2.10o2.49oABo.8oAo.49oA2o.7oBAo.49oAo.8oA3o.48oA2o2.6oA3o.47oA4Bo.4oA4o.47oA5o.3oBA4o.47oA4o.4od5o.11o3.33oA5o2.2o7.10oB3o.31oA7Bo.18oA3o.31oA8Bo2.17oA3o.31oA8B2o2.15oA3Bo.29oA11B2o.15oA3Bo.27oBA13Bo.14oA4o.27oA9o3A3o.15oA4o.25oA9oW2o2A3o.14oA4Bo.8o3.4o.4o3.oA9oW2o2A3Bo3.12oA4Bo.6oB3o4Bo4B3oA10o5A4B3o3.10oA4o.o3.oBA3B4AB4A3BA11o3A8C2o.10oA5oB3oBA39C2o.11oA4BA3BA39C3o.11oA49C2o.12oA43d5C2o.12oA41c9o.13oA39dc9o.13oA35d4o11.14oA32d2o4.24oA33o2.29oA31o.31oA31o.31oA31o.32oA29o.33oA28do.34oA27o.36oA25o.38oA24o.39oA7d2A7dA7o3.37oA6o2A6doA7B3o3.34oA5o.2oA4o2.oA9Bo.35oA5o.2oA3o.3oA10o.35oA5o.2oA4o2.2oA9o.35oA5o.2oA5o.2oA9o.35oA4o.4oA4o.2oA8o.36oA4o.4oA4o.2oA8o.35oA5o.4oA4o.2oA8o.36oA3o.6oA3o.3oA6o.37oA3o.6oA3o.3oA6o.37oA3o.6oA3o.3oA6o.35o2A5o4.2oA3o.2oA8o.34oBA5B3o.2oA4o2BA8Bo.33oA9o.2oA4B2A10o.33oA3dA3dAo.2oA16o.33oC2doC2doCo.2oA2dA2dA10o.34oCo.oCo.o2.2oC2oC2oC10o.35o.2o2.2o2.2oCo.o2.oCoC2oC2oC2o.46o2.o2.o2.o2.o2.o2.143",
+  ".439o.58o.3o2.57o2.2oBAo.55o2.2oBA2o.54oBAo2BA2o.55oA3BA4o4.50oA10B3o.48oBA13Bo.46o3dA8W2oA2Bo.48oA7W3o2A2o.49oA7o3A2o.49oA9oA4o2.48oA12C2o.44o.3oA12C2o.40o4Bo3A13C2o.38o2B4AB3A12d2Co.36o2B2A17d3o4.34o2B2A18do3.28o.4o5B2A20o.27o4Bo4B5A21o.26o2B4AB4A26o.25oB2A35o.24oBA37o.23oBA38o.23oA39o.23oA39o.22oA40o.20o2.oA39o.19oB2oA40o.18oBA2Bd2A37o.18oBA3do2dA35do.17oBA2d2o.2oA33d2o.17oBA2do2.4oA7d3A20d2o2.17oBA2do.6oA7o3A4d3A12o3.18oBd3o.7oA6o.3oA3o3d3A8o.20oBd2o2.8oA6o4A3o.3o3dA8o4.15oBd2o.10oA5o.oB2A3o.6oA9B2o.15od2o.11oA5o.2oA4o.7oA9o.16o3.11oA6o.2oA4o.7oA9o.30oA5o.3oA5o.6oA9o.30oA5o.4oA4o.7oA7o.31oA4o.5oA4o.7oA7o.31oA4o.5oA4o.7oA7o.30oA5o.5oA4o.7oA7o.31oA3o.7oA3o.8oA5o.32oA3o.7oA3o.8oA5o.32oA3o.7oA3o.8oA5o.32oA3o.7oA3o.8oA5o.32oA3o.7oA3o.8oA4o2.32oA3o.8oA3o.7oA3o.33oA5o4.3oA4Bo3.2o2A5o4.29oA5B3o.3oA5B2o.2oBA6B2o.29oA8o.3oA7o.2oA9o.29oA2dA3dAo.3oA2dA2dAo.2oA7dAo.29oCdoC2doCo.3oC2oC2oCo.2oA2C2AC2oCo.29oCo.oCo.o2.3oCo.o2.oCo.2oC5o.oCo.29o.2o2.2o2.4o2.o2.o2.4o6.o2.77",
+  ".596o.23o.35o4Bo4.15o4Bo4.30oB4AB4o.13oB4AB4o.28oBA9Bo.11oBA9Bo.26oBA3o5A3Bo.9oBA3o5A3Bo.24oBA3W4o3A3Bo.7oBA3W4o3A3Bo.23oA3oW4o4A3o.7oA3oW4o4A3o.23oA3oW5o3A3o.7oA3oW5o3A3o.23oA3oW4o4A3o.7oA3oW4o4A3o.22oA4o3Wo5A3o.6oA4o3Wo5A3o.16o.6oA3o9A2o.8oA3o9A3o.6o.9o2.5oA4o7A4o8A5o7A4o.5o2.8oAo.5oA5o5A6B7A6o5A5o.5oAo.7oA2o.4oA38do.4oA2o.7oA2Bo.4oA36do.4oBA2o.7oA3Bo.4oA35o.4oBA3o.6oA5o.5oA33o.5oA5o.5oA6o.4oA33o.4oA6o.5oA6Bo.2oA35o.2oBA6o.5oA7Bo2BA35Bo2BA7o.4oA9B2A37B2A9o.3oA11c37A11o.3oA11c37A11o.3oA11c37A11o.2oA61o.oA60o2.2oA29CA28o.2o2A24C13A23o3BA22C17A22o2A21C21A20o2A20C23A19o2A19C25A18o2A18C27A17o2A7d5A6C27A6d5A6o2A6do5dA5C27A5do5dA5o2A6o.5oA4C29A3do.5oA5o2A5o.7od2A2C27A2d2o.7oA4o2A5o.8o2dAC27Ado2.8oA4o2A5o.10oAC27Ao.10oA4o2A5o.11oAC25Ao.11oA4o2A5o.11oA2C23A2o.11oA4o2A4o.12oA3C21A3o.12oA3o2A3do.12oA5o2C13o2A5o.12oA3o2A3o2.12oA4o.2o6Co6.2oA4o.12oA3o2A2o.13oA5o.8o.8oA5o.12oA2o2A2o.13oA5o.17oA5o.13oAo2Ado.13oA4o.19oA4o.13odo2do.14oA4o.19oA4o.14o4.14oA5o.19oA5o.15o.14oBA5o.19oA5Bo.28oBA6o.19oA6Bo.26oBd2A2d2Ao.19oAd2A2d2Bo.24oBdo2d2o2do.18od2o2d2o2dBo.23o3.2o2.2o2.19o2.2o2.2o3.75",
+  ".659o.25o.33o4Bo4.17o4Bo4.27o2B4AB4o2.13o2B4AB4o2.24oB2A9B2o.11oB2A9B2o.22oBA6oA6Bo.9oBA6oA6Bo.21oA4o7A4o.9oA4o7A4o.20oA4oW4o4A4o.7oA4oW4o4A4o.19oA4oW5o3A4o.7oA4oW5o3A4o.19oA4oW5o3A4o.7oA4oW5o3A4o.19oA3o2W4o5A3o.7oA3o2W4o5A3o.18oA5o2W2o5A4o.6oA5o2W2o5A4o.19oA4o9A3o.8oA4o9A4o.19oA4o9A4o8A5o9A4o.19oA5o7A6B7A6o7A5o.12o.6oA8oA25oA8o.6o.5o2.5oA43o.5o2.5oBo.5oA41o.5o2.5oA2Bo.4oA41o.4oBAo2.3oA3Bo.3oA41o.3oBA3o.3oA4Bo.2oA41o.2oBA4o.3oA5o.2oA41o.2oA5o.3oA6o2A43o2A6o.2oA7B2A22d3A18B2A7o.oA31d4A26o.oA8c45A8o.oA8c45A8o2A9c45A8o2A9c45A8o2A17d5A14d3A7d3A13o.oA16d5A13d5A22o.oA17d3A14d5A21o2.2oA33d5A20o.2o2A13d3A9d3A7d3A22o3BA12d5A7d5A32o2A13d5A7d5A14d3A15o2A13d5A7d5A13d5A14o2A6d3A5d3A9d3A14d5A6d3A5o2A6o3A34d5A6o3A5o2A5o.3oA12d3A19d3A6o.3oA4o2A5o.3od2A9d5A25d2o.3oA4o2A5o.4o2dA8d5A14d3A7do2.4oA4o2A5o.6od2A6d5A13d5A4d2o.6oA4o2A4o.8o2A7d3A14d5A4o2.8oA3o2A4o.10oA23d5A3o.10oA3o2A4o.10oA6dA17d3A4o.10oA3o2A2d2o.9oA6dod8Ad8odA6o.9od2Ao2A2o3.9oA6o.o17.oA6o.9o3Ao2Ao.12oA5o.21oA5o.12o3do.12oA5o.21oA5o.12o4.11o2A5o.23oA5o2.12o.11oB2A5o.23oA5B2o.21o2Bd2A2d2A2o.21oA2d2A2d2Bo2.18oB2do2d2o2d2Bo.19oBd2o2d2o2dB2o.17o4.2o2.2o3.21o3.2o2.2o4.8",
+  ".687o.59o4Bo4.53o2B4AB4o2.50oB2A9B2o.48oBA13Bo.46oBA15Bo.44oBA9W3o2A3Bo.43oA10W3o2ACA2o.43oA9W4o3C2o.39o.4oA10o5AC3o2.31o6Bo4A11o5AC5o3.26o2B6AB4A13oA3C8o2.22o2B2A28C5o3.22o2B2A30C3o2.24oB2A32C2o.25oBA35do.24oBA35do.25oA34d2o.25oA33d2o2.26oA33o2.27oA33o.29oA33o.29oA10d3A20o.29oA12d5A16o.28oA17d5A12o.27oBA13d3A5d5A8o.26oBA17d5A4d3A6o.25oBd2A20d5A9o.24oBd3A15d4A6d3A6o.23oBdA21d7A8o.23oBd2A3dA23d4A5o.22oBd2A3d2A31o.22oBd2A2d3A31do.21oBA4d2A5d2A25do.21od2A3d2A3d3o2d2A21d2o.22odA2d2A4d3o.2o2d2A17d2o2.23oA2d2A3d3o2.5o2d2A2C3A7C3o2.24od4A2d3o2.9o2C5dAd3C4o.26od2A3d3o.13oC4o6C3o.26odA2d3o2.15oC2o.6oC2o.26oA2d2o2.17oC3o.5oC3o.25od3o.19oC3o.5oC3o.24od2o2.20oC3o.5oC3o.24o3.23oC2o.6oC2o.50oC2o.6oC2o.50oC2o.6oC2o.50oC3o.5oC3o.48oC4o.4oC4o.47oC6o.2oC6o.45oC5oC2o2C5oC2o.43oCo3Co.oC3o3Co.oCo.43o2.3o2.2o3.3o2.2o2.147",
+  ".496o.59o4Bo4.53o2B4AB4o2.49o2B2A9B2o2.46oB2A13B2o.44oBA17Bo.43oA11o3A5o.42oA11W3o2A4o.42oA10oW3o3A4o2.35o.4oA10oW3o3C5o.29o6Bo4A11o7C6o.25o3B6AB4A12o5C7o.23o2B3A24o3C9o.21oB2A29C10o.20oBA31C7o5.18oBA33C4Ao.22oBA34C4Ao.21oBA35C3d2o.20oBA37Cd2o.21oA37d2o2.21oA36d2o2.23oA36o2.25oA35o.27oA10d3A22o.27oA13d5A17o.26oA19d5A12o.27oA23d5A7o.27oA10d4A14d3A4o.27oA14d7A14o.27oA20d7A8o.26oA28d4A4o.25oBA11d6A18o.25oBd2A15d11A7do.24oBd3A25d6Ado.24oBdA4dA29do.24oBdA4d2A8d11A9do.24oBdA3d2A20d10o.24oBd2A2d2A3d2Ad3A3C7A5C5do.24oBd2A6d3A2o3d3C6A6C5o.24oBd5A3d2A3o.3o3dC5Ad5C5o.24od5A2d2A3d2o.6oC5o6C4o.25od3A2d3A3do2.8oC3o.6oC3o.25od2A2d2A4do.10oC3o.6oC3o.25od4A3d3o.11oC3o.6oC3o.25od3A2d3o2.12oC3o.6oC3o.25odA2d3o2.14oC3o.6oC3o.24od6o.16oC3o.6oC3o.24od5o.17oC3o.6oC3o.24od3o2.18oC3o.6oC3o.24odo2.20oC3o.6oC3o.24o2.20o2C5o.3o2C5o.45oC7o.2oC7o.43oC2oC3oC2o2C2oC3oC2o.41oCo2.o3.o2C2o2.o3.o2Co.40o2.9o2.9o2.145",
+  ".416o.59o4Bo4.54oB4AB4o.51o2BA9Bo2.49oBo3A5o3Bo.48oAoW2o2A3oW2o2Ao.47oAoW2o2A3oW2o2Ao.47oAo5A3o6.47oA3o3A5o3A2o.47oA15o.24o.22oA3C9A3o.22o.o4.19oA3C9A3o.19o4.oB3o3.17oA3C7A3o.17o3B3o.oA3B3o3.14oA3C7A3o.14o3B3A3o.oAd3A2B3o3.10oA5C5A5o.10o3B3A2d3Ao.oA3d6B3o3.6oBA5C5A5Bo.6o3B3d6A3o.oA8d5B2o3.3oA6C5A6o.3o3B2d5A8o.oAd3A8d5Bo3A8C3A8o3Bd5A8d3Ao.oA3d6A8d2B2A8C3A8B2d2A8d6A3o.oA8d5A17CA17d5A8o.oAd3A8d5A27d5A8d3Ao.oA3d6A8d2A23d2A8d6A3o.oA8d5A35d5A8o.od4A8d5A27d5A8d4o.o5d5A8d2A23d2A8d5o5.6oA3d5A35d5A3o.10oA8d5A2dA21dA2d5A8o.9oA13d2oA21od2A13o.8oA15o.oA19o.oA15o.6oBA14o.2oA19o.2oA14Bo.4oBA14do.2oA19o.2oA15Bo.3oA14do.4oA17o.4oA15o.2oA15o.5oA17o.5oA15o2BA11d3o.6oA16do.6od3A11o2A9d3o4.7oA14o2.7o4d3A8o2A6d3o3.12oA12o.13o3d3A5o2A3d3o3.14oC4A7C3o2.14o3d3A2o2d3o3.17oC4A7C4o.17o3d2o5.20oC4A7C4o.20o3.24oC4A7C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.48oC2A2dA2dA3C2o.48oC4AdA2dA2C4o.45o2C6d2AdC7o.44oC8dAdC8o.42oC2oC7AC7oC2o.40oCo2.o2C9Ao3.o2Co.39o2.5od2C4A2o.6o2.47od7o.55o9.283",
+  ".662o21.43oB19o.43oA19o.43oA2C3A9C3A2o.42oA2C5A7C5A2o.41oAC7A5C7Ao.41oAC7A5C7Ao.41oAC7A5C7Ao.41oA2C5A7C5A2o.40oA4C3A9C3A4o.39od23o.39o25.161o37.27oB35o.17o10A37o10.7oB9A37B9o.7oA29o2A24o.7oA30o2A23o.7oA11o2A9C11A22o.7oA12o3A7C11o2A20o.7oA15o3A4C11Ao2A19o.7oA17o3A3C9A23o.8oA18o3AC9A5o2A15o.9oA21C10A6o2A14o.9oA22C9A8o2A12o.9oA22C9A9o2A11o.5o4A5d2A16C9A10o2A4d2A5o4.oB3A5o2A16C9A16o2A5B3o.oA7o.2oA16C7A16o.2oA7o.oA7o.2oA16C7A16o.2oA7o.oA7o.2oA7o5A27o.2oA7o.oA8o.2oA10o9A18o.2oA8o.oA8o.2oA18o5A14o.2oA8o.oA8o.2oA37o.2oA8o.od8o.2od5A10d7A10d5o.2od8o.o10.3o5A10o7A10o5.3o10.19oA8o.7oA8o.37oA8o.7oA8o.36oA9o.7oA9o.35oA9o.7oA9o.35oA9o.7oA9o.35oA9o.7oA9o.35oA8o.9oA8o.35oA8o.9oA8o.35oA8o.9oA8o.34oA9o.9oA9o.33od9o.9od9o.33o11.9o11.272",
+  ".408o17.47oB15o.47oA14o.47oA2C3A7C3Ao2.45oAC5A5C5Ao.45oAC5A5C5Ao.45oAC5A5C5Ao.45oA2C3A7C3A2o.45oA17o.44oA18Bo.29o14BACA15CABo14.15oB13A2C2A13C2A2B12o2.16oA15CA13CA14o.10o8A17CA11CA16o9.oB7A17CA11CA17B7o.oA25CA9CA25o.oA8o3A14C2A3CA3C2A4o2A19o.oA10o4A12C9A7o3A16o.oA14o3A8C5WC5A9o3A13o.oA17o4A3C3W7C3A11o3A10o.oA20o3AC2W9C2A14o2A8o.oA23C3W9C3A23o.oA23C3W9C3A23o.oA23C2W11C2A23o.oA8C2dC15W9C15dC2A8o.2oA9oA12C3W9C3A12oA9o.3oA8o.oA11C3W9C3A11o.oA8o.3oA8o.oA11C4W7C4A11o.oA8o.3oA8o.2oA11C6WC6A11o.2oA8o.3oA8o.2oA11C13A11o.2oA8o.3oA9o.2oA11C11A11o.2oA9o.3oA9o.2oA12C9A12o.2oA9o.3oA9o.2oA11C2A3CA3C2A11o.2oA9o.3oA9o.3oA10CA9CA10o.3oA9o.3oA9o.3oA9CA11CA9o.3oA9o.2oA11o2.2oA8CA11CA8o.2o2A11o.oA11Bo.2oA7CA4d5A4CA7o.2oBA11o.oA12o.2oA6C2A4o5A4C2A6o.2oA12o.oA12o.2oA6CA4o.5oA4CA6o.2oA12o.oA12o.2oA5CA5o.5oA5CA5o.2oA12o.oA12o.2oA5CA5o.5oA5CA5o.2oA12o.oA12o.oA5CA6o.5oA6CA5o.oA12o.oA12o.oA4C2A6o.5oA6C2A4o.oA12o.oA13oA5CA7o.5oA7CA5oA13o.oA13BA13o.5oA13BA13o.oA27o.5oA27o.oA26o.7oA26o.od14A12o.7oA12d14o.o15A12o.7oA12o15.16oA11o.7oA11o.31oA11o.7oA11o.31oA10do.7oA11o.30oA12o.7oA12o.29oA12o.7oA12o.29od12o.7od12o.29o14.7o14.142",
+  ".165o.8o.54o2.7o2.54o3.6o2.54oCo.6o.55oCo.61oC2o.24o.36oC2o2.5o.7o2.7o2.36oC3o.2o.o2.5oCo.7oCo2.35oC3o2BoACo.3oC2o.6oC3co.34oC3B2ABA2o.2ocC3o.6oC3co.33oA9co2C3o2.8oC3co.31oA9c2W2A2o.11oC3co.30oA10c3A3o4.7oC4co.28oA12cA5B2o.7oC5co.28oA19o.6oC7co.27oA19o.5oC9co.25o.oA9c2Wc2Wc2Wo.3o2C11co.23oBoA10c2Wc2Wc2Wo.3oC13o.22oBABA10c9o.3ocC12o.22oA10C11co.3oc4C10o.20oA11C8c3o.5oC2c3C9o.18oBA11C6c3C2o.5o4Cc4C7o.17oA11C4c4Co4.9oC3c3C6o.15oAC5A6C2c3C3o.14oC5c2C5o.13oBAC5A5c3C5o.15oC7c3C3o.11oBA3C4A5C8o.15oC9c4Co2.9oA5C2A5C8o.16oC12c3Co9A6C2A5C9o.15oC14c2C13A9C9o.14oC14c3AC5AC6A8C11o.13oC4c7Cc3CA3C4A2C5A8c7C4o.13o2c3o2C11A3C2A4C3A8C6o2c3o2.15o3.2o2C9A3C2A5C2A8C4o2.2o3.24oC8A10C2A7C4o.31oC4AC2A20C4o.32o3CAC2A20o4.36oA22o.39oA23o.38oBA6CcC3cC3cC3cC2Ao.37oBA7CcC3cC3cC3cC2A2o.35oBA8CcC3cC3cC3cC2A2o.34oBA8C2cC3cC3cC3cC2A2o.33oC3A6C3cC3cC3cC3cC3Ao.32oC4A6C3cC3cC3cC3cC3Ao.31oBAC2A8C2cC3cC3cC3cC2A2o.30oBA2C2A9CcC2o6C3cCA3o.29oBA6d2A9o.6oA7o.28oBA5d2o2A9o.7oA7o.19o.6oC2A3d2o2.2oA8o.7oA7o.19o2.4oC3Ad2o2.4oA7o.8oA7o.19oCo.2oBC2d2o2.6oA7o.9oA6o.19oCo.oBd3o2.5o3A7o.10oA7o2.17oC2oBd2o2.7oB2A7o.10oA7Bo.16oC5o2.9oA8o.11oA8o.16oC4o.11oA8o.11oA7o2.16oC5o.11oA7o.11oA6o.18oC5o.11oC7o.11oC7o.17o7.10oC2oC2oC2o.11oC2oC2oC2o.34o2.o2.o2.13o2.o2.o2.209"]};
+const PETALT=[".249o.50o.11o2.50o.11o2.50o2.10o2.49oABo.8oAo.49oA2o.7oBAo.49oAo.8oA3o.48oA2o2.6oA3o.47oA4Bo.4oA4o.47oA5o.3oBA4o.47oA4o.4od5o.11o3.33oA5o2.2o7.10oB3o.31oA7Bo.18oA3o.31oA8Bo2.17oA3o.31oA8B2o2.15oA3Bo.29oA11B2o.15oA3Bo.27oBA13Bo.14oA4o.27oA9o3A3o.15oA4o.25oA9oW2o2A3o.14oA4Bo.8o3.4o.4o3.oA9oW2o2A3Bo3.12oA4Bo.6oB3o4Bo4B3oA10o5A4B3o3.10oA4o.o3.oBA3B4AB4A3BA11o3A8C2o.10oA5oB3oBA39C2o.11oA4BA3BA39C3o.11oA49C2o.12oA43d5C2o.12oA41c9o.13oA39dc9o.13oA35d4o11.14oA32d2o4.24oA33o2.29oA31o.31oA31o.31oA31o.32oA29o.33oA29o.34oA27o.36oA26o.37oA25o.38oA16d2A7o4.34oA6dA6d3o2dA6B3o.34oA6oA6o3.2oA9o.34oA5o.oA4o.6oA8o.34oA5o.oA4o.6oA9o.32oA5o.2oA4o.7oA8o.32oA5o.2oA4o.7oA8o.32oA4o.3oA4o.8oA7o.31oA5o.3oA3o.9oA7o.31oA4o.4oA3o.10oA6o.31oA4o.4oA3o.10oA6o.31oA4o.4oA3o.10oA6o.30oA6o3.oA3o.10oA7o2.28oA6B3oA5o2.8oA7B2o2.26oA9BA5Bo.8oA9Bo.26oA2dA3dA9o.8oA10o.26oCdoC2doCA3dA2dAo.8oCA4dA4o.26oCo.oCo.oC3oC2oCo.8oCoC3oC4o.27o.2o2.2o2Co.o2.oCo.8o.oCo.oCoC2o.35o2.o2.o2.12o2.o2.o2.138",
+  ".439o.58o.3o2.57o2.2oBAo.55o2.2oBA2o.54oBAo2BA2o.55oA3BA4o4.50oA10B3o.48oBA13Bo.46o3dA8W2oA2Bo.48oA7W3o2A2o.49oA7o3A2o.49oA9oA4o2.48oA12C2o.44o.3oA12C2o.40o4Bo3A13C2o.38o2B4AB3A12d2Co.36o2B2A17d3o4.34o2B2A18do3.28o.4o5B2A20o.27o4Bo4B5A21o.26o2B4AB4A26o.25oB2A35o.24oBA37o.23oBA38o.23oA39o.23oA39o.22oA40o.20o2.oA39o.19oB2oA40o.18oBA2Bd2A37o.18oBA3do2dA35do.17oBA2d2o.2oA33d2o.17oBA2do2.4oA10d2A20o2.17oBA2do.6oA9o3Ad4A14o.18oBd3o.7oA8o.3o5d4A10o.17oBd2o2.7oA6dA3o4.4o4dA9o.16oBd2o.9oA6oA4B2o.8oA9o.16od2o.9oA6o.oA4o.10oA8o.16o3.10oA6o.oA4o.10oA8o.29oA5o.2oA4o.11oA8o.27oA5do.2oA4o.11oA8o.27oA5o.3oA4o.12oA7o.27oA4o.4oA4o.13oA6o.26oA5o.4oA3o.14oA6o.26oA4o.5oA3o.15oA5o.26oA4o.5oA3o.15oA5o.26oA4o.5oA3o.15oA5o.26oA4o.5oA3o.15oA5o.26oA4o.5oA2o2.15oA5o.26oA4o.4oA2o.17oA6o.23o2A6o4BA3o4.12oA7Bo3.20oBA6B4A5B2o.12oA8B2o.20oA18o.12oA10o.20oA3dA3dA5dA2dAo.12oA10o.20oC2doC2doC5oC2oCo.12oC5AC2ACo.21oCo.oCo.oCoCo.o2.oCo.12oCoC8o.21o.2o2.2o2.o2.o2.o2.14o.o8.72",
+  ".596o.23o.35o4Bo4.15o4Bo4.30oB4AB4o.13oB4AB4o.28oBA9Bo.11oBA9Bo.26oBA11Bo.9oBA11Bo.24oBA4o5A4Bo.7oBA4o5A4Bo.23oA4o7A4o.7oA4o7A4o.23oA3o9A3o.7oA3o9A3o.23oA3o9A3o.7oA3o9A3o.22oA4o9A3o.6oA4o9A3o.23oA3o9A2o.8oA3o9A3o.23oA3o9A3o8A4o9A3o.23oA4o7A5B7A5o7A4o.16o.6oA5o5A19o5A4do.6o.9o2.6oA36do.6o2.8oABo.6oA35o.6oBAo.7oA2Bo.6oA33o.6oBA2o.7oA3Bo.5oA33o.5oBA2o.7oA5Bo.3oA35o.3oBA4o2.5oA6o.2oBA35Bo.2oA6o.5oA7o.oA37o.oA6o.5oA8BoAc37AoBA7o2.3oA9BAc37ABA9o.3oA11c37A10o.3oA60o2.oA60o2.2oA29CA28o.2o2A24C13A23o3BA22C17A22o2A21C21A20o2A20C23A19o2A19C25A18o2A18C27A17o2A7d5A6C27A6d5A6o2A6do5dA5C27A5do5dA5o2A6o.5oA4C29A3do.5oA5o2A5o.7od2A2C27A2d2o.7oA4o2A5o.8o2dAC27Ado2.8oA4o2A5o.10oAC27Ao.10oA4o2A5o.11oAC25Ao.11oA4o2A5o.11oA2C23A2o.11oA4o2A4o.12oA3C21A3o.12oA3o2A3do.12oA5o2C13o2A5o.12oA3o2A3o2.12oA4o.2o6Co6.2oA4o.12oA3o2A2o.13oA5o.8o.8oA5o.12oA2o2A2o.13oA5o.17oA5o.13oAo2Ado.13oA4o.19oA4o.13odo2do.14oA4o.19oA4o.14o4.14oA5o.19oA5o.15o.14oBA5o.19oA5Bo.28oBA6o.19oA6Bo.26oBd2A2d2Ao.19oAd2A2d2Bo.24oBdo2d2o2do.18od2o2d2o2dBo.23o3.2o2.2o2.19o2.2o2.2o3.75",
+  ".659o.25o.33o4Bo4.17o4Bo4.27o2B4AB4o2.13o2B4AB4o2.24oB2A9B2o.11oB2A9B2o.22oBA13Bo.9oBA13Bo.21oA7oA7o.9oA7oA7o.20oA5o7A5o.7oA5o7A5o.19oA4o9A4o.7oA4o9A4o.19oA4o9A4o.7oA4o9A4o.19oA4o9A4o.7oA4o9A4o.18oA4o11A3o.6oA4o11A3o.19oA4o9A3o.8oA4o9A4o.19oA4o9A4o8A5o9A4o.19oA4o9A5B7A5o9A4o.19oA5o7A19o7A5o.19oA8oA25oA8o.12o.7oA41o.7o.5o2.6oA41o.6o2.4oABo.5oA41o.5oBAo.3oA2Bo.4oA41o.4oBA2o.3oA3Bo.3oA41o.3oBA3o.3oA4Bo.oA43o.oBA4o.3oA5BoBA22d3A18BoBA5o.2oA7BA23d4A18BA7o.oA8c45A8o.oA8c45A8o2A9c45A8o2A9c45A8o2A17d5A14d3A7d3A13o.oA16d5A13d5A22o.oA17d3A14d5A21o2.2oA33d5A20o.2o2A13d3A9d3A7d3A22o3BA12d5A7d5A32o2A13d5A7d5A14d3A15o2A13d5A7d5A13d5A14o2A6d3A5d3A9d3A14d5A6d3A5o2A6o3A34d5A6o3A5o2A5o.3oA12d3A19d3A6o.3oA4o2A5o.3od2A9d5A25d2o.3oA4o2A5o.4o2dA8d5A14d3A7do2.4oA4o2A5o.6od2A6d5A13d5A4d2o.6oA4o2A4o.8o2A7d3A14d5A4o2.8oA3o2A4o.10oA23d5A3o.10oA3o2A4o.10oA6dA17d3A4o.10oA3o2A2d2o.9oA6dod8Ad8odA6o.9od2Ao2A2o3.9oA6o.o17.oA6o.9o3Ao2Ao.12oA5o.21oA5o.12o3do.12oA5o.21oA5o.12o4.11o2A5o.23oA5o2.12o.11oB2A5o.23oA5B2o.21o2Bd2A2d2A2o.21oA2d2A2d2Bo2.18oB2do2d2o2d2Bo.19oBd2o2d2o2dB2o.17o4.2o2.2o3.21o3.2o2.2o4.8",
+  ".658o.28o.34o3.22o4Bo4.31oBo2.18o2B4AB4o2.29oB3o2.15oB2A9B2o.29oA2B2o2.12oBA13Bo.28oA4B2o2.9oBA15Bo.27oA6B2o2.6oBA9W3o2A3Bo.27oA7B2o2.4oA10W3o2ACA2o.27oA9B2o2.2oA9W4o3C2o.28oA11Bo.2oA10o5AC3o2.27oA12o2A11o5AC5o3.24oA12B2A13oA3C8o2.22oA31C5o3.22o2A32C3o2.24oB2A32C2o.25oBA35do.24oBA35do.25oA34d2o.25oA33d2o2.26oA33o2.27oA33o.29oA33o.29oA33o.29oA33o.28oA34o.27oBA34o.26oBA35o.25oBd2A34o.24oBd3A34o.23oBdA36o.23oBd2A3dA32o.22oBd2A3d2A31o.22oBd2A2d3A31do.21oBA4d2A5d2A25do.21od2A3d2A3d3o2d2A21d2o.22odA2d2A4d3o.2o2d2A17d2o2.23oA2d2A3d3o2.5o2d2A2C3A7C3o2.24od4A2d3o2.9o2C5dAd3C4o.26od2A3d3o.13oC4o6C3o.26odA2d3o2.15oC2o.6oC2o.26oA2d2o2.17oC3o.5oC3o.25od3o.19oC3o.5oC3o.24od2o2.20oC3o.5oC3o.24o3.23oC2o.6oC2o.50oC2o.6oC2o.50oC2o.6oC2o.50oC3o.5oC3o.48oC4o.4oC4o.47oC6o.2oC6o.45oC5oC2o2C5oC2o.43oCo3Co.oC3o3Co.oCo.43o2.3o2.2o3.3o2.2o2.147",
+  ".337o2.62oBo3.60oB3o3.23o.33od3B3o2.17o4Bo4.30oAd2A2B2o2.13o2B4AB4o2.28oA3d2A2B2o3.8o2B2A9B2o2.27oA3d3A2B3o3.4oB2A13B2o.26odA4d2A4B3o2.oBA17Bo.26od2A4d2A5Bo.oA11o3A5o.27od2A4d3A5oA11W3o2A4o.27oA2d2A4d2A4BA10oW3o3A4o2.26oA3d2A4d2A13oW3o3C5o.26oA4d3A3d3A11o7C6o.25od2A4d3A3d2A11o5C7o.23o2A2d3A4d2A4d2A10o3C9o.21odBA4d3A4d2A3d2A11C10o.20oBd3A5d3A4d2A14C7o5.18oBA4d2A5d3A3d3A13C4Ao.22oBA7d3A4d3A3d2A12C4Ao.21oBA10d3A4d3A15C3d2o.20oBA13d3A4d3A14Cd2o.21oA16d3A4d2A12d2o2.21oA20d2A14d2o2.23oA22d3A11o2.25oA24d2A9o.27oA35o.27oA35o.26oA36o.27oA35o.27oA35o.27oA35o.27oA35o.26oA36o.25oBA35o.25oBd2A33do.24oBd3A32do.24oBdA4dA29do.24oBdA4d2A28do.24oBdA3d2A29do.24oBd2A2d2A3d2Ad3A3C7A5C5do.24oBd2A6d3A2o3d3C6A6C5o.24oBd5A3d2A3o.3o3dC5Ad5C4o.25od5A2d2A3d2o.6oC5o6C4o.25od3A2d3A3do2.8oC3o.6oC3o.25od2A2d2A4do.10oC3o.6oC3o.25od4A3d3o.11oC3o.6oC3o.25od3A2d3o2.12oC3o.6oC3o.25odA2d3o2.14oC3o.6oC3o.24od6o.16oC3o.6oC3o.24od5o.17oC3o.6oC3o.24od3o2.18oC3o.6oC3o.24odo2.20oC3o.6oC3o.24o2.20o2C5o.3o2C5o.45oC7o.2oC7o.43oC2oC3oC2o2C2oC3oC2o.41oCo2.o3.o2C2o2.o3.o2Co.40o2.9o2.9o2.145",
+  ".416o.59o4Bo4.54oB4AB4o.51o2BA9Bo2.25o.23oBo3A5o3Bo.23o.o3.20oAoW2o2A3oW2o2Ao.20o3.oB2o.19oAoW2o2A3oW2o2Ao.19oB2o.oA2Bo2.17oAo5A3o6.18o2BA2o.oAd2B2o2.14oA3o3A5o3A2o.15o2B2d2Ao.oA2d3B2o2.13oA15o.13o2B2d3A2o.oA4d3B2o.12oA3C9A3o.12oB2d3A4o.oAd2A4d2Bo2.10oA3C9A3o.10o2Bd2A4d2Ao.oA2d3A4d2Bo2.9oA3C7A3o.9o2Bd2A4d3A2o.oA4d3A4d2Bo.8oA3C7A3o.8oBd2A4d3A4o.oAd2A4d2A4d2o.6oA5C5A5o.5o2d2A4d2A4d2Ao.oA2d3A4d2A4do2.3oBA5C5A5Bo.2o2d2A4d2A4d3A2o.oA4d3A4d2A4do3BA6C5A6Bo2d2A4d2A4d3A4o.od3A4d2A4d3A3B2A8C3A8B2A3d3A4d2A4d3o.o2d4A4d2A4d3A11C3A11d3A4d2A4d4o2.3o2d4A4d2A4d2A11CA11d2A4d2A4d4o2.7oA3d2A4d3A29d3A4d2A3o.9oA5d2A4d3A25d3A4d2A5o.9oA7d2A4d2A23d2A4d2A7o.8oA10d3A29d3A10o.6oBA12d3A25d3A12Bo.4oBA15d2A23d2A15Bo.3oA18dA21dA18o.2oA18doA21odA18o2BA17do.oA19o.oA18o2A17do.2oA19o.2oA17o2A16do.3oA19o.3oA16o2A16o.5oA17o.5oA15o2d15o.6oA17o.6od14o18.6oA16do.6o16.24oA14o2.48oA12o.49oC4A7C3o2.47oC4A7C4o.47oC4A7C4o.47oC4A7C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.47oC4AdA2dA2C4o.48oC2A2dA2dA3C2o.48oC4AdA2dA2C4o.45o2C6d2AdC7o.44oC8dAdC8o.42oC2oC7AC7oC2o.40oCo2.o2C9Ao3.o2Co.39o2.5od2C4A2o.6o2.47od7o.55o9.283",
+  ".662o21.43oB19o.43oA19o.43oA2C3A9C3A2o.42oA2C5A7C5A2o.41oAC7A5C7Ao.41oAC7A5C7Ao.41oAC7A5C7Ao.41oA2C5A7C5A2o.40oA4C3A9C3A4o.39od23o.39o25.161o37.27oB35o.26oA37o.24oBA37Bo.20o3BA21o2A16Bo3.14o3B3A23o2A16B3o3.9o2B3A7o2A9C11A18B3o2.7oBA11o3A7C11o2A19Bo.7oA15o3A4C11Ao2A19o.7oA17o3A3C9A23o.7oA19o3AC9A5o2A16o.7oA22C10A6o2A15o.7oA23C9A8o2A13o.7oA23C9A9o2A12o.8oA22C9A10o2A10o.9oA22C9A22o.9oA5dA17C7A17dA5o.9oA4dodA16C7A16dodA4o.5o4A5o.oA7o5A27o.oA5o4.oB3A4o.3oA10o9A18o.3oA4B3o.oA7o.3oA18o5A14o.3oA7o.oA7o.3oA37o.3oA7o.oA7o.3od5A10d7A10d5o.3oA7o.oA8o.3o5A10o7A10o5.3oA8o.oA8o.8oA8o.7oA8o.8oA8o.oA8o.8oA8o.7oA8o.8oA8o.od8o.7oA9o.7oA9o.7od8o.o10.7oA9o.7oA9o.7o10.18oA9o.7oA9o.35oA9o.7oA9o.35oA8o.9oA8o.35oA8o.9oA8o.35oA8o.9oA8o.34oA9o.9oA9o.33od9o.9od9o.33o11.9o11.272",
+  ".408o17.47oB15o.47oA14o.47oA2C3A7C3Ao2.45oAC5A5C5Ao.45oAC5A5C5Ao.45oAC5A5C5Ao.45oA2C3A7C3A2o.45oA17o.44oA18Bo.29o14BACA15CABo14.15oB13A2C2A13C2A2B12o2.16oA15CA13CA14o.16o2A17CA11CA16o3.10o3B2A17CA11CA17B2o3.4o3B3A20CA9CA20B3o3.oB2A6o3A14C2A3CA3C2A4o2A17B2o.oA10o4A12C9A7o3A16o.oA14o3A8C5WC5A9o3A13o.oA17o4A3C3W7C3A11o3A10o.oA20o3AC2W9C2A14o2A8o.oA23C3W9C3A23o.oA23C3W9C3A23o.oA23C2W11C2A23o.oA8C2dC15W9C15dC2A8o.oA10oA12C3W9C3A12oA10o.oA9o.oA11C3W9C3A11o.oA9o.2oA8o.oA11C4W7C4A11o.oA8o.3oA8o.2oA11C6WC6A11o.2oA8o.3oA8o.2oA11C13A11o.2oA8o.3oA9o.2oA11C11A11o.2oA9o.3oA9o.2oA12C9A12o.2oA9o.3oA9o.2oA11C2A3CA3C2A11o.2oA9o.3oA9o.3oA10CA9CA10o.3oA9o.3oA9o.3oA9CA11CA9o.3oA9o.3oA9o.4oA8CA11CA8o.4oA9o.3oA9o.4oA7CA4d5A4CA7o.4oA9o.2oA11o2.2oA6C2A4o5A4C2A6o.2o2A11o.oA11Bo.2oA6CA4o.5oA4CA6o.2oBA11o.oA12o.2oA5CA5o.5oA5CA5o.2oA12o.oA12o.2oA5CA5o.5oA5CA5o.2oA12o.oA12o.oA5CA6o.5oA6CA5o.oA12o.oA12o.oA4C2A6o.5oA6C2A4o.oA12o.oA12o.oA4CA7o.5oA7CA4o.oA12o.oA12o.oA12o.5oA12o.oA12o.oA13oA13o.5oA13oA13o.oA13BA12o.7oA12BA13o.oA26o.7oA26o.oA26o.7oA26o.od14A12o.7oA12d14o.o15A12o.7oA11o16.16oA10do.7oA10o.31oA12o.7oA11o2.29oA12o.7oA12o.29od12o.7od12o.29o14.7o14.142",
+  ".165o.8o.21o2.31o2.7o2.11o2.7oco.31o3.6o2.9oco.7oCo.32oCo.6o.9oCo.6oC2o.33oCo.14oC3o.6oC2o2.31oC2o.12oC3o.8oC2co.31oC2o2.5o.3ocC2o.10oC2co.31oC3o.2o.o2.ocC2o.11oC3o.32oC3o2BoACocC3o.11oC3o.32oC3B2ABA2BcC3o.10oC5o2.30oA9cW2C3o.8oC7co.28oA9c2W2A3o.6o2C9co.27oA10c3A4o3.3oC11o.26oA12cA6Bo.3ocC10o.27oA19o.3oc2C10o.26oA19o.4oCc2C9o2.23o.oA9c2Wc2Wc2Wo.4oC2c3C8o.22oBoA10c2Wc2Wc2Wo.4oC4c2C7o.21oBABA10c9o.4oC6c2C6o.20oA10C3c2C6o.6oC6c3C5o2.17oA11Cc3C6o.7oC8c2C5co.15oBA11c2C8o.7o3C7c3C4o.15oA11c2C7o3.10oC8c3C2o.14oAC5A6C8o.14oC9c2C2o.12oBAC5A5C8o.15oC11c2Co.10oBA3C4A5C8o.15oC12c3o.9oA5C2A5C8o.16oC14c2o9A6C2A5C9o.15oC29A9C9o.14oC14c3AC5AC6A8C11o.13oC4c7Cc3CA3C4A2C5A8c7C4o.13o2c3o2C11A3C2A4C3A8C6o2c3o2.15o3.2o2C9A3C2A5C2A8C4o2.2o3.24oC8A10C2A7C4o.31oC4AC2A20C4o.32o3CAC2A20o4.36oA22o.39oA23o.38oBA6CcC3cC3cC3cC2Ao.37oBA7CcC3cC3cC3cC2A2o.35oBA8CcC3cC3cC3cC2A2o.34oBA8C2cC3cC3cC3cC2A2o.33oC3A6C3cC3cC3cC3cC3Ao.32oC4A6C3cC3cC3cC3cC3Ao.31oBAC2A8C2cC3cC3cC3cC2A2o.30oBA2C2A9CcC2o6C3cCA3o.29oBA6d2A9o.6oA7o.28oBA5d2o2A9o.7oA7o.19o.6oC2A3d2o2.2oA8o.7oA7o.19o2.4oC3Ad2o2.4oA7o.8oA7o.19oCo.2oBC2d2o2.6oA7o.9oA6o.19oCo.oBd3o2.5o3A7o.10oA7o2.17oC2oBd2o2.7oB2A7o.10oA7Bo.16oC5o2.9oA8o.11oA8o.16oC4o.11oA8o.11oA7o2.16oC5o.11oA7o.11oA6o.18oC5o.11oC7o.11oC7o.17o7.10oC2oC2oC2o.11oC2oC2oC2o.34o2.o2.o2.13o2.o2.o2.209"];
 
 /* [name, category, rarity, silhouette, palette, grip, material, accent material] */
 const GEAR=[
@@ -1715,19 +1526,18 @@ const GEAR=[
 ['Emberfrog','pet',2,2,'ember','leather','skin','arcane'],
 ['Quartz Titan','pet',3,8,'mithril','leather','stone','arcane'],
 ['Storm Eagle','pet',4,6,'storm','leather','feather','arcane'],
-['Frost Wyrmling','pet',4,9,'frost','leather','scale','arcane'],
-['Cinder Drake','pet',4,9,'ember','leather','scale','arcane']];
+['Frost Wyrmling','pet',4,9,'frost','leather','scale','leather'],
+['Cinder Drake','pet',4,9,'ember','leather','scale','leather']];
 
 /* a stable id, so a save survives the list being reordered */
 const GID=g=>g[1][0]+g[0].toLowerCase().replace(/[^a-z0-9]/g,'');
 const BYID={}; GEAR.forEach((g,i)=>{g.id=GID(g); g.n=i; BYID[g.id]=g;});
 const DARK=[12,11,18];
 
-/* ---- drawing a piece ---- */
-const GCAN={};
-/* The ramp a piece is drawn from, built out of its two materials. The
-   explicit tones do the shading now, so the directional key light that
-   lifts the terrain is turned right down here. */
+/* The eleven tone ramp a piece is painted from, built out of its two
+   materials: what it is made of, and what you hold it by. o outline,
+   d/A/B/W the body from shadow to highlight, C/c the brass or the gem,
+   G/H/g the wood or the leather. */
 function tones(g){
  const P=PAL[g[4]].map(_rgb), Q=(PAL[g[5]]||PAL.leather).map(_rgb);
  return {o:_mix(P[0],DARK,.80), d:_mix(P[0],DARK,.40), A:P[0], B:P[1],
@@ -1735,181 +1545,76 @@ function tones(g){
          G:Q[0], H:Q[1], g:_mix(Q[0],DARK,.42)};
 }
 /* ===================================================================
-   HIGH RESOLUTION RENDERING
+   DRAWING A PIECE
 
-   The authored sprite is not a picture, it is a material mask: which
-   material sits at this pixel, not what colour it is. That is what lets
-   one 16x16 grid be rendered at 128 with sixty four times the detail
-   rather than sixty four times the same square.
+   Crisp pixel art, which means the sprite carries its own shading and
+   the renderer adds nothing. An earlier version of this file upscaled a
+   small mask and synthesised the form with a bevel, a specular and a
+   procedural material texture. It was the wrong aesthetic: it produced
+   smooth plastic objects, and a plastic sword next to a pixel world
+   reads as a mistake rather than a style.
 
-   Three steps. The silhouette is upscaled with a corner rounding rule,
-   so the outline stops being a staircase. A distance transform over the
-   result tells every pixel how far it is from the edge, which is a
-   height field, which is a surface normal, which is a bevel: the piece
-   gains thickness and catches light along its edges. Then each material
-   writes its own texture over the top, because brushed steel, oiled
-   leather, quartersawn oak, bone and a cut gem do not behave the same
-   way under the same lamp.
+   So the sprites are authored at 64x64 with an explicit tone ramp, and
+   this does nothing but map a character to a colour. Two tones of metal
+   plus a highlight, two tones of grip, and an accent for the brass. The
+   palette per item is what makes a hundred pieces out of forty shapes.
    =================================================================== */
-const GRIPMAT={wood:'wood',leather:'leather',bone:'bone',ivory:'bone',obsid:'stone',
- silver:'metal',gold:'metal',copper:'metal',ash:'metal',iron:'metal',steel:'metal',
- bronze:'metal',mithril:'metal',void:'arcane'};
-const LX2=-0.50, LY2=-0.62, LZ2=0.61;
-
-/* Eagle: a 2x upscale that rounds a corner off when the two pixels
-   either side of it agree with each other and disagree with it. */
-function _eagle(gm,w){
- const W2=w*2, o=new Array(W2*W2);
- const at=(x,y)=>gm[(y<0?0:y>=w?w-1:y)*w+(x<0?0:x>=w?w-1:x)];
- for(let y=0;y<w;y++)for(let x=0;x<w;x++){
-  const C=gm[y*w+x], N=at(x,y-1), So=at(x,y+1), Wl=at(x-1,y), E=at(x+1,y);
-  let a=C,b=C,c=C,d=C;
-  if(at(x-1,y-1)===N&&N===Wl)   a=N;
-  if(at(x+1,y-1)===N&&N===E)    b=N;
-  if(at(x-1,y+1)===So&&So===Wl) c=Wl;
-  if(at(x+1,y+1)===So&&So===E)  d=E;
-  o[(y*2)*W2+x*2]=a;   o[(y*2)*W2+x*2+1]=b;
-  o[(y*2+1)*W2+x*2]=c; o[(y*2+1)*W2+x*2+1]=d;
+/* A 64x64 sprite is 4096 characters and most of them are nothing, so
+   the table is stored run length encoded as <char><count> and unpacked
+   once, on first use. */
+const SPC=new Map();
+function _unrle(s){
+ let out='', i=0;
+ while(i<s.length){
+  const c=s[i++]; let n=0, has=false;
+  while(i<s.length){const d=s.charCodeAt(i); if(d<48||d>57) break; n=n*10+(d-48); i++; has=true;}
+  out+=c.repeat(has?n:1);
  }
- return o;
+ return out;
 }
-/* Two chamfer distance fields. The first is distance to the outside of
-   the piece, which is what the rim light and the rivets want. The second
-   is distance to the nearest pixel of ANY other material, which is what
-   the bevel wants: without it only the silhouette gets relief and every
-   rim, boss, visor slit and plate edge inside the outline reads as one
-   flat slab, which is exactly how the first attempt looked. */
-function _dist(gm,w,edges){
- const n=w*w, D=new Float32Array(n);
- for(let i=0;i<n;i++) D[i]=gm[i]==='.'?0:1e9;
- if(edges) for(let y=0;y<w;y++)for(let x=0;x<w;x++){
-  const i=y*w+x, c=gm[i]; if(c==='.') continue;
-  if((x>0&&gm[i-1]!==c)||(x<w-1&&gm[i+1]!==c)||
-     (y>0&&gm[i-w]!==c)||(y<w-1&&gm[i+w]!==c)) D[i]=0.5;
+function spriteRows(g,alt){
+ const pet=(alt&&g[1]==='pet');
+ const key=pet?('p#'+g[3]):(g[1]+'#'+g[3]);
+ const hit=SPC.get(key); if(hit) return hit;
+ const raw=pet?PETALT[g[3]]:SHAPE[g[1]][g[3]];
+ let r;
+ if(Array.isArray(raw)) r=raw;                 /* already plain rows */
+ else{
+  const flat=_unrle(raw), n=Math.round(Math.sqrt(flat.length));
+  r=[]; for(let y=0;y<n;y++) r.push(flat.slice(y*n,(y+1)*n));
  }
- for(let y=0;y<w;y++)for(let x=0;x<w;x++){
-  const i=y*w+x; if(D[i]<=0.5) continue;
-  if(x===0||y===0||x===w-1||y===w-1){D[i]=1;continue;}
-  D[i]=Math.min(D[i],D[i-1]+1,D[i-w]+1,D[i-w-1]+1.414,D[i-w+1]+1.414);
- }
- for(let y=w-1;y>=0;y--)for(let x=w-1;x>=0;x--){
-  const i=y*w+x; if(D[i]<=0.5) continue;
-  let v=D[i];
-  if(x<w-1) v=Math.min(v,D[i+1]+1);
-  if(y<w-1){
-   v=Math.min(v,D[i+w]+1);
-   if(x<w-1) v=Math.min(v,D[i+w+1]+1.414);
-   if(x>0)   v=Math.min(v,D[i+w-1]+1.414);
-  }
-  D[i]=v;
- }
- return D;
+ SPC.set(key,r); return r;
 }
-/* u,v are in authored pixel units, so a material grains the same way at
-   any output resolution */
-function _tex(m,u,v){
- switch(m){
-  case 'metal':{
-   const st=vnoise(u*0.8,v*6.5)*2-1;
-   let f=(u*0.9+v*0.55)%7; if(f<0)f+=7;
-   return [1+st*0.06, Math.max(0,1-Math.abs(f/7-0.33)*6.2)*0.13];}
-  case 'wood':{
-   const gr=Math.sin(u*2.0+vnoise(u*0.5,v*0.22)*6.0)*0.5+0.5;
-   return [0.90+gr*0.16+vnoise(u*1.2,v*1.2)*0.07, 0];}
-  case 'leather':
-   return [0.89+(vnoise(u*5.0,v*5.0)*0.62+vnoise(u*12,v*12)*0.38)*0.22, 0];
-  case 'cloth':{
-   const wv=((((u*3.6)|0)+((v*3.6)|0))&1)?0.038:-0.038;
-   return [1+wv+(vnoise(u*3.2,v*3.2)-0.5)*0.11, 0];}
-  case 'stone': return [0.85+fbm(u*1.5,v*1.5)*0.32, 0];
-  case 'bone':{
-   const cr=Math.pow(1-Math.abs(vnoise(u*1.0,v*4.2)*2-1),10);
-   return [0.93+vnoise(u*2.0,v*2.0)*0.14-cr*0.26, 0];}
-  case 'arcane':{
-   const a=Math.atan2(v-8,u-8), r=Math.sqrt((u-8)*(u-8)+(v-8)*(v-8));
-   let f=(a*3.1+r*0.85)%1; if(f<0)f+=1;
-   return [0.80+Math.abs(f-0.5)*0.50, Math.pow(vnoise(u*5.5,v*5.5),9)*0.8];}
-  case 'fur':   return [0.87+vnoise(u*3.0,v*8.5)*0.26, 0];
-  case 'feather':{
-   const row=Math.sin(v*4.0)*0.5+0.5;
-   return [0.89+row*0.13+vnoise(u*4.6,v*4.6)*0.09, 0];}
-  case 'scale':{
-   const sy=v*2.5, oy=Math.floor(sy), sx=u*2.5+((oy&1)?0.5:0);
-   const dx=sx-Math.floor(sx)-0.5, dy=sy-oy-0.5;
-   return [0.84+Math.max(0,1-Math.sqrt(dx*dx+dy*dy)*1.6)*0.34, 0];}
-  case 'skin':
-   return [0.91+vnoise(u*4.2,v*4.2)*0.16+Math.pow(vnoise(u*8.5,v*8.5),4)*0.14, 0];
- }
- return [1,0];
-}
-const ART=new Map(), ARTMAX=150;
-function gearArt(g,res,alt){
- const key=g.id+'@'+res+(alt?'a':'');
+const ART=new Map(), ARTMAX=260;
+function gearArt(g,alt){
+ const key=g.id+(alt?'#a':'');
  const hit=ART.get(key);
  if(hit){ART.delete(key);ART.set(key,hit);return hit;}
- const sp=(alt&&g[1]==='pet')?PETALT[g[3]]:SHAPE[g[1]][g[3]];
- let w=16, gm=new Array(256);
- for(let y=0;y<16;y++)for(let x=0;x<16;x++) gm[y*16+x]=sp[y][x];
- while(w<res){gm=_eagle(gm,w); w*=2;}
- const DO=_dist(gm,w,false), DE=_dist(gm,w,true), T=tones(g), S=w/16;
- const matB=g[6]||'metal', matA=g[7]||matB, matG=GRIPMAT[g[5]]||'leather';
- const studs=(matB==='metal'&&(g[1]==='shield'||g[1]==='chest'||g[1]==='helm'));
- const BEV=S*1.45, N0=S*1.25;
- const c=document.createElement('canvas'); c.width=w; c.height=w;
- const q=c.getContext('2d'), img=q.createImageData(w,w), P=img.data;
- const hh=i=>{const d=DE[i]; return d>BEV?1:d/BEV;};
- for(let y=0;y<w;y++)for(let x=0;x<w;x++){
-  const i=y*w+x, ch=gm[i], o4=i*4;
-  if(ch==='.'){P[o4+3]=0;continue;}
-  const base=T[ch]||T.A;
-  const m=(ch==='G'||ch==='H'||ch==='g')?matG:(ch==='C'||ch==='c')?matA:matB;
-  const nx=(hh(x<w-1?i+1:i)-hh(x>0?i-1:i))*N0;
-  const ny=(hh(y<w-1?i+w:i)-hh(y>0?i-w:i))*N0;
-  const inv=1/Math.sqrt(nx*nx+ny*ny+1);
-  const lam=Math.max(0,(-nx*LX2-ny*LY2+LZ2)*inv);
-  /* the ink line is a dark bevelled border, not a flat slab, and it
-     takes no material texture */
-  const ink=(ch==='o');
-  const t=ink?[1,0]:_tex(m,x/S,y/S);
-  let shd=(ink?(0.70+0.40*lam):(0.62+0.47*lam))*t[0];
-  if(studs&&!ink){
-   const gx=Math.round(x/(S*2.2))*(S*2.2), gy=Math.round(y/(S*2.2))*(S*2.2);
-   const rr=S*0.40, dx=x-gx, dy=y-gy, dd=Math.sqrt(dx*dx+dy*dy);
-   if(DO[i]>S*1.2&&DE[i]>S*0.9&&dd<rr&&hash(((gx|0)*131+(gy|0)*977))>0.47)
-    shd*=1+(1-dd/rr)*0.42;
-  }
-  const spec=ink?0:Math.pow(lam,34)*(m==='metal'?0.85:m==='arcane'?0.7:m==='scale'?0.45:0.13);
-  /* the outside edge keeps a cool rim so the piece sits off the panel */
-  const rim=ink?0:Math.pow(1-Math.min(1,DO[i]/(S*1.3)),3)*0.14;
-  const r=base[0]*shd+spec*235+t[1]*235+rim*120;
-  const gg=base[1]*shd+spec*240+t[1]*235+rim*132;
-  const bb=base[2]*shd+spec*255+t[1]*250+rim*162;
-  P[o4]=r>255?255:r; P[o4+1]=gg>255?255:gg; P[o4+2]=bb>255?255:bb; P[o4+3]=255;
- }
+ const sp=spriteRows(g,alt);
+ const T=tones(g), N=sp.length;
+ const c=document.createElement('canvas'); c.width=N; c.height=N;
+ const q=c.getContext('2d'), img=q.createImageData(N,N), P=img.data;
+ for(let y=0;y<N;y++){const row=sp[y];
+  for(let x=0;x<N;x++){
+   const ch=row[x], i=(y*N+x)*4;
+   if(ch==='.'){P[i+3]=0;continue;}
+   const col=T[ch]||T.A;
+   P[i]=col[0]; P[i+1]=col[1]; P[i+2]=col[2]; P[i+3]=255;}}
  q.putImageData(img,0,0);
  ART.set(key,c);
  if(ART.size>ARTMAX) ART.delete(ART.keys().next().value);
  return c;
 }
-
-/* the flat 16x16 version, which is what the pixel world gets */
-function gearCanvas(g,alt){
- const k=g.id+(alt?'#a':'');
- if(GCAN[k]) return GCAN[k];
- const sp=(alt&&g[1]==='pet')?PETALT[g[3]]:SHAPE[g[1]][g[3]];
- const map=tones(g);
- const c=document.createElement('canvas'); c.width=16; c.height=16;
- const q=c.getContext('2d');
- for(let r=0;r<sp.length;r++) for(let x=0;x<sp[r].length;x++){
-  const ch=sp[r][x]; if(ch==='.') continue;
-  let col=map[ch]||map.A;
-  if(ch!=='o') col=sh(col,x<6?.09:x>9?-.09:0);
-  q.fillStyle=_css(col); q.fillRect(x,r,1,1);}
- GCAN[k]=c; return c;
-}
-function drawGear(g,ctx2,x,y,px,alt){
+/* Nearest neighbour when the piece is being shown at or above its own
+   size, because that is the whole point of pixel art; a real filter on
+   the way DOWN, because dropping every other row of a 64px sprite to
+   fit a 32px slot loses limbs. */
+function blitGear(ctx2,g,alt,x,y,size){
+ const c=gearArt(g,alt);
+ ctx2.imageSmoothingEnabled = size < c.width;
+ if(size<c.width) ctx2.imageSmoothingQuality='high';
+ ctx2.drawImage(c,x,y,size,size);
  ctx2.imageSmoothingEnabled=false;
- ctx2.drawImage(gearCanvas(g,alt),x|0,y|0,16*px,16*px);
 }
 
 /* ===================================================================
@@ -2116,7 +1821,7 @@ function fxFrame(now){
   rg.addColorStop(1,'rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+',0)');
   fg.fillStyle=rg; fg.fillRect(cx-IS*18,iy-IS*26,IS*36,IS*36);
   const k=PX*HD, side=IS*16*k;
-  hg.drawImage(gearArt(anim.d,128,false),(cx-IS*8)*k,(iy-IS*16)*k,side,side);
+  blitGear(hg,anim.d,false,(cx-IS*8)*k,(iy-IS*16)*k,side);
 
   /* sparkles orbiting it */
   if(!anim.sp.length) for(let i=0;i<26;i++)
@@ -2203,6 +1908,7 @@ function frame(now){
 const CATS=[['all','ALL'],['sword','SWORDS'],['staff','STAFFS'],['shield','SHIELDS'],
             ['helm','HELMS'],['chest','ARMOR'],['shoes','BOOTS'],['pet','PETS']];
 let pcat='all', psel=null;
+const CELL=()=>innerWidth<430?46:64;
 const pack=document.getElementById('pack');
 
 function owned(id){return (S.own&&S.own[id])|0;}
@@ -2228,13 +1934,13 @@ function equip(g){
 }
 
 const DPR=()=>Math.min(2,window.devicePixelRatio||1);
-function iconCell(g,px){
- const size=16*px, d=DPR(), n=Math.round(size*d);
+/* size is in CSS pixels; the backing store is a whole multiple of it so
+   that a sprite shown at or above its own size lands on exact pixels */
+function iconCell(g,size){
+ const d=DPR(), n=Math.round(size*d);
  const c=document.createElement('canvas');
  c.width=n; c.height=n; c.style.width=size+'px'; c.style.height=size+'px';
- const q=c.getContext('2d');
- q.imageSmoothingEnabled=true; q.imageSmoothingQuality='high';
- q.drawImage(gearArt(g,n>80?128:64,false),0,0,n,n);
+ blitGear(c.getContext('2d'),g,false,0,0,n);
  return c;
 }
 function drawSlots(){
@@ -2245,7 +1951,7 @@ function drawSlots(){
   d.className='pslot'+(g?' on':'');
   const box=document.createElement('div');
   box.style.cssText='width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center';
-  if(g) box.appendChild(iconCell(g,2));
+  if(g) box.appendChild(iconCell(g,32));
   else box.innerHTML='<span style="color:#3a4a60;font-size:16px">·</span>';
   const t=document.createElement('div'); t.className='pslotxt';
   t.innerHTML='<b>'+SLOTNAME[sl]+'</b><span style="color:'+(g?RAR[g[2]][1]:'#4a5a70')+'">'
@@ -2278,7 +1984,7 @@ function drawGrid(){
   const d=document.createElement('div');
   d.className='cell'+(has?'':' locked')+((S.eq&&S.eq[CAT2SLOT[g[1]]]===g.id)?' eq':'');
   if(has) d.style.borderColor=RAR[g[2]][1];
-  d.appendChild(iconCell(g,5));
+  d.appendChild(iconCell(g,CELL()));
   if(n>1){const s=document.createElement('span'); s.className='dup'; s.textContent='x'+n; d.appendChild(s);}
   d.onclick=()=>{psel=g; if(has) equip(g); else drawPack();};
   G.appendChild(d);
@@ -2295,12 +2001,11 @@ function drawDetail(){
  const g=psel, has=owned(g.id), R=RAR[g[2]], n=owned(g.id);
  const art=document.createElement('div'); art.className='dart';
  if(has){
-  const d=DPR(), px=Math.round(112*d);
+  const d=DPR(), px=Math.round(128*d);
   const c=document.createElement('canvas');
-  c.width=px; c.height=px; c.style.width='112px'; c.style.height='112px';
-  const q=c.getContext('2d');
-  q.imageSmoothingEnabled=true; q.imageSmoothingQuality='high';
-  q.drawImage(gearArt(g,128,false),0,0,px,px);
+  c.width=px; c.height=px; c.style.width='128px'; c.style.height='128px';
+  c.style.imageRendering='pixelated';
+  blitGear(c.getContext('2d'),g,false,0,0,px);
   art.appendChild(c);
  }else art.innerHTML='<span class="dq">?</span>';
  art.style.borderColor=has?R[1]:'#2b3a50';
