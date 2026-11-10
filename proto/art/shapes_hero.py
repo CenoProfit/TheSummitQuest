@@ -8,6 +8,7 @@
      11-15   body layers,  chest shapes 0-4
      16-19   feet layers,  boot shapes 0-3
      20      a plain walking stick, carried when the hand is empty
+     21      his hands, drawn over the gear so he grips it
 
    Proportions: he stands 58 of the 64 rows and is 30 wide at the
    shoulder. The first attempt made him as wide as he was tall and he
@@ -60,6 +61,24 @@ def body(step):
 def fin(g):
     g = ao(g); g = rim(g); g = dither(g); g = despeckle(g)
     return dump(softline(outline(g)))
+
+def hands():
+    """Just his hands, drawn OVER whatever he is carrying so his fingers
+       close around the grip. Skin only, never the sleeve, because the
+       sleeve belongs to whichever chest piece he has on and this layer
+       has to sit correctly under all of them."""
+    g = blank()
+    for k in (-1, 1):
+        cx = CX + k * 13
+        disc(g, cx, WAIST + 2.5, 4.2, 'm')
+        poly(g, [(cx - k*1.0, WAIST - 1.0), (cx + k*3.6, WAIST + 0.6),
+                 (cx + k*3.2, WAIST + 3.2), (cx - k*1.4, WAIST + 2.0)], 'm')
+    g = model(g)
+    for k in (-1, 1):
+        cx = CX + k * 13
+        line_on(g, cx - 3.4, WAIST + 1.0, cx + 3.4, WAIST + 1.0, 'u', 'm', 0.9)
+        line_on(g, cx - 3.0, WAIST + 3.4, cx + 3.0, WAIST + 3.4, 'u', 'm', 0.9)
+    return fin(g)
 
 def stick():
     g = blank()
@@ -242,5 +261,5 @@ SHAPES = [body(0), body(1), body(2), hat()]
 SHAPES += [f() for f in (H_hood, H_horned, H_great, H_crown, H_brim, H_barbute, H_cap)]
 SHAPES += [f() for f in (B_cuirass, B_scale, B_robe, B_banded, B_carapace)]
 SHAPES += [F(HEM - 1)(), F(HEM - 4, knee=True)(), F(GROUND - 7)(), F(HEM - 1, cuff=True)()]
-SHAPES += [stick()]
+SHAPES += [stick(), hands()]
 P.setsize(96)

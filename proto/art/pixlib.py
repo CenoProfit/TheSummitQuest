@@ -175,6 +175,92 @@ def wrap(g, x0, y0, x1, y1, w, n=5, ch='j'):
             line_on(g, cx + px * w * 0.6, cy + py * w * 0.6,
                        cx - px * w * 0.6, cy - py * w * 0.6, ch, src, 1.1)
 
+def gem(g, cx, cy, r, ch='C', cut=6):
+    """A cut stone: a dark girdle, facets radiating from a bright table,
+       and a single spark where the light hits it."""
+    import math as _m
+    disc(g, cx, cy, r, 'x')
+    disc(g, cx, cy, r * 0.82, ch)
+    for i in range(cut):
+        a = i * 2 * _m.pi / cut + 0.4
+        line_on(g, cx, cy, cx + _m.cos(a) * r * 0.8, cy + _m.sin(a) * r * 0.8, 'x', ch, 0.8)
+    disc(g, cx - r * 0.22, cy - r * 0.22, r * 0.40, 'Y')
+    disc(g, cx - r * 0.34, cy - r * 0.34, r * 0.18, 'Z')
+
+def cordwrap(g, x0, y0, x1, y1, w, n=7):
+    """Criss-cross binding on a grip, which is what a wrapped hilt looks
+       like close up: two opposing diagonals, not a ladder of bars."""
+    px, py = _perp(x0, y0, x1, y1)
+    for i in range(n):
+        t0 = i / float(n); t1 = (i + 0.9) / float(n)
+        for sgn in (1, -1):
+            ax = x0 + (x1 - x0) * t0 + px * sgn * w * 0.55
+            ay = y0 + (y1 - y0) * t0 + py * sgn * w * 0.55
+            bx = x0 + (x1 - x0) * t1 - px * sgn * w * 0.55
+            by = y0 + (y1 - y0) * t1 - py * sgn * w * 0.55
+            for src, ch in (('G', 'H'), ('H', 'K'), ('g', 'G')):
+                line_on(g, ax, ay, bx, by, ch, src, 1.0)
+    line_on(g, x0 - px * w * 0.5, y0 - py * w * 0.5,
+               x1 - px * w * 0.5, y1 - py * w * 0.5, 'j', 'G', 0.9)
+
+def etch(g, x0, y0, x1, y1, n=4, inset=0.30, body='A'):
+    """Engraving down the centre of a blade: short marks, not a line."""
+    for i in range(n):
+        t = inset + (1 - inset * 1.7) * (i + 0.5) / n
+        cx = x0 + (x1 - x0) * t; cy = y0 + (y1 - y0) * t
+        px, py = _perp(x0, y0, x1, y1)
+        line_on(g, cx - px * 0.9, cy - py * 0.9, cx + px * 0.9, cy + py * 0.9, 'q', body, 1.0)
+        put(g, cx + px * 1.6, cy + py * 1.6, 'W')
+
+def glint(g, x0, y0, x1, y1, at=0.62, w=2.4, body='A'):
+    """the one hot spot where the lamp catches the flat of the blade"""
+    cx = x0 + (x1 - x0) * at; cy = y0 + (y1 - y0) * at
+    px, py = _perp(x0, y0, x1, y1)
+    for k, ch in ((0.0, 'V'), (1.0, 'W'), (-1.0, 'W')):
+        line_on(g, cx + px * k - (x1 - x0) * 0.05, cy + py * k - (y1 - y0) * 0.05,
+                   cx + px * k + (x1 - x0) * 0.05, cy + py * k + (y1 - y0) * 0.05,
+                   ch, body, w * (1.0 if k == 0 else 0.7))
+
+def nails(g, pts, r=1.1):
+    for (x, y) in pts:
+        disc(g, x, y, r, 'x'); put(g, x - r * 0.4, y - r * 0.4, 'Y')
+
+def furtrim(g, pts, r=2.6, ch='G', hi='H'):
+    """tufts breaking an outline so it stops being a smooth curve"""
+    for i, (x, y) in enumerate(pts):
+        disc(g, x, y, r * (0.75 + 0.35 * ((i * 7) % 3) / 2.0), ch)
+        put(g, x - r * 0.3, y - r * 0.4, hi)
+
+def featherrows(g, x0, y0, x1, y1, rows=4, spread=7, body='A'):
+    """layered coverts on a wing: a scalloped dark edge per row"""
+    for r in range(rows):
+        t = (r + 1) / float(rows + 1)
+        ox = (x1 - x0) * 0.0 + spread * (t - 0.5) * 0.3
+        oy = spread * t
+        for i in range(7):
+            u = (i + 0.5) / 7
+            cx = x0 + (x1 - x0) * u + ox
+            cy = y0 + (y1 - y0) * u + oy
+            disc(g, cx, cy, 1.5, body)
+            put(g, cx, cy + 1.5, 'd')
+            put(g, cx - 1, cy - 1, 'B')
+
+def clawrow(g, cx, cy, k, n=3, L=5.0, ch='C'):
+    import math as _m
+    for i in range(n):
+        a = -0.5 + i * 0.5
+        poly(g, [(cx, cy), (cx + k * _m.cos(a) * L, cy + _m.sin(a) * L - 1),
+                 (cx + k * _m.cos(a) * L * 0.6, cy + _m.sin(a) * L * 0.6 + 1.6)], ch)
+
+def hornridge(g, x0, y0, x1, y1, n=5, ch='C'):
+    """growth rings up a horn, the thing that stops it reading as a cone"""
+    for i in range(n):
+        t = (i + 0.5) / n
+        cx = x0 + (x1 - x0) * t; cy = y0 + (y1 - y0) * t
+        px, py = _perp(x0, y0, x1, y1)
+        w = 2.6 * (1 - t) + 0.8
+        line_on(g, cx - px * w, cy - py * w, cx + px * w, cy + py * w, 'x', ch, 1.0)
+
 def flute(g, x0, y0, x1, y1, n=3, spread=6, body='A', bow=0.0):
     """Parallel grooves down a plate: a dark channel with a lit ridge
        beside it, which is what makes a breastplate read as hammered

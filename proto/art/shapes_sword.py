@@ -10,26 +10,37 @@ P = (0.7071,  0.7071)      # across it
 def along(B, t):  return (B[0] + U[0]*t, B[1] + U[1]*t)
 def across(B, t): return (B[0] + P[0]*t, B[1] + P[1]*t)
 
-def hilt(g, B, grip=12, pom=3.4, bands=4, pomshape='disc'):
+def hilt(g, B, grip=12, pom=3.4, bands=4, pomshape='disc', stone=True):
+    """Grip, ferrule and pommel. The binding is a criss-cross, which is
+       what a wrapped hilt actually looks like, and the pommel carries a
+       cut stone, which is where the eye lands on a weapon icon."""
     a = along(B, -2); b = along(B, -grip)
     haft(g, a[0], a[1], b[0], b[1], 5)
-    wrap(g, a[0], a[1], b[0], b[1], 5, bands)
+    cordwrap(g, a[0], a[1], b[0], b[1], 5, bands + 3)
+    f = along(B, -3)
+    taper(g, across(f, -3.2)[0], across(f, -3.2)[1],
+             across(f, 3.2)[0], across(f, 3.2)[1], 3.0, 3.0, 'C')
     p = along(B, -(grip + 3.5))
     if pomshape == 'disc':
-        disc(g, p[0], p[1], pom, 'C')
+        disc(g, p[0], p[1], pom + 0.6, 'c'); disc(g, p[0], p[1], pom, 'C')
     else:
         poly(g, [across(p, -pom), along(p, -pom), across(p, pom), along(p, pom)], 'C')
-    put(g, p[0] - 1, p[1] - 1, 'W')
+    if stone: gem(g, p[0], p[1], pom * 0.62, 'A', 5)
+    else: put(g, p[0] - 1, p[1] - 1, 'Z')
 
-def quillons(g, B, half=8, thick=4.2, knuckle=2.1, curve=0.0):
+def quillons(g, B, half=8, thick=4.2, knuckle=2.1, curve=0.0, langet=True):
     l = across(B, -half); r = across(B, half)
     if curve:
         l = (l[0] + U[0]*curve, l[1] + U[1]*curve)
         r = (r[0] + U[0]*curve, r[1] + U[1]*curve)
     taper(g, l[0], l[1], r[0], r[1], thick, thick, 'C')
+    if langet:                       # the tongue of brass up onto the blade
+        t = along(B, 5)
+        taper(g, B[0], B[1], t[0], t[1], thick * 0.72, thick * 0.34, 'C')
     if knuckle:
         stud(g, l[0], l[1], knuckle); stud(g, r[0], r[1], knuckle)
-    line_on(g, l[0], l[1]-1, r[0], r[1]-1, 'c', 'C')
+    line_on(g, l[0], l[1]-1, r[0], r[1]-1, 'Z', 'C')
+    line_on(g, l[0], l[1]+1.4, r[0], r[1]+1.4, 'x', 'C')
 
 def wavy(g, B, T, amp=2.6, n=6):
     """bite alternating scallops out of both edges of a finished blade"""
@@ -49,6 +60,8 @@ def s_arming():
     hilt(g, B)
     blade(g, B[0], B[1], T[0], T[1], 9, 2.0, 7)
     fuller(g, B[0], B[1], T[0], T[1])
+    etch(g, B[0], B[1], T[0], T[1], 4)
+    glint(g, B[0], B[1], T[0], T[1], 0.58, 2.6)
     quillons(g, B)
     return g
 
@@ -72,6 +85,8 @@ def s_great():
     hilt(g, B, 17, 4.2, 6)
     blade(g, B[0], B[1], T[0], T[1], 12, 2.4, 9)
     fuller(g, B[0], B[1], T[0], T[1])
+    etch(g, B[0], B[1], T[0], T[1], 6)
+    glint(g, B[0], B[1], T[0], T[1], 0.55, 3.2)
     r = along(B, 5)                                             # ricasso
     taper(g, B[0], B[1], r[0], r[1], 7, 7, 'G')
     quillons(g, B, 12, 4.6, 2.6)
@@ -82,6 +97,7 @@ def s_flamberge():
     hilt(g, B, 12, 3.2, 4)
     blade(g, B[0], B[1], T[0], T[1], 10, 2.2, 7)
     wavy(g, B, T)
+    glint(g, B[0], B[1], T[0], T[1], 0.62, 2.4)
     g = shadeform(g)
     line_on(g, B[0]+2, B[1]-4, T[0]-3, T[1]+3, 'W', 'A')
     quillons(g, B, 9, 4.0, 2.2, curve=2.5)
@@ -91,6 +107,7 @@ def s_rapier():
     g = blank(); B = (20, 46); T = (57, 8)
     hilt(g, B, 13, 2.8, 5)
     blade(g, B[0], B[1], T[0], T[1], 4.4, 1.6, 9)
+    glint(g, B[0], B[1], T[0], T[1], 0.55, 1.4)
     # swept basket of brass curves around the grip
     for k in (1, -1):
         for r in (7.5, 11.0):
@@ -113,7 +130,7 @@ def s_cleaver():
 
 def s_katana():
     g = blank(); B = (19, 48)
-    hilt(g, B, 16, 0, 6)
+    hilt(g, B, 16, 0, 7, stone=False)
     pts = [(B[0] + 38*(i/10)**1.0, B[1] - 40*(i/10) + 5*math.sin(math.pi*i/10)) for i in range(11)]
     for i in range(len(pts)-1):
         taper(g, pts[i][0], pts[i][1], pts[i+1][0], pts[i+1][1],
@@ -122,7 +139,11 @@ def s_katana():
     g = shadeform(g)
     for i in range(len(pts)-1):
         line_on(g, pts[i][0]+2, pts[i][1]-2.4, pts[i+1][0]+2, pts[i+1][1]-2.4, 'W', 'A')
-    ring(g, B[0], B[1], 6.5, 2.6, 'C'); disc(g, B[0], B[1], 4.2, 'C')   # tsuba
+    ring(g, B[0], B[1], 7.0, 2.8, 'C'); disc(g, B[0], B[1], 4.6, 'C')   # tsuba
+    for i in range(6):
+        import math as _m
+        a = i * _m.pi / 3
+        disc(g, B[0] + _m.cos(a) * 4.6, B[1] + _m.sin(a) * 4.6, 1.0, 'x')
     p = along(B, -17.5); poly(g, [across(p,-3.4), along(p,-3.4), across(p,3.4), along(p,3.4)], 'C')
     return g
 
@@ -130,6 +151,7 @@ def s_broken():
     g = blank(); B = (21, 44)
     hilt(g, B, 12, 3.2, 3)
     blade(g, B[0], B[1], 42, 23, 10.5, 7.5, 0)
+    etch(g, B[0], B[1], 42, 23, 3, 0.22)
     # the snapped end, bitten into a jagged edge
     for k, r in ((-4.0, 3.2), (0.0, 4.0), (4.5, 3.0)):
         c = across(along(B, 23), k)
