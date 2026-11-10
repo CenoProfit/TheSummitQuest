@@ -1004,7 +1004,49 @@ function auraOf(item){
 }
 const _rgba=(c,a)=>'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';
 
+/* A staff and a shield do not have an edge for a flame to run along,
+   and giving them one looked like the thing was on fire for no reason.
+   They get spectral light instead: the piece's own silhouette, blown
+   out a little and painted in its aura colour, laid over a soft field
+   that breathes. It glows as the SHAPE it is rather than throwing
+   tongues off a notional blade. */
+const GLOWSIL=new Map();
+function glowSil(item){
+ const hit=GLOWSIL.get(item.id); if(hit) return hit;
+ const a=gearArt(item,false), n=a.width;
+ const c=document.createElement('canvas'); c.width=n; c.height=n;
+ const q=c.getContext('2d');
+ q.drawImage(a,0,0);
+ q.globalCompositeOperation='source-in';
+ const C=AURA[auraOf(item)||'arcane'].c[1];
+ q.fillStyle='rgb('+C[0]+','+C[1]+','+C[2]+')';
+ q.fillRect(0,0,n,n);
+ GLOWSIL.set(item.id,c); return c;
+}
+function drawGlow(ctx,item,x,y,span,t){
+ const A=AURA[auraOf(item)||'arcane'], C=A.c;
+ const p=carryOf(item), s=span*p[2];
+ const bx=x+span*p[0], by=y+span*p[1];
+ const pulse=0.70+0.30*Math.sin(t*0.0015);
+ const cx=bx+s*0.5, cy=by+s*0.5;
+ ctx.save(); ctx.globalCompositeOperation='lighter';
+ const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,s*0.60);
+ rg.addColorStop(0,   _rgba(C[1],(0.30*pulse).toFixed(3)));
+ rg.addColorStop(0.46,_rgba(C[2],(0.15*pulse).toFixed(3)));
+ rg.addColorStop(1,   _rgba(C[3],0));
+ ctx.fillStyle=rg; ctx.fillRect(cx-s*0.72,cy-s*0.72,s*1.44,s*1.44);
+ const sil=glowSil(item);
+ ctx.imageSmoothingEnabled=true;
+ for(const [k,a] of [[1.14,0.16],[1.07,0.22],[1.00,0.26]]){
+  const d=s*(k-1)/2;
+  ctx.globalAlpha=a*pulse;
+  ctx.drawImage(sil,bx-d,by-d,s*k,s*k);
+ }
+ ctx.globalAlpha=1; ctx.imageSmoothingEnabled=false;
+ ctx.restore();
+}
 function drawAura(ctx,item,anchor,x,y,span,size,t){
+ if(item[1]==='staff'||item[1]==='shield'){ drawGlow(ctx,item,x,y,span,t); return; }
  const A=AURA[auraOf(item)||'arcane'], C=A.c;
  const cp=carryOf(item), s=span*cp[2];
  /* A shield has no point to run a flame along, so it burns up its face
@@ -2314,6 +2356,21 @@ function paintDart(){
  /* the showcase holds the piece a little smaller so the flame has room */
  const s=A?0.80:1.0, o=Math.round(px*(1-s)/2);
  if(A&&g[1]==='helm') drawHalo(q,g,px*0.5,px*0.44,px*0.38,performance.now());
+ else if(A&&(g[1]==='staff'||g[1]==='shield')){
+  const C=AURA[A].c, cx=px*0.5, cy=px*0.5, pulse=0.70+0.30*Math.sin(performance.now()*0.0015);
+  q.save(); q.globalCompositeOperation='lighter';
+  const rg=q.createRadialGradient(cx,cy,0,cx,cy,px*0.52);
+  rg.addColorStop(0,_rgba(C[1],(0.34*pulse).toFixed(3)));
+  rg.addColorStop(0.46,_rgba(C[2],(0.17*pulse).toFixed(3)));
+  rg.addColorStop(1,_rgba(C[3],0));
+  q.fillStyle=rg; q.fillRect(0,0,px,px);
+  const sil=glowSil(g); q.imageSmoothingEnabled=true;
+  for(const [k,a] of [[1.12,0.18],[1.06,0.24],[1.00,0.28]]){
+   const d=px*s*(k-1)/2; q.globalAlpha=a*pulse;
+   q.drawImage(sil,o-d,o-d,px*s*k,px*s*k);
+  }
+  q.globalAlpha=1; q.restore();
+ }
  else if(A) drawAura(q,g,[0.5,0.5],o,o,px*s,1.0,performance.now());
  blitGear(q,g,false,o,o,Math.round(px*s));
 }
