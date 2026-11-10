@@ -664,6 +664,35 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 }
 /* ── LAUNCHER ── */
 #world{display:none}
+/* ---- trek mode ---- */
+.trekbar{display:flex;align-items:center;gap:13px;width:100%;margin:0 0 9px;
+ padding:15px 16px;cursor:pointer;text-align:left;
+ background:linear-gradient(100deg,rgba(60,46,12,.80),rgba(20,32,24,.74));
+ border:3px solid var(--gold);color:var(--ink);
+ box-shadow:0 0 0 3px var(--bg),0 0 0 5px #6b5520,4px 4px 0 5px rgba(0,0,0,.45)}
+.trekbar:hover{background:linear-gradient(100deg,rgba(78,60,16,.88),rgba(26,40,30,.80))}
+.trekbar:active{transform:translate(2px,2px)}
+.tb-i{font-size:26px;flex:0 0 auto;line-height:1}
+.tb-txt{flex:1;min-width:0}
+.tb-t{display:block;font-family:var(--pix);font-size:14px;letter-spacing:3px;
+ color:var(--gold);text-shadow:2px 2px 0 rgba(0,0,0,.75);line-height:1.5}
+.tb-s{display:block;margin-top:7px;font-size:12px;color:#cdbb8e;line-height:1.5}
+.tb-go{flex:0 0 auto;font-family:var(--pix);font-size:12px;color:var(--gold)}
+@media(max-width:480px){
+ .tb-t{font-size:11px;letter-spacing:2px}
+ .tb-s{font-size:11px}
+ .tb-i{font-size:21px}
+}
+#trekWrap{position:fixed;inset:0;z-index:10002;display:none;
+ flex-direction:column;background:#05080e}
+#trekWrap.open{display:flex}
+.tw-bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;
+ padding:max(7px,env(safe-area-inset-top)) 11px 7px;
+ background:var(--solid);border-bottom:2px solid var(--edge)}
+.tw-x{flex:0 0 auto;width:auto;padding:8px 11px}
+.tw-t{flex:1;text-align:right;font-family:var(--pix);font-size:9px;
+ letter-spacing:2px;color:var(--gold)}
+#trekFrame{flex:1;width:100%;border:0;display:block;background:#080d14}
 body.launcher #world{display:block}
 body.launcher #hudBox,body.launcher #navBar,body.launcher .screen{display:none!important}
 .w-profile{padding:11px 13px;margin-bottom:9px}
@@ -883,6 +912,19 @@ function sqDailyQuote(){
  if(seen){s.style.display='none';return;}
  try{sessionStorage.setItem('sq_splash','1');}catch(e){}})();
 </script>
+<!-- ── TREK MODE: the step driven walk, in its own document ──
+     It is its own 480 KB page with its own renderer, so it is loaded in
+     a frame the first time it is opened rather than parsed at startup,
+     and it keeps its own save. The bar sits above it instead of over
+     it, because Trek's own HUD already owns the top of its screen. -->
+<div id="trekWrap" aria-hidden="true">
+  <div class="tw-bar">
+    <button class="btn tw-x" id="trekBack">◀ SUMMIT QUEST</button>
+    <span class="tw-t">🥾 TREK MODE</span>
+  </div>
+  <iframe id="trekFrame" title="Trek Mode"></iframe>
+</div>
+
 <div id="tutorial" aria-hidden="true">
  <div class="tut-card" id="tutCard">
   <button class="tut-x" id="tutX" aria-label="Close tutorial">✕</button>
@@ -908,6 +950,14 @@ function sqDailyQuote(){
       <div class="hud-stats"><b id="wpXP">0</b> XP · <b id="wpBadges">0</b> ★ · <b id="wpSlain">0</b> ☠</div>
     </div>
   </div>
+  <button class="trekbar" id="trekBtn">
+    <span class="tb-i">🥾</span>
+    <span class="tb-txt">
+      <span class="tb-t">TREK MODE</span>
+      <span class="tb-s">walk the Appalachian Trail with the steps you take anyway</span>
+    </span>
+    <span class="tb-go">▶</span>
+  </button>
   <div class="frame w-frame">
     <div class="w-head">
       <span class="w-title">◈ CHOOSE YOUR REGION</span>
@@ -8567,6 +8617,30 @@ window.addEventListener('hashchange',()=>location.reload());
    every sample panel is built from the game's own CSS classes with worked
    example content. That also means the panels cannot drift out of date the way
    captured screenshots would. */
+/* ---- trek mode ----
+   The frame's src is set on the first open, not up front: Trek is its
+   own half megabyte document and there is no reason to parse it for
+   someone who never taps the bar. */
+(()=>{
+ const wrap=document.getElementById('trekWrap');
+ const frame=document.getElementById('trekFrame');
+ const bar=document.getElementById('trekBtn');
+ const back=document.getElementById('trekBack');
+ if(!wrap||!frame||!bar) return;
+ const open=()=>{
+  if(!frame.getAttribute('src')) frame.setAttribute('src','trek.html');
+  wrap.classList.add('open'); wrap.setAttribute('aria-hidden','false');
+ };
+ const close=()=>{
+  wrap.classList.remove('open'); wrap.setAttribute('aria-hidden','true');
+ };
+ bar.addEventListener('click',open);
+ if(back) back.addEventListener('click',close);
+ addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&wrap.classList.contains('open')) close();
+ });
+})();
+
 const TUT_MARK=(()=>{const m=document.querySelector('.splashmark');
  return m?m.getAttribute('src'):'';})();
 const TUT_PAGES=[
@@ -8586,6 +8660,37 @@ const TUT_PAGES=[
   <div class="tut-kicker">THE TRAIL IS THE GAME</div>
   <div class="tut-sig">— Yaseen Hegab</div>
  </div>`},
+{h:'TWO WAYS TO PLAY',html:`
+ <p class="tut-p">Summit Quest is two games that feed each other, and they ask different
+  things of you.</p>
+ <div class="tut-shot">
+  <div style="display:flex;gap:11px;align-items:flex-start;text-align:left">
+   <span style="font-size:24px;line-height:1">🗺</span>
+   <div>
+    <div style="font-family:var(--pix);font-size:10px;letter-spacing:2px;color:var(--gold);line-height:1.6">THE HIKING MAP</div>
+    <p class="tut-p" style="margin:7px 0 0">482 real places, each one a banner planted where it
+     actually is. You clear a destination by <b>standing there</b>. The phone checks. That is
+     the whole game: the XP, the ranks, the badges and the bosses all come out of trips you
+     really took. It asks for a day.</p>
+   </div>
+  </div>
+ </div>
+ <div class="tut-shot">
+  <div style="display:flex;gap:11px;align-items:flex-start;text-align:left">
+   <span style="font-size:24px;line-height:1">🥾</span>
+   <div>
+    <div style="font-family:var(--pix);font-size:10px;letter-spacing:2px;color:var(--gold);line-height:1.6">TREK MODE</div>
+    <p class="tut-p" style="margin:7px 0 0">The 2,197 miles of the Appalachian Trail, walked
+     with <b>every step you take anyway</b>. Your step count moves a climber north from
+     Springer Mountain: through the real landmarks at their real mileages, past the things
+     that live on the ridge, and on toward Katahdin. It asks for nothing but the walking you
+     already do.</p>
+   </div>
+  </div>
+ </div>
+ <p class="tut-p">The map is for the days you go out. Trek is for every other day. You will
+  find Trek on the region screen, under your lifetime progress.</p>
+ <div class="tut-cap">Nothing in either one is unlocked by staring at your phone.</div>`},
 {h:'1 · PICK A REGION',html:`
  <p class="tut-p">The launcher opens on a map of the country with a pin on every region.
   Tap a pin or a card to drop in. Your progress is kept separately for each one, so
