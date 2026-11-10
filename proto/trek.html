@@ -2482,7 +2482,12 @@ function paint(now,dt){
      it on a climb, so the band is clamped: coming off a summit he was
      being drawn underneath the bottom frame. */
   const lo=hzY+0.46*(H-hzY), hi=hzY+0.64*(H-hzY);
-  const sy=Math.max(lo,Math.min(hi,hzY+(camZ-hAt(cx,wy))*sc));
+  const rawSy=hzY+(camZ-hAt(cx,wy))*sc;
+  const sy=Math.max(lo,Math.min(hi,rawSy));
+  /* How far the clamp moved him. Anything that walks with him moves
+     the same amount, or it keeps its own honest position while he is
+     held and the two drift into each other. */
+  const slide=sy-rawSy;
   const pxH=Math.max(26,11*sc*CHAR);
   const bob=Math.sin(walkPhase*Math.PI*0.5)*pxH*0.030;
   g.fillStyle='rgba(10,16,30,.34)';
@@ -2514,8 +2519,14 @@ function paint(now,dt){
    const pdd=dd*0.74, psc=FOC/pdd;
    const pwy=camY-pdd, pcx=trailX(pwy)+Math.sin(now*0.00052)*3.0;
    const psx=W*0.5+(pcx-camX)*psc;
-   const psy=hzY+(camZ-hAt(pcx,pwy))*psc;
    const pz=Math.max(10,11*psc*CHAR*0.52);
+   /* It walks a little behind him, which on flat ground is about
+      fifty pixels lower on the screen. On a steep climb the ground
+      under HIS feet is well above the camera and the clamp holds him
+      down, so an unshifted companion came out 46 pixels ABOVE him and
+      read as sitting on his shoulders. It takes the same slide, and
+      then is kept below his feet whatever the ground does. */
+   const psy=Math.max(hzY+(camZ-hAt(pcx,pwy))*psc+slide, sy+pxH*0.30);
    const pb=Math.sin(walkPhase*Math.PI*0.5+1.2)*pz*0.05;
    g.fillStyle='rgba(10,16,30,.30)';
    g.fillRect(Math.round(psx-pz*0.22),Math.round(psy-pz*0.02),
