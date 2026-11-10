@@ -67,25 +67,20 @@ def body(step):
     return dump(softline(outline(g)))
 
 def H_crown_grand():
-    """the legendary crown, worn: arches, points and the orb on top"""
+    """the legendary crown, worn: the classic circlet, five points"""
     g = blank()
-    for (px, top) in ((CX-10, HEAD_Y-4), (CX-5, HEAD_Y-9), (CX, HEAD_Y-13),
-                      (CX+5, HEAD_Y-9), (CX+10, HEAD_Y-4)):
-        poly(g, [(px - 3.4, HEAD_Y + 4), (px - 2.0, top + 3), (px, top),
-                 (px + 2.0, top + 3), (px + 3.4, HEAD_Y + 4)], 'C')
-        stud(g, px, top - 0.8, 1.5, 'A', 'W')
-    for k in (-1, 1):
-        line(g, CX + k*9, HEAD_Y - 5, CX + k*4, HEAD_Y - 12, 'C', 2)
-        line(g, CX + k*4, HEAD_Y - 12, CX, HEAD_Y - 13, 'C', 2)
-    disc(g, CX, HEAD_Y - 15, 2.4, 'C')
-    poly(g, [(CX - 2, HEAD_Y - 18), (CX + 2, HEAD_Y - 18),
-             (CX + 2, HEAD_Y - 16), (CX - 2, HEAD_Y - 16)], 'C')
-    poly(g, [(CX - 11, HEAD_Y + 1), (CX + 11, HEAD_Y + 1),
-             (CX + 11, HEAD_Y + 6), (CX - 11, HEAD_Y + 6)], 'C')
+    pts = [(CX-12, HEAD_Y+2), (CX-9, HEAD_Y-6), (CX-6, HEAD_Y-1),
+           (CX-3, HEAD_Y-10), (CX, HEAD_Y-4), (CX+3, HEAD_Y-10),
+           (CX+6, HEAD_Y-1), (CX+9, HEAD_Y-6), (CX+12, HEAD_Y+2)]
+    poly(g, pts + [(CX+12, HEAD_Y+7), (CX-12, HEAD_Y+7)], 'C')
+    poly(g, [(CX-12, HEAD_Y+1), (CX+12, HEAD_Y+1),
+             (CX+12, HEAD_Y+7), (CX-12, HEAD_Y+7)], 'C')
     g = model(g)
-    line_on(g, CX - 11, HEAD_Y + 2, CX + 11, HEAD_Y + 2, 'Z', 'C', 0.9)
-    line_on(g, CX - 11, HEAD_Y + 5, CX + 11, HEAD_Y + 5, 'x', 'C', 0.9)
-    for gx in (-6, 0, 6): gem(g, CX + gx, HEAD_Y + 3.5, 2.2, 'A', 5)
+    for (px, top) in ((CX-9, HEAD_Y-6), (CX-3, HEAD_Y-10), (CX+3, HEAD_Y-10), (CX+9, HEAD_Y-6)):
+        stud(g, px, top + 0.8, 1.6, 'A', 'W')
+    line_on(g, CX-12, HEAD_Y+2, CX+12, HEAD_Y+2, 'Z', 'C', 0.9)
+    line_on(g, CX-12, HEAD_Y+6, CX+12, HEAD_Y+6, 'x', 'C', 0.9)
+    for gx in (-7, 0, 7): gem(g, CX + gx, HEAD_Y + 4, 2.4, 'A', 5)
     return fin(g)
 
 def fin(g):
