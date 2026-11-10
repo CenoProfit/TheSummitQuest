@@ -74,34 +74,42 @@ def _tree(lean, crown, vines, seed):
              (CX - 12, 60), (CX - 11, 44)], 'G')
     _bark(g, CX - 10, CX + 10, 25, 60, 9)
     # limbs forking up and out
+    # Clamped. The forks recurse upward and the second generation was
+    # reaching y of about 2.6, which with the taper's width and the
+    # outline pass put bark in row 0 of the frame: the crown looked
+    # sawn off flat and it was the branches doing it, not the leaves.
     def limb(x0, y0, x1, y1, w, d=2):
+        y1 = max(7.0, y1)
         taper(g, x0, y0, x1, y1, w, max(1.8, w * 0.44), 'G')
         if d <= 0: return
         dx, dy = x1 - x0, y1 - y0
         for k in (-1, 1):
             limb(x1, y1, x1 + dx * 0.5 + k * dy * 0.58,
                  y1 + dy * 0.5 - k * dx * 0.26, w * 0.56, d - 1)
-    limb(CX - 5, 26, CX - 20, 13, 9.0)
-    limb(CX + 5, 26, CX + 21, 14, 9.0)
-    limb(CX, 24, CX + 2, 8, 7.5)
+    limb(CX - 5, 26, CX - 20, 16, 9.0)
+    limb(CX + 5, 26, CX + 21, 17, 9.0)
+    limb(CX, 24, CX + 2, 12, 7.5)
     # the crown: a dark mass, then lit clumps on the upper left
+    # Every clump is held far enough down that its own radius still
+    # fits inside the frame. Without the clamp the big dark ones reach
+    # to about y=-12 and the crown comes out with a flat top where the
+    # sprite's edge cut it off.
+    def hold(cy, rr): return max(rr + 2.0, cy)
     for i in range(crown):
         a = i * 0.83 + seed
         rr = 7 + (i * 5) % 6
         cx = CX + math.cos(a) * (12 + (i % 7) * 2.8)
-        cy = 13 + math.sin(a) * (6 + (i % 5) * 1.9)
-        _clump(g, cx, cy, rr, 'd')
+        _clump(g, cx, hold(15 + math.sin(a) * (6 + (i % 5) * 1.9), rr), rr, 'd')
     for i in range(crown - 2):
         a = 0.6 + i * 0.79 + seed
         rr = 5 + (i * 3) % 5
         cx = CX + math.cos(a) * (11 + (i % 6) * 2.6)
-        cy = 12 + math.sin(a) * (5 + (i % 4) * 1.8)
-        _clump(g, cx, cy, rr, 'A')
+        _clump(g, cx, hold(14 + math.sin(a) * (5 + (i % 4) * 1.8), rr), rr, 'A')
     for i in range(crown // 2):
         a = 2.6 + i * 0.64 + seed
+        rr = 3 + (i % 3)
         cx = CX + math.cos(a) * (10 + (i % 5) * 2.4) - 2
-        cy = 10 + math.sin(a) * (4 + (i % 3) * 1.6) - 2
-        _clump(g, cx, cy, 3 + (i % 3), 'B')
+        _clump(g, cx, hold(12 + math.sin(a) * (4 + (i % 3) * 1.6), rr), rr, 'B')
     for i in range(4):
         disc(g, CX - 14 + i * 4, 5 + (i % 2) * 2, 2.6, 'W')
     # No notches. Two passes were spent trying to punch gaps in the

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Collect every shapes_*.py module, run-length encode the sprites and
+"""Collect every shapes_*.py module (NOT shapes_boss: the bosses are
+   hand drawn .ase files now and asepack.py handles those), run-length encode the sprites and
    splice them into proto/trek.html.
 
    A 64x64 sprite is 4096 characters and most of them are '.', so the
@@ -80,11 +81,6 @@ def main():
             o.append(c if j-i==1 else c+str(j-i)); i=j
         e=''.join(o); assert unrle(e)==flat
         raw+=4096; enc+=len(e); hero.append('"%s"'%e)
-    B=load('shapes_boss',8)
-    boss=[]
-    for sp in B:
-        e=rle(sp); assert unrle(e)==''.join(sp)
-        raw+=9216; enc+=len(e); boss.append('"%s"'%e)
     SC=load('shapes_scen',4)
     scen=[]
     for sp in SC:
@@ -96,8 +92,8 @@ def main():
         e=rle(sp); assert unrle(e)==''.join(sp)
         raw+=9216; enc+=len(e); encs.append('"%s"'%e)
     out=("\n".join(shape_js)+"\nconst PETALT=[%s];\nconst HERO=[%s];\n"
-         "const BOSSPIX=[%s];\nconst ENCPIX=[%s];\nconst SCENPIX=[%s];\n")%(
-        ",\n  ".join(petB), ",\n  ".join(hero), ",\n  ".join(boss),
+         "const ENCPIX=[%s];\nconst SCENPIX=[%s];\n")%(
+        ",\n  ".join(petB), ",\n  ".join(hero),
         ",\n  ".join(encs), ",\n  ".join(scen))
     s=open(HTML).read()
     a=s.index("const SHAPE={"); b=s.index("/* [name, category",a)
