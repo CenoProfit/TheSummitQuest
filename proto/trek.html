@@ -57,58 +57,101 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .packbtn{position:absolute;right:9px;bottom:9px;flex:0 0 auto;width:auto;
  padding:8px 10px;color:var(--gold);border-color:var(--gold);
  background:rgba(60,46,12,.70)}
-#pack{position:fixed;inset:0;z-index:40;display:none;background:rgba(3,6,11,.94);
- flex-direction:column;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
+#pack{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
+ background:
+  radial-gradient(130% 80% at 50% 0%,rgba(46,62,88,.55),transparent 70%),
+  linear-gradient(180deg,#0a111b 0%,#070c14 60%,#05080e 100%);
+ padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
 #pack.open{display:flex}
-.pbar{display:flex;align-items:center;gap:8px;border-bottom:3px solid var(--edge);
- padding-bottom:9px;margin-bottom:9px}
-.ptitle{font-family:var(--pix);font-size:10px;letter-spacing:2px;color:var(--gold);flex:1}
+#pack::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+ background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
+.pbar{display:flex;align-items:center;gap:10px;padding-bottom:10px;margin-bottom:12px;
+ border-bottom:2px solid var(--edge);position:relative}
+.pbar::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:2px;
+ background:linear-gradient(90deg,var(--gold),transparent 60%);opacity:.35}
+.ptitle{font-family:var(--pix);font-size:11px;letter-spacing:3px;color:var(--gold);flex:1;
+ text-shadow:2px 2px 0 rgba(0,0,0,.8)}
 .pcount{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:1px}
-.pclose{flex:0 0 auto;width:auto;padding:7px 9px}
-.pbody{flex:1;display:flex;gap:10px;min-height:0}
-.pleft{flex:0 0 118px;display:flex;flex-direction:column;gap:6px}
-.pslot{display:flex;align-items:center;gap:7px;border:2px solid var(--edge2);
- background:var(--panel2);padding:5px 6px;cursor:pointer;min-height:36px}
-.pslot.on{border-color:var(--gold)}
+.pclose{flex:0 0 auto;width:auto;padding:7px 11px}
+.pbody{flex:1;display:flex;gap:14px;min-height:0}
+
+/* the left column: a paper doll with the slots either side of it */
+.pleft{flex:0 0 212px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.doll{position:relative;flex:0 0 auto;border:2px solid var(--edge2);
+ background:
+  radial-gradient(70% 55% at 50% 38%,rgba(120,160,210,.16),transparent 70%),
+  linear-gradient(180deg,#0e1724,#0a1018);
+ box-shadow:inset 0 0 0 2px rgba(0,0,0,.5);
+ display:flex;align-items:flex-end;justify-content:center;padding:10px 0 12px;height:168px}
+.doll canvas{image-rendering:pixelated;filter:drop-shadow(0 4px 0 rgba(0,0,0,.45))}
+.dollbase{position:absolute;left:18%;right:18%;bottom:9px;height:6px;border-radius:50%;
+ background:radial-gradient(50% 100% at 50% 50%,rgba(0,0,0,.55),transparent 70%)}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;min-height:0}
+.pslot{display:flex;align-items:center;gap:7px;border:2px solid #243246;
+ background:linear-gradient(180deg,rgba(26,38,54,.75),rgba(14,22,33,.75));
+ padding:5px 6px;cursor:pointer;min-height:40px;position:relative}
+.pslot.on{border-color:var(--gold);
+ box-shadow:inset 0 0 0 1px rgba(245,198,81,.22),0 0 10px rgba(245,198,81,.10)}
+.pslot:active{transform:translate(1px,1px)}
 .pslot canvas{flex:0 0 auto;image-rendering:pixelated}
-.pslotxt{font-size:9px;line-height:1.3;letter-spacing:.5px;overflow:hidden}
-.pslotxt b{display:block;font-family:var(--pix);font-size:6px;color:var(--dim);
+.pslotxt{font-size:9px;line-height:1.3;letter-spacing:.5px;overflow:hidden;min-width:0}
+.pslotxt b{display:block;font-family:var(--pix);font-size:6px;color:#6d7d92;
  letter-spacing:1px;margin-bottom:3px}
-.pslotxt span{color:var(--ink);word-break:break-word}
-.pwiz{border:2px solid var(--edge2);background:var(--panel2);display:flex;
- align-items:center;justify-content:center;padding:8px 0;margin-top:auto}
-.pwiz canvas{image-rendering:pixelated}
+.pslotxt span{color:var(--ink);word-break:break-word;display:block;
+ overflow:hidden;text-overflow:ellipsis}
+
+/* the right column: tabs, grid, and the piece you are looking at */
 .pright{flex:1;display:flex;flex-direction:column;min-width:0}
-.ptabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
-.ptab{font-family:var(--pix);font-size:6px;letter-spacing:1px;padding:6px 5px;
- background:var(--solid2);border:2px solid var(--edge);color:var(--dim);cursor:pointer}
-.ptab.on{border-color:var(--gold);color:var(--gold)}
-.pgrid{flex:1;overflow-y:auto;display:grid;gap:6px;align-content:start;
- justify-content:center;grid-template-columns:repeat(auto-fill,72px);
- border:2px solid var(--edge);background:rgba(8,14,22,.6);padding:6px}
-.cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
- border:2px solid #2b3a50;background:#0c141f;cursor:pointer}
+.ptabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.ptab{font-family:var(--pix);font-size:6px;letter-spacing:1px;padding:7px 7px;
+ background:linear-gradient(180deg,#1b2736,#121a26);border:2px solid #243246;
+ color:#73839a;cursor:pointer}
+.ptab.on{border-color:var(--gold);color:var(--gold);
+ background:linear-gradient(180deg,#3a3016,#231c0c)}
+.pgrid{flex:1;overflow-y:auto;display:grid;gap:7px;align-content:start;
+ justify-content:center;grid-template-columns:repeat(auto-fill,76px);
+ border:2px solid #1d293a;background:rgba(6,11,18,.66);padding:9px;
+ box-shadow:inset 0 2px 10px rgba(0,0,0,.5)}
+.pgrid::-webkit-scrollbar{width:8px}
+.pgrid::-webkit-scrollbar-thumb{background:#243246}
+.cell{position:relative;width:76px;height:76px;display:flex;align-items:center;
+ justify-content:center;border:2px solid #243246;cursor:pointer;
+ background:linear-gradient(180deg,#141f2d,#0c131d)}
 .cell canvas{image-rendering:pixelated}
-.cell.locked{opacity:.42}
-.cell.locked canvas{filter:grayscale(1) brightness(.35)}
-.cell.eq{box-shadow:inset 0 0 0 2px var(--gold)}
-.cell .dup{position:absolute;right:1px;bottom:0;font-family:var(--pix);font-size:6px;
- color:var(--ink);text-shadow:1px 1px 0 #000}
-.pdetail{margin-top:7px;border:2px solid var(--edge);background:var(--panel2);
- padding:8px 9px;min-height:54px;font-size:11px;letter-spacing:.5px;color:var(--dim);
- display:flex;gap:10px;align-items:center}
-.dart{flex:0 0 auto;width:128px;height:128px;border:2px solid #2b3a50;
- background:#0b121c;display:flex;align-items:center;justify-content:center}
+.cell::after{content:'';position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(160deg,rgba(255,255,255,.07),transparent 45%)}
+.cell.locked{opacity:.34}
+.cell.locked canvas{filter:grayscale(1) brightness(.30)}
+.cell.eq{box-shadow:inset 0 0 0 2px var(--gold),0 0 12px rgba(245,198,81,.18)}
+.cell.sel{outline:2px solid #8fb6e8;outline-offset:1px}
+.cell .dup{position:absolute;right:2px;bottom:1px;font-family:var(--pix);font-size:6px;
+ color:var(--ink);text-shadow:1px 1px 0 #000;z-index:2}
+.pdetail{margin-top:9px;border:2px solid #243246;
+ background:linear-gradient(180deg,rgba(26,38,54,.72),rgba(10,16,25,.72));
+ padding:10px;min-height:92px;font-size:11px;letter-spacing:.5px;color:var(--dim);
+ display:flex;gap:12px;align-items:center}
+.dart{flex:0 0 auto;width:112px;height:112px;border:2px solid #2b3a50;
+ background:radial-gradient(60% 60% at 42% 36%,rgba(120,160,210,.14),transparent 70%),#0a1119;
+ display:flex;align-items:center;justify-content:center}
+.dart canvas{image-rendering:pixelated}
 .dq{font-family:var(--pix);font-size:26px;color:#2b3a50}
-.dtxt{flex:1;min-width:0}
-@media(max-width:430px){.dart{width:80px;height:80px}
- .dart canvas{width:80px!important;height:80px!important}}
-.pdetail b{font-family:var(--pix);font-size:8px;letter-spacing:1px;display:block;margin-bottom:5px}
-.pdetail .rr{font-family:var(--pix);font-size:6px;letter-spacing:1px}
-@media(max-width:430px){
- .pleft{flex:0 0 96px}
- .pwiz{display:none}
- .pgrid{grid-template-columns:repeat(auto-fill,54px);gap:4px}
+.dtxt{flex:1;min-width:0;line-height:1.6}
+.dtxt b{font-family:var(--pix);font-size:9px;letter-spacing:1px;display:block;
+ margin-bottom:6px;text-shadow:2px 2px 0 rgba(0,0,0,.7)}
+.rr{font-family:var(--pix);font-size:6px;letter-spacing:1px}
+.wearbtn{display:block;margin-top:10px;font-family:var(--pix);font-size:7px;letter-spacing:1px;
+ padding:8px 12px;background:var(--solid2);color:var(--ink);
+ border:2px solid var(--edge2);cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
+.wearbtn.on{border-color:var(--gold);color:var(--gold)}
+.wearbtn:active{transform:translate(2px,2px);box-shadow:none}
+@media(max-width:560px){
+ .pbody{flex-direction:column;gap:10px}
+ .pleft{flex:0 0 auto;flex-direction:row;gap:8px}
+ .doll{flex:0 0 132px;height:132px}
+ .slots{flex:1;grid-template-columns:1fr 1fr}
+ .pgrid{grid-template-columns:repeat(auto-fill,60px);gap:5px}
+ .cell{width:60px;height:60px}
+ .dart{width:84px;height:84px}
 }
 
 /* ---- chest ---- */
@@ -181,7 +224,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <button class="btn pclose" id="pclose">✕</button>
   </div>
   <div class="pbody">
-    <div class="pleft" id="pleft"></div>
+    <div class="pleft">
+      <div class="doll"><canvas id="doll"></canvas><div class="dollbase"></div></div>
+      <div class="slots" id="pleft"></div>
+    </div>
     <div class="pright">
       <div class="ptabs" id="ptabs"></div>
       <div class="pgrid" id="pgrid"></div>
@@ -884,12 +930,12 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  rg.addColorStop(1,'rgba('+ocs+',0)');
  g.fillStyle=rg; g.fillRect(ox-rr,oy-rr,rr*2,rr*2);
  /* the off hand first, because it hangs behind his arm */
- if(off) blitGear(g,off,false,Math.round(x-dw*0.13),Math.round(y+pxH*0.38),Math.round(pxH*0.40));
+ if(off) blitGear(g,off,false,Math.round(x-dw*0.04),Math.round(y+pxH*0.40),Math.round(pxH*0.36));
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
  g.imageSmoothingEnabled=false;
  /* and the weapon in his hand, which is the icon itself */
- if(hand) blitGear(g,hand,false,Math.round(x+dw*0.50),Math.round(y+pxH*0.10),Math.round(pxH*0.50));
+ if(hand) blitGear(g,hand,false,Math.round(x+dw*0.46),Math.round(y+pxH*0.12),Math.round(pxH*0.48));
 }
 /* ---------- wildlife ---------- */
 /* One species. The hawk was big enough that its silhouette had to hold up
@@ -1185,7 +1231,10 @@ function paint(now,dt){
  }
 
  /* ---- the climber, always in front ---- */
- {const CHAR=1.18;
+ /* He is a 64 pixel sprite now. Drawn at the old 35-odd pixels he
+    read worse than the 14 pixel version did, because downscaling
+    detailed pixel art just muddies it. He stands taller. */
+ {const CHAR=2.05;
   /* pick the depth that puts his feet where we want them on screen, rather
      than fixing the depth and hoping: on a short window a fixed depth lands
      him below the frame */
@@ -1193,11 +1242,11 @@ function paint(now,dt){
   const sc=FOC/dd;
   const wy=camY-dd, cx=trailX(wy);
   const sx=W*0.5+(cx-camX)*sc, sy=hzY+(camZ-hAt(cx,wy))*sc;
-  const pxH=Math.max(10,11*sc*CHAR);
+  const pxH=Math.max(26,11*sc*CHAR);
   const bob=Math.sin(walkPhase*Math.PI*0.5)*pxH*0.030;
   g.fillStyle='rgba(10,16,30,.34)';
-  g.fillRect(Math.round(sx-pxH*0.26),Math.round(sy-pxH*0.03),
-             Math.round(pxH*0.56),Math.max(1,Math.round(pxH*0.07)));
+  g.fillRect(Math.round(sx-pxH*0.19),Math.round(sy-pxH*0.025),
+             Math.round(pxH*0.38),Math.max(1,Math.round(pxH*0.05)));
   climberAt(g,sx,sy+bob,pxH,[0,1,0,2][(walkPhase|0)%4],S2.dark>.45);
  /* the companion keeps pace a stride off his left shoulder */
  const pid=S.eq&&S.eq.pet, pg=pid?BYID[pid]:null;
@@ -1937,28 +1986,33 @@ function drawSlots(){
   const d=document.createElement('div');
   d.className='pslot'+(g?' on':'');
   const box=document.createElement('div');
-  box.style.cssText='width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center';
-  if(g) box.appendChild(iconCell(g,32));
-  else box.innerHTML='<span style="color:#3a4a60;font-size:16px">·</span>';
+  box.style.cssText='width:30px;height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center';
+  if(g) box.appendChild(iconCell(g,30));
+  else box.innerHTML='<span style="color:#32425a;font-size:15px">\u00b7</span>';
   const t=document.createElement('div'); t.className='pslotxt';
-  t.innerHTML='<b>'+SLOTNAME[sl]+'</b><span style="color:'+(g?RAR[g[2]][1]:'#4a5a70')+'">'
+  t.innerHTML='<b>'+SLOTNAME[sl]+'</b><span style="color:'+(g?RAR[g[2]][1]:'#45566e')+'">'
              +(g?g[0]:'empty')+'</span>';
   d.appendChild(box); d.appendChild(t);
-  if(g) d.onclick=()=>equip(g);
+  d.onclick=()=>{ if(g){psel=g; drawPack();} };
   L.appendChild(d);
  }
- /* the paper doll: the same composite that walks the trail */
- const w=document.createElement('div'); w.className='pwiz';
- const c=document.createElement('canvas'); c.width=128; c.height=128;
- c.style.width='128px'; c.style.height='128px';
+ drawDoll();
+}
+/* the paper doll is the same composite that walks the trail, so what
+   you see here is literally what is out there */
+function drawDoll(){
+ const c=document.getElementById('doll'); if(!c) return;
+ const box=c.parentElement.getBoundingClientRect();
+ const H=Math.max(96,Math.min(144,Math.round((box.height||150)-26)));
+ const d=DPR(), n=Math.round(H*d);
+ c.width=n; c.height=n; c.style.width=H+'px'; c.style.height=H+'px';
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
  const eq=S.eq||{};
  const off=eq.off&&BYID[eq.off]?BYID[eq.off]:null;
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
- if(off) blitGear(q,off,false,-10,50,52);
- q.drawImage(heroCanvas(0),0,0,128,128);
- if(hand) blitGear(q,hand,false,66,14,64);
- w.appendChild(c); L.appendChild(w);
+ if(off) blitGear(q,off,false,Math.round(-n*0.08),Math.round(n*0.40),Math.round(n*0.40));
+ q.drawImage(heroCanvas(0),0,0,n,n);
+ if(hand) blitGear(q,hand,false,Math.round(n*0.50),Math.round(n*0.10),Math.round(n*0.50));
 }
 function drawTabs(){
  const T=document.getElementById('ptabs'); T.innerHTML='';
@@ -1980,7 +2034,9 @@ function drawGrid(){
   if(has) d.style.borderColor=RAR[g[2]][1];
   d.appendChild(iconCell(g,CELL()));
   if(n>1){const s=document.createElement('span'); s.className='dup'; s.textContent='x'+n; d.appendChild(s);}
-  d.onclick=()=>{psel=g; if(has) equip(g); else drawPack();};
+  if(psel&&psel.id===g.id) d.classList.add('sel');
+  d.onclick=()=>{psel=g; drawPack();};
+  d.ondblclick=()=>{if(has) equip(g);};
   G.appendChild(d);
  }
 }
@@ -2010,6 +2066,14 @@ function drawDetail(){
   +(has?'<br><span style="color:#5c6a7c">'+(MATNAME[g[6]]||'')
         +(n>1?(MATNAME[g[6]]?' &nbsp;·&nbsp; ':'')+n+' found':'')+'</span>'
       :'<br><span style="color:#5c6a7c">Not found yet. Keep walking.</span>');
+ if(has){
+  const sl=CAT2SLOT[g[1]], worn=(S.eq&&S.eq[sl]===g.id);
+  const b=document.createElement('button');
+  b.className='wearbtn'+(worn?' on':'');
+  b.textContent=worn?'\u2713 WORN \u00b7 TAKE OFF':'WEAR IT \u25b6';
+  b.onclick=()=>equip(g);
+  txt.appendChild(b);
+ }
  D.appendChild(art); D.appendChild(txt);
 }
 function drawPack(){
