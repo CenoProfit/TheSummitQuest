@@ -85,15 +85,20 @@ def main():
     for sp in B:
         e=rle(sp); assert unrle(e)==''.join(sp)
         raw+=9216; enc+=len(e); boss.append('"%s"'%e)
+    SC=load('shapes_scen',4)
+    scen=[]
+    for sp in SC:
+        e=rle(sp); assert unrle(e)==''.join(sp)
+        raw+=9216; enc+=len(e); scen.append('"%s"'%e)
     E=load('shapes_enc',5)
     encs=[]
     for sp in E:
         e=rle(sp); assert unrle(e)==''.join(sp)
         raw+=9216; enc+=len(e); encs.append('"%s"'%e)
     out=("\n".join(shape_js)+"\nconst PETALT=[%s];\nconst HERO=[%s];\n"
-         "const BOSSPIX=[%s];\nconst ENCPIX=[%s];\n")%(
+         "const BOSSPIX=[%s];\nconst ENCPIX=[%s];\nconst SCENPIX=[%s];\n")%(
         ",\n  ".join(petB), ",\n  ".join(hero), ",\n  ".join(boss),
-        ",\n  ".join(encs))
+        ",\n  ".join(encs), ",\n  ".join(scen))
     s=open(HTML).read()
     a=s.index("const SHAPE={"); b=s.index("/* [name, category",a)
     s=s[:a]+out+"\n"+s[b:]

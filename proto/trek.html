@@ -760,6 +760,80 @@ function tarnAt(TN,wx,wy,grow){
 const MAT={ROCK:0,SCREE:1,MEADOW:2,FOREST:3,SNOW:4,PATH:5};
 const TILES=new Map();
 const TQ=[];
+/* ---------- waterfalls, painted into the ground ----------
+   A fall used to be a billboard stood on a hillside and it read as one:
+   a picture of water pasted onto a mountain that was shaded, occluded
+   and scaled by the renderer while the picture was not. These are
+   terrain, the way the tarns are. A source is picked on a coarse grid,
+   checked for height and slope, and then the water is traced DOWN the
+   gradient until the ground flattens out under it. Whatever tiles that
+   trace crosses paint it, so it is continuous across tile seams for
+   free, and the march shades and occludes it like any other ground. */
+const FGRID=150;              /* one possible fall per cell this size */
+const FLEN=88, FSTEPS=44;     /* how far it runs, and in how many steps */
+function fallsNear(ox,oy){
+ const out=[], pad=FLEN+12;
+ const c0=Math.floor((ox-pad)/FGRID), c1=Math.floor((ox+TILE+pad)/FGRID);
+ const r0=Math.floor((oy-pad)/FGRID), r1=Math.floor((oy+TILE+pad)/FGRID);
+ for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){
+  if(hash((c*7919+r*104729)|0)>0.62) continue;
+  const sx=(c+0.18+hash((c*131+r*17)|0)*0.64)*FGRID;
+  const sy=(r+0.18+hash((c*53+r*977)|0)*0.64)*FGRID;
+  if(Math.abs(sx-trailX(sy))<52) continue;        /* not down the path */
+  if(terrainH(sx,sy)<86) continue;                /* it starts up high */
+  const g0x=(terrainH(sx+1.5,sy)-terrainH(sx-1.5,sy))/3;
+  const g0y=(terrainH(sx,sy+1.5)-terrainH(sx,sy-1.5))/3;
+  if(Math.hypot(g0x,g0y)<0.78) continue;          /* and on a steep face */
+  let x=sx, y=sy; const pts=[];
+  for(let k=0;k<FSTEPS;k++){
+   const ax=(terrainH(x+1.5,y)-terrainH(x-1.5,y))/3;
+   const ay=(terrainH(x,y+1.5)-terrainH(x,y-1.5))/3;
+   const m=Math.hypot(ax,ay);
+   if(m<0.26) break;                              /* the ground levels off */
+   const st=FLEN/FSTEPS;
+   x-=ax/m*st; y-=ay/m*st;
+   pts.push(x,y);
+  }
+  if(pts.length<28) continue;                     /* fewer than 14 steps */
+  out.push(pts);
+ }
+ return out;
+}
+/* 0 nothing, 1..127 the chute by how near the middle, 128..255 foam */
+function rasterFall(FL,ox,oy,pts){
+ const n=pts.length>>1;
+ for(let k=0;k<n-1;k++){
+  const t=k/(n-1);
+  const x0=pts[k*2], y0=pts[k*2+1], x1=pts[k*2+2], y1=pts[k*2+3];
+  const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy)||1;
+  /* Wide. Steep high ground only starts about 180 units off the trail,
+     because that is where the valley wall is, so a fall is always seen
+     from across the valley rather than from underneath. Five pixels of
+     water at 700 units away is nothing. */
+  const nx=-dy/L, ny=dx/L, w=3.6+t*5.8, foam=t>0.84;
+  const steps=Math.max(1,Math.ceil(L*2));
+  for(let sI=0;sI<=steps;sI++){
+   const u=sI/steps, px=x0+dx*u, py=y0+dy*u;
+   for(let o=-w;o<=w;o+=0.5){
+    const i=Math.round(px+nx*o)-ox, j=Math.round(py+ny*o)-oy;
+    if(i<0||i>=TILE||j<0||j>=TILE) continue;
+    const lat=1-Math.abs(o)/w;
+    const v=foam?128+Math.min(127,Math.round(lat*127))
+                :1+Math.min(126,Math.round(lat*126));
+    const kk=j*TILE+i; if(v>FL[kk]) FL[kk]=v;
+   }
+  }
+ }
+ /* the pool it lands in */
+ const ex=pts[(n-1)*2], ey=pts[(n-1)*2+1];
+ for(let b=-11;b<=11;b++)for(let a=-14;a<=14;a++){
+  const q=a*a/196+b*b/121; if(q>1) continue;
+  const i=Math.round(ex+a)-ox, j=Math.round(ey+b)-oy;
+  if(i<0||i>=TILE||j<0||j>=TILE) continue;
+  const kk=j*TILE+i, v=128+Math.min(127,Math.round((1-Math.sqrt(q))*127));
+  if(v>FL[kk]) FL[kk]=v;
+ }
+}
 function buildTile(tx,ty){
  const ox=tx*TILE, oy=ty*TILE;
  const GN=(TILE/HSTEP)+3;
@@ -776,6 +850,9 @@ function buildTile(tx,ty){
  const TN=tarnsNear(ox,oy);
  const WET=TN.length?new Uint8Array(TILE*TILE):null;
  const WDP=TN.length?new Float32Array(TILE*TILE):null;
+ const FS=fallsNear(ox,oy);
+ const FL=FS.length?new Uint8Array(TILE*TILE):null;
+ if(FL) for(const p of FS) rasterFall(FL,ox,oy,p);
  for(let j=0;j<TILE;j++)for(let i=0;i<TILE;i++){
   const k=j*TILE+i;
   let h=gAt(i,j)+(hash(((ox+i)*73856+(oy+j)*19349)|0)-0.5)*0.55;
@@ -844,6 +921,25 @@ function buildTile(tx,ty){
     else if(dep<0.22&&hash((wx*17+wy*53)|0)<0.11) col=sh(col,0.30);
     else if(rip>0.86&&hash((wx*31+wy*17)|0)<0.30) col=sh(col,0.52);
     else if(hash((wx*131+wy*7)|0)<0.012) col=sh(col,0.80);
+   }else if(FL&&FL[k]){
+    /* Falling water. Bright down the middle and thinner at the edges,
+       broken into threads by a hash so it does not read as a painted
+       ribbon, and the lighting passes below are damped for it the same
+       way they are for a lake: a fall shaded by the hillside's own
+       lambert comes out as grey rock with a pale stripe on it. */
+    wet=1;
+    const v=FL[k], foam=v>=128, lat=(foam?v-128:v-1)/127;
+    const thread=hash((wx*7+wy*131)|0);
+    const run=Math.sin(h*1.7+wx*0.21)*0.5+0.5;
+    let base=_mix(_rgb('#79aed2'),_rgb('#eaf6ff'),Math.pow(lat,0.55));
+    if(foam){
+     base=_mix(base,_rgb('#ffffff'),0.42+0.34*thread);
+     col=sh(base,-0.06+run*0.16);
+    }else{
+     col=sh(base,-0.16+run*0.26+thread*0.22);
+     if(thread<0.20) col=sh(col,0.30);
+     else if(thread>0.88) col=sh(col,-0.22);
+    }
    }else if(WET&&WET[k]===2){
     /* the bank: wet gravel and grass, darker right at the line */
     const g4=_mix(_rgb('#8a8372'),_rgb('#b6ae97'),fine*0.8);
@@ -893,35 +989,54 @@ function buildTile(tx,ty){
     hillside of sprites taking turns to be in front. */
  for(let j=0;j<TILE;j+=4)for(let i=0;i<TILE;i+=4){
   const wx=ox+i, wy=oy+j;
-  const r=hash((wx*1709+wy*7919)|0); if(r>0.32) continue;
+  /* Grove membership is decided BEFORE the lattice thinner, because
+     the thinner drops two points in three and a grove that only ever
+     sees a third of its own candidates cannot be more than two trees
+     however high you push its own probability. That, not the tree
+     conditions, is what held groves at 2.1 through three attempts. */
+  const gcx=Math.floor(wx/GROVE), gcy=Math.floor(wy/GROVE);
+  let inGrove=false;
+  if(hash((gcx*7717+gcy*3313)|0)<0.010){
+   const mx=(gcx+0.30+hash((gcx*131+gcy*977)|0)*0.40)*GROVE;
+   const my=(gcy+0.30+hash((gcx*523+gcy*281)|0)*0.40)*GROVE;
+   const ddx=wx-mx, ddy=wy-my, d2g=ddx*ddx+ddy*ddy;
+   /* On the 4 unit scenery lattice two giants can land next to each
+      other and read as one lump, so inside a grove they only stand on
+      every fourth point. */
+   if(d2g<34*34&&(wx&15)===0&&(wy&15)===0) inGrove=true;
+  }
+  const r=hash((wx*1709+wy*7919)|0); if(r>0.32&&!inGrove) continue;
   const cxx=trailX(wy); if(Math.abs(wx-cxx)<TRAILW*2.1) continue;
   if(WET&&WET[j*TILE+i]) continue;
+  if(FL&&FL[j*TILE+i]) continue;
   const k=j*TILE+i, h=Hh[k];
   const open=Math.max(0,Math.min(1,(h-52)/145));
   const mi=Math.max(0,mileOfRow(wy)), alp=alpineAt(mi);
   const hx=Math.abs(Hh[k+1]-Hh[k-1])*0.5, hy=Math.abs(Hh[Math.min(TILE*TILE-1,k+TILE)]-Hh[Math.max(0,k-TILE)])*0.5;
   const steep=Math.sqrt(hx*hx+hy*hy);
   const g2=fbm(wx*0.0085,wy*0.0085);
-  const treeOK=alp<0.52&&steep<1.5&&g2>0.14&&open<0.78&&hash((wy*97+i*311)|0)>open*0.75;
+  /* `treeHere` is whether a tree COULD stand here; `treeOK` is that
+     plus the random thinning that stops the canopy being solid. A
+     grove ignores the thinning, which is why raising the in-grove
+     probability alone never got groves past two trees: the thinner was
+     throwing most of the candidates away before the probability ever
+     got a look at them. */
+  const treeHere=alp<0.52&&steep<1.5&&g2>0.14&&open<0.78;
+  const treeOK=treeHere&&hash((wy*97+i*311)|0)>open*0.75;
   /* a lookout wants a high, level shoulder well off the path */
   const dOff=Math.abs(wx-cxx);
   const towerOK=open>0.20&&steep<0.85&&dOff>45&&dOff<240
                &&hash((wx*2654+wy*4099)|0)<0.00010;
-  /* One in a few thousand trees is one of the old ones, with the vines
-     hanging off it. Rare enough to be worth looking up at. */
-  const giantOK=treeOK&&open<0.42&&hash((wx*3571+wy*6113)|0)<0.00055;
-  /* A fall wants a steep face well off the path, and somewhere for the
-     water to have come from, so it is gated on height as well as slope.
-     The threshold is the 99th percentile of this terrain's gradient,
-     measured: the first cut asked for steep>1.9 when the steepest
-     ground anywhere in 13,000 samples was 1.88, so none ever placed. */
-  /* The lateral band matters as much as the slope. The view covers
-     about a quarter of the distance ahead to either side, so a fall
-     more than about 130 units off the trail is only ever in frame from
-     far enough away that it is too small to draw. */
-  const fallOK=!treeOK&&steep>1.15&&h>58&&dOff>58&&dOff<132
-              &&hash((wx*5281+wy*2207)|0)<0.013;
-  const kind=towerOK?'tower':giantOK?'giant':fallOK?'fall'
+  /* The old ones stand in groves of three or four, not one at a time.
+     A coarse cell decides whether there is a grove in it at all and
+     where its middle is; inside that, the lattice points near the
+     middle are the candidates. The radius is wide and the probability
+     low, which gives the same three or four trees with daylight
+     between them rather than a clump standing shoulder to shoulder. Scattering them singly made them read
+     as an oddity rather than as a stand of something older. */
+  const giantOK=inGrove&&treeHere&&open<0.42
+              &&hash((wx*3571+wy*6113)|0)<0.38;
+  const kind=towerOK?'tower':giantOK?'giant'
             :treeOK?'tree':(alp>0.45?'rock':hash((wy*53+i*17)|0)<0.55?'rock':'bush');
   objs.push({wx,wy,h,kind,alp,mi,s:(hash((wx*31+wy*17)|0)*1000)|0});
  }
@@ -932,6 +1047,7 @@ function buildTile(tx,ty){
    330 the set thrashed: tiles the camera still needed were evicted to
    make room for tiles it was about to need, and each round trip cost a
    synchronous bake. */
+const GROVE=56;          /* world units a grove of old trees sits in */
 const TCAP=460;
 function evictTiles(){
  const cx=trailX(camWY())/TILE, cy=camWY()/TILE;
@@ -1929,124 +2045,52 @@ function towerArt(v){
 }
 
 /* ---------- the two big pieces of scenery ----------
-   Both are drawn once per (variant, biome) and cached, the same way the
-   lookout is: they are rare enough that a cache miss costs nothing and
-   common enough that redrawing every frame would. */
-const BIGC=new Map();
-function _bigkey(t,v,B){ return t+v+'|'+B.cnp.join()+'|'+B.trk.join(); }
+   These were drawn inline here with flat fillRect calls and looked it,
+   in a world where everything else runs through model/ao/rim/dither/
+   outline. They are sprites now, out of shapes_scen.py, and all this
+   does is pick a palette for them.
 
-function giantArt(v,B){
- const key=_bigkey('G',v,B); const hit=BIGC.get(key); if(hit) return hit;
- const W2=56, H2=104, c=document.createElement('canvas');
- c.width=W2; c.height=H2;
- const q=c.getContext('2d');
- const hx=a=>'#'+a.map(n=>Math.max(0,Math.min(255,n|0)).toString(16).padStart(2,'0')).join('');
- const TRK=hx(B.trk), TRL=hx(_lite(B.trk,.34)), TRD=hx(sh(B.trk,-0.40));
- const CNP=hx(B.cnp), CNL=hx(_lite(B.cnp,.30)), CND=hx(sh(B.cnp,-0.34));
- const VIN=hx(sh(B.fer,-0.18)), VIL=hx(_lite(B.fer,.26));
- const R=(x,y,w,h,col)=>{q.fillStyle=col;q.fillRect(Math.round(x),Math.round(y),Math.max(1,w|0),Math.max(1,h|0));};
- const CX=28, rnd=(n)=>{let x=(v*9301+n*49297)%233280;return x/233280;};
- /* buttressed base: the trunk flares into four roots */
- for(let y=H2-1;y>=46;y--){
-  const t=(H2-1-y)/(H2-1-46);
-  const w=18-12*Math.pow(t,0.55);
-  R(CX-w/2,y,w,1,TRK);
-  R(CX-w/2,y,Math.max(1,w*0.34),1,TRL);
-  R(CX+w/2-Math.max(1,w*0.22),y,Math.max(1,w*0.22),1,TRD);
- }
- for(const k of [-1,1]) for(let i=0;i<2;i++){
-  const x0=CX+k*(3+i*3);
-  for(let y=H2-1;y>H2-16-i*5;y--){
-   const t=(H2-1-y)/(16+i*5);
-   R(x0+k*(7-7*t)-1,y,3,1,i?TRD:TRK);
-  }
- }
- /* bark */
- for(let i=0;i<9;i++){
-  const x=CX-7+i*1.7;
-  for(let y=48;y<H2-3;y+=2) R(x+rnd(i*13+y)*1.4,y,1,2, i%2?TRD:TRL);
- }
- /* limbs, then the canopy hung on them */
- for(const [ax,ay,bx,by] of [[CX,52,6,34],[CX,50,50,32],[CX,44,14,22],[CX,42,44,20]]){
-  for(let t=0;t<=12;t++){
-   const f=t/12;
-   R(ax+(bx-ax)*f-1, ay+(by-ay)*f, 3-f*1.4, 2, TRK);
-  }
- }
- const blob=(cx,cy,r,col)=>{
-  for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)
-   if(x*x+y*y*1.5<=r*r) R(cx+x,cy+y,1,1,col);
+   The ramp is the same letter map tones() builds for gear, except the
+   colours come from the biome rather than from a PAL entry:
+     tree   body = canopy   grip = trunk   accent = vine */
+function ramp(A,B2,C,Q0,Q1){
+ return {
+  o:_mix(A,DARK,.88), n:_mix(A,DARK,.66), q:_mix(A,DARK,.54),
+  d:_mix(A,DARK,.34), e:_mix(A,DARK,.15), A:A, B:B2,
+  W:_lite(B2,.42), V:_lite(B2,.76),
+  x:_mix(C,DARK,.56), c:_mix(C,DARK,.27), C:C, Y:_lite(C,.32), Z:_lite(C,.66),
+  j:_mix(Q0,DARK,.56), g:_mix(Q0,DARK,.30), G:Q0, H:Q1, K:_lite(Q1,.42),
+  u:[132,94,70], m:[196,148,114], M:[228,190,158]
  };
- for(let i=0;i<22;i++){
-  const a=i*0.9, rr=4+((i*7)%6);
-  const cx=CX+Math.cos(a)*(10+(i%7)*2.6), cy=24+Math.sin(a)*(8+(i%5)*1.6);
-  blob(cx,cy,rr,CND);
- }
- for(let i=0;i<20;i++){
-  const a=0.4+i*0.86, rr=3+((i*5)%5);
-  const cx=CX+Math.cos(a)*(9+(i%6)*2.4), cy=22+Math.sin(a)*(7+(i%4)*1.5);
-  blob(cx,cy,rr,CNP);
- }
- for(let i=0;i<12;i++){
-  const a=2.2+i*0.52, rr=2+((i*3)%3);
-  blob(CX+Math.cos(a)*(8+(i%5)*2.2)-3, 19+Math.sin(a)*(6+(i%3)*1.4)-3, rr, CNL);
- }
- /* the vines, which is the whole reason for this thing */
- for(let i=0;i<7;i++){
-  const sx=6+i*7+rnd(i)*3, sy=28+rnd(i*3)*10;
-  const len=16+rnd(i*5)*30;
-  let x=sx;
-  for(let y=sy;y<sy+len;y++){
-   x+=Math.sin((y+i*9)*0.28)*0.42;
-   R(x,y,1,1, (y-sy)<len*0.3?VIL:VIN);
-   if((y-sy)%7===3) R(x+(i%2?1:-2),y,2,2,VIL);
-  }
- }
- const P=pixOf(key,c); BIGC.set(key,P); return P;
 }
-
-function fallArt(v,B){
- const key=_bigkey('F',v,B); const hit=BIGC.get(key); if(hit) return hit;
- const W2=44, H2=78, c=document.createElement('canvas');
- c.width=W2; c.height=H2;
- const q=c.getContext('2d');
- const hx=a=>'#'+a.map(n=>Math.max(0,Math.min(255,n|0)).toString(16).padStart(2,'0')).join('');
- const RK=hx(B.rck), RKD=hx(sh(B.rck,-0.42)), RKL=hx(_lite(B.rck,.22));
- const R=(x,y,w,h,col)=>{q.fillStyle=col;q.fillRect(Math.round(x),Math.round(y),Math.max(1,w|0),Math.max(1,h|0));};
- const rnd=n=>{let x=(v*7919+n*104729)%233280;return x/233280;};
- /* The cliff first, and plenty of it. The first cut was a white ribbon
-    with two thin strips of rock beside it, and seen small from a trail
-    it read as a white box standing on a hillside. The water is a slot
-    in a wide dark face now, which is what reads at forty pixels. */
- const CX=22;
- for(let y=0;y<H2-9;y++){
-  const t=y/(H2-9), w=5.5+t*7.5, jag=(rnd(y*3)-0.5)*3;
-  R(0,y,CX-w+jag,1,RKD);
-  R(CX+w+jag,y,W2-(CX+w+jag),1,RK);
-  R(CX-w+jag-2,y,2,1,'#000000');
-  R(CX+w+jag,y,2,1,'#000000');
-  if(y%6===((rnd(y)*6)|0)) R(2+rnd(y*7)*8,y,4,1,RKL);
-  if(y%7===3) R(CX+w+jag+3+rnd(y*5)*6,y,4,1,RKL);
- }
- /* the water: three bands, the middle one brightest */
- for(let y=4;y<H2-8;y++){
-  const t=(y-4)/(H2-12), w=4.2+t*7.0, jag=(rnd(y*3)-0.5)*3;
-  R(CX-w+jag,y,w*2,1,'rgba(168,208,234,0.94)');
-  R(CX-w*0.52+jag,y,w*1.04,1,'rgba(228,244,253,0.97)');
-  if((y+((rnd(y)*4)|0))%5===0) R(CX-w*0.9+jag,y,w*0.5,1,'#ffffff');
- }
- /* the lip at the top, and the stream feeding it */
- R(CX-6,2,12,3,'#dff1fb'); R(CX-8,0,16,2,RKL);
- R(CX-3,0,6,2,'#eef8ff');
- /* the plunge pool and the mist standing over it */
- for(let i=0;i<34;i++){
-  const a=rnd(i*3)*6.28, rr=rnd(i*5);
-  const x=CX+Math.cos(a)*rr*17, y=H2-8+Math.sin(a)*rr*6;
-  R(x,y,2+((i*3)%3),1+((i*5)%2),'rgba(236,248,255,'+(0.22+rnd(i)*0.42).toFixed(2)+')');
- }
- R(5,H2-6,34,5,'rgba(184,220,242,0.82)');
- R(8,H2-5,28,2,'rgba(232,246,254,0.93)');
- const P=pixOf(key,c); BIGC.set(key,P); return P;
+const SCROW=new Map(), SCEN=new Map();
+function scenRows(i){
+ let r=SCROW.get(i); if(r) return r;
+ const flat=_unrle(SCENPIX[i]), n=Math.round(Math.sqrt(flat.length));
+ r=[]; for(let y=0;y<n;y++) r.push(flat.slice(y*n,(y+1)*n));
+ SCROW.set(i,r); return r;
+}
+/* Quantised on the biome so a walk does not build a new 96x96 canvas
+   every frame as the colours drift between keyframes. */
+const _qc=c=>((c[0]>>4)<<8)|((c[1]>>4)<<4)|(c[2]>>4);
+function scenArt(v,B){
+ const idx=v&3;
+ const key=idx+'|'+_qc(B.cnp)+'|'+_qc(B.trk);
+ const hit=SCEN.get(key); if(hit) return hit;
+ const T=ramp(B.cnp,_lite(B.cnp,.30),_lite(B.fer,.18),B.trk,_lite(B.trk,.34));
+ const sp=scenRows(idx), N=sp.length;
+ const c=document.createElement('canvas'); c.width=N; c.height=N;
+ const q=c.getContext('2d'), img=q.createImageData(N,N), P=img.data;
+ for(let y=0;y<N;y++){ const row=sp[y];
+  for(let x=0;x<N;x++){
+   const ch=row[x], i2=(y*N+x)*4;
+   if(ch==='.'){P[i2+3]=0;continue;}
+   const col=T[ch]||T.A;
+   P[i2]=col[0]; P[i2+1]=col[1]; P[i2+2]=col[2]; P[i2+3]=255; }}
+ q.putImageData(img,0,0);
+ const S3=pixOf('sc'+key,c);
+ if(SCEN.size>90) SCEN.clear();
+ SCEN.set(key,S3); return S3;
 }
 
 function underPix(kind,s,B,alpLv,vb){
@@ -2241,7 +2285,7 @@ function paint(now,dt){
   for(const o of T.objs){
    const dd=camY-o.wy;
    const reach=o.kind==='tower'?DTOWER
-              :(o.kind==='giant'||o.kind==='fall')?DTOWER*0.78:DOBJ;
+              :o.kind==='giant'?DTOWER*0.78:DOBJ;
    if(dd<36||dd>reach) continue;
    const sc=FOC/dd, sx=W*0.5+(o.wx-camX)*sc;
    if(sx<-60||sx>W+60) continue;
@@ -2256,7 +2300,7 @@ function paint(now,dt){
      is the pop you see as the world comes toward you. Over the last
      fifth of that range it is taken the rest of the way into the haze,
      so it arrives as a shape in the mist and resolves out of it. */
-  if(o.kind!=='tower'&&o.kind!=='giant'&&o.kind!=='fall'){
+  if(o.kind!=='tower'&&o.kind!=='giant'){
    const edge=(v.dd-DOBJ*0.80)/(DOBJ*0.20);
    if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.92;
   }
@@ -2271,17 +2315,8 @@ function paint(now,dt){
   }else if(o.kind==='giant'){
    const worldH=46+(o.s%14), pxH=Math.min(H*1.5,worldH*v.sc);
    if(pxH<14) continue;
-   const S3=giantArt(o.s&3,Bb);
+   const S3=scenArt(o.s,Bb);
    drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog*0.92,HZC,Math.max(3,v.dd*0.030));
-  }else if(o.kind==='fall'){
-   /* Below about two dozen pixels a fall is a white vertical line on a
-      hillside, which reads as a scratch on the screen rather than as
-      water. Better absent until you are close enough for it to be a
-      waterfall. */
-   const worldH=50+(o.s%22), pxH=Math.min(H*1.1,worldH*v.sc);
-   if(pxH<22) continue;
-   const S3=fallArt(o.s&3,Bb);
-   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog*0.70,HZC,Math.max(3,v.dd*0.030));
   }else if(o.kind==='tree'){
    /* one tree in twenty three is an old one that got above the rest,
       which is most of what stops a canopy reading as a green carpet */
@@ -2773,6 +2808,10 @@ const ENCPIX=[".1747o.93o2do3.89od2ed2eo.5o5.77oAn5BAo.3oe2d3o2.75oen6Ao.2od2n3e
   ".535o8.72o16C2c5o.72oC22co.71oCY14C7co.70oCY12C11co.69oCY9C14co.69oCY7C15co.70oCY6C17co2.67oCY5C20co.67oCY4C21co.67oCY2C24co.66oC27co.66oC21c3C3co.62o4C17c12o.62oC3YC13c15o.61oxc2Y2C11c17o.56o5xc2Y2C8c22o.55ox4c4YC8c22xo3.52oxc6Y2C6c25x2o.52oxc39xo2.52oxc38xo.54oxc39xo3.51oxc7C3c30x3o3.48oxc7C2c34x3o.47oxc7C2c10x10cxc15xo2.45oxc7Cc7x5GgGg4x5c15x2o3.42oxc14x3GgH6G3jgx3c11Y4cx3o.42oxc11x4H7G8x3c9Y6c2xo.42oxc13xH5G12jxc8Y8xo.43oxc13xH4G12j2xc7Y8Co.44oxc9x5H2G15x6c2Y10Co.43oxc7x3gGgG19jgjx4cY9Co.43oxc6x2GH5G12gGg2G5jgx2cY9Co.43oxc5x2gH2G11g11G6jcY9Co.43oxc5xg2G9g21j2CY8xo.43oxc6jgG7g22j2c3Y6xo.44oxc8j3g24j3c5Y4cxo.44oxc7x3j5g16j5x2c10xo.44oxc10x4j18x3c13xo.44oxc13xu3q3u6q3u3xCY2c3x2c7xo.44oxc13xumuq3um4uq3umuY5Cxo2x3c3xo.45oxc9C3cxumuq3um4uq3umuY3C2co.2o3x4o.45oxc7C6xum2u3m6u3m2uC6co.4o5.45oxc7C5cxum14u3C5co.55oxc7C5cxu18C5co.55oxc7C5c2xg4GgGg6j3C7co2.53ox2c6C4c3xg2H7G5j2c8xo.53o3xc4C3c6xgH4G7j2xc8xo.56oxc12xG13jxc8xo.55oxc13xG12j2xc8xo.55oxc13xgG10gj2x5c4xo.55oxc9x6G7g4jA3ex2c4xo.55oxc9xA3e2G5g6jAB3dxc4xo.55oxc8x2AB3ejg10jAB2d2xc4xo.55oxc8x2B3e2j2g8j2AB3x7o.55oxc7x2B5Aj2g7j2AB4exo6.55ox9B2AB3A2j10AB4do.61o8xB3AB5eAeAeAeAeB2A4e2o2.8o4.45o2.8oABA2B16A4e4o.6oq3o.43o2q2o.6oABA3B16A3d2e2Aeo.5oq4o.42oq4o.4oABA3B16A5d2e2Aeo2.3oq4o.42oq4o.3oAB2A4B8A5B2A4eq2de2Ae2o.2oq4o.42oq4o.2oAB2e3qoABA2B3A12do2qde2A2eo.2oq2o.43oq3o2.oABA2dq2o.oAB5A10edo.2oqe2A3eo.2ojo.44oqo.2oABA2dq2o.2oABAB2A10e2do.3ode3A2eo.ojgo.43ojo.oeA3dq2o.3oeA2B2A4e2A4e2do.4ode3A2eoj2go.43oj2oeA3eq2o.4oeA6e4A4e2do.5oqde2A2djGgo.42oj3eA2e3qo.5oeA6e5A2e3do.6o2qe2do2g2o.42oj3dA2e2qo.6oeA6e6Ae3do.8od2o.2o2.43oj2oqd2q2o.7oeA5e11do.9oqo.2ogo2.41ojo.oq2o2.8oeA5e3d2e6do.10o2.2og2o.41ojo.2o2.10oeA4e2d4e6do.15o2.42o2.15oeA4e2q4de4dqo.15ogo.40ogo.14oeAe2A2eqo4de3d2qo.15o2.41ogjo.13ode5qo.4ode5qo.14ogo2.39oj2o.13ode5qo.4ode4dqo.14ojo.40ojo.14ode5qo.4ode3d2qo.15ogo.39ojo.14ode4qo.5oqe3d2qo.15ogo.39ojo.14ode2d2qo.6oded3qo.15ogo.38ogjo.13oe2d4qo.3o.2oded3qo.15ogo.38ogjo.13oe2d4qo.3o.2oded5o.14ojgo.37ogjo.13oqd5qo.2o.3oded4qo.o.13ogo.27o2.8ojo.14oqd4qo.3o.4od5qo.o.13ogo.28o.7ogjo.11o2.oqd4qo.2o.5oqd4qo.2o.12ogo.25o.2o.7ogjo.12o2jq5o.9oq5o.3o.11ojg2o.23o.11ogjo.11ogG2jgjgq2o.5o2.oqg4jo4.10og3jo.7o.21o.4ogGgjo2.7o2G8go.7o2jgG5g3jo2.8o2j2o.7o.5o.9o.6o.4og2jo.o2.5og2G9go3.5ogG9gjo.8o.oj2o.6o.6o.8o.10o2j2o.3o2.4ogG2gGgGg5j2o.5ogG6g4jo.8o.2ojo.5o.29ojo.9ojgj10o2.6oj12o.11oj2o.34o3.10o12.9o13.11o3.12",
   ".859o3.87o6W3o.80o6W6V2Wo.73o7W6V8Wo.67o6W7V14Wo.67oW5V21Wo.67oWV25Wo.67oWV15qdqdqdqV3Wo.67oWV2qdqdqdqdqdqdqV10Wo.67oWV25Wo.67oWV25Wo.67oWV25Wo.67oWV25Wo.68oWV10qdqV11Wo.68oWVqdqdqdqdV15Wo.68oWV24Wo.68oWV23Wo.69oWV24Wo.68oWV24Wo.68oWV14qdqdqdqV3Wo.68oWVqdqdqdqdqdqdqV10Wo.68oWV24Wo.68oWV24Wo.68oWV24Wo.68oWV20W5o.68oWV10qdqVW5Bo6.68oWVqdqdqdq2W4Bo6.74oWV3WVW2Bo6.68o12AV2B5Ao.61o13C10xAB4cCcCxo.47o14C13Y11cCcCY6Co.33o13C14Y34Co.31o2x3cC9Y32Z4Y2C8c3xo.25o5x2c4Y35C4Y2Z4Y2cC2c8xo.20o5x5c5Y25C5Z6c24xo.19ox4c11Y7C11YZ5C4Z7Yc23xo.19oxc14C17ZYZ5YC2c29x5o.19oxc11xc2C7ZYZYZYC2cC6c26x9o4.19oxc6xc3xox2C2c4C6c24x13AeAeAedo.23oxc3x3oxcxo.odxc5C4c20x7e3AeAeAeAeB6Ao.24oxc2xo3.ocxo.odx2c12x3c8x12eB17Ao.23o2x2o.4ocxo.odx7c7xexc7x2AeAeAeAeAeB20Ao.24oco.4ox2o.oAeAeAex2c6x2ex10B27A4eo.23oco.4oco.2oAB5x10eAeAeAeAeAB22A10eo.23o2.5oxo.2oBW3B3eAeAeAeAB25A18eo.23oxo.4oxo.2oAW3B34A20eo.4o2.17oxo.3ocxo.2oABWB2A9e3B21A20eo.4ogo.17oco.2ox2o.2oAB3edededeq7B17A23eo.4o2.18oxo.2oxo.3oAB2Aq9c3x2B20A20eo.4o2.18oxo.2oxo.3oABA2dCc7C3cxB19A21eo.4o2.18oxCo.oxo.3oABAd2Y3C8cxB16A21e4o.4ogo2.16oxYCocxo.3oA4dC9c3xB14A20e6do.4ojo.17oxY2C2xo.3oeA2d2C7c5xB10A22e7do.6ogo.17oCY2Cxo.3oeA3dxc7x5B9A21e10do.5ogo.17ocYCxo.4oeA2qx10eAeBAB4A3eA18e13do.5ogo.17ocC2co.4oAB3A3BAeq4d34e9do.6ogo.17ocC2xo.4oeB2A2W6d37e9do.6ogo.17ocC2co.4oeA3W2B4d38e10do.5o2.18oxC2xo.4oeA4B6d37e9do.6ogo.18oc2o.5oeA4B5d38e8d3o.5ojgo.17oc2o.5oeA4B6d37e4d6qo.5og2o.17ocxo.5oeA4B10A7e28d8qo.6ogo.17oc2o.5oeA4B8A7e27d11qo.6ogo.17ocxo.5oeA4B2A11e26d14qo.6ogo.17ocxo.5oeA3eA13e22d18qo.6ogo.17ox2o.5oeA2e2A13e20d20qo.6ogo.17ox2o.5oeA2e2A13e16d24qo.6ojo.16oc2xo.5ode4A13e15d25qo.6ojgo.15oc2xo.5ode4A9e14d30qo.6ojo.16oxc2xo.4ode4A3e19d29q3o.7ogo.15oxc2xo.4ode4Ae16d30q7o.7o2.16oxc2xo.4ode19d28q11o.7ogo.15oxc2xo.4ode17d29q12o.7ogo.14oc2x3o.4ode17d15q14o12.8o2.15ox2o2x2o.3od2q3e7d8q13o14.20ogo.14oxo.2oxo.3oqdqjqdedq12o13.34og2o.13oxo.2oxo.3oq3jq3o13.47ojgo.13oxo.2ojo.3o3qjo3.20o.10o2.12o.14ojgo.o.10ox2o.2ojo.6o2.23o.24o.15ogo.o.10ox2o.2ojo.19o.11o.10o3.10o.11o.4ojo.12o4.o4.6o.12o.o.8o2.9o.2o.10o.10o.2o.2oj2o2.15o.2o2.4o.13o2.9o.13o2.9o.13o.2oj2o.15o2.3o.4o.27o.6o.4o.8o2.13o2.ojo.30o.9o3.7o.4o.5o.13o2.14o.ojo.6o.8o.15o2.9o.7o.9o.14o2.14o2jgjo.6o.7o.44o.13o.17oj3o.92o4.101",
   ".1848o10.83o3q10o3.77o3q14A2o.76oq15B3Ao.75oq16B2Ao.50o4.21oq15B3Ao.50oW3o.19oeq2n4q9B4Ao.48oBW2o2.19odqB3n2q5A4B4edo.48o3.21oden2Bn3A8B5do.72odeAn4A9B4Ado.44o5.23odeAn4A4eA4B4Aqo.43oW3o.23o2qeAB4Ae8A4do.44oWV2Wo.19o2.3odAB4Ae8A4do.44o2BWo.16o5.4o2dA5e2d2e4A3eo.43o2.2o2.16o4.8od3Ae2d3e4A3eo.41o2W2o2.16o2.13o3qdq4d2e2A4eo.40oWV2W2o.15o.17o6qde2A6o.38oWV4Wo.17o2.20ode2B2A3BAo.38oWVW2Bo.18o2.19oqeB2A5o.36o3WVBo3.20o.20oqB3A3BAo2.33oW3VWo.45oAB3A2B2Ao.32oWV5Wo.44oAB2A3BAeo.32oWV5Wo.45oAB3AB3Ao11.21oWV4WBo.46oAB2AB4A5q5o.18o3WV4Bo2.47oAB2AB8q7o3.14oW3V4Bo.44o2.2oAB3AB9q7A2o.13oBV5Wo.44oq2o2B2A4BA2B5q8B2Ao6.6oBA3V3Wo.43oq4BWA5BA3B4Aq6B4q5o.7oeA2V3Wo.42oq6BA5BA4B3A2q6B2q6o.6oA3eV2Wo.43oq5B2A5BA4B3A3q4B2Aq7o.3o2A3e2dqo2.43oq6BA5BA4B3A3Bq2A4q7o.2oBABAe2q2o.45oq5B2A5BA4B3A3B6Aq7Bo2ABA2ed2qo.45oq11A7B3A3B3ABq8A4BA3edqo.42o4eq14A4B2Ae3A4q10ABA5eqo.42oq4B2q4B2q4Aq3A3BA2e3A3q10A8q2o.41oq6B6q10A5e3A4q4A12q2Hgo2.39oq5B6q6e3qeA5e3A3q6A6q2A4qgGgGo.38oq6B2q10eAqde2A3e3A2q6A6q4A2q2gG2HGo.37oq5B2q10e2Ae4A3d2eA3q10A2q7gG2H2Go2.33o2q7B2q8A2eAe4A2d4A4q8A2q8H2GH3Ggo.31og2jq5B2q6A5eAe4A3d2A6q8A2q7H8Go2.27o2gGgjq4B4q6A4eAe4A2d4A6q8A2q5gH9g2o.24o2G3g3Aq2B4Aq5A2e2AeAe4Aeq4A7q6e4q4g2H6G4go.21o2G2H2g2q4A6q4A2e4ded4e2qGg2A8q4A5dq5GH8G2go2.17o2G2H3g2q6A4q6Ae4ded4eq2Hg2A7q6A3eq7H8G3g2o.15oG2H4g3q5A4q6A2e4ded4e2g4eA7eq5e4q6H8G5go.12o2GH7gq7A2q6A3e6d3A6e10q6e2q7GH9G4go2.8o2G2H7g2q8A2q6A2e6d4A3B3e8q6e2q9H10G4g2o.7oGH10g2q6A2eq5A3e5q3d2e3B2e10q6e2q7gH4G12go.6oGH11gq5A3eq6e2d5q3dA4B3A5e3q6e4q6gG17go.5oGH3G7jq7e4q6ed6gqdA4B3A3e4q6e4dq6gG17go.5oGH3G8jq5e6q4e2d6AeqeA3B3A3e5q4e5d2q4H2G17go.5oGH3G9j3q3e4q7d5eAegdA3B3A2e5q6e2d2q4g2H2G16go.6oGH2G11j2q4e2A2q6de3deB2e5A3e6q7d3q5jH3G17go.5oGHG11j2q6e2q8e3dB4e4A3e6q7d2q6jH3G17go.5oG14jq7e2q8e2deB4e3A3e4q9d2q7H3G17go.5ogG12j2q6e2q11deA2Be4A2e4q10d2q7H3G17go.5ogG10gG2jq7e4q8de2qBe4Aq2e2q10d3q7H2G17go.6ogG9g2Gj2q6e6q7d2q3e4q4eq7d6q7gHG17go.6ogG8g3G2q6e7q13e2q13d6q7gG11g4G2g2jo.5ogG8g3G3q6e2q10jq13eq6d2q3d3q5G8g13jo.5ogG7g5G3q3gq12d2q6eq7d2q4dq5dq5HG2g19jo.5ogG7g4G5jg2q12dBq7dq6d3q2dq8g8Gg17jo.5ogG7g5G7j2q6e3d3q6d3q5d6q7Gg2H4G3g17jo.5ogG5g9G6jq7ed4q5d5q5d5q7H6G4g17jo.5ogG4g10G5j2q6e2d3q5e2d4q6d4q7H5G5g17jo.5ogG3g11G6q8d4q6ed4q6d4q7GH2G6g18jo.5ogG2g12G4gG2jq5d4q6e2d4q7d2q7gG8g19jo.5og22jq7d2q7ed4q16gG7g20jo.5ojg23jgjgq3dq7d5q10g3qgHG8g20jo.5ojg21G7q10d5q9H7G7g20j2o.5ojg22G7j3q6d5q6gGHG9g20j7o.5ojg31jq16GH3G8g17j11o.5ojg33q3g5jgjq3G12g14j15o.5oj41gjgj3gj41o.5o91.98"];
+const SCENPIX=[".11o6.3o61.5o5.17oj4o3j2dA12qd4A5qA21q10j2o.4o2g3jo.17oq5j2q2B46Ad9jo.3og3j2o.15o3qd8B44A4d10qo3gGj2o2.14o2q3d6W2B6W3B9W3B25A4d9qj2g2j2o.14o2q2d6W5B5W5B7W5B4A2B2A2B14A3d11qGg2jo.14oq2d7B4WB5W7B5W7B3A5B15A4d10qj3o.14oqd8B11W7BW3BW7BW3A4B15A5d10qjo.14oqd8B12W24A3B15A6d9qjo.14oqd3B17W25A3B14A9d6qjo.13oqdB16AB4W23A4B15A9d5qjo.13oqB17AB5W3BW19A3B16A7d6qjo.13odB17AB9W6BA3eBW6A3eAB15A4eAe3d5qo.13oAB17AB10W5BA3e2AW4A3e2A2B13e2Ae8d3qo.14oAB17A2B10W3B2A3e2A2W2d2e4A5B11eAe9d2qjo.12oAB7AB10A2B15e6Ad5e3A4e3B8e2Ae9d2qjo.12odA9B9A3B13e8d6e5Ae4B6e3Ae10d2qo.12odA16BAeA5B2AB8e7d3e14B4e4Ae10d2qo.4o7.oeA18e2A7B7e11de33d2qo4g7o.oeA17e2Ae5A2B5e5de6de10d3e20d2qjg3G6jo.oeA17e8A2e10de5d2e3de6d3e20d3qG6g3jo.oeA17e8A2e10d2e2ded2e2d2e6d3e4de15d3qG4j5o.2ode2A15e8A2e6de3d2e2d8e6d3ed5e15d2qj4o5.3ode3A14e8A2e6d3q3ded2q3d3e6d9e3d5e7d3qo3.8oqe8AeA7d2ed5e2d6qd2qxqded2qxe10d3e20d3qo.12ode15d9e2d6q4xq2d2q2xe9d4e20d3qo.12ode14q4d6e2d5q5x2q4x2deq2e4dq3de2d4e4d5e3d5qo.13ode14qxq2e3d2e2d4q5d2xq4xd2q3e4dqx2de18d5qo.14ode12q2xce4d2e2d4qdxq3dxq2xqxq3Ae5d3xce13d2e3d5qo.15ode12d2cqe2d3e2d3q2dexq3x2qx3q2AB2e3d4c2e4de5d5ed6qo.16oqed2e7d4cqd5e2d2q2xqAdxq2x2qx2q2AWB2ed6qcqd5e3d13qo.17oq2de6d5xq5ded2q3xqde2c3xqx3AWB2d6q3xq6d2ed13qo.18o2qe5d6xqc2x2q5x4d2q2x7WB4d3q3x3qc3xq2e2d13qo.20oqd10x2c2x3q4d2x2q4x6WB4d4qxe3x2c2x3de2d12qo.22oqd8qx6Adexqd3xq2xqxd2x2WB4A2dq3x2d2xc2x3d3ed12qo.22oqd8qxq3dA2dAexq3x2qx3q2xWB4A2q5dxqdx4d3q7d7qo.23oqd8qxqd7Aexq2xCc2q3AB4A3qx3q2dxq2xqxc2qx3qx3q3d4qo.25oqd7qxqd8Ad2cC3c2x2eB4A4e2x2q2x2qxqxc2x3qdq2x3q2d2qo.26oqd7qxqd11qxC2cx2d3B2A4e3x3q2xqxqx6qd3q2x2q3o.28oqd6qxqd10q2x5d7A2e4d2x2qxqxqx4q2d5qxq2o2.30oqd5qxqd10qcx4d12e2d2x3c5x2d8qxqo.33oqd4qxqd10qcqdq2d17x3c3x2d9qx2Co2.32oq2d2qxqd7q4xqd21x2c2x2d9q2cxcx2o.32o2q3xqd3q4o3qxqd22qc2xqd8qoqo6.34o4q4o4.3oxqd22qx3q3d5qo.o.44oxqo.8oqd22qxcxcq3d4qo.o.42o2cCx2o.7oq2d21qxC4xqd3qo.2o.42o2x3o2.7oq3d20qx6qd3qo.o.43o.o3.9ojgq3d16q3x5qd3qo.2o.43o.13ojgj2q4d12q2x5q6o.3o.42o2.12oxcx3g3q9d4qxc6x3qo.3o.42oxo.12oxc2x3g2GjGgGgGq4d2qxc6x3o.4o.41oxcxo.11ox5H11jq5x2c2x3o3.5o.41ox3o.11og2GjH5jgH6jGjq3x4jo.7o2.42o3.12oGH9jH5jgH2Ggj4xjo.9o2.54ojH3jH16G3j3xjo.7o2cCo.53ojG2H8jH2G2HjG2HG4jx2jo.6o3x2o2.52ojG2H9G4HgG2HG3j2xj3o.8o2.54ogG3H7GgG3HjG2H2G3jxj3o.64ogG2gH6G2jG4gG3HG2gjxj3o.4o.58ojG2g2H5G7gG4HG2gjxj3o.4o.58ojg5H2GHG3jG8HGgj2xj4o.3o.58oj3g2H2G2HG7gG5g2jxj5o.3o.58ojxg3H3GHG3jG2HjG4g3jxjc2j2o.2o.59oc2x3H3GHG6HgG5g2jx2c2x2o.2o.58o2x5H2G2HG3jG2HjG6j2x6o.2o.60ox2GjG5HG5HgG5j3xjx3jo.61o2GgH3G5HG2jG2HjG6j5g2j2o2.59oGH4jG5HG3H3gG5j2xj2HG2j2x2o5.54oGH5G5HG2jH2GgG5j2xj3G2x3cx4o.53ojGH4jG5HG3H2Gg2G2gHg2xj4G2x4o4.52oxcxH5G5HG2j2g3j2g2j2gxj5G2xo2.55oxc2xH4jgG4H2j2Hg4jg2jx2cxj3G2go.58ox3H5jG5Hj2Gg4jg2jxc2xj4Ggo.59o2GH3G8HgjHg4jg2jxc2xj6o.61ogHG3jG5g2jGg4jg2jx4j6o.61ogHG9j3Hg4jg6j6o.62ogHG3jgG5jg6j2g2GHgj7o.61ogH2G3j2G3j2gHg5jg2GHj7o.62ogGHG4jgHGj2g7jg2GHj8o.61ogGHG3gjg4jgHg5jg2Gj6g2jo.61ogGHG2g2jgHg2jg7jg3j6g2jo.60ogG2HG2g2jg4jgHg5jgHj7g3jo.59ogG2HG2g2jgHj3g7j2Gj6g4jo.59ogG2HG2g2jg2j2g2HGg5jHg2j3g5jo.59ogG2HGg3jgHj2g3Hg5jGg2jg7jo.59og3Hg4jHg2jg9jHg2jg2Hg4jo.58ogGg7jGg2jg3Hg5jGg2jg7jo.57ogGg3Hg4jHg2jg2j5g2jHg2jg2HGjg2jo.54o3gG3g13jo5jg7jgjgj4o2.49o3g3G2H3Gg3j8o.5ojg5HGHGHGgG2g2o5.40o4gj3g4Gj14o.5oj11GgGg4j4o3.35o30.5o28.305",
+  ".6o89.7oq10dB12ABA25qA5dq2dq28o.6oqd10W8B42d26qo.5oqd10B6W2B46d23qo.5oqd11B3W4B8W4B35d22qo.5oqd10B3W6B6W6B29A6d21qo.5oqd5B7W8B4W8B19A3B6A7d20qo.5oqd2B10W24AB13A3B8A11d15qo.3o2qd2B11W25A2B10A4B12A10d12qo.2oq2d2B12W26A2B7A6B14A9d11qo.2oqd2B9ABAB3W23A3BA12B15A7ed11qo.oqd4B8A3BA2W24A2BA12B15A2e7d10qo.oqd3B9A8B2W7A4W8A3BA12B16e8d10qo.oqd4B8A8B3W5BA5W6BA4B5A9B13e9d10qo.oqd3A2B7A8B4W4B2A2e2AW5B2AB10A4e2A2B12e8d10qo2qd5A2B6A8B11Ae2A2B18Ae4A2B11e9d10qo2qd4A5B4A9B10Ae3AB19e6B10e10d10qo2qd5A17B11e4B18e7AB10e8d11qo2qd6A7e3A6B12e2B20e6A3B7e9d11qo2qd5A8e3A6B11e4B20e5A2eB4e6d17qo.oqd5A7e3Ae4AB12e2B20e6Ae12d17qo.oqd4A8e8AB11d2e2B20e17d18qo.oqd5A7e8A2B9d3e2dB18e18d18qo.oqd4A8e8A3B7eq3e2d2q2eB13e2d3e13d19qo.2oqd4e2A4ed3e2d3e3B7q2xq2ed2q2xB14e6A2e10d18qo.2oqd4e7d8e3dB4q4x2e2d2qx2AB12e7Ae11d18qo.2oqd4e6q3d6e3d5q4dxq5xdq2eAB4e23d18qo.3oqd5e4q6e2d2e3d5qxq2dxq5xq3xdeB3e2q3e7A2e9d2qd14qo2.4oqd4e5dec2e3d2e3d3q3x2q2cq2xqxdq2x2de4d3c2e7A2e8d2qoq14o.6oqd5e4dedcqed3e3d2q3d2x2q2xqxqxdqx2A2e4d3c2e3d2e4d9qo.o14.8oqd5e2dAd2xqd4e3dq2xq2d2x2qxqxqx4B2Aed6qcqd5e3d9qo.23oqd11xq5e2q4xdAd3xc4dx3WB2ed5q3xq6e3d9qo.24oqd7Ad2x2cx3dq3x4q2d3xc4x2WB2e2d3q3x3c2x3e4d8qo.26oqd8qCcCcx2eq2xd2x2q2cdx4cx2WB4ed3qxe3xYc3xqe3d8qo.27oqd7qx6d2qx2dc3qcqedx4WB4Aed3qxd3Y2x4qd11qo.28oqd6qxq5d4x3c2qcqxqx3WBAB3Aq5x2d2C3dq9d4qo.30oqd5qxqd7x4CcC2x5B3d2A2q5d2xq2C2c2xq5x2q5o.31oqd5qxqd8q2x2C4x3B3d4A2deq3dxq2xc4x2qd2q2x3q2o.31oqd5qxqd10qC4x3Bd6A2edexq3x2qx7qd4q2xqo.33oqd4qxqd10qC3cx2qd9e3dxq2x2qx2qx3d7qxo.34oqd3q2xqd10qC3cxq2d11Aedxqx2c2xqxq2d6q2o.36oqd2qx2qd10qxc4xq2d11Aed2x2c2x2d9qC2o4.33oqdqxqd11qxc4x2qd15x3cxqd9qxcxc2o.34oq2xqd11qx6d18qxcxqd7q2o7.35o2xq4d8qxq5d18qx3q2d5qo2.44oqc2q10xqd21q2x4q3dq2o.2o.43oxcx3o6qx2qd21qc5x2q2o2.3o.42o3x2o2.6oq2d22qcx2cxo4.5o.42o.2o2.9oq2d19q3x4o.52o.12ojq6d15qx5o.53o.12oxc2x3qd14q2xc4xo3.48o3.12oxcCcx2qd12q3jxc5x3o.47ox2o.10ox7q4d6q4Gj2x2c2x3o3.4o.42ox2o.10oxj2gj2Gg3q8j2H3jx5jo.7o.42o4.10oxcg2j2H4gj2GgGgGj2H2G2j3xj2o.7o3.54ocC2x2H6j2H9G3j2xj2o.6oc3o2.51o2x5H7jH5j2GHG2j3xj2o.6o2x3o2.50o.ox2g3H11j2G2HG3j2xj2o.8o3.52o2jG2HGH7jH4gG3HG2j3xj2o.62o.ojG2HGH8G3HG4HG3j6o.61o.ojG2H9G4HG4Hg3jxj4o.61o.ojG3H7G5HjG4g3jxj4o.3o2.55o2.oj3g2H4G3jG3HgG4g3jxj4o.3o.56o.oxc2j3H5G6HjG4g2j2xjc2jo.3o.56o.oxc2x3H5G2j2G3gG5gjc2xcx3o.59o.ox6GH2GHG3j2H2jG4g2jcx6o.o.57o.ojx3g2G4HG2j2GHG7gjxj2x2gjo.o.59oj3GjG5HG5HGjG5j2xj3Hj3oxo.55o3x3GHgG5H2GjG2HG7j2xj2Hgj2x2cxo3.51ox2cCx3GjgG5HG4HGjG3gjgjxj3Gj2xc3x3o.49oxc4x2H3jG5HGjG2HG4g2jgj8x4o4.49oxc4xH5G5HG2HG3gjg2j2gj8xo3.54oxc3xH4jG5HGjGg4jg2jx2cj5Ggo.58ox4H5G5HG2Hg4jg2jxc3xj4go.59o2xH4GjgG4HGj2g4j2gjxc2x2j3Ggo.61oGH2G3jG4Hj2Hg5jgjx4j5Ggo.60oGH2G8Hj2Gg5jg4jgj6go.60oGH2G3jG4HgjHg5jg2GH2Gj5Ggo.60oG2HG9gjGg5jg2GHj8go.60oG2HG3j2GgGj3Hg5jg2GHj7gjo.60oG2HG4jg3j2g7j2gGHj5g3jo.60ogGHG3gj2gHj2g8jgG2j5g3jo.60ogGH2G2g2jg2j2g2Hg5jgGj6g3jo.60ogG2HG2g2jg3jg8jgG2j5g3jo.60ogG2HG2g2jHg2jg2Hg5jgGj5g4jo.60ogG2Hg4jGg2jg8jg2j2g2HGg3jo.60ogG3g4jHg2jg2HGg4jg3jg3Hg3jo.59ogGgG2g4jGg2jg3Hg4jHg2jg7jo.58ogGg3Hg4jHg2jgj5g2jg3jg3Hj3gjo.54o3gG2g13jo5jg8jgj3g3o.49o4g3G2H3Gg3j7o.5ojg6HGHGHGg2Ggo5.41o3j4Gg4Gj13o.5oj12GgGg2j5o4.35o29.5o27.311",
+  ".16o80.17oq9dB10A47eq7o2.19oqd6W8B51Ad5qo.21oqd5B2WB4W2B27AB17A8d5qo.19oqd6B5W4B8W4B15AB13A11d7qo2.16oqd5B6W6B6W6B25A15d7qo.15oqd3B8W8B4W8B3A2B19A16d6qo.15oqd2B9W23A2B21A13d7qo.15oqdB10W25B23A12d6qo.15oqB11W26B23A12d5qo.14oqB8AB4W25B24A12d4qo.14oAB8A3B3W23A3B2Ae2B18A12ed2qo.14oqB8A8B3W7A4W8A5edAB16e2A5e8dqo.14oAB8A8B2AW6A6W6A3e2Ad3eB16e15qo3.12oAB2A2B4A8B2A2W4B4eA3W4A3ed6eB15e16qo2Ho12dB3A14B2A3B8eA3B6ed7B16e15do2g11j2A22B20d5qB16e16qo3j2g2G6gjA21B22d3qoqAB15e15do.2o4j4g3jA10e3A2e3A3B23dqo.o2eB13e16qo.6o4j4qA9e8A2B25qo.3oABA2B8e17do.10o4qdA8e8A3B23qo.5oeo2eB6e18qo.14oqA8e8A2B23Ao.2o4qo.2oAB4e18do.16oeA7e8A3B23eo2q4dqo2de8d6ed9qo.15oqA7e8A2eB8e2B6e2B4eBA2d6q2d2e4d19qo.15oqe7d3e4de3B7e2xAB4e2xB7d9e10d15qo.15oqde5d4e2d3e2dB7Ax3eB2e2x2B4eB3d8e9d16qo.15oqde4dq3d6e2d2B2e4Be2xe2q3xBdq4B3d2q2d6e4d19qo.15oqd6q4de2d2e2d3BAx3e3xeq4xq3x2e2A2qxq4d2e9d16qo.16oqd6xc2e3d2e2d5ex3ed2q2xqxq3x2e3A2eqxc2qd2e8d17qo.16oqd5Ad2ce2d3e2d3q2Aex3q4xqxq2x2Be3A2e3qcqd3e5d19qo.16oqd8xqd5ed2q2xeAdx3q3xqx4B2e2de2deq2xqd4e4d19qo.17oqd6qxq6d2q3xde3dxCc4x3B4d2e2d3qxq5e3d4q2d14qo.18oqd5qxc2x3q4x4q2d3xCc2x3B4Ad2eq2dq2c4x2qe2dq3o2q2d12qo.18oqd5qxc4xqx3d2x2q2d2x4cx2B4A2d3qxq3c4x2qd2qo3.2o2q2d7q3o.20oqd4qx6de2x2dc2xqxqedx4B4A2d4qxq3x6qdqo.7o2q7o3.22oq2d2qxq5de2x3c2xqxqxqx3B4A2edq2dqx2q2xqx2q4o.10o7.26o2q3xqd6Ad2xCcxcx6B4A3edq3d2xqcxqxq4o2.o2.42o2qxqd9xcC5x3B4A3e4q3dxqcxqxq3o.5o2.42oxqd10qxC2cCx2B4A4e3dxq3xcCcx2q2o.8o.42oqd10qx3cx2B4A4e6q4cCcxq2o.9o.42o2qd9qxqx3B4A4e4deq5C2cxqo.10o.41o.2oqd8qxq4dA5e5d2q2gj2cC2cxo.10oco3.42oqd7qxqd5A2e5d4qH2j2x4o.11ox4o.37o.3oqd7qxqd15q2H3Gj2x2o.11o6.37o.4oqd6qxqd14q2H3j4xjo.11o.44o.3oq2d3q2xqd13q2g2H3j3xjxo.9o.43o2xo2.2o2qd2qx2qd11q3GjH3j3c2xc2o2.50o3x2o2.3oq3xqd11q2gH6j3cx4o2.50o.2o2.6o3xqd8q4H4jH3j3xjx2o.52o.13oq10gGH8j3x2j3o.52o.13oxcx3g5H6gjH2j2xc2xjgo.50o3.13oxc3xgH10jgH2j2xc2xj2o.50ox2o.11ox6H4jH6gG2HGx5jGo.50ox2o.11og2Gg3H8G2HjG2HG2x3jHGo.7o.42o4.11oGH3j2H4jH4GHgG2HG2j5go.7o4.54ojH2GjH9G2HjG2HG2j5o.7oxc3o2.52ojGHGH6jgH2G3gG2HG3j5o2.5o2x3o2.52ogGHjH7G5gG3HG2j7o.5o.o3.53ojG2HgH7G9HG3j4Hjo.63ogG2HjH6GjG3H2G3HG4j5o.63ojG3H6G6HjG3HG3j6o.63ojG2gH5G3jG3HgG3HG4j5o.3o2.58oj5H2GHG7HjG3H2G4j4o.3o.58ox2cj3H2GH2G2j2G2HgG4HG3j6o.2o.58ocC3x2H2G2HG3j2GHj2G3HG2j6go.2o.58ox6H2G2HG2j2H2GjG4HGj4H2Ggo.o2.58ojx3jG5HG5HGjG4Hgj5HGjo.o.59ojgGHgG5HG2jG2HG7gj4H2gj2oxo.57o2jH3jG5H2G4HGjG3g2j6g2jx2cxo3.56oGH3G6HGjG2HG4g2H2j6gjxc3x3o.52o3jH5G5HG4HGgjg4Hj8x4o4.51ox4H4jG5HGjH3Ggjg3H2gj6gxo3.55oxc2xH5G5HG2H2g3jg6j7o.58ox4H4G6HGjGg4jg3Hg2j7o.59o2xH4G7HjgHg4j2g6j5g2o.60oGH2G2jgG4HgG3g4jg2H2g2j6go.60oG2HG3jG4HgjGg5jg3H2j6Ggo.60oG2HG9gjGg5jg2H2j2gj5go.60oG2HG3j2GgGg2jHg5jg5jgj4g2o.60oG2HG4jg3j3Gg5jg2Hg2j6gjo.60oG2HG3gjg2Hj2gHGg4j2g2j6g3jo.60ogGHG3gj2g2j2g2Hg5jgHj6g3jo.60ogGH2G2g2jgHj2g8jg2j6g3jo.60ogG2HG2g2jHg2jg2Hg5jgHj5g4jo.60ogG2HG2g2jGg2jg8jg2j4g5jo.60ogG3g4jHg2jg2Hg5jgHj2g5jgjo.60ogG2g5jGg2jg8jHg2jg2HGj4o.59ogGg7jHg2jg8jGg2jg2jHj4o.58ojGg9Gg2jg2jGj3gjHj11o.55o3jG2g14jo5jgj8gj4o3.48o4g3G3HGHg3j8o.5ojg6HGHGgGgj3o4.41o3j2gjgG2g2j15o.5oj12GgGgj5o3.36o30.5o26.302",
+  ".10o71.3o7.16oj4q5B4A46dq8o.2og3o.20oj2qd6W2B48Ad7qo2jG2jo.21ojqd5W3B47A2d8q3j2o.23oqd4B4W4B8W4B30A4d9qjo.24oqd5B2W6B6W6B29A5d8qo.25oqd4B2W8B4W8B13AB14A6d7qo.25od5B2W24B9AB14A7d7qo.22o2AB7W25B5A4B14A8d6qo.20o2A2B8W26B3A6B12A8d8qo.19oAB11W25A9B11A10d8qo.17oAB13W23A7B13A12d8qo.16oAB10A4B3W8A4W8A6B11A17d5qo.16oAB10A2B6W6A6W6A6B9A21ed4qo.7o8AB11AB9W3A4e2A2W4e2AB13e3A4e5A3e8d2qo.7oq8B12AB8A4e3Ae2A3e4B14e6A2e17d2qo.6oqd8B10A2B9A3e2B8e4B14e5A2e16d4qo.5oqd7B10e2AB9Ae3B10e2B14e6A2e17d4qo4.oqd8B8e3AB8e4B26e7A2e18d3qjg3o2qd9B6Ae3AB7e4B26e8A2e18d3qgG2go2qd10B3A3e6B4e6B24d2e7Ae18d4qj4o2qd11B2A3e8A2e5B26de26d4qjo3.oqd10B2A4e8A2e6B24d2e2d3e21d4qo.4oqd11A5e8A2e5B4e2B6e2B10d8e20d4qo.5oqd12A4d8e2d6B2e2xAB4e2xAB8d2e9A2e15d5qo.5oqd11A4d9e2d5B3Ax3eB2e2x2edeAB4e2d3e7A2e14d6qo.5oqd12A2edq2d6e2d5qe2Be2xe5xBq5e4q3d2e20d8qo.5oqd12e3dq3de2d2e2d4q2x2e3xe5xq3x2e4dq5e6A2e12d8qo.5oqd12e5c2e3d2e2d4q2x3e5xexdq2x2e5d3c2e7A2e12d7qo.6oqd13e3d2ce2d3e2d3q2Aex3e4x3qx3Be5d2ec2e7A2e10d9qo.6oqd14e3dxqd5ed2q2xeAdx3e3x6B2e2d5eqxe2d3e2Ae2ded2e3d11qo.6oqd15ed2xq6d2q3xde3dxCc4x3B4d5q3xq5e4d5e2d12qo.6oqd18xc2x3q4x4q2d3xCc2x3B4Ad3q3x3c3x2e2A2d5e2d11qo.7oqd17qxc4xqx3d2x2q2cdx4cx2B4A2d3qxqdcY2C2x2e2Ad6ed11q2o.7oqd17qx6de2x2dc3qcqedx4B4A2d4qxqdqY2Cx3qed18qo2.8oqd17qxq2e2d2ed2x2c2q4xqx3BAB2A2dq3dqx2dqC2cxd2q7d12qo.10oqd17qxqd2Bd5x2C3c2x5d8xq3d2xqcC2c3q4x3q4d8q2o.10oqd17qxqd5Aedex3C4x3qd9xq4xqcC2c2C2xAe3x4qd6q2o2.11oqd17qxqd6AeAdx2C4x2q2d10xq3xcCcx6AeBA2ex2qd2q4o2.14oqd16qxqd10qC3cx2jgqd11xq3cCcx5Be3A2eqxqdqo4.16oqd15q2xqd10qxC2cxj2gq2d11xq2C2cx3AB2Ae2Aeq2xq2o.21oqd14qx2qd10qxc4xjgq3d11xcC2cx2eB3Ad2Aeqc3xo.21oqd14qxqd10qoxc4x2Hj2q2d11x3cxqeA3d5qx5o.21oqd13qxqd9qo.ox5H2j2q4d10qx3qd9qxo5.22oqd12qxq4d5qo.2ojg4H5jq6d6qxqxq2d7q2o.28oqd11qxqxq4d2qo.3ojH2gH3jH3gGjgq3d4q2xqxq4d5qxo.29oq2d8q2xCcx3q3o.3ogG4H10G2q3d3qc4x3qd5qo.31o2q2d6qx7qo2.4oG4jH3jH6G3jq2d2qcx2cx3qd4q2o.33o2q3d3qxq2x2qo2.6ojG2j2gH9G2j2q5x5q2d4qo3.35o3q2dqxq2o3.7oj6gH2jH6G3H2q2x5q8o.41o2q2xqo.10oxcx4H11GjH2j2xc5x4o3.44ox2o.11oxc4xH9GHjgH2j2xc6x2o.47ox2o.10ox7H4GH3G2HgG2HGx3c2x3o3.4o.42ox2o.10oj3gjg2H2G8HjG2HG2x5jo.7o.42o4.10ocxg2j3H2G2jG5HgG2HG3j2xjo.8o3.54oc2x3jH3G8HjG2HG2j3xj2o.6oxc2o3.50o2x5H4G2jgG5gG2HG3j2xj2o.6o2x3o2.50o.ox2GjH4G3jG4gG3HG2j3xj3o.7o3.52o2g2H5GHG12HG3j2xjHjo.63oG3HjH2GHG3jG3H2G3Hg3j6o.61o.ogG3H3GHG7HjG4g3jxj4o.61o.ogGHgH3GHG3jG3HgG3Hg3jxj4o.3o2.55o.2oj5H2GHG7HjG3H2g2jxj4o.3o.56o.ox2cj3H2GH2G2j2G2HgG5gj2xjxj2o.3o.56o.ocC3x2H2G2HG3j2GHj2G3g2jc4x3o.2o.58ox6H2G2HG2j2H2GjG5gjcx6o.o2.58ojx3jG5HG5HGgjG3g2jxj2x2gjo.o.59oj3HgG5HG2jG2HGgjg5jxj3G2j2oxo.55o3cx2g2jG5H2G5g2jg3j3xj3G2jx2cxo3.51ox2cC2x2H2G6HGj2Gg3jg3jgjxj6xc3x3o.49oxc4x2H4G5HG2jGg3jg3jgj7x5o4.49oxc4xH4jG5HGgjH2g2jg2j2gj6G2xo3.54oxc3xH5G5Hg3Hg3jg2jx2cj6go.58ox4H4G6g3Gg4jg2jxc3xj3Ggo.59o2xH4G5gHg2jg5j2gjxc2x2j4Ggo.60oGH2G2j3g5jg6jgjx4j6go.60oGH2G3j2g2Hg2jHg5jg4j7Ggo.60oGH2G4jg5jGg5jg2GHGj7go.60oG2HG3j2g2Hg2jHg5jg2GHG2j5g2o.60oG2HG4jg3j3Gg5jg2GHj7gjo.60oG2HG3gjg2Hj2gHGg4j2gG2j5g3jo.60ogGHG3gj2g2j2g2Hg5jgGj6g3jo.60ogGH2G2g2jgHj2g8jgG2j5g3jo.60ogG2HG2g2jHg2jg2Hg5jgGj5g4jo.60ogG2HG2g2jGg2jg8jg2j4g5jo.60ogG3g4jHg2jg2Hg5jgHj2g7jo.60ogG2g5jGg2jg8jHg2jg2HGg3jo.59ogGg7jHg2jg8jGg2jg3Hg3jo.58ojGg9Gg2jg2jGj3gjHg2jg4j4o.55o3jG2g14jo5jg10j4o2.49o4g3G3HGHg3j8o.5ojg6HGHGgGgj2o4.42o3j2gjgG2g2j15o.5oj12GgGgj4o4.36o30.5o26.308"];
 
 /* [name, category, rarity, silhouette, palette, grip, material, accent material] */
 const GEAR=[
