@@ -283,23 +283,95 @@ def B_carapace():
     return fin(g)
 
 # ----------------------------------------------------------------- feet
-def foot(g, k, top, cuff=None, knee=False):
-    lx = CX + k * 5.5
-    poly(g, [(lx - 4.5, top), (lx + 4.5, top), (lx + 4.5, GROUND - 1), (lx - 4.5, GROUND - 1)], 'A')
-    if knee: disc(g, lx, top + 3, 4.6, 'A')
-    if cuff: ellipse(g, lx, top, 6.2, 3.0, 'G')
-    poly(g, [(lx - 5.5, GROUND - 3), (lx + 5.5, GROUND - 3), (lx + 5.5, GROUND), (lx - 5.5, GROUND)], 'C')
+# These were four plain rectangles with a strip of brass across the toe,
+# which is why they looked nothing like their icons. Each one is built
+# from the same parts its icon is: a cuff, eyelets and laces, a knee
+# cop, straps, fur, and a sole with tread cut into it.
 
-def F(top, cuff=False, knee=False):
-    def build():
-        g = blank()
-        for k in (-1, 1): foot(g, k, top, cuff, knee)
-        return fin(model(g))
-    return build
+def boot_shell(g, k, top, w=4.6):
+    lx = CX + k * 5.5
+    poly(g, [(lx - w, top), (lx + w, top), (lx + w, GROUND - 2), (lx - w, GROUND - 2)], 'A')
+    return lx
+
+def boot_sole(g, lx, w=5.6):
+    poly(g, [(lx - w, GROUND - 3), (lx + w, GROUND - 3),
+             (lx + w, GROUND), (lx - w, GROUND)], 'C')
+    line_on(g, lx - w, GROUND - 2.4, lx + w, GROUND - 2.4, 'Z', 'C', 0.9)
+    for i in (-3.2, -1.0, 1.2, 3.4):
+        line_on(g, lx + i, GROUND - 1.6, lx + i, GROUND, 'x', 'C', 0.9)
+
+def F_trail():
+    g = blank()
+    for k in (-1, 1): boot_shell(g, k, HEM - 2)
+    g = model(g)
+    for k in (-1, 1):
+        lx = CX + k * 5.5
+        poly(g, [(lx - 5.4, HEM - 4), (lx + 5.4, HEM - 4),
+                 (lx + 5.0, HEM + 1), (lx - 5.0, HEM + 1)], 'G')     # turned cuff
+        line_on(g, lx - 5.4, HEM - 3, lx + 5.4, HEM - 3, 'K', 'G', 0.9)
+        line_on(g, lx - 5.0, HEM, lx + 5.0, HEM, 'j', 'G', 0.9)
+        for y in (HEM + 4, HEM + 8):                                  # eyelets
+            put(g, lx - 2.8, y, 'C'); put(g, lx + 2.8, y, 'C')
+        line(g, lx - 2.8, HEM + 4, lx + 2.8, HEM + 8, 'H', 1)         # crossed laces
+        line(g, lx + 2.8, HEM + 4, lx - 2.8, HEM + 8, 'H', 1)
+        boot_sole(g, lx)
+    return fin(g)
+
+def F_greaves():
+    g = blank()
+    for k in (-1, 1): boot_shell(g, k, HEM - 6)
+    g = model(g)
+    for k in (-1, 1):
+        lx = CX + k * 5.5
+        disc(g, lx, HEM - 1, 4.6, 'A')                                # knee cop
+        ring(g, lx, HEM - 1, 4.6, 1.5, 'C')
+        disc(g, lx, HEM - 1, 1.8, 'C'); put(g, lx - 1, HEM - 2, 'Z')
+        for y in (HEM + 4, HEM + 8):                                  # shin lames
+            line_on(g, lx - 4.6, y, lx + 4.6, y, 'q', 'A', 1.0)
+            line_on(g, lx - 4.6, y - 1, lx + 4.6, y - 1, 'W', 'A', 0.9)
+            put(g, lx - 3.4, y - 1, 'C'); put(g, lx + 3.4, y - 1, 'C')
+        boot_sole(g, lx)
+    return fin(g)
+
+def F_sandals():
+    g = blank()
+    for k in (-1, 1):
+        lx = CX + k * 5.5
+        poly(g, [(lx - 4.4, GROUND - 7), (lx + 4.4, GROUND - 7),
+                 (lx + 4.4, GROUND - 2), (lx - 4.4, GROUND - 2)], 'A')
+    g = model(g)
+    for k in (-1, 1):
+        lx = CX + k * 5.5
+        for (ax, bx) in ((-4.2, 4.2), (4.2, -4.2)):                   # crossed straps
+            line(g, lx + ax, GROUND - 7, lx + bx, GROUND - 13, 'G', 2)
+            line(g, lx + ax, GROUND - 8, lx + bx, GROUND - 14, 'K', 1)
+        poly(g, [(lx - 4.6, GROUND - 14), (lx + 4.6, GROUND - 14),
+                 (lx + 4.6, GROUND - 12), (lx - 4.6, GROUND - 12)], 'G')
+        put(g, lx + 2, GROUND - 13, 'C')
+        boot_sole(g, lx, 5.2)
+    return fin(g)
+
+def F_cuffed():
+    g = blank()
+    for k in (-1, 1): boot_shell(g, k, HEM - 1)
+    g = model(g)
+    for k in (-1, 1):
+        lx = CX + k * 5.5
+        ellipse(g, lx, HEM - 1, 6.2, 3.2, 'G')                        # fleece cuff
+        for fx in (-4.4, -1.6, 1.6, 4.4):
+            disc(g, lx + fx, HEM - 1.6, 1.7, 'H'); put(g, lx + fx - 1, HEM - 2.4, 'K')
+        poly(g, [(lx - 5.0, HEM + 5), (lx + 5.0, HEM + 5),
+                 (lx + 5.0, HEM + 8), (lx - 5.0, HEM + 8)], 'G')      # buckle band
+        line_on(g, lx - 5.0, HEM + 5.6, lx + 5.0, HEM + 5.6, 'K', 'G', 0.9)
+        poly(g, [(lx + 1.4, HEM + 4.6), (lx + 4.0, HEM + 4.6),
+                 (lx + 4.0, HEM + 8.4), (lx + 1.4, HEM + 8.4)], 'C')
+        put(g, lx + 2.6, HEM + 6.5, 'x')
+        boot_sole(g, lx)
+    return fin(g)
 
 SHAPES = [body(0), body(1), body(2), hat()]
 SHAPES += [f() for f in (H_hood, H_horned, H_great, H_crown, H_brim, H_barbute, H_cap)]
 SHAPES += [f() for f in (B_cuirass, B_scale, B_robe, B_banded, B_carapace)]
-SHAPES += [F(HEM - 1)(), F(HEM - 4, knee=True)(), F(GROUND - 7)(), F(HEM - 1, cuff=True)()]
+SHAPES += [F_trail(), F_greaves(), F_sandals(), F_cuffed()]
 SHAPES += [stick(), hands(), H_crown_grand()]
 P.setsize(96)
