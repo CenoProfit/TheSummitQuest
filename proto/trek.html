@@ -211,6 +211,33 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 #cok{opacity:0;transition:opacity .4s;width:100%;flex:none;padding:12px}
 .show{opacity:1 !important;transform:none !important}
 
+/* ---- a thing on the trail ---- */
+.vtrack{height:7px;margin-top:4px;border-color:var(--edge)}
+.vfill{height:100%;width:100%;background:linear-gradient(#9fd8ff,#3f86c8);
+ transition:width .4s ease-out}
+#bbanner{position:fixed;left:0;right:0;top:0;z-index:28;pointer-events:none;
+ padding:16px 14px calc(16px + env(safe-area-inset-top));text-align:center;
+ background:linear-gradient(rgba(60,14,10,.94),rgba(60,14,10,.0));
+ opacity:0;transform:translateY(-14px);transition:opacity .35s,transform .35s}
+#bbanner.on{opacity:1;transform:none}
+.bbname{display:block;font-family:var(--pix);font-size:11px;letter-spacing:3px;
+ color:#ffb49a;text-shadow:2px 2px 0 rgba(0,0,0,.8);line-height:1.7}
+.bbsub{display:block;margin-top:7px;font-family:var(--pix);font-size:7px;
+ letter-spacing:3px;color:#e0806a}
+#bend{position:fixed;inset:0;z-index:32;display:none;align-items:center;
+ justify-content:center;padding:18px;background:rgba(3,6,11,.93)}
+#bend.open{display:flex}
+.bcard{width:100%;max-width:420px;text-align:center}
+#bart{width:168px;height:168px;image-rendering:pixelated;
+ filter:drop-shadow(0 5px 0 rgba(0,0,0,.5))}
+.bres{font-family:var(--pix);font-size:13px;letter-spacing:4px;margin:10px 0 9px;
+ text-shadow:0 0 12px currentColor,2px 2px 0 rgba(0,0,0,.8)}
+.bname{font-family:var(--pix);font-size:9px;letter-spacing:2px;color:var(--ink);
+ line-height:1.8}
+.bflav{font-size:11px;line-height:1.8;color:#9fb0c2;margin:11px auto 13px;max-width:360px}
+.bgain{font-family:var(--pix);font-size:8px;letter-spacing:1px;line-height:2.2;
+ color:var(--dim);margin-bottom:16px}
+
 /* ---- journal ---- */
 #journal{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
  background:
@@ -224,6 +251,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  background:rgba(0,0,0,.22);padding:9px 12px;margin-bottom:10px;flex:none}
 .jlist{flex:1;overflow-y:auto;min-height:0}
 .jrow{border:2px solid var(--edge);background:rgba(0,0,0,.26);padding:11px 13px;margin-bottom:7px}
+.jrow.jwon{border-color:#6d3a30;background:rgba(48,14,10,.30)}
+.jrow.jlost{border-color:#2b3647;background:rgba(0,0,0,.18)}
 .jhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .jn{font-family:var(--pix);font-size:9px;letter-spacing:2px;color:var(--gold);line-height:1.75}
 .jd{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim);flex:none}
@@ -254,6 +283,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
       <span class="nextdist" id="nextdist">2.8 MI</span>
     </div>
     <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="track vtrack" id="vtrack"><div class="vfill" id="vfill"></div></div>
     <div class="steprow">
       <span>TODAY <b id="today">0</b> STEPS</span>
       <span>DAY <i id="day">1</i></span>
@@ -279,6 +309,20 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="citem" id="citem"></div>
     <div class="ckind" id="ckind"></div>
     <button class="btn" id="cok">KEEP WALKING ▶</button>
+  </div>
+</div>
+
+<div id="bbanner"><span class="bbname" id="bbname"></span>
+  <span class="bbsub">BARS THE TRAIL</span></div>
+
+<div id="bend">
+  <div class="bcard">
+    <canvas id="bart"></canvas>
+    <div class="bres" id="bres"></div>
+    <div class="bname" id="bname"></div>
+    <div class="bflav" id="bflav"></div>
+    <div class="bgain" id="bgain"></div>
+    <button class="btn" id="bok">KEEP WALKING ▶</button>
   </div>
 </div>
 
@@ -506,7 +550,7 @@ function ridged(x,y){
 
 /* ---------- state ---------- */
 const KEY='sq_trek_proto4';
-let S={steps:0,today:0,day:1,opened:[],log:[],stones:0,own:{},eq:{}};
+let S={steps:0,today:0,day:1,opened:[],log:[],stones:0,bm:0,beat:{},fight:null,own:{},eq:{}};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 /* the outfit slot was retired; a save made before that still names its
@@ -2022,6 +2066,47 @@ function paint(now,dt){
   }
  }
 
+ /* ---- whatever is barring the trail ----
+    During a fight it is held at a distance that closes as the fight
+    goes on, so it arrives in your face by the end instead of being a
+    thing you walk through. Out of a fight the next one stands on its
+    own mileage and you watch it come. */
+ (function(){
+  let B=null, dd=0;
+  if(S.fight){ B=BOSS[S.fight.b]; dd=70+260*S.fight.close; }
+  else{
+   const nb=nextBoss(miles());
+   if(nb){ B=BOSS[nb.b]; dd=camY-(-nb.m*RPM); }
+  }
+  /* Its own range, not the scenery's. Computing the haze against DOBJ
+     while drawing out to half again as far faded every approaching boss
+     to nothing well before you could see it. */
+  const BD=900;
+  if(!B||dd<40||dd>BD) return;
+  const sc=FOC/dd;
+  const wx=trailX(camY-dd)+(B.air?26:8);
+  const sx=W*0.5+(wx-camX)*sc;
+  if(sx<-200||sx>W+200) return;
+  const gh=terrainH(wx,camY-dd);
+  const bob=Math.sin(now*0.0011+B.tier)*(B.air?5.2:1.1);
+  const h=gh+(B.air?62+bob*2:0)+bob;
+  const sy=hzY+(camZ-h)*sc;
+  /* A boss was first given the height of a big tree and came out 31
+     pixels tall in the middle of a forest, which is not a boss, it is a
+     shrub. These are three or four times a tree on purpose. */
+  const worldH=(B.air?96:112)*B.sz;
+  const pxH=Math.min(H*1.60,worldH*sc);
+  if(pxH<6) return;
+  /* pixOf, not the canvas: drawBill scales by S.h, and a canvas has
+     .height rather than .h, so passing it straight through made every
+     dimension NaN and the blit loop ran zero times in silence. */
+  const P=pixOf('boss#'+B.p,bossArt(B));
+  let fog=Math.min(0.66,Math.max(0,(dd-180)/900));
+  const edge=(dd-BD*0.82)/(BD*0.18);
+  if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.90;
+  drawBill(P,sx,sy,pxH/P.h,dd,fog,HZC,Math.max(2,dd*0.02));
+ })();
+
  /* the terrain and everything standing in it go down in one blit */
  terCtx.putImageData(terImg,0,0);
  g.drawImage(terCan,0,0);
@@ -2169,6 +2254,75 @@ function step(dt,now){
    =================================================================== */
 const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
            ['MYTHIC','#b978f0'],['LEGENDARY','#f5c651']];
+/* ---------- the things that bar the trail ----------
+   Eight of them, five on the ground and three in the air. They are
+   scheduled every couple of thousand steps between landmarks, and the
+   schedule is seeded from a constant so every walker meets the same
+   ones in the same places.
+
+   A boss does NOT stop you. Your steps are what fights it, so the fight
+   resolves by walking and the mile counter never pauses. What your gear
+   decides is how long it takes and whether you are still standing at
+   the end: good kit kills it and takes the loot, bad kit runs out of
+   vigour and the thing gets away. Losing costs you nothing you had,
+   which is the whole point, because the steps were real. */
+const BOSS=[
+ {n:'THE BLOOD MOUNTAIN WARDEN', p:0, m:'ash',  gm:'moss',   from:18, tier:2,
+  air:0, hp:180, atk:9, sz:1.00,
+  w:'The stone shelter on the summit got up. Every block the CCC set, walking.'},
+ {n:'THE LAUREL HELL',           p:1, m:'moss', gm:'wood',   from:0,  tier:1,
+  air:0, hp:100, atk:6, sz:0.94,
+  w:'A rhododendron thicket closed over the trail and never opened again.'},
+ {n:'THE BLY GAP OAK',           p:2, m:'moss', gm:'wood',   from:74, tier:6,
+  air:0, hp:540, atk:27, sz:1.10,
+  w:'The most photographed tree on the trail has had enough of being looked at.'},
+ {n:'THE NANTAHALA HOARFROST',   p:3, m:'frost',gm:'silver', from:88, tier:7,
+  air:0, hp:630,atk:33, sz:1.04,
+  w:'Rime kept accreting on the high balsams until one of them stood up.'},
+ {n:'THE GORGE LEVIATHAN',       p:4, m:'sea',  gm:'jade',   from:62, tier:5,
+  air:0, hp:440, atk:22, sz:1.06,
+  w:'What is under the water at Three Forks when the water is high.'},
+ {n:'THE STORM OVER TRAY',       p:5, m:'storm',gm:'ash',    from:50, tier:4,
+  air:1, hp:350, atk:18, sz:1.16,
+  w:'An afternoon thunderhead that has been following the ridge since Unicoi.'},
+ {n:'THE RIDGE WYRM',            p:6, m:'obsid',gm:'blood',  from:98, tier:8,
+  air:1, hp:750,atk:39, sz:1.02,
+  w:'It keeps to the thermals over the Nantahalas and comes down for a reason.'},
+ {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   from:32, tier:3,
+  air:1, hp:260, atk:13, sz:0.98,
+  w:'A vulture that has been on this ridge long enough to feel it is owed.'}];
+
+/* the walker himself, before anything is put on him */
+const BASE={atk:14,def:14,spd:12,mag:6};
+
+function _seedrnd(seed){ let x=seed>>>0;
+ return ()=>{ x=(Math.imul(x,1664525)+1013904223)>>>0; return x/4294967296; }; }
+/* Where they stand. Built once, far enough ahead to cover anything the
+   prototype can reach, and nudged clear of a landmark so a boss and a
+   chest never land on the same step. */
+const BSCHED=(()=>{
+ const r=_seedrnd(0x5EED17), out=[]; let m=1.1;
+ while(m<260){
+  const elig=[]; for(let i=0;i<BOSS.length;i++) if(BOSS[i].from<=m) elig.push(i);
+  elig.sort((a,b)=>BOSS[a].tier-BOSS[b].tier);
+  /* weighted to the strongest thing that lives this far up the trail */
+  const k=Math.min(elig.length-1,
+                   Math.floor(elig.length*(0.42+r()*0.70)));
+  let mm=m, guard=0;
+  while(guard++<6 && TRAIL.some(L=>Math.abs(L.m-mm)<0.30)) mm+=0.40;
+  out.push({m:Math.round(mm*100)/100, b:elig[k]});
+  m=mm+0.95+r()*0.95;
+ }
+ return out;
+})();
+function nextBoss(mi){ for(const B of BSCHED) if(B.m>mi) return B; return null; }
+
+/* ---- how a fight goes ----
+   Damage is quoted per hundred steps because that is the unit a walker
+   thinks in, and divided down at the point of use. */
+function myDPS(t){ return (t.atk*0.55+t.mag*0.45)*(1+t.spd/100); }
+function bossDPS(B,t){ return B.atk*100/(40+t.def); }
+function myVigour(t){ return 80+t.def*6; }
 /* which body slot each category fills */
 /* ---------- the cairn ----------
    A piece you already own is left at the cairn and you take a stone for
@@ -2311,6 +2465,14 @@ const HERO=[".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go
   ".1581o.56o7eo.54oeA6eo.55oAB5eo.55oAB3dAeo.55oAB2Aqedo.55oeBA3q2o.55oeA5do.56oeA4do.56oA5edo.55oBA3e2do.55oAe5do.55ode5qo.55ode4dqo.56ode3dqo.56ode3dqo.56oded3qo.56oded3qo.56oq6o2.56ou4o.59oum2uo.57oum3uo.57oum3uo.58ou4o.59o4.977",
   ".1554o2.62oBo6.56oA5eqo2.54oAB4Aqo.55oAB3q3o.55oAB2Aq2do.55oABA3edo.55oBWA2qdqo.54oBWA4do.55oA5edo.55oA4e2qo.55ode5do.55ode5qo.55ode4dqo.55ode4qo.56ode3dqo.56od5qo.55oqd5qo.55o2q6o.57ou4o.57oum2uo.58oum3uo.57oum3uo.57ou4o.59o4.1002",
   ".148o.22o2.38odo2.6o7.6oe2o.37oq2o.3o3e2A3eAo2.4oq2o.36oq3o.2oB2eAB3A2VA2o2.oq3o.36oq3Bo2eB2A2BABA4BeBoq5o.34oqdq3e2ABA3BABA4BA2dq4d2o.32od2q4dA2VA3BA2e2A2edA2dq5o.33oq5dA2Be3AeAe3B3A2dq5o.34oeB2qA3Be2A2e2deA2eqed5qo.36odBA2eWe2A3eAdA3edA2d2eqo.37odA3qe3A3eAeA3edA3d2qo.38oeA4e2A3eAeA3edA2eqo2.40oeA3e2A3e6d2e2do.41odA4e2A4de4d2e3do.40odA4e2AeqWqe4d2e4qo.39odA4e5qe5d2e4qo.39odA4d2e9d2e3dqo.39oqe4d2e3q2e4d2e2d2qo.38oqd2e4d2q9d5q2o.37oq10x5q10o.35o2qdg9x5g9BAo.34oe2dg7j2x5g7j2dAeo.33o2d2j9x5j9d2o2.35oqde2d2qd2x2g3xd3qe3d2qo.38oeA3doA2d2g3A3doeA3do.40oe2do.oed2GjgA2eo.oe2do.42o3.2oe2qo2jde2o.2o3.48o4.2o5.2202"];
+const BOSSPIX=[".1584o15.73o8c14o.15o7.51oC4c3C12cxo.12o3A7o3.19o12.17ocC10c9xo.10o2B2AB7A3o.16o2B3A9o2.15ocC6c13xo.9oB2WB12Ao6.9oB2W2B10Ao.15ocCc5x13o2.8oBW2B8A11o.7o2BW3B12Ao8.7ox8A5e2d3qo.9oBWB10A6B4Ao.6oB2W3B14A7eo3.5oAededeAB6eq3BAo9AB4A14B4Aeo.4oBW5B6A5B7A4eAo.5oBWq6B4q6BA9B4A10eA2eA2BA3eo3.2oBW5B4A7B5A8qo.4oBq8Aq4c2q3W2B13A8e4AB2A3eo2Bo2BW3B7A19dqo.4oq3Cxcq7cCcx2q2WB12A8e6A5eo2AB2WBW2B7A18eqo.5oq2cZ2Cx2qAq3cZ3xqW2B10A10e6A5eo2AW2B2WB8A18edo.4oAq2cZ3x2q2eq2xZ2x2q2WB3A4BA12e6A5eo2ABWB11A2e5A7e5qo.4oq3xZ4xqe2q2x5qW2A7BA12e6A5eo2AB13Ae6A6e5d2o.4oAq2x2Z2x2q6x3q3BA20eded2eA5eo2AB11A2e7A5e6d2o.4oq4x4q2e3q7B2A3e3A14d6A5eo2eB10A3e7A5e6qo.5oAq3dqdq2eAe2q6ABe8Ae2A2e8d5A5eo.oeB9A4e7A5e5do.6oBW2BWBWBWBW6A4B2e7Ae12d6A5eo2eB9A4e4de2Ae2A2e4qo2.5oABq10W4q4B2e8Ae12d5A6eo2eB9A4e2d5e6d2qo.7odeq3n8W2n3q3B2e7Ae12q6A5eo2dB9A4e2d5e3A2e2d2qo7qe2q2n15qB2e2d6e12q2g3deB3A2eo2dB9A4ed6e6d4qe2A3dqdq4n13q3B2q6de11q2H2G2j2B3A2eo.oAB8A4eq5dA2eA2e2d3eA2B4de2q2WBWq4dq8Aq3g4qd2e11qH2G3jB3A2eo.oeA3B2A3e4q2g3qdA5e6A2B4qe3B2qdq2W4Bq3Aedeq2HG5jde10dqG4gjB3A2eo.odA3B2A3e3q2G4qeA5ed5A2B3A2e4B10A4edAq2G5gjde10dqjg4jB2A3eo.2oeA2BA4e2q2G6jdA4q6A2B3Aqe3B10qe5d2q2G4g2jqde5d5qj2g2j2B2A3eo.2oeA2BA4e3qjG4j2de3q3g2q3B4Ade3AB9de2qdq4j3g3j2qoqe4d7j4BA5eo3eA8e2q2j2g3j2e3dq2G3jq4dqdqdqdqdqdqdqdq4e4d2A2j6qo.ode10AeAB2A5do2A10e5j2gj2Ae3dqgG4gjB4A2e4B8q2e4d2A4e5qo.ode8B7A4edo2A10e5j4A2e2d2qgG4gjB4Aqe3B10e2d6AeAB2A2eo.2ode9AB5A4edo2A10e3B2eAeBA2d4qgG2g2j2B4Ade4B8q8dAeA6do.2ode2d2e4A2B4A3e2do2deAe2A5e4B5Ad6j3gj2A5eq2d2eA9q2g4qe2AB4A2qo.2odq3de4A5BA2e2do.oAe4A5e4B5A2d4A2j4BA5e2qd3A8eqG6jeAB3A2dqo.2o5qd3eA5BAe3do.oe4B3A3e4B6d6A2e2B2Ae4d2qdqA9eqG5gjeAB2A3eo.8oqe3A5BA2e3do2e5BA4e4AB4A2d4A4B3Ae4q6A6e2q2G4g2je2BA4qo.9ode3A4BA2e2do.oe5A5e4A2BA3edq2d2e2AeAed3eq2g3q2eAeA3e3qj2g3j2qdqdqdq2o.9oqd2eA4BAe3do.oe5A5e4A6eqo2q6dq6HG3j2q3dqdqdq2j6A6e2qo.10oqde2A3BAe4do2de4A5ed3e2A2e2qo.2o5eA2d2edqG5jA5BA3B2eAeABA2e6qo.11ode2A3BAe4do2de4A4d5e2Ae2qo.8oeA2dedqG4gjA5BA2qB7e7qo.13oqe2A2BAe3do.ode4A5d4e4do.9oeAed3qjg4jA9B8e6qo.14oqeA4e4do.oqe3A4d5e5qo.8oeAed3qj2g2j2A8qB7e2de3dqo.15odeA3e3do.3oqe2A5d4e4dqo.8oqe2d5j4A10B8ede3dqo.15ode2A2e4do.3oqdA4d7e2dqo.9oeAe4ABA6e3Ae2qA2B4A2eded3qo.16odeA2e4do.4oqA5d6edqo.10ode5AW3Be6Ae3A2B2A4ed5qo.16odeAe5do.5oeA3d7edqo.10ode6B5e5Ae2qA8ed4qo2.16odeAe5do.6oeA3d6edqo.10ode2d3eB4e6Ae4A7ed3qo.19odAe5do.5oeA3q7d2qo.11oq5eB5e10A7ed3qo.19odAe5do.5oe3q3g4q3o2.12oqg3dB4Ae10A7ed2qo.20odAe4do.6oe4qgG4jqo.15ogG2qAB2A2e5de5A5e2d2qo.21oe6qo.5oe3q2gG3gjqo.14ogG4jAqdqdqdqdqdq5dqdqdq5o3.18oe6do.4ode4qG4gjo.10o5gG4j2qdA2e9deA6dq3jo.20ode5qo.4ode3q2G2g3jo.15ojg3j2B2A2e7d3eA5edq2G2go2.19ode4qo.4ode4j3g2j2o.16ojgj2B3A2e6d4eA4e2dqgG3g2o.18ode4qo.4ode5j5o.18oj2W2B2Ae3de3d4eA2e4dqjG4jo.18ode4qo.3oABe4B2eAedo.19odW2B2e2d5ed4e7dqojGg2jo.17oe5dqo.o2ABe6B4eo.20oAB2Ae2d5ed4e7qo.oj3o.17oA2e3d2qo2B5e4B5ABo2.19oABAe2d5ed5e5qo.3o3.12o6ABe2d4qo2BWB2Ae5B5A3o6.13oA3ed6eq4de4do.19oA5Be3d4qo2AB3Ae4B5A2B2Ae2o.13o2ABA2q6dqo4qe5do8.11oAB6ed5qo2AB3Ae5ABA9eo.12oABA2q3g2q3o.4oeA4eA6eo.11oeAB4Aed5qo2AB2A2e5A10edo.12oA3q3HG2jq2o.4oeA3e3B3A2eo.11oeAB3A2ed5qo2AB2A2e5A10edo.12oA3q2gG4gjo.4oeA3e2B3A3eo.11odeA5ed5qo2AB2A2e5A10eqo.12oA3q2gG4gjo.4oeA2e4A5eo.11od2A5ed5qo2ABA3e5A9eqo.13oA3ejgG2g2j2o.4oeAe5A5eo.11o3dA4ed5qo2A5e5A5eA3eqo.12oA4e3j2gj2qo.5oe5A5eo.15oeA3ed5qo2eA4e4A5e2Ae3qo.12oeA3e2A2j3Aqo.5ode5A4eo.15oeA3ed5qo2eA4e3dA3e7qo2.12oeA3e2B2e3Aqo.5ode4A4e2do.14ode2Aed5qo2eA3e3d3e8qo.14oeA3e2AB3A2eo.5ode5A2e3do.14ode3d6qo2eA2e3d4e8do.14oeA2e3A6qo.5ode4de5do.14ode3d6qo2eAe3d5e8qo.14oeAe4A5do.6ode4de5do.14ode3d6qo2e5d5e8qo.14oeAe4A5do.6ode4de6do.13o2de2d5q2o2de4d5e5dedqo.14oe5de2Ae2do.6ode4de6do.15oqed5q2o2de4d5e3d5qo.14ode4de5do.3o3de4d2e7Ao5.11od6q2o2de4d12qo.15ode3d2e5qo.3oA2e4d3e4d3e4o.12oqd5qo.ode4d11qo.3o5.3o5de12Bo3eAd15e3do.2o5.6oq6o.ode4d12qo3e4o.3oA4e6de10A3d14e4do2e5o.5oq2xc2xo.ode4d13q2de4do.2oeA3e5d2e7A3e3d15e4d2e4do.6o2x2C2xo2q4d13qo2de4do.2oe4d2q5d3q6d4q20de4do.8ocC2co2qx2q14o.2od4qo.2o45q6o.9ox3o20.2o7.47o7.9o5",
+  ".19o3.6o2.5o.4o.9o3.6o5.3o3.4o.9o.30oAo.6o2.4o.5o.9oeo.6oeo.3o.19o3.27oAo4.3oAo2.o.16o2.6odqo.22oe2o.27o2.3o4ABA2o.16oeo.5oAdo.3o.7o.10oA2qo.21o.5oeo2.5oA2o.17oeo.5oedo.11o.9oAeqo.21o.6oeo.6oeo.18oeqo.3oeAqo.10o.10odq2o.20o.7od2o.6oeo.9o.7odo.3oA2qo.21odq2o.30odo.6oeqo.8o.6oedo.3oq2o.21oeq2o.22o2.7odo.6oe2o.8o.6oeqo.2odq2o.10o.9oeAqo.24o.7odeo.5oeo2.8o.6odo.2oAeqo.11o.8oedqo.25o.8o2.6o2.10o.5oedo.2oedo.11o2.7oedqo.35oeo2.4oeo.9o.5oeqo.oeAqo.11o.7oedq2o.28o.6oe2o.4odo.9o.5odqo2edqo.19oedq2o.29o2.5oqeo.4odo.9o.4oedo.oeq2o.10o.7oAdq2o.31o.6oeo.4odo.9o.4oe2doq3o.11o.7oAq2o.33o.5oe2o.3odo.9o2.3ode2dedo.11o2.6oAq2o.34o2.4oe2o.3odo.10o.3od5qo.6o5xo.5oAeo2.23o3.10o.4oe2o.3o2.14oq5o2.6oC3c2Cco5Aeo.25oe2o.9o2.4oeo.3o2.10o4x2cxqo.7ocC4c3x2A3BAqo.24oeAeo.9o.2o2eA2o3q2o3.6oC8xco6.2ocC2cx4qAB3q3o3.21ode3o.9o2q2A3q3d2q3o2.4ocYcC7c6o2C4cxq5B3q6o2.20od3o.7o2Aq3e2A2q2d3q4o2.3ocx6C6c2x2c8x3AB2q7o.21o2q2o3.2o2q7eAq3d3q6o2.ocCxd2e2x3C2x4c7C4x2q10o.22oqcxco2q8e3q12xcoCc4x2eq3x3q2x3c9x2q11o.21oCZC2cx3q3BAqdq4C2c4q4cCxc5x2q11x11q13o.12o8xC6x3q3Bdq3c2C7xq2x3c4x3q11eq3eAeAeqd2q13o.11o2.6oxc5x2q5Bdq2x2C6x3q3x6q12B2deB6d4q13o.10oeo2.5ox6A2q5Bd3x3c3x3d5A4q12B2deB6d6q12o.10oedeo.5oqAde2A2q9ex6q2d4B6q10BAdeB6d7q13o.9oqde2o.3oq5eq4Cc4q2ABAeq3d5B6q12deA5Bd7q2c2Cxcxcq5o.10o2qeo.3oq8c2ZC5x2W4d8BA3q13e2A6d5edqc2C7xq4o.11oqAo3q8c2C8xW3d8A6dq9B2e2A4ded3e4qx2C2c5xq4o.12odA2eq9cC7x2W4d6A6d2q2BABABeB2qAe3AdB2Ae4Beqx10q5o.12oeA3eq4c3C3c5xe2W2d6eA5ed9BABABAe2A3BAe5B2q15o.13odAe3q3xcC3c7xB4d5eAeAe3d10e8A2B2e4dB3dq5B2q6o.14ode3dq2x2c8x3B3d6e7d9ede8ABe2Be2AB2d3q3B2q6o.8o.6oqed4q2x10A2B4d4e3d9nde2B2e9A2e3d4B12q4o.7o3.4oq15eAB3A2Bd4ed5q2n2dn8Ae5d13eBqdB2qdAq6o.9o.3oxc2xcxdedq8B4A2B2d2e2d3q2n4dn10e2d9q5deBd2Aq2Adq6o.11o2cC6x2B2q8AeA4BAded2qdn6dn11BAd6q3Cc4q3dAq10o.12ocCc5x2B3q9dA3BAd3q2n8o4n9ABed2q2c2ZC5x2A2q2A2q6o.12o2x7AB3Aq8d2A4d4n7o9n2e2n3ABA3x2cC5c2xdq2e2q6o.15oqdedqA6eq8de3Bd3n6o12qn6e3Ax4c4x3d2e2q7o.15oq3BdqeA3e3q8e4d2qn5o15n5e2A4x7A3e2dq8o2.13oq4BAqA3e4q8e3dq2e2n2o3q2o12n5qB5eAe4A2Be2dq6xq2o.13oq5BABA2ed4q6e4dn3do3q5o12n4dB5ABA4d3Bd2q3c2C2xcxo.5o3.4oq8Bdq12e3dn5q4c2q2o11n5dq8Aq9C8xo.4oe2o.2oq10ec3Cc3xq3e4dn4oq2c2Ccxq2o11n4B2q9c2Cxcxq2xC2c5x2o.3oeA2o2qdq10cC7cxq2e3dn4oq2cZ2Ccq3o3q4o3n4B2Aq6c2C6cx10q2o.2o2dBA2Bq11c2C5c2xqde3qn4dqxZ4Cx2qo2q6o2n4B2A2q4xc2C5c2x2qdqdqdq4o.4oABA2q4Cc4q2x4c2x4d3edqn3odqx2Z4x2q5Cxq4on3B2A4B3x4c3x3BA4eAeq4o.2o2eA2q3c2ZC5x2q2x4eAe3d3n4o2q2xYZ2x2qo2q2cZ2x2q2on4BA6qdqx6qBAq11o.o.2oqAq2x2cC5c2xqdq3dB3dedeAn4o2q2x6q2oq2cZ3xq2on3A8B3qdq19o4de3d2x3c4x3qd5Aed2Beq3n4o2q3x2q3o2q2xZ2x2q2n4q2A6B3A3q4Aq13o2ede3d4qx6d9Ad3BAq2n4o3q6o3q2x5qen4q3A5B3A4e2qd2q2c5xcxq2o3de2q6d4e2A2d12BAn2Aeo6q2o5q3x3q3nA3q4e3A2Be8d2qc2C7xo.3odq3Cc4d4A3d4e2d8e2n4o12q7n5eq6A2B2e2d7qx2C2c5x2o.2oq2c2ZC5x2de3q4e2d6q4n4o13q5n5Wq8ABdq10dx9qo3xc2C6c3x2dq4c2q5d3q4n5o17n5WBq6Bedq3C2xcxq3Bdq9o2cC5c5x3qdqc2C3xcx2qd2q5n6o15n5B3dBq5Be2c2C5cx2Aq10o2cC2c3x6q4c2C7xqdq5en7o13n6B3qAeq5e2c2C5c2xq11o2x2cx4dqdqdq4x2C2c4x2q9n8o8An7B4e2o2q5x4c4x3q10o.2o2x2deABABABABAex9q3Cc5qdn10o3n3An5B3A2do.2oq6x7q12o.4oq17d6c2Y3C3x2q2n14ABn3AB3Aeo.4oq9edq12o.6oq8c2Cxcxcq6dc2YC6x2q3ndn11Bnq4B2A2do2.2oq4BAq16o.7oq4Bq2c2C7xcxde3C7x2q6n11B2q5A3edo.3oq4Bdq15o.8oq2BAq2x2C10x2e2C8cxq5YC4nW3B6q4A2eAeo2.2oq4Bdq13o.4o.3oA2e5x5c7x2q2cC5c3xqCcxC5x2W2B6q6e2B2A2o2q6edq11o.5o4ABd2q2d4q2x9q4YZc6xqcCc6x2W2B3ABq8e2B3Ade2q5ed3q6o2.7oe3qo4q3dq14c10x10WB5ABdq6e3A2B3edq3o2q9o.9o5.4o2q16x2c6x3BA8B4A2e6q5A5d2e2qo.2o9.21o8q8x9A2BW3B4AB3A3e5dq5A5d2e2do.10o3.27oqWB6A8B4ABAB2q2A5e5d2q4Be3A2qd4qo.34o5AB5AB12q10A2B2d7q3BAe4q4dq3o.27o6e2A3B6A3B9q10A3Bd6q8e4q7o.24o3A2e3qe2B2A3B5q4B6q11A2d3q10Bq3e3q3eq4o.23oA2e2o6eAq4AB2q4A6qdq8A4q4C2c2x3q5e5q2dq4o.21o7.6oA2qBAq4A8q2A2e2q4e2A2edqxC4cxeq2xBq3e3d3e2q4o4.7o3.6o.7o2.3oeA2BAq4A8q4Aeq4e3Ae2dqx2c4xAq2xAq4e3d2e8o.8oAo.4o.11o3A4q7Ae4Aq4Ae3q2e2d2Ae2d2qx4cxBe2qBq3e3d6q3A2eo.7odo.3o.14oA4q6eAe5q3A2e6d2B2e2d2q3x4A2eq6e3d2qd2q4do.9oeo.17oA3q6e2Ae3q6Ae8BA2ed2q3AdqA3dqBq5e2d2q2dq3e3o.8oeo.17oedq6A2e4q6A2e7q3Aed2q2A6d2q10dq2dq4e2o.8oeo.15o2A2qdq4A3e3q6A3e3d3eq2d2q6eA5dq7eq2dq2dq3oqdo.8oeo.10o.5oqdoqdedAe3dq7e4d3q4gjd2q2xq4eA3d2q3g2q11o.odo.3o.4odeo.8ogo5eqo.oq4e3dqg2j2q3de2d2q2xqg2jdq2x3q4A4q4g3j2qjqjq4o.2oeo.2o.5oeo.7oj6dAq2ox2q4e2dqg2j2qj2de2q4xqjgjdq2jxq3cqeA2q5jg3jqjqj2qjo.2oqeo.2o.5oeo.8o4jA3q2cx3q2e2d2qj4qj2d2q2j3xqj3eq2j4qCx2A3q4j5qjqj2qj2o2xqo.3o.5odo.12oeAq2x4q2e3d2q3jqj3dq3j2xqc2xe2dqgj2qx4A2q9d2jqj3qj2x2d2o.3o.4odeo.11odeq2x4q2de3dq5d2jdq2j3xqcx2e2dqoj2qj4d2q5cq3d4q2oqj2cxd2o.3o.4od2o.11oe2qo2j2qx3e3dq7d4qjx2qx3e2qo.o4x2oqej4qc2x2dAdqo2.ojCx2edo.3o.4oqo.12oeqo.2oq2x2e3q8Ad3qo2q3x2qdqo.6o2.odeq2jqc3xjq2o.3oc3xedo.3o2.4odo.10oq2o.4ox3ed2qj3q5edqo.2oqcx2oq2o.4o.o.2odqo3qx4o4.3o2xcxqdqo4.5odo.10odqo.3o3x2d2qo2q3j3deqo.3oqxo2.oqo.4o.o.2oqo.3oxo3.3o.o3.ox2q2o.4o3.2oqo.10odo.3o.3o2q2o.2o7q2o.3o3.3oqo.3o2.4oqo.3o2.6o.3o.2o2q2o.9oqo.10o3.9o3.9o3.9o2.10o3.20o3.9o3",
+  ".10o6.o72.16oe5WoB11A44e7qjg4jo.16o2B5W2BW5B44AB3A8d2j2g2jo2.15oB2WB7WB28A2B13A19j4o.15o2BW2B22AB12A4B13A20e3do3.12oBWB24A2B10A5B5AB7A12B4A8e3o2.9oBWB25A9B2A7BA23B4A11e2o.7oAB27A9B2A30eB4A13eo.6oAB10A3B11e3A41e2B4A13eo.4oAB9A5B10Ae4AB2A10e4A23eB5A12eo.5oAB8A6B9A2e4ABA9e6A23e2B4eA5e3A4eo2.2oAB7A8B6A4q4e3A8e7A12e6A5e8A3e5AeAeo.3oAB2A8e5A4Be4q5A13e5A23e8A3e10o2.oeB2A7e6A3e7qgjdeA11e6A12e6A4eded2e4A3e10djo2eA8e7Ae8q2G2ede2A8e7A12e7A3ed4e4A3e10do3eA8e6A2e9qG3je3Ae2AeA2e3d4A12e11d5e8d2e5do.2odA5e5B2de11q2G2j2e8A2e2q5A3e3A6e11d6e6d3e6qo.ode9B6e9djgG2qde2B2e2de2d2qg3jeA11e10q5d2e6d3e4d2qo.o2de9B5Ae6B4j2G2jqB4d2e2dq2gG2jeA2e14de3q6de3A3ed3e4d2qo.3ode8d2e3B2e4B4e2jg2jq2B2d3eq3G3j2eAe12d4e4q2Hj2qe3A3ed3e2d3qo.4ode4d4q2g2jeBe5B4ej2g2deAd5q2G3j2e13d10qj4q2e2A2e2d3ed4qo.5ode2d4q2G2gje8B2A2djg2q6d2qgG2j2Be13d12Hgjde3Ae2q5d3qo.7oqd5qgG3jde8d2edj2Gj2qxq5g2j3e14d12jG2qde4dqg2jqd2qo.8o2qd3q2gG2j2de8d2e2j5x5q2j4qd3e11d11j3G2je4dqg2jqd2qo.10oq4G3j2e10d2e4HG2cCc2xq2j3c2q3e10d13qjg2je4dqgj2q3o.12o2qG3j2Be8d4e3jgG2jxc2xq2j2cC2x2e10dq6d6q2jgj2qe2dq2gj2o3.15ogGj2BA2e6d6q3jgj2x4q2j2cC3xqed2qd6qj3q4d4qgj3q3d2qgGgo.18oGj3eA2e3d9qjq2Gj2x2A2q2j2cC2x2q4oqd6j2Hgj2ed3q2gjc3q3dqgGjo.18oj2xq3e3d9q2j2qgj2eA3d3j2x4q3o.oqd4Ad2jg2jqd3qgj2C3x2qdqjg2jo.16oj2C2xq3ed8q2o2jgG3jqd6j3xgGgGjo.oq2d4edjo2joqd2qg2jC4xqdqojg3o.15oj2C3x2ded7qo2.2ojG4jq7jgGH5gojq2d4eqo.2o.oqdqgj2xc2x2q2o.ojgGgo.14oj2cCx2o2q8o.5ojG3HgGgj4g2G7jGq3d4qo.2o.oq3g2jx4q3o.2ojG2jo5.9ogjox2o.2o9.6ojG2H4j6G2jG4gG2q3d2q2o.2o.2oqGg2je2dqo3.4oj3c4o.9ojo.o2.14o2.3ogG4j3c2x2jGgHgG2gG2j2q4gjo3.3ojg2jdqo2.8oj2cC2xo.9ojo.16oc2o.ogG5j2cC2x2jgjgjgjgjgj3gjG3jo.4ojg2jo2.11o2jx3o.9oj2o.15ocCcojG4j4cC3x2g2H2G2gG7gG2go.3o.oj2o.15oxo2.10oj2o.15ocCxo2j2gj2G2jx5G2jH2G2gG2jG4gG2jo.3o2j3o.15o2.13ojo.15ox2o.2ogG2gG2gjx3HgGgGgG2gG7gG2go.3ocxj3o.15o.11o2x2o.16o2.o.ogG2gG2gjg2j9g4G4gG2jo.2ocC2x2jo.15o.10oc2x2go2.16o3jgG2gG2j5Gj10g2G3gG2go.2ocCx2o3.15o.10ocC2xj2o.18ojg2Gg2j19g4G2jo.3ox2o.18o.10ox3o4.15o.2ojg2Ggj21g3G2j2o.2o3.14o4.13o3.3o.18ojg3j6g11j9gj2o.2o.6o.9oCc2o.18o2.14o.2oj2gj10g10j5G4jo.2o.7o.7ocC2x2o.18o.14o.oxj7q5j3g9j5G2j2o.2o.8o.7ocx2jo.18o.16ocxj4q9j2g4j10Ggo.3o.9o.6oxoxo.19o2.13o2cC2x2jq3c4q4jg2j3q4j4G2jo.3o.10o.3o2xo.o.21o.2o3.9oxCx3jq2Y4Cx2q2jg2jq8j3Gg2o2.13o3c2xo.o.21o.oc2o.9ox4j2q2Y2Z3x2q2j4q2c3q3j5Ggo.o.12oxC2cxo.22o2cCco.9ox3j2q2YZ6x2q2j2q2Y3cx2q2j4Ggo.o.13ox3o.23o.ox2o.9oGj4q2x2Z4x3q2j2q2Y2ZCx2q2j6o.o.13o4.24o.o4.9oj6q2CYZ2cx2q2jgjq2Z4x2q2j4G2Ho2.41o.14oGj5q2x2c3x2q2jgjq2xZ2cx2q2j5G2jo.41o.14oj6q3x5q3jgjq2x2c2x2q2j4G2go.57oGj4gq10g4jq2x4q2j6G2jo.56oj5g2j2q5j2g4jq8j5G3go.56oGj4g4j5g7j2q4j8G2jo.56ogj5g17j4g2j6g2jo.55ogGj5g23j7gjo.55ogj7g21j4gjg3jo.55ogG2j30gjg3jo.55ogjgj4A4jA3j6A9jg3jg2jo.56ogG3g2jAW2Aj2n9W2Aj2A3g4jg2jo.56ogj2Gg3jAWn13Wn3A2jg4jg2jo.56ogGjg4jAn19j2g4jg2jo.56og2jg4j2n19j2g4jg2jo.56og2jg4j3Wn16j3g4jg2jo.56ojgjg5j2A3n11A2j11gjo.55ojgjg4j2A4j2A2j7A4Gg5jg3jo.55ojgj8Gg3j2gj6g2jG4gj8o.55ojgjg3H21G3gj8o.55ojgjg4H2jH3gH3jH3GgGHjG4gj8o.55oj4g3GH10G4gG7gj4o5.55o5j2gG3H3GgHGjG4gG2jG4gj2o2.65o2jG2H4GgG7gG7jo2.o.67ogGH4G16jo.70ogG2HG19jo.70ogG21g2jo.69ogG21gjo.70ogG21g2jo.69ogG20g3jo.68oG20g7o.67oG16g11o.67ogG13g12jo.67og2G10g14jo.66ogGgG6g18jo.65oG3gGgG2g21jo2.62oGHG2g29o.59o2GHG3g27G2go2.55o2G6g28G3g2o2.52oG8g25jg5G2go.50o2G8g26jg7Ggo2.46o2g2G8g24j3g9j2o3.42og4G3j3g2j29g2j3g3j4o.41og2o2j3o3j2o29j2o3j3oj3o.41o3.2o3.3o2.29o2.3o3.o4.20",
+  ".334o.94oWo2.92oW3o2.90oWV2Wo.90oAV2eo.90oWV2Wo.90oAV2eo.83o4.3oWV3Ao.82oW3o.2oAV2Ao.4o2.77oW2o.2oAB2VWo.4oWo2.75oW2o.2oABV2BAo.3oW2o.59o2.14oWVWo2AB5Ao.2oAV2eo.58oWo2.12oBVBA2B5Ao.3oWV2Wo.58oW3o2.9oABVB9Ao2.oAV2eo.58oWV2W2o.8oAB12Ao.oAB3Ao.2o2.53oWV3Wo.8oAB12Ao.oAB3Ao.oW2o2.50oAV4eo.8oAB12Ao.oAB3Ao.oWVW2o2.48oABV2Wo.9oAB13AoAB4Ao.oAV2Wo.49oAV4Ao2.7oAB14AB5Ao.oBV3Wo.14o.33oABV4Ao.7oAB21AoABV4eo.13o3.31oAV4BAo.6oAB23ABV5Wo.13oW2o2.29oABV4Ao.6oA2B25V4Ao.12oAV2Wo.20o4.5oAB2V2BAo.6o3AB25V2Ao.13oWV2Wo.20oW3o2.3oABV2BAo.10oAB13q8B2V4Ao2.11oAV3Wo.19oWV2Wo.2oAB3VB2Ao2.4o.2oq24B2V2B2Ao.11oWV3eo.19oWV2eo.2oAB6Ao.5o3q24B4V2BAo.11oAV3Wo.19oBV2Wo.2oAB3VB2Ao.5oWq26B2V2B2Ao.3o3.5oABV2Ao.18oABV2BAo.oAB7Ao.4oWVq5d2q9d4q4B4VB2Ao.3oW2o2.3oAV2BAo.18oAV4Ao.oAB7Ao.4oWq4d6q6d2V2d2q4B7Ao.2oWVWo.3oABV2Ao.18oABV2BAo.oAB7Ao.3oAVq4dV2d3q6dV2d3q3B8Ao.2oWVWo.2oABV2B2Ao.17oAB2V2Ao.oAB8Ao.2oABq4V4d2q6d2Vd3q3B8Ao.oAV3Wo.oAB2VB2Ao.17oABV2BAo.oAB8Ao.2oAVdq3dV2d3qA4q2d4q2AB9Ao.oABV2Ao.oAB5Ao.17oAB5AoAB8Ao.3oAB3q2d6q2A2q8A3B8Ao.oAV2BAo.oAB5Ao.17oAB6AB10Ao3AB4Aq3d2q3A3eq6A4B9AoAB2VBAo.oAB6Ao.15oAB19AB7A2q2dq3dedeABABABA5B10AB6AoAB7Ao.15oAB27AW4d4WBW7BA4B18AB8Ao.15oAB27A2W2d8W4d2A5B26Ao.16oAB27Ad4q8W2q2d2A4B27Ao.15oAB27A2d3q12d3B31Ao.14oAB30d5edW3deded2AB31Ao.14oAB31d2WBWBW3BWBWBA2B31Ao.13oAB32A5dedA8B31Ao.13oAB32A16B27A5o.13oAB33A15B25Aeo6.14ode2A7e8A31e2Ae6de4d2e7dqo.21odeA7e9A30e2Ae6d3e2d3e6qo.23odA7e9A28e4Ae5d4ed5e4do.24oeA7e9A18e3A4e7Ae4d12e3do.25odA6e9A18e3A4e7Ae4d12e4Bo.25oeA4e11A15e5A4e11d14e3do.22o3eA5e11A14e7A2e12d14e3do.21oB3A6e11A6BA4dA2e7A2e2de5Be2d15ede3o2.19oBWBA6e3d3e4deA3eABA7e4Be3Ae2de8d10qd6e2Aeo.19oAB2A4e4d6e2deA3eABA4ede12de5Bd8q6d5e2Aeo.19oAB2A3e4dq4d2e3deA2e2BA2e3d2e4Be6de6d7qo5qd5e2Aeo.19oAB2A3e3dqo4qd2e2de4B2e6de11de3d2Bd5q2o.5oqe6Aeo.18oAB2Ae3d3qo.4oqe4A3e2BA3e3de4Be6de3d2Ad5qo.7ode5Aeo.18oABA2e3d3qo.5oqe2de2AeB3Ae4de11de3d2Bd4q2o.7oqe5A2eo2.16oA4e3d2qo.7odede5B2e5de4Be6de3d2Ad4qo.9ode4A2e2o.16oA4e2d3qo.7ode2de11de11de3d2Bd3q2o.9oqe4A2edo.15oABA3e2d3qo.7oqe2de4Be6de4Be6de3d2Ad3q2o.10ode3A2e3o.14oABA3ed3qo.9oqede11de11de3d2B2dq2o.11oqe3A2e2do.14oeBA2ed4qo.10od2e4Be6de4Be6de3dB2d2q2o.12ode2A2edo.15oeBAe2d4qo.10od2e11de11de3d4q2o.13ode2A2e2do2.13oeBe3d3qo.11oqd2e3BAe5d2e3BAe5de2d2Bq4o.14odeA2ededo.12oA3e3d3qo.12oqde4Be6de4Be5d6q3o.15oqeA2d3qo.12oAeAe3d2qo.14oqe11de10d5Bq3o.16odAd2q2o2.12odeAe2d3qo.14oqe4Be6de4Be4d7q2o.17odA2qo2.14oAeAed4qo.14oqe11de9d6Bq2o.16oWA2qo.16oe3d4qo.16oqe3BAe5de4Be3d7A2qo.16oWVBo.16oeAd6qo.17ode3Be5de8d6qAeo.17oWB3o3.11o2.oqoq5o.18oqe9de3ded9q2o.17oAV2B2W3o3.8oWoWo.o4qo.18o2de2Be5de3d11qeo.17oBVB2V2B2W3o.7oW2VBo.4o2.18o.ode7de3dBd9q2o.17oAV2B2V2B2Wo.8oWVBVWo4.21o2deBe5d2ed12qo2.17oWVB2V2B4Ao2.6oWV4W4o3.18o.ode7d4Bd8qo.o.17oAVB3VB3VBAo.6oWVBV3BV2W3o3.15o.oqBAe5d13qo.o.17oAB10Ao.6oB3V2B2V5Wo.11o2.3o.2odBe5d4Bd5VWqo.20oAB2V2B6Ao.5oAVB3VB3V2B2Wo.11oWo.2o.2oqAe4d12Wo.3o.17oABV4B6Ao.4oAB11V2Ao2.9oWo.3o.2oAe5d4Bd5BVWo.2o.17oAB2V2B5A3o.4oAB12VAo.10oW2o.2o.2ode4d5Ad6VWo.2o.16oAB4V2B3eo4.4oAB14Ao4.6oWeo.2o.ode5d3V2Bd5BV2Wo3.12o3.oAB3V2B2A2o.8oAB15AW2Bo.5oBeo.3oAe4ded2BV3d5WV2BAqo.12oW2oA4B2VAeo3.8oAB17Wo.5oAB2Ao3AB10V2B8VB3Ao2.10oWVeo4eB2eo.11oAB6VWB8V2Ao5AB4A3B12VB13A2o7.3oWeo.4oABAo.11oAB7VWB8VBA5B11V2B23AWB2A3o3AWo.5oAB2Ao.10oAB8VB25V2B26VB4A3B2Ao3.2oAB2Ao.9oAB74A3o2AB3Ao.9oA6B72A2B4Ao.9o7eB77eo.16oAB75eo.18oA74eo.20o75.10",
+  ".72o4.6o.85oC2o.6o.82o3cY2co2.4o.79o3q3cYCx2qo4co.76o2q3dq2cC3xq4xCco.57o.15o2x2q2d2qcC3x2q2dqcCxo.57o2.13oq2Ycq2d2qcC4x2qdqcC2xo.56o2.12oq3c2xqd2qcC5xq3cC3xo2.53oc2o.10oqdqcC2xqdq2cC4cxq2cC3x2q2o.52oc2o.9oqd2qcCx2q3cC4c3xqcC4x2q2o.50oC2co.8oqd2q2cC2xq3cC3c3x2qcC2c2x2qdqo.49ocCco.7oqd3qcC4q3cCc6xqC2c4xq2dqo.48ocC2co.6oqd3qcC5xqcCc6xCc7xqd2qo.46ocC2xo.6oqd4qcC4x2qxCc6C2c7xq3o.47ocCc2xo.5oqd4qcCc3Cq2xc8Cc8xqdqo2.44ocCc5o.3oqd4q2C7c13x4c2xqdqo.17o11.17ocCc4xo.3oqd4qcC2c2C2cx20qd2qo2.13o2q11o3.14oc7xo3A4d2qcCc6xq19d3qo.13oq2d11q3o.12oxc8xAB2A2eq3c9xqo7q9d5qo2.9o2qd16qo2.10ox10B2A2e3qc10xo.7oq8d6qo.8oq2d18qo.9odede5AeB3Ae3q2x10o.9oq7d6qo.7oqd21qo2.5o2Aeq3Ae2B6Ae7Ae5do.11oq6d6qo.7oqd7q8d7q2o.3oA2q8B6Ae5AB3A5eo2.9oq6d6qo.6oqd6q12d7qo3eAq3c4q3B4e7AB2A7e2o2.7oq6d6qo.5oqd6q14d7e3Aq3YCYCcq4B4e2d4AB2A9e2o.6oq6d6qo.5oqd5q16d3A3B3Aq2cCZ3Cx2qB4eq5dB3A9eo.7oq6d6qo.4oqd5q17B10q2cZ5cxq2B4q6B3A6e3Ado2.5oq6d6qo.4oqd5q12eB13q2x2Z4c2x2A3Bq3c2q3B2A7e4deo.4oq6d6qo.4oqd4q14B12e2q2CYZ4cxq2A2q3YCcxq3A5e8do.3oq6d7qo.4oqd4q15B6e6q3x2YZ2x3qA2q3cZ4cxq2A3e10do.oq7d7qo.4oqd4q9o5de13q3x2c2x2q3e2q2cZ3c2xqA4e10Aeoq7d8qo.4oqd4q8o.5oqe12d2q2x4q3e2dq2cZ3x3q2e12q10d8qo.5oqd4q8o.5ode14q8ed4q2x5q2e5d5q4x2q7d7qo.6oqd4q8o.5oqe11d4q4Ae3d2Adq3x3q2Be3d4q4x4A2q5d8qo.6oqd4q8o.5oqe4qdqdq12e2d3BAdq6Aed3q5c3x3Bq5d10qo.6oqd4q8o.3o2AW10q6WBq2W9Bq4B2dq4Cc3C3x2BA2q3d10qo.7oqd5q8o3BAq2W4n2W2n12W2qBW4B7q2c2Y4C2x3BA3qd11q2o.7oqd5q12Wq2nW3n16W2n2W3B8q2cY5Cx3A4d12q2o.9oqd5q12n4Wn22Wq2B7AxCY3c3x2A2e2q4d8q2o.10oqd6q11n28q3B6AdcY2Cx4d2q7d7q2o.12oqd6q10n21Wn6q2B7Aq2Y2C2d3q2cx4d8q2o.14oqd7q10n18W2n3W2q2B7Aq3Y2C3xcxc2x2q2d6q2o2.15oqd15q6n9W2n2W3qW3q2A2B3A5qcC8x3d7q2o2.18oqd15Aeq10WBW2qBW3dW4BA9q2cC6cx3q8o2.21oqd15qCc2xq6dqdqdqdqB7A10xcC5xo12.24oq2d13qYc2xA2B2A6B11A10dxC4xo.37o2q2d10q2c2x2A2Bede3A2BAB9A9dq2C3cxo.39o2qd9qcC2xe4q5A4B8eA9q3C2cxo.4o4.34oqd4q5cCx2q3d2c2q3A2B10A9q2cC3cYo4x2o2.23o5.o4.ode2de2d2qxC3q6c2xq2d3B9A9q2cC2c5x3o.25oB3Aoe2A2oqd9cC3Ycq4xCcq3d5B5e2A3e2A2Wq2x2c4Cx2o2.26oeAWAeA4qd4qd4qC3Y3c2q2x2C2q3d3B6e2A4eA2e2d2xc5xo.27od2eBo2d2eqoq2dqoq2dqoxc2Y4cqdqx2C2xq2dB4qB3eA4e5d2xc3x3qo3.25o4.2o2qo.o2qo.o2qo.ox2cY2c2qdq2C2x2qoAB7dA5e2de2d2xc2x2q2dq3o.27o3.2oAo.2odo2.ocox2c5d2q2C4xo.oAB7eA4eA3edqx4d6qo.26oAedo2A2do2dq3ox4d2q4d2qC3YCdAoB8e2A7e2dqx2q2d5q2o.26oAd2q4dq5x4q2d8qC2Y3c2eB9eA8ed2q2d4q3o2.27oeq2Ccq6x5d11qC3Y3cAB8AeA8ed7qo3.29o3CY2cq3x3ox2d11q2x2cY2c2AB3A10qA3ded6qo.31o2.2oCY2x4qo.oqd10q2x2c6AB4A4e4Ae2Ad4ed4qo.30od2o2xY2x3dq3oqd10q2x2BABABAB2A3BA3We3A2e2AeWd2e2d2q2o.30ode2xc3x2e2q2xqd11qx2ABW6BA9e2A3e5d2eq2o2.31oqA3exe4q2x2qd6q6xA2BW5A11e5de4d2qo2.32o3q2e2dAq4xq2d7qc3q2xdB7deqA7d3e3de4dqo.37oABA2dq3x2qd7q2cY2cx2dA2B7A9e5de4q2o.38oA3q2x3d10CY4x2d2AB8A8e9dq2o.37oeBAeq2x2d9A2c2Y2c2x2dB8A4eA4e5de3dqo.38oeBe2qx2d9A2d2c4e2xdB8A3e2Ae3de4de3qo.39oeAq3xd8A4d3qdqA2exdB2dAqA5d3e3de3qe3qo.39oeA2q3d9A4B6A2ex2B6A4e5d2e4de3do2.36oBA2dqxqd6B5AWB9A6BA2e7Wd3e2d2e2WAeo.36oe3dx2qd6B4A4B10A7e9d2e3de2d3o.36oe2A2q2d5BAB2A7B9A6e5de4d3ed7o.35o2q2e2d7AqA5qedB5A2qB2A5ed2e3de4d5qd4qo.37o2dWd5B5A7B5A2B3A5e6de4d4qoqd2qo2.39oeAd4B4A9BA5BA3WA3e2d2edWe2d5qo.od2o.40oeAd3B4A25e3ded2e4d4Aoqd2qo.39oeA2d3B2A21e8ded2e2d7qd3qo.39oedAqB3A4deqA3eA3deqA5e3d2e3ded14qo.39oA3B3A12eA10e9d13ed3Ao2.36oB2A2B2A3WA7e2WA9We4AWe3d6Wq2d3e2d2WAeo.35oAB2eA13e5A10e5ded9qd4ed4edo.33oAB2e3A9e9A4e4Ae5ded9qd9edo.31o2qB2d3A7ed2e5qe8d2e7d6qd4qd4qd4q2o.31oB5Ae2A6e26d5qoqd2qoqd2qoqd2qo2.32oAB4Ae2A3e5We9We10d5qdqo.oq2o.oq2o.oq2o.34oAB3A2e2A3e21Ae4d8Boqd2qoqd2Aoqdqo.34oAB5e2A3e15B8de2d2q2d3qd5Ad3B2AB3Ao2.19o9.4oAB10e7d2AB17Ao2q3o2d3B12A2o4.11o4A9o3.oAB11eAe4d2B17Ao.2o3.2oAB15A4o.8o2A4B9A2o.oAB13Ade2dB19Ao3.2o2eAB19Ao3.5oAB15Ao2AB11V8B10VWB7A3o2A3WB20W3o5B10VB6Ao2AB8V12B6V4B11AB3V3B16V6W5VB6V4B6Ao2AVB6V10BV11B8V7WV8B2V2B6V10BV11B7Ao.oW2A6W6A2W14A6W6A4W12A6W6A2W14A6Bo.o95",
+  ".235o14.77o5A14o5.69o3A5B14A5o3.64o2A3B24A3o2.61oA2B5W11B14A2o.59oAB4W17B13Ao.57oAB3W21B12Ao.45o11AB3W23B12Ao2.41o2B11W2B2W23B13A2o.39oB2W14BW23B15Ao2.36oBW40B16A2o.33o2AW17B2W21B15ABA2eo2.30oA2B2W15B5W17B14W6A2eqo5.24oAB6W11B10W11B14W12d5qo3.19o2AB51W16B4A3o3.15odB52W18B2AB3Aeqo.14oBWB51W18A3B3A3eo.12oBW3B50W17BA10eo.10oqW5B50W16B2A10eo2.8oBW4B53W12B5A10eqo.7oBW3B57W6B9A9qo.7oqW2B74A10qo2.5oqdB75A9e2qo.5oqB76A9edqo.5oqdB75A9edqo.5oqd2B19A2B25d2B25A10edqo.5oqd3B18Ae3B20d6B23A11d2qo.6oqd3B8A2B7Ae6B14d10B21A11d3qo.6oqd4B6A4B6Ae11d20B18A12d4qo.6oqd5B2A7B6Ae6d7q16d7B8e3A11e2d5qo.7oqd7A6B4A3e2d9q20d10e11A6e2d4qo.9oqd9A10ed7q32neA18d4qo.8oqd9A10ed7q20n14eA17d4qo.7o2qd11A9ed2q12n27eA16ed3qo.7oq2d14e7q2n40eA16ed2qo.7oqd17e7qn41A16d3qo.6oqd19e5q2n10q2n29A15d5qo.4oqd21e5qn7q8n26A14d7qo.3oqd22e3dn7q4c2q4n25A11d11qo.oqd25edn6q3CY2c2q4n9q6n9A8e2d13qo2qd27n6q2Y5C2q3n8q8n8A7d16qo2qd27n5q2cCZ5C2xq2n6q3c3q4n7A4d19qo2qd27n5q2cYZ4C2cxq2n5q3Y3cxq10d23qo2qd27q7YZ6c2xq9Y2Z4x2q8d23qo2qd27q7CYZ4c3xq9Y2Z3Cx2q8d23qo2qd27q7x2YZ3c2x2q9CZ5x2q8d23qo2qd27q8x2c4x2q10cZ4x3q8d23qo2qd28q8x6q12x2c2x2q8d24qo2qd28q10x2q15x4q9d24qo2qd29q38d25qo2qd29q15n7q16d25qo.oqd29q3W10nW3nW12Bq5d26qo.oqd30q3W5n9W4nW4n2q6d27qo.2oqd30q3W3n11W2n2W3n4q4d28qo.3oqd31qnWn17Wn6qd29qo.5oq2d29n28d28qo.7o2q2d28n21W2n3d28qo.10o2q2d27n16Wn3W2n2d27q2o.13o2q3d25nW2n11W3nW3d27q2o2.16o3qd24W3n6W8BW3d10q6d10qo2.21oqd31n6d17qcxcq3d8qo.9o14n7q7n8q8n7q7n8q5cYCcn6q6o10n5q8n7q8n7q8n7q8n7q5cZYC3n4q8n6o2n5q8n7q8n3Y2n2q8n7q8n7q6cZYC3n3q8n6o2n5q8n7q8n3Ycxq9n7q8n7q7x2cZYCn2q8n6o2n5q8n8q7n3YZcq9n7q8n7q8nc2Zcxq9n6o2n5q8n8q7n3c2Ccq8n7q8n8q7n2cYZcx3q6n6o2n5q8n8q7n4cC2x2q6n7q8n8q7n3C4x2q6n6o2n6q7n8q7n5CYx2q6n7q8n8q7n4C2Z2xq6n6o2n6q7n8q7n5YZc2xq6n7Cxq5n8q7n3YCZ2x2q6n6o2n6q7n8q7n6Cc2xq6n7Zcxq4n8q7nY3Z2x2q7n6o2n5oq7n8oq6n3Y3CYx2q6n7YZcxq3n8q7Y5xn2q8n5o.on3o.oq7n6o.oq5n2Y4x4q6n6ox2Zcxq2n8q6YZ3Y3n2q8n5o.2on2o.oq7n6o.oq5CY3c2x2q7o2n4o.ox2Zcxqn8oq4cZY7nq8n5o.3ono.oq7n6o.2oqcC3Yc4n2q6o.2on3o.oqx2Zcxn7o.oq2c2YC3Y3n2q8n5o.4o2.oq7n6o.2ocYZ2cCxn5q6o.3on2o.oq2x2ZYC2n5o.oq3xZC3Y2n3q7o2n4o.7oq6on6o3Y4xocn6q6o.3on2o.oq3x2ZC3n4o.2oqx3Y2cC3n2q6o.2on3o.7oq5o.on4o.ocC2xo2.on6oq5o.4ono.oq5C4n4o.3oq2o2xYZYCcq7o.2on3o.7oq5o.2on3o.oC2co.2oCYn4o.oq4o.5o2.oq4YC2c3n3o.3oqo.2oxcZYCcxq5o.3on2o.7oq5o.2on3o.oY2C2o2CY3n3o.oq4o.8oq3YZYcxcn4o.4o2.2onc2ZYZcxq4o.4ono.7oq5o.3on2o.2oxC2c2Y3n4o.2oq3o.8oq2YZYx2on4o.9on3c3Zcx3qo.4ono.7oq5o.3on2o.3o2xC3Yn5o.2oq3o.8oxYZYx2o.on3Co2.7on5cC3x2qo.5o2.8oq4o.4ono.5oC3cn5o.3oq2o.8oCZ2x2o.3onY2Co.7on6C2Z2xqo.15oq4o.4ono.5ocCc2Cn4o.3oqo.2o.5oCYZx2qo.3on2Yco.7on5C2Z2x2qo.16oq3o.5o2.6oCcC2n3o.5o2.oCo.3oCYCx2q2o.4on2o.8on4CZ3x2q2o.16oq3o.12oCYZxn4o.5o3cCo.3oYC2xq3o.4ono.9on3CZ3xoq2o.17oq3o.10o2Y2x2o2n3o.8o3.3oCZCxq3o.5o2.10onCZ3xo.oqo.18oq2o.8o2Y2Zxo2.2on2o.15oCYcxcqo.5o2.10onZ3xo.3o2.18oqo.8oYCZYxo.4on2o.16o2xYco.18onZ2xo.4o2.19o2.6o2Y2x2o2.6ono.18oY2co2.17ox2o.26o2.5oY2Zxo2.8ono.19ox2YCo.16on2o.26o2.5oY2xo.10ono.19ox3ZCo2.14on2o.33o4.12o2.20oqoxYco.15ono.49o2.20o2.o4.15o3.15",
+  ".381o3.92ocxo.36o.54ocCco.36o2.25o.26ocCx2o.35oco.25o.25oxc2x2o5.31oco.24oco.22o2x5do2c3o.30oc2o.23oco.5o.15oc2x3A2do2xC2co.28oc2o.24oco.5o.14ocCx3B3eo.oxcCco2.26oc2o.23oco.6o2.12ocCx3WB3eo.2oxC2c2o.25ocCco2.21oc2o2.3oco.11ocCx3WB4qo.2oecC3co.23ocC2co.21oC3co.3oc2o.8o2cCx3WB5qo.2oAxcC3co.22ocCc3o.20ocC2co.3oco.8oc2Cx3WB5Aqo.2oABx3c3o2.20ocCc4o.19ocCc3o.oCco.7ocC2x2AWB6Aeo.2oAB2x4Cc2o.19oc5xo.3o11.4ocCc4o.ocCco2.4ocCx3W3B5Aeo.3oAB3ex3C2co.17oxc6xo3dq2edeA3e2o4cC2c3xo.ocC2co.3ocCx3WB7A3do.2oAB4ex3C2co.16ox2c6xAq7B3Aed2qxC3c4YocCc3o.2oxc2x2WB8A3qo.2oAB5ex3C2co2.14o3xc5xq4c2q3B2e4qcC2c5CcC3cCco2cx4B8A5qo.2odB6ex3C2co.17ox6q2c2Ccxq10x2c2x3C4c3Cc2x3A2B7A6qo.3oAB6eAxcC2co2.16ode3q3cZ2Ccq11x3o3cC3c4Cx3WB8A6do.4oAB9xcC2c2o.15oABAeq2xZ4Cx2q3c3q3xeo.3ocC2c5x2WB7A8do.4oAB8A2x3c3o2.12oeA4q2x2Z4x2q2CZ3cxq2BAo3cC2c6xAB5A11qo.4oAB8A3x4Cc2o.11oeAedeq3xYZ2x2q3xZ2c2xqB2Aex2C3c4x3AB4A11eo.5oeB8A4dx3C2co.10oq4dq3x6q3x2Zx3q2A2eqocCc4x2A2B3A13eqo.4oeB5A8dx3C2co.4o5q3W4q4x2q2Bq3x4q2A2edo.oc3x3B5A13e2do.4oeB3A11dx3C2co2.3oq5n7q15e4q2oxc2x2AB4A7eA4e5qo.4oeB3A12dx3C2c2o.2oqn12q3nqB2q6A2e2dq2xc2x2W3B3A5e3A2e7do.4oeB3A13dexcC3co.oqn16q2B8Aed2qCc2x2W4BA4e15qo.4oeABA18cC3coq6n8W3q2B9Ad2q2x4W5BA3e16qo.4oeA10e5A4Bx3c2x2eo3q5WBqBW4B2A2B5ed2q2x4W5BA3e17qo.5oeA8e8A2B2x4Cxo.3o4qdqdqB6A2B4Ad2q2x3BW4B3A2e6d3e8qo.6oeA7e10AB3ex3Cco.6oBW3B6A2B2A4dx4W5B4Ae3d7e8do.6oeA7e11B4Ax3Cco5.2oBW2B6A7qx4BW4B4e4q6d2e8qo.6oeA7e10B5A2x5BAB2o2AB8A9e2xd13qo6qde2d4e2do.6oeA5e5d6e2B4A3e2x2eAW2BAB10A2B5A3d13qo.6oqe8qo.6oeA4e5dq6de2B2A4ed2xdBW2qB11A2B4A3d13qo.8oqe7do.6oeA3e5q2o6qd11xq3W3B10A9d6AeA4do.10ode6qo.6oeAe5d2qo.6oqd11x3W3B10A8ed9A3do.10ode6qo.6odAe4d2qo.8oqd12B2WB9A10ed10Aeo.11ode2d2edqo.6ode4d2qo.10oAB2Ad8B12A3eA6ed11qo.11od5edqo.6ode3d3qo.10oAd10B5AB6A4eA6e2d11qo.10od7qo.7ode2d2qo.11oqd9B6AB3A7eA6eAed9qo.11oq2d5qo.7oded3qo.11oqd10B5A11eA6eAe2d9qo2.8o4qd4qo.7oded3qo.11oqd9WB5A11eA6e5d9q2o.11oqd2qo.8oded2qo2.11oqd8A2B5A11eA6e6d10qo4.8oqdqo.8odedqo.12oqd8A4B4A10e3A5e8d8Adqo2.9oq2o.8od2qo.12oqd8A2eA2BAdA2deqA5e5A3e4de5d8eo.11oq2o.8oq2o.9o4qd8A3eA2B2A12e5Ae5de6d8qo.11oqo.8oq2o.10oq2d8A4eA2B2A9WA2e11d2e6d7qo.11oqo.8oqo.11oqd8A4e3ABA12e9ded4e6d6qo.10oq2o.8oqo.11oqd7A4e5A3e3A7e9dedqd2e7d5qo.10oq2o.8oqo.11oqd4A7e5A2d3A3eA3ed2e7d2qoqd2e8d4qo.8o5.9o2.11oqd3A6e3d2eA5e18dqo.ode3A3e2Ad5qo.21o.11oqd3A7e2do2dA5e10We7dqo.ode4A2e2A2d5qo2.30oqd3A2e6dqo.2odA4eA6e4de6dqo.ode5Ae2A3d5q2o2.26o2qd3A3e6d2qo.odA4eAe9de5dqo.3ode7A4d6qo.24o2q2d3A4e5d3qo.odA3e3d2e7d3e2d2qo.3ode7A5d4qo.26oqd3A5e5d2qo.3oeBA2e11d7qo.3oqe7A3e4d2qo.26oqd2A6e4d3qo.4oBA2e7We2d7qo.5ode12Aedqo.26oqdA7e4d3qo.4oeA2e10d7qo.5ode12Ae2dqo.25oqA6e5d3qo.5oeAe11d7qo.5oqe16qo.24oeA4e7d4qo.5oe2d2e8d7qo.7ode15do.23oeA5e5d5qo.6oe12d8eo.6ode16do3.19oA6e6d5qo.5oe13dWd6Aeo.5oqe17dq2o3.13o3eA2e10d5qo.4oA2e3de8d8eo.7ode18dqo.14oq2A3e8d6qo.5oAe4qe8d9eo4.3ode13d2e3dqo.14o2d2e7d9qo.5oe2deqode5d4qd6e5o.2ode9ded6q2o2.16o2qde5d9qo.5oe2dqo.ode6dqoqd5e2A2do.3ode7d7q2o2.20o2d2e2d9qo.4o2A2e3doqd7qo.ode2d2e2Ae2do.2ode5d6q3o2.24o2qdqd9qo2.2oBA2e5d4e2d3Aoqd5e4d2o.2oqe2ded6qo3.28o3q2e3d3qoeAo2ABA2ed2eAd10q3d2q2d2ed2qo.3oded6q2o.34o2q2d3qo.oe2AB2A2e2d2ed10qo2qdq2d3q3o.3od6q2o2.37o2q2dqo.oeAB2e3d4ed8q2o.2oqd4q2co.4oqd3q2o2.41o2q2o.oqeB3e2d4q3d5q2o.3oq6YCo.5oq3o2.45o2.3o2dA2ed3q6d5qo.4oc2CcC3co2.3oqo2.54oeAd4q2Ycq3d3qo.6oCY2C4xo.3o2.56odq6YC3q3dqo.7oCYC5c2o.61oqc2qCYC5xqdqo.7oC7cxo.61oqc2Y3C4cxq2o.8ocC6xcxo.60oqcY3C5c2qo.9ocCc2C2xox2o.59oq2Y3C6cxo.10ocCx2cxo.ox2o.56o2AdqCY2C5x4o2.8ocxo2x2o.2oxo.55oA2edqxC3c4xo2xco.8oxo.2oxo.3oxo.52o2eA2edqx2C2cxcxo.2ox2o.7oxo.2oxo.4o2.37o2.10o3A5ed3C2x2ox2o.3ox2o.6oxo.2ox2o.40o2cxo.4o5Ae2A3e2d3qxcxo.ox2o.3o3.5ox2o.3oxo.38o2c2C2xo4Ae4A3e4dq3ox2o.2ox2o.12o2.4o2.37o2c2C3cxe4A5e5dq2o3.oxo.3oxo.55o2c2C4c2xde2d3qdqd2q4o2.4oxo.3ox2o.52o2x2cxCc5xo15.6oxo.4o2.55o4x4cxo.21o3.65o4x2o.93o3.177",
+  ".50o.94o2.93oCco.92oC2co.90ocCco.8o3.72o2.5oC4co2.6oco.72o.6oC5c2o.3o2c2o.72o4.2ocC2Z2Cco.4ocCxo.71oC2Y2o2cC2Z4c2o4YZcxo.71oCZ3Y2C2Z4c6YZ2Yx2o.70ocZ4C4Z4c3xcY3o4.70ocCZ2C5cZ2cx3o5.74ocC6c3x3o3.79oc2Cc7xuo.82oxc10x2o12.70ox2c11x11o.70o3x18o5.73ou2q6u4x2u2o.78ou2qYC3qu4x3o.38o.40ouq2ZYC2q2u4Y2Co4.34o4.36ou2q2CZC2q2u4xC6o2.29o2.oA3o2.34ou3qC4qu5x2CY4C2o2.25o2Ao.oAB2A2o2.32ou3q6u6C4Y4C2o4.19o2A2Beo2AB4A2o.32ou4q2u8C4Y6C2co.17o2A2B2Aeo2AB6Ao3.29ou14C6Y4C3co.13o3A2B3A2eo2AB7A3o2.27ou14x2c3CY3c2Cc2xo.10o2B2AB4A3eo2AB10A2o3.25ou14x8c5xo.8o2B7A5do2AB12A3o2.24o2u10o10x2c2xo.7o2B8A6do2eA5B2AB7A2o2.24ou8o.10o2xcxo.5o2B9A6edo2eA8B9A2o2.22ouqu5o.13ox2o.3o2B2WB8A3e4do2eA8B11A2o2.20oq2u5o.13oxo.2o2B2WB10A3e4do2eA8B13A2o2.18ou7o.13oxWo2B13ABA2e5do2eA8B15A2o2.15ou2q6o.13oxWB2W2B10A3e7qo2eA8B14ABAe2o3.12oq3u5o.11o2eB14A4e7dqo2deA7B13A6e2Ao2.10ou7o.10o2B2W2B11A7e5d2qo2de4A4B8ABA14o2.7ou3q5o.8o2B2WB12A9e3d4qo2de7AB7A15B2A2o2.4oq4u6o.4o3B2W2B11A11e2d5qo2de8BA24eo.3o2u11do3.2oBW3B10A13ed6qo2de8A2dA22eo.2oAequ3q8A2o.2oBW2B6AB2A14d8qo2d2e7A24B2Ao2ABq6u6W3Bo2AB6A5BA15d6q2o.o2qde5A6dA17BA2e2A2qu11AW3BAB7A19e2d5q2o2.3o2qde3A17eAeA9dq2u11AW5B7A9dA7e4d3q2o2.7o2qdeA17e4A9u13B5WB7A14e7dq2o2.11o2dA15e6A12u10B12A6eA6e9qo2.15oeA15e5A10B3eAeAu5B11A3e19qo.14o.3oeA15e3A4B15eAeA4BA5BA3e19do.3o.10o2.2oeA16e4A5B17A12e4de15do.3o2.3o2.3oB2o2eA14e7A7B2AB12A12e3d2e16do3e2o.2o4.oB4WA14e7A7BA2B12A12ed5e14de5o.2o3ABoB6A12e9A10B12A11e2d7e11d2eA4eo2eo2AWB7A6eA3e11A9B13A10e3d9e5de2d3eA5e2o.oABWB6Ae3Ae12d4A13B9A9e4d21A6eo.oAB8e16dq4eA13BA3B2A10e4dq4d16A4e2A2qo2AB7Ae15q2o4dA28e4do5qd16e6Aeo2AB3A5e6d9qo.4oeA20e3Ae6do.5ode13dA4e4o.oeB2A6e5d9q2o.4oeA20e11qo.4ode12d3e7do2eA8ed12q2o.5oeA20e10d2qo.4ode10d4e6do.oeA8ed11qo2.5odeA20e10d2qo.5oqe6de2d4e7do2eA4e4d11qo.8odA20e9d2qo.7ode5ded5e7qo2eA3e5d11q2o.7odeA19e8d3qo.7oqe4d8e3de3qo2dA2e6d10q2o.8ode3A4eA12e7d4qo.8oqe2d9e2d3e2qo2de8d6qdq3o.9ode5Ae2A10e8d5qo.9oqd3qd6e2d5qo2de8dqd3qoq3o.10ode12A3e11d5qo.10oq3oqd3qd8qo2de4d4qoq3o.o3.11ode24d7qo.11o3.odq2oqd7qo2de2dq3dqo.o4.15ode21d10qo.15o4.oqdq2d3qo2q2dqo3q2o.21ode20d9qo.21oq2o2qd2qo4qo.3o2.22ode19d10qo.22o2.2oq2o3.2o2.27oqe19d10qo.27o2.35ode18d9qo.65oqe18d8q2o.66ode16d8q2o.67oqe4de2d2e5d9q2o2.68oqe2d6e3d9q3o.20o4.47oqd7ed10q3o2.19om4o.47oq4d12q4o.21omM2mo.26o5.16ocxq6d7q4c2o2.17o2mM3mo.25om5o.15oCYc3x2qd7qc2Y3Cco.14o2m2M4mo.25omM2mo.16oCY2C2xqd7q2cY3Cco.12o3m8uo.25omM3mo.15oCYC2x2oq7o3xC4co.9o2m3Mmo7.26omM4mo2.12oCYC2xo2.o7.3ocC3co.3o3.o2m2M2muo.33om5Mm2o2.10ocC2co.13ocC3co.2om3om2M2muo2.35o5umMm2o2.8ocC3xo.12oxC4co2mM3mM2muo2.42o2uM2mo.8ocC2x2o.13ocC4xmM6uo2.46om2Mmo2.6ocC2co.14ocC3x2mM5uo.49o2m4o6xC3xo.14oxC4xomM3uo.52o2uMm5xcC2cxo.15ocC2xo.om2uo.55omM6uxCxo.16oxCxo.3o3.57omM4u2xcxo.16oxCcxo.63omM2u3xc2xo.15oxc3xo.63oumu2c6o.13oxc4xo.64ou2cCc6o.11oc2xc3x2o2.62ox3Cc3x3o.10ocCxoxcxox2co.60ox2o2xc2xo2xo.9ocCxo.oxo.oxCco.58ox2o.2ox2o.2oxo.8ocxo.2oxo.2ox2o.58oxo.4o2.4oxo.6o4.3o2.4o3.58o2.12o.51"];
 
 /* [name, category, rarity, silhouette, palette, grip, material, accent material] */
 const GEAR=[
@@ -2526,6 +2688,30 @@ function gearArt(g,alt){
  ART.set(key,c);
  if(ART.size>ARTMAX) ART.delete(ART.keys().next().value);
  return c;
+}
+/* The eight bosses come out of their own table and carry their own two
+   materials, so they go through the same letter to colour map as a
+   sword does. */
+const BROW=new Map(), BART=new Map();
+function bossRows(i){
+ let r=BROW.get(i); if(r) return r;
+ const flat=_unrle(BOSSPIX[i]), n=Math.round(Math.sqrt(flat.length));
+ r=[]; for(let y=0;y<n;y++) r.push(flat.slice(y*n,(y+1)*n));
+ BROW.set(i,r); return r;
+}
+function bossArt(B){
+ const hit=BART.get(B.n); if(hit) return hit;
+ const sp=bossRows(B.p), T=tones(['','',0,0,B.m,B.gm]), N=sp.length;
+ const c=document.createElement('canvas'); c.width=N; c.height=N;
+ const q=c.getContext('2d'), img=q.createImageData(N,N), P=img.data;
+ for(let y=0;y<N;y++){const row=sp[y];
+  for(let x=0;x<N;x++){
+   const ch=row[x], i=(y*N+x)*4;
+   if(ch==='.'){P[i+3]=0;continue;}
+   const col=T[ch]||T.A;
+   P[i]=col[0]; P[i+1]=col[1]; P[i+2]=col[2]; P[i+3]=255;}}
+ q.putImageData(img,0,0);
+ BART.set(B.n,c); return c;
 }
 /* Nearest neighbour when the piece is being shown at or above its own
    size, because that is the whole point of pixel art; a real filter on
@@ -2794,6 +2980,21 @@ function hud(){
  document.getElementById('biome').textContent=biomeAt(mi).name;
  document.getElementById('today').textContent=S.today.toLocaleString();
  document.getElementById('day').textContent=S.day;
+ const nn=document.getElementById('nextname'), nd=document.getElementById('nextdist');
+ const fl=document.getElementById('fill'), vt=document.getElementById('vtrack');
+ const F=S.fight;
+ vt.style.display=F?'block':'none';
+ if(F){
+  const B=BOSS[F.b];
+  nn.textContent=B.n; nn.style.color='#ffb49a';
+  nd.textContent=Math.max(0,Math.ceil(F.hp))+' HP';
+  fl.style.background='linear-gradient(#ffb49a,#c0392b)';
+  fl.style.width=Math.max(0,Math.min(100,F.hp/F.hp0*100)).toFixed(1)+'%';
+  document.getElementById('vfill').style.width=
+   Math.max(0,Math.min(100,F.vig/F.vig0*100)).toFixed(1)+'%';
+  return;
+ }
+ nn.style.color=''; fl.style.background='';
  let prev={m:0}, next=null;
  for(const L of TRAIL){ if(L.m<=mi) prev=L; else {next=L;break;} }
  if(next){
@@ -2807,7 +3008,18 @@ function hud(){
   document.getElementById('fill').style.width='100%';
  }
 }
+/* ---- walking ----
+   Steps arrive in one lump after a day away, so they are fed through in
+   chunks: a 20,000 step catch up has to be able to reach a landmark,
+   finish a fight, and meet the next thing, in that order, rather than
+   resolving all of it against the mile you happened to land on. */
 function addSteps(n){
+ n=Math.max(0,n|0);
+ while(n>0){ const take=Math.min(n,400); advance(take); n-=take; }
+ if(chestQ.length && !anim) setTimeout(startChest,1100);
+ if(fightQ.length && !anim) setTimeout(showFightEnd,900);
+}
+function advance(n){
  const before=miles(); S.steps+=n; S.today+=n; const after=miles();
  /* Springer sits at mile 0, so `L.m>before` never caught it on the first
     steps of a save and the southern terminus was the one place you could
@@ -2815,24 +3027,106 @@ function addSteps(n){
  for(const L of TRAIL)
   if(L.m<=after && (L.m>before || (before===0 && L.m===0))
      && S.opened.indexOf(L.m)<0){S.opened.push(L.m);chestQ.push(L);}
+ if(S.fight) fightTick(n);
+ else{
+  S.bm=S.bm||0;
+  const nb=BSCHED.find(x=>x.m>S.bm && x.m<=after);
+  if(nb){ S.bm=nb.m; startFight(nb); }
+ }
  surge=Math.min(.55,surge+n/22000);
  save(); hud();
- if(chestQ.length && !anim) setTimeout(startChest,1100);
+}
+
+/* ---- the fight ---- */
+let fightQ=[], banner=null;
+function startFight(sch){
+ const B=BOSS[sch.b], v=myVigour(loadout());
+ S.fight={b:sch.b,m:sch.m,hp:B.hp,hp0:B.hp,vig:v,vig0:v,steps:0,close:1};
+ banner={b:sch.b,t0:performance.now()};
+ save();
+}
+function fightTick(n){
+ const F=S.fight, B=BOSS[F.b], t=loadout();
+ F.hp -= myDPS(t)*n/100;
+ F.vig-= bossDPS(B,t)*n/100;
+ F.steps+=n;
+ /* it closes with you as it goes, which is what puts it on the screen
+    at a size worth looking at by the end */
+ F.close=Math.max(0.30,1-F.steps/2200);
+ if(F.hp<=0) endFight(true);
+ else if(F.vig<=0) endFight(false);
+}
+function endFight(won){
+ const F=S.fight, B=BOSS[F.b];
+ S.fight=null;
+ let gain=0, got=null;
+ if(won){
+  S.beat=S.beat||{}; S.beat[B.n]=(S.beat[B.n]|0)+1;
+  gain=14+B.tier*11; S.stones=stones()+gain;
+  /* a boss is the other way to a good piece, and the only way that does
+     not go through the cairn */
+  if(Math.random()<0.55){ got=roll(Math.min(4,1+Math.round(B.tier*0.55))); grant(got); }
+ }
+ S.log=S.log||[];
+ S.log.push({f:1,b:F.b,day:S.day,m:F.m,won:won?1:0,st:gain,
+             i:got?got.id:null,steps:Math.round(F.steps)});
+ fightQ.push({b:F.b,won:won,st:gain,i:got?got.id:null,steps:Math.round(F.steps)});
+ save();
 }
 document.getElementById('b1k').onclick=()=>addSteps(1000);
 document.getElementById('b5k').onclick=()=>addSteps(5000);
 document.getElementById('bday').onclick=()=>{
  S.day++; S.today=0; save(); addSteps(3000+((Math.random()*6000)|0));};
 document.getElementById('brst').onclick=()=>{
- S={steps:0,today:0,day:1,opened:[],log:[],stones:0,own:{},eq:{}}; chestQ=[]; anim=null;
+ S={steps:0,today:0,day:1,opened:[],log:[],stones:0,bm:0,beat:{},fight:null,
+    own:{},eq:{}}; chestQ=[]; fightQ=[]; banner=null; anim=null;
+ bend.classList.remove('open');
  shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();};
+
+/* ---------- the banner and the card ---------- */
+function bannerTick(now){
+ const el=document.getElementById('bbanner');
+ if(!banner){ el.classList.remove('on'); return; }
+ const t=now-banner.t0;
+ if(t<60){ document.getElementById('bbname').textContent=BOSS[banner.b].n;
+           el.classList.add('on'); }
+ if(t>3600){ el.classList.remove('on'); if(t>4200) banner=null; }
+}
+const bend=document.getElementById('bend');
+function showFightEnd(){
+ if(!fightQ.length||anim||bend.classList.contains('open')) return;
+ const r=fightQ[0], B=BOSS[r.b];
+ const c=document.getElementById('bart'), A=bossArt(B);
+ c.width=A.width; c.height=A.height;
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false; q.drawImage(A,0,0);
+ const res=document.getElementById('bres');
+ res.textContent=r.won?'\u2620 DOWN':'IT GOT AWAY';
+ res.style.color=r.won?'#74e84f':'#8695a8';
+ document.getElementById('bname').textContent=B.n;
+ document.getElementById('bflav').textContent=
+  r.won? B.w
+       : 'You ran out of road before it ran out of fight. The miles still '
+        +'count; they always do.';
+ const g=r.i?BYID[r.i]:null;
+ document.getElementById('bgain').innerHTML=
+  (r.won?('\u25b2 '+r.st+' STONES<br>'
+          +(g?'TOOK \u00b7 <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()
+               +'</b><br>':'')):'')
+  +Math.round(r.steps).toLocaleString()+' STEPS';
+ bend.classList.add('open');
+}
+document.getElementById('bok').onclick=()=>{
+ fightQ.shift(); bend.classList.remove('open');
+ if(fightQ.length) setTimeout(showFightEnd,320);
+ else if(chestQ.length&&!anim) setTimeout(startChest,320);
+};
 
 /* ---------- loop ---------- */
 let last=performance.now();
 let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
- try{ step(dt,now); paint(now,dt);
+ try{ step(dt,now); paint(now,dt); bannerTick(now);
       /* whatever is left of the frame goes into baking what is coming */
       bakeBudget(Math.max(2,9-(performance.now()-now))); }
  catch(e){ if(_errs++<3) console.error('frame',e); }
@@ -2995,15 +3289,18 @@ function drawGrid(){
 function drawJournal(){
  const G=document.getElementById('jlist'); G.innerHTML='';
  const log=(S.log||[]).slice().sort((a,b)=>a.m-b.m);
- document.getElementById('jcount').textContent=log.length+' / '+TRAIL.length;
+ const places=log.filter(e=>!e.f).length, kills=log.filter(e=>e.f&&e.won).length;
+ document.getElementById('jcount').textContent=
+  places+' / '+TRAIL.length+(kills?'  \u2620 '+kills:'');
  const far=log.length?Math.max.apply(null,log.map(e=>e.m)):0;
- const hi=log.map(e=>TRAIL.find(t=>t.m===e.m))
+ const hi=log.filter(e=>!e.f).map(e=>TRAIL.find(t=>t.m===e.m))
              .filter(L=>L&&L.e).sort((a,b)=>b.e-a.e)[0];
  document.getElementById('jsum').innerHTML=
   log.length
    ? ('Furthest point mile '+far.toFixed(1)+', '+pctAT(far)
       +' percent of the way to Katahdin.'
-      +(hi?' Highest ground so far is '+hi.n+' at '+hi.e.toLocaleString()+' feet.':''))
+      +(hi?' Highest ground so far is '+hi.n+' at '+hi.e.toLocaleString()+' feet.':'')
+      +(kills?' '+kills+(kills===1?' thing':' things')+' put down on the way.':''))
    : 'Every place you reach is written down here, with the day you got there '
      +'and what came out of the ground.';
  if(!log.length){
@@ -3012,7 +3309,25 @@ function drawJournal(){
   G.appendChild(e); return;
  }
  for(let x=log.length-1;x>=0;x--){
-  const en=log[x], L=TRAIL.find(t=>t.m===en.m); if(!L) continue;
+  const en=log[x];
+  if(en.f){                                   /* a fight, not a place */
+   const B=BOSS[en.b], g=en.i?BYID[en.i]:null;
+   const d=document.createElement('div');
+   d.className='jrow'+(en.won?' jwon':' jlost');
+   let h='<div class="jhead"><span class="jn" style="color:'
+        +(en.won?'#ffb49a':'#8695a8')+'">'+B.n+'</span>';
+   if(en.day) h+='<span class="jd">DAY '+en.day+'</span>';
+   h+='</div><div class="jm">MILE '+en.m.toFixed(1)+' &middot; '
+     +(en.won?'KILLED':'GOT AWAY')+' &middot; '
+     +Math.round(en.steps||0).toLocaleString()+' STEPS</div>';
+   h+='<div class="jw">'+(en.won?B.w:'It outlasted you. The miles still counted.')
+     +'</div>';
+   if(en.won) h+='<div class="jg">\u25b2 '+en.st+' STONES'
+     +(g?' &middot; TOOK &middot; <b style="color:'+RAR[g[2]][1]+'">'
+          +g[0].toUpperCase()+'</b>':'')+'</div>';
+   d.innerHTML=h; G.appendChild(d); continue;
+  }
+  const L=TRAIL.find(t=>t.m===en.m); if(!L) continue;
   const g=en.i?BYID[en.i]:null;
   const d=document.createElement('div'); d.className='jrow';
   let h='<div class="jhead"><span class="jn">'+L.n+'</span>';
@@ -3110,7 +3425,7 @@ function statsOf(g){
 }
 /* everything you are wearing, added up */
 function loadout(){
- const t={atk:0,def:0,spd:0,mag:0,total:0};
+ const t={atk:BASE.atk,def:BASE.def,spd:BASE.spd,mag:BASE.mag,total:0};
  for(const sl of SLOTS){
   const id=S.eq&&S.eq[sl], g=id?BYID[id]:null; if(!g) continue;
   const st=statsOf(g);
