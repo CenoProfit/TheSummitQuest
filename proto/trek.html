@@ -1146,7 +1146,8 @@ const AURAPAL={sun:'flame',ember:'flame',crimson:'flame',blood:'flame',
  gold:'halo',ivory:'halo',sun:'halo'};
 function auraOf(item){
  if(item[2]<3) return null;
- if(item[1]!=='sword'&&item[1]!=='staff'&&item[1]!=='shield'&&item[1]!=='helm') return null;
+ if(item[1]!=='sword'&&item[1]!=='staff'&&item[1]!=='shield'
+  &&item[1]!=='helm'&&item[1]!=='shoes') return null;
  /* a blade that happens to be gold still burns; only a crown shines */
  if(item[1]!=='helm'&&item[4]==='sun') return 'flame';
  return AURAPAL[item[4]]||'arcane';
@@ -1335,6 +1336,65 @@ function drawHalo(ctx,item,cx,cy,r,t){
 const HEAD_A=[0.500,0.215];
 
 /* pxH is the height he should stand, in screen pixels */
+/* ---------- what the high boots leave behind ----------
+   He walks AWAY from the camera, so anything trailing off his heels
+   comes back toward the viewer, which on screen is downward. The
+   positions are the leg centres measured off the hero sprite (legs sit
+   at CX +/- 5.5 of 64) rather than guessed. */
+const FOOT_A=[[0.414,0.952],[0.586,0.952]];
+function bootFX(ctx,item,x,y,span,t,f,lamp,over){
+ const A=AURA[auraOf(item)||'arcane'], C=A.c;
+ const lift=[0,2,0][f%3]/64;          // the raised foot, from the walk cycle
+ ctx.save(); ctx.globalCompositeOperation='lighter';
+ const unit=Math.max(1,Math.round(span/52));
+ const night=lamp?1.35:1;
+ for(let i=0;i<2;i++){
+  const up=(i===1?lift:0)*span;
+  const fx=x+span*FOOT_A[i][0], fy=y+span*FOOT_A[i][1]-up;
+  const ph=t*A.speed*1.4+i*2.3;
+  const beat=0.62+0.38*Math.sin(ph);
+  if(!over){
+   /* the pool of light the foot is standing in, under the boot so it
+      reads as light spilling onto the ground rather than paint on the
+      leather */
+   const r=span*0.26*(0.80+0.30*beat);
+   const rg=ctx.createRadialGradient(fx,fy,0,fx,fy,r);
+   rg.addColorStop(0,   _rgba(C[1],(0.80*beat*night).toFixed(3)));
+   rg.addColorStop(0.38,_rgba(C[2],(0.42*beat*night).toFixed(3)));
+   rg.addColorStop(1,   _rgba(C[3],0));
+   ctx.fillStyle=rg; ctx.fillRect(fx-r,fy-r,r*2,r*2);
+   continue;
+  }
+  /* two shining stones set into the boot, on the ankle and the toe.
+     These go OVER the hero: drawn under him the boot covered them. */
+  for(const [sx,sy,k] of [[-0.030,-0.060,1.0],[0.026,-0.018,0.80]]){
+   const b=0.55+0.45*Math.sin(ph*1.7+k*2.1);
+   const w=Math.max(1,Math.round(unit*1.5*k));
+   const gx=Math.round(fx+span*sx), gy=Math.round(fy+span*sy);
+   const rr=w*3.2;
+   const sg=ctx.createRadialGradient(gx,gy,0,gx,gy,rr);
+   sg.addColorStop(0,_rgba(C[0],(0.70*b*night).toFixed(3)));
+   sg.addColorStop(1,_rgba(C[2],0));
+   ctx.fillStyle=sg; ctx.fillRect(gx-rr,gy-rr,rr*2,rr*2);
+   ctx.fillStyle=_rgba(C[0],Math.min(1,0.72+0.28*b).toFixed(2));
+   ctx.fillRect(gx-(w>>1),gy-(w>>1),w,w);
+  }
+  /* and a short trail off the heel, toward the viewer. Eight steps,
+     each a touch narrower and dimmer, wandering with the aura's sway. */
+  const len=span*0.42*(0.74+0.34*beat);
+  for(let k2=0;k2<8;k2++){
+   const q=(k2+0.5)/8;
+   const sway=Math.sin(ph*2.1+q*4.4+i*1.7)*span*A.sway*0.70*q;
+   const w=Math.max(1,Math.round(unit*(3.0-q*2.4)));
+   const a=(1-q)*(1-q)*1.05*beat*night;
+   ctx.fillStyle = q<0.30?_rgba(C[0],Math.min(1,a).toFixed(3))
+                 : q<0.66?_rgba(C[1],Math.min(1,a*0.92).toFixed(3))
+                        :_rgba(C[2],Math.min(1,a*0.74).toFixed(3));
+   ctx.fillRect(Math.round(fx+sway-w/2),Math.round(fy+len*q-w/2),w,w);
+  }
+ }
+ ctx.restore();
+}
 function climberAt(g,cx,footY,pxH,f,lamp){
  const c=heroCanvas(f), sc=pxH/64, dw=64*sc;
  const x=cx-dw*0.5, y=footY-pxH;
@@ -1370,9 +1430,14 @@ function climberAt(g,cx,footY,pxH,f,lamp){
               Math.round(dw),Math.round(pxH));
   g.imageSmoothingEnabled=false;
  }
+ const ftg=eq.feet&&BYID[eq.feet]?BYID[eq.feet]:null;
+ /* under the boots, so the light reads as coming off them and pooling
+    on the ground rather than being painted over the leather */
+ if(ftg&&auraOf(ftg)) bootFX(g,ftg,x,y,pxH,performance.now(),f,lamp,0);
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
  g.imageSmoothingEnabled=false;
+ if(ftg&&auraOf(ftg)) bootFX(g,ftg,x,y,pxH,performance.now(),f,lamp,1);
  /* An earlier pass drew these on top with the anchors set
     outboard, it still read as a sword parked beside a man. */
 }
