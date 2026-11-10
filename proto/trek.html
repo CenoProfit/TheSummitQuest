@@ -350,7 +350,13 @@ function biomeAt(mi){
    ridges in front of and behind them.
    =================================================================== */
 const RPM  = 2600;   // world units per trail mile
-const TILE = 256;    // heightfield tile edge, world units
+/* 128 and not 256. Baking a tile is the single most expensive thing
+   this file does, and it happens synchronously the first time anything
+   touches the tile: at 256 that was 45ms, longer than two frames, and
+   every tile line the camera crossed was a visible hitch. Quartering
+   the area quarters the stall, and the tiles are queued ahead of the
+   camera (see queueAhead) so it rarely has to wait at all. */
+const TILE = 128;    // heightfield tile edge, world units
 const HSTEP= 4;      // coarse height sampling inside a tile
 const FOCV = 0.472;  // focal length, as a multiple of screen HEIGHT
 const EYE  = 44;     // camera height above the ground it stands on
@@ -729,19 +735,73 @@ function buildTile(tx,ty){
  objs.sort((a,b)=>a.wy-b.wy);
  return {h:Hh,c:C,objs};
 }
+/* Big enough to hold the whole visible wedge with room to spare. At
+   330 the set thrashed: tiles the camera still needed were evicted to
+   make room for tiles it was about to need, and each round trip cost a
+   synchronous bake. */
+const TCAP=460;
+function evictTiles(){
+ const cx=trailX(camWY())/TILE, cy=camWY()/TILE;
+ /* drop the furthest, and drop a handful at once so this does not run
+    on every single tile that arrives */
+ const all=[];
+ for(const [kk,v] of TILES){const dx=v.tx-cx, dy=v.ty-cy; all.push([dx*dx+dy*dy,kk]);}
+ all.sort((a,b)=>b[0]-a[0]);
+ for(let i=0;i<all.length&&TILES.size>TCAP-60;i++){
+  if(all[i][1]===_tkx+','+_tky) continue;
+  TILES.delete(all[i][1]);
+ }
+ _tcur=null; _tkx=1e9; _tky=1e9;
+}
+/* Tiles wanted soon, baked between frames rather than in the middle of
+   one. The camera moves a few world units a frame, so the only tiles
+   that newly matter are at the far edge of the view, which is exactly
+   what can be seen coming. */
+const TQS=new Set();
+function queueAhead(camX,camY,FOC){
+ /* Rebuilt every frame, nearest first. The view is a wedge, not a box:
+    a tile row three hundred units out spans a third of the screen width
+    that a row at nine hundred does, and queueing the far row's width
+    for every row asked for three times the tiles that can ever be seen.
+    The width is taken per row from that row's own distance. */
+ TQ.length=0; TQS.clear();
+ const reach=DFAR+TILE*2;
+ const y0=Math.floor((camY-reach)/TILE), y1=Math.floor((camY+TILE)/TILE);
+ for(let ty=y1;ty>=y0;ty--){
+  const d=Math.max(TILE,camY-ty*TILE);
+  const halfW=(W*0.5)*d/FOC+TILE;
+  const x0=Math.floor((camX-halfW)/TILE), x1=Math.floor((camX+halfW)/TILE);
+  for(let tx=x0;tx<=x1;tx++){
+   const k=tx+','+ty;
+   if(TILES.has(k)||TQS.has(k)) continue;
+   TQS.add(k); TQ.push([tx,ty,k]);
+  }
+ }
+}
+function bakeBudget(budget){
+ /* One tile a frame, normally. A tile cannot be baked in halves, so a
+    budget shorter than a tile cannot stop one part way; what it can do
+    is decline to start another. The camera needs about ten tiles every
+    thirty frames, so one a frame stays comfortably ahead, and the deep
+    queue at startup is allowed to churn through several. */
+ if(!TQ.length) return;
+ if(budget<=0&&TQ.length<24) return;
+ const t0=performance.now();
+ do{
+  const e=TQ.shift(); if(!e) break;
+  TQS.delete(e[2]);
+  if(TILES.has(e[2])) continue;
+  const T=buildTile(e[0],e[1]); T.tx=e[0]; T.ty=e[1]; TILES.set(e[2],T);
+ }while(TQ.length>24&&performance.now()-t0<budget);
+ if(TILES.size>TCAP) evictTiles();
+}
 let _tkx=1e9,_tky=1e9,_tcur=null;
 function tileAt(tx,ty){
  if(tx===_tkx&&ty===_tky&&_tcur) return _tcur;
  const k=tx+','+ty;
  let T=TILES.get(k);
  if(!T){ T=buildTile(tx,ty); T.tx=tx; T.ty=ty; TILES.set(k,T);
-  if(TILES.size>84){
-   const cx=trailX(camWY())/TILE, cy=camWY()/TILE;
-   let worst=null,wd=-1;
-   for(const [kk,v] of TILES){
-    const dx=v.tx-cx, dy=v.ty-cy, dd2=dx*dx+dy*dy;
-    if(dd2>wd){wd=dd2;worst=kk;}}
-   if(worst) TILES.delete(worst); } }
+  if(TILES.size>TCAP) evictTiles(); }
  _tkx=tx;_tky=ty;_tcur=T; return T;
 }
 function hAt(wx,wy){
@@ -1480,10 +1540,47 @@ function pixOf(key,cnv){
  if(PXC.size>900) PXC.clear();
  PXC.set(key,S); return S;
 }
+/* ONE drawing per tree, box filtered down to each size it is seen at.
+   Every size used to be its own drawing, so a tree coming toward you
+   changed SHAPE each time its height crossed a bucket, and a hillside
+   of them crawled and flickered as the camera moved. Now the shape
+   never changes, only its scale, and filtering the smaller ones stops
+   the canopy fizzing between frames. */
+const CANON=54;
+function _shrink(S,h2){
+ const w2=Math.max(1,Math.round(S.w*h2/S.h));
+ const out=new Uint32Array(w2*h2);
+ const sxr=S.w/w2, syr=S.h/h2;
+ for(let y=0;y<h2;y++){
+  const y0=(y*syr)|0, y1=Math.max(y0+1,((y+1)*syr)|0);
+  for(let x=0;x<w2;x++){
+   const x0=(x*sxr)|0, x1=Math.max(x0+1,((x+1)*sxr)|0);
+   let r=0,g2=0,b=0,a=0,n2=0;
+   for(let yy=y0;yy<y1;yy++){const row=yy*S.w;
+    for(let xx=x0;xx<x1;xx++){
+     const sp2=S.px[row+xx];
+     if((sp2>>>24)>=128){ r+=sp2&255; g2+=(sp2>>>8)&255; b+=(sp2>>>16)&255; a++; }
+     n2++;
+    }}
+   /* a pixel survives only where the block it covers was mostly solid,
+      which keeps the canopy edge crisp instead of fraying into a halo */
+   out[y*w2+x]=(a&&a*2>=n2)?(0xff000000|(((b/a)|0)<<16)|(((g2/a)|0)<<8)|((r/a)|0)):0;
+  }
+ }
+ return {w:w2,h:h2,px:out};
+}
+const MIP=new Map();
 function treePix(spc,hgt,B,tint,blaze,vr){
- const hb=hbucket(hgt);
- return pixOf('T'+spc+hb+tint+(blaze?1:0)+vr,
-              treeSprite(spc,hgt,B,[0,0,0],0,tint,blaze,vr));
+ const key='T'+spc+tint+(blaze?1:0)+vr;
+ let M=MIP.get(key);
+ if(!M){ if(MIP.size>220) MIP.clear(); M=new Map(); MIP.set(key,M); }
+ const hb=Math.min(CANON,hbucket(hgt));
+ let S=M.get(hb); if(S) return S;
+ let base=M.get(CANON);
+ if(!base){ base=pixOf(key+'|b',treeSprite(spc,CANON,B,[0,0,0],0,tint,blaze,vr));
+            M.set(CANON,base); }
+ S=(hb>=CANON)?base:_shrink(base,hb);
+ M.set(hb,S); return S;
 }
 /* ---- the fire tower ----
    A timber lookout on a high shoulder: four splayed legs with X bracing
@@ -1680,6 +1777,7 @@ function paint(now,dt){
  const camY=camWY(), camX=trailX(camY);
  const camZ=terrainH(camX,camY)+EYE;
 
+ queueAhead(camX,camY,FOC);
  const hor=paintSky(g,now,S2,B);
  const HZC=[hor[0],hor[1],hor[2]];
 
@@ -1709,6 +1807,14 @@ function paint(now,dt){
     YB[x]=sy;
    }
   }
+  /* How far to walk before the next sample. Opening this step up with
+     distance looks like an obvious saving, and it is not: on a slope
+     facing the camera a single sample fills every row between its own
+     screen line and whatever the column already holds, so a step that
+     covers several pixels paints the hillside in vertical bands. The
+     gentle geometric growth is what keeps distant ground from
+     streaking. The cost of this march is inherent; it was bought back
+     elsewhere, by baking tiles off the frame instead. */
   d+=dz; dz*=1.0085;
  }
 
@@ -1731,7 +1837,15 @@ function paint(now,dt){
  vis.sort((a,b)=>b.dd-a.dd);
  for(const v of vis){
   const o=v.o, sy=hzY+(camZ-o.h)*v.sc;
-  const fog=Math.min(0.74,Math.max(0,(v.dd-150)/620));
+  let fog=Math.min(0.74,Math.max(0,(v.dd-150)/620));
+  /* A billboard appearing at full contrast on the far edge of its range
+     is the pop you see as the world comes toward you. Over the last
+     fifth of that range it is taken the rest of the way into the haze,
+     so it arrives as a shape in the mist and resolves out of it. */
+  if(o.kind!=='tower'){
+   const edge=(v.dd-DOBJ*0.80)/(DOBJ*0.20);
+   if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.92;
+  }
   const Bb=biomeAt(Math.max(0,o.mi));
   if(o.kind==='tower'){
    /* A lookout is three or four times a tree, and below about sixteen
@@ -2524,7 +2638,9 @@ let last=performance.now();
 let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
- try{ step(dt,now); paint(now,dt); }
+ try{ step(dt,now); paint(now,dt);
+      /* whatever is left of the frame goes into baking what is coming */
+      bakeBudget(Math.max(2,9-(performance.now()-now))); }
  catch(e){ if(_errs++<3) console.error('frame',e); }
  requestAnimationFrame(frame);
 }
