@@ -212,6 +212,22 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .show{opacity:1 !important;transform:none !important}
 
 /* ---- a thing on the trail ---- */
+/* In the flow under the top frame rather than floating: the bottom
+   frame pins itself with margin-top:auto, so an item here sits under
+   the HUD and never lands on top of the fight bar. */
+#etoast{margin-top:9px;flex:none;visibility:hidden;pointer-events:none;
+ display:flex;align-items:center;gap:10px;padding:9px 11px;
+ background:rgba(10,17,27,.94);border:2px solid var(--edge2);
+ box-shadow:0 0 0 2px rgba(3,6,11,.9),3px 3px 0 2px rgba(0,0,0,.45);
+ opacity:0;transform:translateY(14px);transition:opacity .3s,transform .3s}
+#etoast.on{visibility:visible;opacity:1;transform:none}
+#etart{width:46px;height:46px;flex:none;image-rendering:pixelated}
+.etxt{flex:1;min-width:0}
+.etn{display:block;font-family:var(--pix);font-size:8px;letter-spacing:2px;
+ color:var(--gold);line-height:1.7}
+.etw{display:block;margin-top:5px;font-size:10px;line-height:1.6;color:#9fb0c2}
+.ets{flex:none;font-family:var(--pix);font-size:9px;letter-spacing:1px;color:var(--gold)}
+
 .vtrack{height:7px;margin-top:4px;border-color:var(--edge)}
 .vfill{height:100%;width:100%;background:linear-gradient(#9fd8ff,#3f86c8);
  transition:width .4s ease-out}
@@ -258,6 +274,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .jrow{border:2px solid var(--edge);background:rgba(0,0,0,.26);padding:11px 13px;margin-bottom:7px}
 .jrow.jwon{border-color:#6d3a30;background:rgba(48,14,10,.30)}
 .jrow.jlost{border-color:#2b3647;background:rgba(0,0,0,.18)}
+.jrow.jmet{border-color:#2f4a63;background:rgba(10,26,40,.30)}
 .jhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .jn{font-family:var(--pix);font-size:9px;letter-spacing:2px;color:var(--gold);line-height:1.75}
 .jd{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim);flex:none}
@@ -281,6 +298,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
       <button class="btn jrnbtn" id="jopen">JOURNAL</button>
       <button class="btn packbtn" id="packopen">PACK</button>
     </div>
+  </div>
+  <div id="etoast">
+    <canvas id="etart"></canvas>
+    <div class="etxt"><span class="etn" id="etn"></span>
+      <span class="etw" id="etw"></span></div>
+    <span class="ets" id="ets"></span>
   </div>
   <div class="frame btm">
     <div class="nextrow">
@@ -2077,8 +2100,10 @@ function paint(now,dt){
     thing you walk through. Out of a fight the next one stands on its
     own mileage and you watch it come. */
  (function(){
-  let B=null, dd=0;
+  let B=null, dd=0, isEnc=0, side=1;
   if(S.fight){ B=BOSS[S.fight.b]; dd=70+260*S.fight.close; }
+  else if(enc){ B=ENC[enc.k]; isEnc=1; side=enc.side;
+                dd=camY-(-enc.m*RPM); }
   else{
    const nb=nextBoss(miles());
    if(nb){ B=BOSS[nb.b]; dd=camY-(-nb.m*RPM); }
@@ -2089,23 +2114,24 @@ function paint(now,dt){
   const BD=900;
   if(!B||dd<40||dd>BD) return;
   const sc=FOC/dd;
-  const wx=trailX(camY-dd)+(B.air?26:8);
+  /* an encounter stands off the tread, on one side or the other */
+  const wx=trailX(camY-dd)+(isEnc?side*13:(B.air?26:8));
   const sx=W*0.5+(wx-camX)*sc;
   if(sx<-200||sx>W+200) return;
   const gh=terrainH(wx,camY-dd);
-  const bob=Math.sin(now*0.0011+B.tier)*(B.air?5.2:1.1);
-  const h=gh+(B.air?62+bob*2:0)+bob;
+  const bob=isEnc?0:Math.sin(now*0.0011+B.tier)*(B.air?5.2:1.1);
+  const h=gh+(!isEnc&&B.air?62+bob*2:0)+bob;
   const sy=hzY+(camZ-h)*sc;
   /* A boss was first given the height of a big tree and came out 31
      pixels tall in the middle of a forest, which is not a boss, it is a
      shrub. These are three or four times a tree on purpose. */
-  const worldH=(B.air?96:112)*B.sz;
+  const worldH=(isEnc?30:(B.air?96:112))*B.sz;
   const pxH=Math.min(H*1.60,worldH*sc);
   if(pxH<6) return;
   /* pixOf, not the canvas: drawBill scales by S.h, and a canvas has
      .height rather than .h, so passing it straight through made every
      dimension NaN and the blit loop ran zero times in silence. */
-  const P=pixOf('boss#'+B.p,bossArt(B));
+  const P=pixOf((isEnc?'enc#':'boss#')+B.p,bossArt(B,isEnc));
   let fog=Math.min(0.66,Math.max(0,(dd-180)/900));
   const edge=(dd-BD*0.82)/(BD*0.18);
   if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.90;
@@ -2296,6 +2322,28 @@ const BOSS=[
  {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   from:6, tier:3,
   air:1, hp:260, atk:13, sz:0.98,
   w:'A vulture that has been on this ridge long enough to feel it is owed.'}];
+
+/* ---------- things you can walk straight past ----------
+   Unlike a boss, an encounter is not scheduled and is not saved. It
+   appears ahead of you while the app is open and resolves when you
+   reach it, so if the phone is in your pocket you walked past whatever
+   it was. That is the entire point: it is the one thing in here that
+   rewards looking rather than walking.
+
+   (In the shipped build this should also check that the steps are
+   arriving live from HealthKit rather than as a catch up batch, so a
+   day's backlog does not hand you a day's encounters at once.) */
+const ENC=[
+ {n:'A BLACK BEAR',     p:0, m:'ash',    gm:'moss',  sz:0.92, st:[3,7],
+  w:'It stood up in the trail, looked at you for a while, and went back down the slope.'},
+ {n:'A DOE',            p:1, m:'leather',gm:'ivory', sz:0.84, st:[2,5],
+  w:'She held still long enough for you to count her, and then the white tail went up.'},
+ {n:'A SOUTHBOUNDER',   p:2, m:'crimson',gm:'wood',  sz:0.88, st:[5,11],
+  w:'Two thousand miles the other way. He says the water at the next gap is running.'},
+ {n:'TRAIL MAGIC',      p:3, m:'cobalt', gm:'moss',  sz:0.80, st:[8,16],
+  w:'A cooler at the road crossing, a sharpie sign, and two cold ones still in the ice.'},
+ {n:'A TIMBER RATTLER', p:4, m:'bronze', gm:'wood',  sz:0.74, st:[4,9],
+  w:'Coiled on a warm rock a step off the tread. You heard it before you saw it.'}];
 
 /* the walker himself, before anything is put on him */
 const BASE={atk:14,def:14,spd:12,mag:6};
@@ -2503,6 +2551,11 @@ const BOSSPIX=[".1584o15.73o8c14o.15o7.51oC4c3C12cxo.12o3A7o3.19o12.17ocC10c9xo.
   ".235o14.77o5A14o5.69o3A5B14A5o3.64o2A3B24A3o2.61oA2B5W11B14A2o.59oAB4W17B13Ao.57oAB3W21B12Ao.45o11AB3W23B12Ao2.41o2B11W2B2W23B13A2o.39oB2W14BW23B15Ao2.36oBW40B16A2o.33o2AW17B2W21B15ABA2eo2.30oA2B2W15B5W17B14W6A2eqo5.24oAB6W11B10W11B14W12d5qo3.19o2AB51W16B4A3o3.15odB52W18B2AB3Aeqo.14oBWB51W18A3B3A3eo.12oBW3B50W17BA10eo.10oqW5B50W16B2A10eo2.8oBW4B53W12B5A10eqo.7oBW3B57W6B9A9qo.7oqW2B74A10qo2.5oqdB75A9e2qo.5oqB76A9edqo.5oqdB75A9edqo.5oqd2B19A2B25d2B25A10edqo.5oqd3B18Ae3B20d6B23A11d2qo.6oqd3B8A2B7Ae6B14d10B21A11d3qo.6oqd4B6A4B6Ae11d20B18A12d4qo.6oqd5B2A7B6Ae6d7q16d7B8e3A11e2d5qo.7oqd7A6B4A3e2d9q20d10e11A6e2d4qo.9oqd9A10ed7q32neA18d4qo.8oqd9A10ed7q20n14eA17d4qo.7o2qd11A9ed2q12n27eA16ed3qo.7oq2d14e7q2n40eA16ed2qo.7oqd17e7qn41A16d3qo.6oqd19e5q2n10q2n29A15d5qo.4oqd21e5qn7q8n26A14d7qo.3oqd22e3dn7q4c2q4n25A11d11qo.oqd25edn6q3CY2c2q4n9q6n9A8e2d13qo2qd27n6q2Y5C2q3n8q8n8A7d16qo2qd27n5q2cCZ5C2xq2n6q3c3q4n7A4d19qo2qd27n5q2cYZ4C2cxq2n5q3Y3cxq10d23qo2qd27q7YZ6c2xq9Y2Z4x2q8d23qo2qd27q7CYZ4c3xq9Y2Z3Cx2q8d23qo2qd27q7x2YZ3c2x2q9CZ5x2q8d23qo2qd27q8x2c4x2q10cZ4x3q8d23qo2qd28q8x6q12x2c2x2q8d24qo2qd28q10x2q15x4q9d24qo2qd29q38d25qo2qd29q15n7q16d25qo.oqd29q3W10nW3nW12Bq5d26qo.oqd30q3W5n9W4nW4n2q6d27qo.2oqd30q3W3n11W2n2W3n4q4d28qo.3oqd31qnWn17Wn6qd29qo.5oq2d29n28d28qo.7o2q2d28n21W2n3d28qo.10o2q2d27n16Wn3W2n2d27q2o.13o2q3d25nW2n11W3nW3d27q2o2.16o3qd24W3n6W8BW3d10q6d10qo2.21oqd31n6d17qcxcq3d8qo.9o14n7q7n8q8n7q7n8q5cYCcn6q6o10n5q8n7q8n7q8n7q8n7q5cZYC3n4q8n6o2n5q8n7q8n3Y2n2q8n7q8n7q6cZYC3n3q8n6o2n5q8n7q8n3Ycxq9n7q8n7q7x2cZYCn2q8n6o2n5q8n8q7n3YZcq9n7q8n7q8nc2Zcxq9n6o2n5q8n8q7n3c2Ccq8n7q8n8q7n2cYZcx3q6n6o2n5q8n8q7n4cC2x2q6n7q8n8q7n3C4x2q6n6o2n6q7n8q7n5CYx2q6n7q8n8q7n4C2Z2xq6n6o2n6q7n8q7n5YZc2xq6n7Cxq5n8q7n3YCZ2x2q6n6o2n6q7n8q7n6Cc2xq6n7Zcxq4n8q7nY3Z2x2q7n6o2n5oq7n8oq6n3Y3CYx2q6n7YZcxq3n8q7Y5xn2q8n5o.on3o.oq7n6o.oq5n2Y4x4q6n6ox2Zcxq2n8q6YZ3Y3n2q8n5o.2on2o.oq7n6o.oq5CY3c2x2q7o2n4o.ox2Zcxqn8oq4cZY7nq8n5o.3ono.oq7n6o.2oqcC3Yc4n2q6o.2on3o.oqx2Zcxn7o.oq2c2YC3Y3n2q8n5o.4o2.oq7n6o.2ocYZ2cCxn5q6o.3on2o.oq2x2ZYC2n5o.oq3xZC3Y2n3q7o2n4o.7oq6on6o3Y4xocn6q6o.3on2o.oq3x2ZC3n4o.2oqx3Y2cC3n2q6o.2on3o.7oq5o.on4o.ocC2xo2.on6oq5o.4ono.oq5C4n4o.3oq2o2xYZYCcq7o.2on3o.7oq5o.2on3o.oC2co.2oCYn4o.oq4o.5o2.oq4YC2c3n3o.3oqo.2oxcZYCcxq5o.3on2o.7oq5o.2on3o.oY2C2o2CY3n3o.oq4o.8oq3YZYcxcn4o.4o2.2onc2ZYZcxq4o.4ono.7oq5o.3on2o.2oxC2c2Y3n4o.2oq3o.8oq2YZYx2on4o.9on3c3Zcx3qo.4ono.7oq5o.3on2o.3o2xC3Yn5o.2oq3o.8oxYZYx2o.on3Co2.7on5cC3x2qo.5o2.8oq4o.4ono.5oC3cn5o.3oq2o.8oCZ2x2o.3onY2Co.7on6C2Z2xqo.15oq4o.4ono.5ocCc2Cn4o.3oqo.2o.5oCYZx2qo.3on2Yco.7on5C2Z2x2qo.16oq3o.5o2.6oCcC2n3o.5o2.oCo.3oCYCx2q2o.4on2o.8on4CZ3x2q2o.16oq3o.12oCYZxn4o.5o3cCo.3oYC2xq3o.4ono.9on3CZ3xoq2o.17oq3o.10o2Y2x2o2n3o.8o3.3oCZCxq3o.5o2.10onCZ3xo.oqo.18oq2o.8o2Y2Zxo2.2on2o.15oCYcxcqo.5o2.10onZ3xo.3o2.18oqo.8oYCZYxo.4on2o.16o2xYco.18onZ2xo.4o2.19o2.6o2Y2x2o2.6ono.18oY2co2.17ox2o.26o2.5oY2Zxo2.8ono.19ox2YCo.16on2o.26o2.5oY2xo.10ono.19ox3ZCo2.14on2o.33o4.12o2.20oqoxYco.15ono.49o2.20o2.o4.15o3.15",
   ".381o3.92ocxo.36o.54ocCco.36o2.25o.26ocCx2o.35oco.25o.25oxc2x2o5.31oco.24oco.22o2x5do2c3o.30oc2o.23oco.5o.15oc2x3A2do2xC2co.28oc2o.24oco.5o.14ocCx3B3eo.oxcCco2.26oc2o.23oco.6o2.12ocCx3WB3eo.2oxC2c2o.25ocCco2.21oc2o2.3oco.11ocCx3WB4qo.2oecC3co.23ocC2co.21oC3co.3oc2o.8o2cCx3WB5qo.2oAxcC3co.22ocCc3o.20ocC2co.3oco.8oc2Cx3WB5Aqo.2oABx3c3o2.20ocCc4o.19ocCc3o.oCco.7ocC2x2AWB6Aeo.2oAB2x4Cc2o.19oc5xo.3o11.4ocCc4o.ocCco2.4ocCx3W3B5Aeo.3oAB3ex3C2co.17oxc6xo3dq2edeA3e2o4cC2c3xo.ocC2co.3ocCx3WB7A3do.2oAB4ex3C2co.16ox2c6xAq7B3Aed2qxC3c4YocCc3o.2oxc2x2WB8A3qo.2oAB5ex3C2co2.14o3xc5xq4c2q3B2e4qcC2c5CcC3cCco2cx4B8A5qo.2odB6ex3C2co.17ox6q2c2Ccxq10x2c2x3C4c3Cc2x3A2B7A6qo.3oAB6eAxcC2co2.16ode3q3cZ2Ccq11x3o3cC3c4Cx3WB8A6do.4oAB9xcC2c2o.15oABAeq2xZ4Cx2q3c3q3xeo.3ocC2c5x2WB7A8do.4oAB8A2x3c3o2.12oeA4q2x2Z4x2q2CZ3cxq2BAo3cC2c6xAB5A11qo.4oAB8A3x4Cc2o.11oeAedeq3xYZ2x2q3xZ2c2xqB2Aex2C3c4x3AB4A11eo.5oeB8A4dx3C2co.10oq4dq3x6q3x2Zx3q2A2eqocCc4x2A2B3A13eqo.4oeB5A8dx3C2co.4o5q3W4q4x2q2Bq3x4q2A2edo.oc3x3B5A13e2do.4oeB3A11dx3C2co2.3oq5n7q15e4q2oxc2x2AB4A7eA4e5qo.4oeB3A12dx3C2c2o.2oqn12q3nqB2q6A2e2dq2xc2x2W3B3A5e3A2e7do.4oeB3A13dexcC3co.oqn16q2B8Aed2qCc2x2W4BA4e15qo.4oeABA18cC3coq6n8W3q2B9Ad2q2x4W5BA3e16qo.4oeA10e5A4Bx3c2x2eo3q5WBqBW4B2A2B5ed2q2x4W5BA3e17qo.5oeA8e8A2B2x4Cxo.3o4qdqdqB6A2B4Ad2q2x3BW4B3A2e6d3e8qo.6oeA7e10AB3ex3Cco.6oBW3B6A2B2A4dx4W5B4Ae3d7e8do.6oeA7e11B4Ax3Cco5.2oBW2B6A7qx4BW4B4e4q6d2e8qo.6oeA7e10B5A2x5BAB2o2AB8A9e2xd13qo6qde2d4e2do.6oeA5e5d6e2B4A3e2x2eAW2BAB10A2B5A3d13qo.6oqe8qo.6oeA4e5dq6de2B2A4ed2xdBW2qB11A2B4A3d13qo.8oqe7do.6oeA3e5q2o6qd11xq3W3B10A9d6AeA4do.10ode6qo.6oeAe5d2qo.6oqd11x3W3B10A8ed9A3do.10ode6qo.6odAe4d2qo.8oqd12B2WB9A10ed10Aeo.11ode2d2edqo.6ode4d2qo.10oAB2Ad8B12A3eA6ed11qo.11od5edqo.6ode3d3qo.10oAd10B5AB6A4eA6e2d11qo.10od7qo.7ode2d2qo.11oqd9B6AB3A7eA6eAed9qo.11oq2d5qo.7oded3qo.11oqd10B5A11eA6eAe2d9qo2.8o4qd4qo.7oded3qo.11oqd9WB5A11eA6e5d9q2o.11oqd2qo.8oded2qo2.11oqd8A2B5A11eA6e6d10qo4.8oqdqo.8odedqo.12oqd8A4B4A10e3A5e8d8Adqo2.9oq2o.8od2qo.12oqd8A2eA2BAdA2deqA5e5A3e4de5d8eo.11oq2o.8oq2o.9o4qd8A3eA2B2A12e5Ae5de6d8qo.11oqo.8oq2o.10oq2d8A4eA2B2A9WA2e11d2e6d7qo.11oqo.8oqo.11oqd8A4e3ABA12e9ded4e6d6qo.10oq2o.8oqo.11oqd7A4e5A3e3A7e9dedqd2e7d5qo.10oq2o.8oqo.11oqd4A7e5A2d3A3eA3ed2e7d2qoqd2e8d4qo.8o5.9o2.11oqd3A6e3d2eA5e18dqo.ode3A3e2Ad5qo.21o.11oqd3A7e2do2dA5e10We7dqo.ode4A2e2A2d5qo2.30oqd3A2e6dqo.2odA4eA6e4de6dqo.ode5Ae2A3d5q2o2.26o2qd3A3e6d2qo.odA4eAe9de5dqo.3ode7A4d6qo.24o2q2d3A4e5d3qo.odA3e3d2e7d3e2d2qo.3ode7A5d4qo.26oqd3A5e5d2qo.3oeBA2e11d7qo.3oqe7A3e4d2qo.26oqd2A6e4d3qo.4oBA2e7We2d7qo.5ode12Aedqo.26oqdA7e4d3qo.4oeA2e10d7qo.5ode12Ae2dqo.25oqA6e5d3qo.5oeAe11d7qo.5oqe16qo.24oeA4e7d4qo.5oe2d2e8d7qo.7ode15do.23oeA5e5d5qo.6oe12d8eo.6ode16do3.19oA6e6d5qo.5oe13dWd6Aeo.5oqe17dq2o3.13o3eA2e10d5qo.4oA2e3de8d8eo.7ode18dqo.14oq2A3e8d6qo.5oAe4qe8d9eo4.3ode13d2e3dqo.14o2d2e7d9qo.5oe2deqode5d4qd6e5o.2ode9ded6q2o2.16o2qde5d9qo.5oe2dqo.ode6dqoqd5e2A2do.3ode7d7q2o2.20o2d2e2d9qo.4o2A2e3doqd7qo.ode2d2e2Ae2do.2ode5d6q3o2.24o2qdqd9qo2.2oBA2e5d4e2d3Aoqd5e4d2o.2oqe2ded6qo3.28o3q2e3d3qoeAo2ABA2ed2eAd10q3d2q2d2ed2qo.3oded6q2o.34o2q2d3qo.oe2AB2A2e2d2ed10qo2qdq2d3q3o.3od6q2o2.37o2q2dqo.oeAB2e3d4ed8q2o.2oqd4q2co.4oqd3q2o2.41o2q2o.oqeB3e2d4q3d5q2o.3oq6YCo.5oq3o2.45o2.3o2dA2ed3q6d5qo.4oc2CcC3co2.3oqo2.54oeAd4q2Ycq3d3qo.6oCY2C4xo.3o2.56odq6YC3q3dqo.7oCYC5c2o.61oqc2qCYC5xqdqo.7oC7cxo.61oqc2Y3C4cxq2o.8ocC6xcxo.60oqcY3C5c2qo.9ocCc2C2xox2o.59oq2Y3C6cxo.10ocCx2cxo.ox2o.56o2AdqCY2C5x4o2.8ocxo2x2o.2oxo.55oA2edqxC3c4xo2xco.8oxo.2oxo.3oxo.52o2eA2edqx2C2cxcxo.2ox2o.7oxo.2oxo.4o2.37o2.10o3A5ed3C2x2ox2o.3ox2o.6oxo.2ox2o.40o2cxo.4o5Ae2A3e2d3qxcxo.ox2o.3o3.5ox2o.3oxo.38o2c2C2xo4Ae4A3e4dq3ox2o.2ox2o.12o2.4o2.37o2c2C3cxe4A5e5dq2o3.oxo.3oxo.55o2c2C4c2xde2d3qdqd2q4o2.4oxo.3ox2o.52o2x2cxCc5xo15.6oxo.4o2.55o4x4cxo.21o3.65o4x2o.93o3.177",
   ".50o.94o2.93oCco.92oC2co.90ocCco.8o3.72o2.5oC4co2.6oco.72o.6oC5c2o.3o2c2o.72o4.2ocC2Z2Cco.4ocCxo.71oC2Y2o2cC2Z4c2o4YZcxo.71oCZ3Y2C2Z4c6YZ2Yx2o.70ocZ4C4Z4c3xcY3o4.70ocCZ2C5cZ2cx3o5.74ocC6c3x3o3.79oc2Cc7xuo.82oxc10x2o12.70ox2c11x11o.70o3x18o5.73ou2q6u4x2u2o.78ou2qYC3qu4x3o.38o.40ouq2ZYC2q2u4Y2Co4.34o4.36ou2q2CZC2q2u4xC6o2.29o2.oA3o2.34ou3qC4qu5x2CY4C2o2.25o2Ao.oAB2A2o2.32ou3q6u6C4Y4C2o4.19o2A2Beo2AB4A2o.32ou4q2u8C4Y6C2co.17o2A2B2Aeo2AB6Ao3.29ou14C6Y4C3co.13o3A2B3A2eo2AB7A3o2.27ou14x2c3CY3c2Cc2xo.10o2B2AB4A3eo2AB10A2o3.25ou14x8c5xo.8o2B7A5do2AB12A3o2.24o2u10o10x2c2xo.7o2B8A6do2eA5B2AB7A2o2.24ou8o.10o2xcxo.5o2B9A6edo2eA8B9A2o2.22ouqu5o.13ox2o.3o2B2WB8A3e4do2eA8B11A2o2.20oq2u5o.13oxo.2o2B2WB10A3e4do2eA8B13A2o2.18ou7o.13oxWo2B13ABA2e5do2eA8B15A2o2.15ou2q6o.13oxWB2W2B10A3e7qo2eA8B14ABAe2o3.12oq3u5o.11o2eB14A4e7dqo2deA7B13A6e2Ao2.10ou7o.10o2B2W2B11A7e5d2qo2de4A4B8ABA14o2.7ou3q5o.8o2B2WB12A9e3d4qo2de7AB7A15B2A2o2.4oq4u6o.4o3B2W2B11A11e2d5qo2de8BA24eo.3o2u11do3.2oBW3B10A13ed6qo2de8A2dA22eo.2oAequ3q8A2o.2oBW2B6AB2A14d8qo2d2e7A24B2Ao2ABq6u6W3Bo2AB6A5BA15d6q2o.o2qde5A6dA17BA2e2A2qu11AW3BAB7A19e2d5q2o2.3o2qde3A17eAeA9dq2u11AW5B7A9dA7e4d3q2o2.7o2qdeA17e4A9u13B5WB7A14e7dq2o2.11o2dA15e6A12u10B12A6eA6e9qo2.15oeA15e5A10B3eAeAu5B11A3e19qo.14o.3oeA15e3A4B15eAeA4BA5BA3e19do.3o.10o2.2oeA16e4A5B17A12e4de15do.3o2.3o2.3oB2o2eA14e7A7B2AB12A12e3d2e16do3e2o.2o4.oB4WA14e7A7BA2B12A12ed5e14de5o.2o3ABoB6A12e9A10B12A11e2d7e11d2eA4eo2eo2AWB7A6eA3e11A9B13A10e3d9e5de2d3eA5e2o.oABWB6Ae3Ae12d4A13B9A9e4d21A6eo.oAB8e16dq4eA13BA3B2A10e4dq4d16A4e2A2qo2AB7Ae15q2o4dA28e4do5qd16e6Aeo2AB3A5e6d9qo.4oeA20e3Ae6do.5ode13dA4e4o.oeB2A6e5d9q2o.4oeA20e11qo.4ode12d3e7do2eA8ed12q2o.5oeA20e10d2qo.4ode10d4e6do.oeA8ed11qo2.5odeA20e10d2qo.5oqe6de2d4e7do2eA4e4d11qo.8odA20e9d2qo.7ode5ded5e7qo2eA3e5d11q2o.7odeA19e8d3qo.7oqe4d8e3de3qo2dA2e6d10q2o.8ode3A4eA12e7d4qo.8oqe2d9e2d3e2qo2de8d6qdq3o.9ode5Ae2A10e8d5qo.9oqd3qd6e2d5qo2de8dqd3qoq3o.10ode12A3e11d5qo.10oq3oqd3qd8qo2de4d4qoq3o.o3.11ode24d7qo.11o3.odq2oqd7qo2de2dq3dqo.o4.15ode21d10qo.15o4.oqdq2d3qo2q2dqo3q2o.21ode20d9qo.21oq2o2qd2qo4qo.3o2.22ode19d10qo.22o2.2oq2o3.2o2.27oqe19d10qo.27o2.35ode18d9qo.65oqe18d8q2o.66ode16d8q2o.67oqe4de2d2e5d9q2o2.68oqe2d6e3d9q3o.20o4.47oqd7ed10q3o2.19om4o.47oq4d12q4o.21omM2mo.26o5.16ocxq6d7q4c2o2.17o2mM3mo.25om5o.15oCYc3x2qd7qc2Y3Cco.14o2m2M4mo.25omM2mo.16oCY2C2xqd7q2cY3Cco.12o3m8uo.25omM3mo.15oCYC2x2oq7o3xC4co.9o2m3Mmo7.26omM4mo2.12oCYC2xo2.o7.3ocC3co.3o3.o2m2M2muo.33om5Mm2o2.10ocC2co.13ocC3co.2om3om2M2muo2.35o5umMm2o2.8ocC3xo.12oxC4co2mM3mM2muo2.42o2uM2mo.8ocC2x2o.13ocC4xmM6uo2.46om2Mmo2.6ocC2co.14ocC3x2mM5uo.49o2m4o6xC3xo.14oxC4xomM3uo.52o2uMm5xcC2cxo.15ocC2xo.om2uo.55omM6uxCxo.16oxCxo.3o3.57omM4u2xcxo.16oxCcxo.63omM2u3xc2xo.15oxc3xo.63oumu2c6o.13oxc4xo.64ou2cCc6o.11oc2xc3x2o2.62ox3Cc3x3o.10ocCxoxcxox2co.60ox2o2xc2xo2xo.9ocCxo.oxo.oxCco.58ox2o.2ox2o.2oxo.8ocxo.2oxo.2ox2o.58oxo.4o2.4oxo.6o4.3o2.4o3.58o2.12o.51"];
+const ENCPIX=[".1747o.93o2do3.89od2ed2eo.5o5.77oAn5BAo.3oe2d3o2.75oen6Ao.2od2n3eAo.75oen6WAo2ABn5eo.73o2e2n6WBA2B2n6o.71o2A3eAn4WBA3B2n6o.70oA5eA2n2W2BA3BAn6qo.68oAB2A3eA2B4e4A2Bn4edo.67oABA4e2A5B2e2B8eo.67oABA5e7Be4B7eo.67oA4e6q3B3e2B8eo.66oeAe2d4q4u2B2e4B7Aeo.65oe3q6u3mudB2e2B8Aeo.64oq6u2n2m4udBAe2B8A3o.61o2q4u4Bn2m4uA3B11ABAo4.10o.45oq3u3m4n3m4ue2B3nB11A4o10Ao6.39ou3m8n2m4u2enB2nB15A10BA6o5.34ou2m12u5eB2W2B32A5o3.31ou2m11u4AB4W2B37A3o2.29on3m6u5ABW3B2W3B40A2o4.24oq2n4u5A3W4BWB2WBWB42A4o6.17onq3n4A4B18A5B22A3B12A6o2.15onq2n5B22A5B16A4B2A4B17A2o.14on8B13AB5AB2A5B15A11B19eo3.11on8eAeAeqdB6AB5AB2A5B9A19B2ABA4B9Ae3o.10o2n6eqdqdqdB7A2B3A9B7A29B7A6eo.11o2n3dqdA3eA7BA2B3A9B6A31B5A8eo.12oAB2ed5eA6BA2B3A9B4A35BA9eo.13odeq2o5dA9B3A10B2A47eo2.11o5.5odA8B3A9B4A46eo.22oeA8B3A10B2A45eA2eo2.21odeA6B3A46e3A8e5o.21ode3A4B3A36eA9e3A8e4do.22ode3A3B3A31e7A8e3A8e4do.22ode3A3B3A4e2A21e11A8e3A8e4do.23ode2A3B3A4e4A17e14A7e3A6e6do.24odeA3BABA4e4A11e4Ae15A7e3A4e6d2qo.25odA5BA4e4A8e23A6e4A4e4d4qo.26oeA9e4A8e23A5e13d4qo.27oeA8e4A7e24Ae2Ae3d3e8d3qo.28odA8e4A7e31d3e8d3qo.28odA8e4A7e31d3e8d2qo.29odA6eAe4A6e32d3e8dq2o.29odA6e7A5e19d5e8d3e7dq2o.30odA6e7A5e16d8e8d3e6dqo2.31oeA6e7A3e15d11e8d3e6qo.34oeA4e7d3e15d13e7dq2e5dqo.34oeA4e3d8e4ded5ed15e7q2de4d2qo.34odA3e4q2d7e3d26e3qo3de3d2qo.34odA3e3qo2qd6e2d29qo.3oe5qo.34ode4dqo.2oqd5e3d28qo.3oe4dqo.34ode4dqo.3oqd3e4qd15q5d7qo.3ode3dqo.34ode3d2qo.4oqde4qoq5d5q5o5qd6qo.3ode3dqo.34ode3d2qo.4ode3dqo.o5qd3qo5.5oqd3e2qo.3ode3dqo.34oqe3d2qo.4ode2d2qo.6oq3o.11ode3dqo.3ode2d2qo.35ode2d2qo.4ode2d2qo.7o3.12ode3dqo.3ode2d2qo.35ode2d2qo.4oded2qo.23oqe3dqo.3ode2d2qo.35ode2d2qo.4oded2qo.23oqe2d2qo.3ode2d2qo.35ode2d2qo.4oded2qo.23ode3dqo.3oded2qo.33o.2ode2dq2o.4oded3qo.22ode2d2qo.3oded2qo.33o.2od4qjo.4oded2qo.22ode2d4qo.2oded2qo.24o.11oqd3qjo.4od4q2o.21oded5qo.2od3q2o.32o4qd4qjo.3oqed3qjo.21oded4qo.o.oqd2qjo.24o.7od2qd5q2o.3oqd4qjeo2.6o2.9o2de2d5qojoqd3qjeo2.22o2.5ojd8q2o.2oqd4q2jq2o.6o3.7oqjAd6q2j3qd2q2jq2eo.20o.2o.3oj3q2d5q2jo2qd5q2j3do.4o.2o.6oq2jded5qj4qd2qj3q3o.19o.2o.3oqd2jq4d2qd2j2e2d3q2jd2jqo.7o.6oj3ded4q2jq2jq2dqjd2jq2o.18o2.3o.3oq2j2qxq6j2q6xjd2j2o.3o.3o2.6ojxq7j2q2xjq3jd2j2o2.23o.3ox2j2x3q2x2qj2qx2q2x2jq2xjo.8o.7ox2q2x2q2jx4jq2j2q2xo.12o.6o.5o.4o4xo12q2xjo6.2o.13oxo6jo13xo.11o.21o.12o4.23o.6o.13o2.490",
+  ".3o.95o2.94o2.94oqo.26o.65oq2o.25o2.65oq3o.23oq2o2.63oq4o.21oq2edo.63odq4o.19oq4do.63odq5o.17oq4edo.63oq6eo2.14oq7o.63ode2q3dABo10.4oq7o.63o2qdeA3dBAe2de2A4o2.oq6dqo.65o2dA2B4A2e2AB4A2oq3d3q2o2.67oeA5dne2AB6A3d2q2o2.70oeA3edB2nB8Adq2o2.69o3de5B3n2B7eqo2.72oqe6An3B7edo.73oq2e6A2nBA4B4qo.72oq4e5A11dqo.72oq5e4A5eA5eqo.72oq4de5A4e2A3eo2.74o2q6e9Aeo.78o6d4e5A2eo2.82o4qe4V3Wo.86oqe2V5Wo3.49o.34odV7Wo.50o2.33odeV7Wo.48oW2o2.31oqV8Wo.47oW2VW2o.31odV7Wo.47oW3V2Wo.30oWV7Wo.47oBW3VWo.30oqV7Wo.46oBW6o.31odV6Aeo.44oW6VWo.31odA3V3A3o.43oW5V2Bo.31oqA7eo.3o.14o.25oBW3V2Wo.33oeA3B4Ao3Ao14Ao9.15oBW3V3Wo.33oeA3B5A3BA14BA9o3.11oW4V4Bo.33odA4B31A4o3.8oW3V4Wo.35oeA3B29A4B2A3o2.6oBWV5Wo.35oeA4B28A4B5e2o2.3oBWV6Bo.35oeA4B21AB5A5B6Aeo.2o2BV6Wo.35oeA5B18A4B5A5B6A2eo2.2oBV5Bo.35oeA5B16A16B6A3e2o.2oBWV2Wo.35ode3A3B6ABA3B5A16B6A5eo.2o2WVWo.35oAe4A2B6A5B5A17B4A7eo.3oB2o.35ode4A2B5A6B5A28eo.4o2.36ode4A2B5A7B4A21e3A4eo.42oe6A2B4A7B4A13e2A6e4A2edo.42oe7A2B2A9B3A9e7A5e4A2e2do.41oe7A2B2A10B2A4e12A4e5A2e2do.41oe7A2BA13e16A4e6Ae2qo.41ode6A6e4A6e16A4e6Ad2qo.41ode6A6e5A5e16A3e4de3dqo.43ode5A6e5A5e17A2e2d3e3dqo.43oqe5A5e6A5e17A2e2d4e2dqo.44oqe4A5e6A5e13d3eAe3d4e2qo.46oqe3A5e7A4e8d8eAe3d4eqo.48oqdeA5e7A4e6d10e4d6o.50o2eA5eVAe4A5e3ded10e4d3qdeWo.51odA4e2V20d4e4d2q2oqe2o.52oeA2e2q2WV27qo2.odAo.52oeA2eqo3WV25qo.3ode2o.51ode2qo.3oWV5W16V2dqo.3oqe2o.51ode2qo.4odA3qo16BWdqo.4odeo.51ode2qo.5odedo.16oe2qo.4odeo.51odeqo.6odedo.16oe2qo.4odAeo.50odeqo.6odedo.16oe2qo.4odAeo.50odeqo.6odedo.16oe2qo.4odeo.51odeqo.6odedo.16odqo.5odAeo.50odeqo.6odedo.16od2o.5odAeo.50odeqo.6odedo.15odeqo.5odAeo.50odeqo.6oqedo.15odeqo.6oe2o.50od2qo.7odqo.15odeqo.6oe2o.50odqo.8od2o.15oqeqo.6odeo.50odqo.8odqo.15oqeqo.6od2o.50odqo.8od2o.15oq2o.7od2o.49oqdqo.8odqo.15oq2o.7od2o.49oqdqo.8oqdo.15oq2o.7oqdo.49oqdqo.8odeqo.14oq2o.8odo.49oqdqo.8odeqo.14ojo.9odo.49oq2o.9oqeqo.14ojqo.8odo.41o.7oq2o.9oqdqo.14ojqo.4o.3odqo.20o.27oq2o.8o.oq2o.2o.10oj2qo.4o.3oq3o.7o.11o.11o2.6o.6ojq2o.8o.oq2o.2o.10ojqo.5o.3oq3o.7o.11o.12o.6o.6oj2qo.o2.7oq3o.2o.9ojqo.9oq2jo.19o.12o.5o2.6oqjqo.o.8oq3o.2o.9ojqo.9oq2jo.8o.9o.12o3.4o.7oqjqo2.9oq3o.o.9oj2qo.5o3.2oqjo.8o.2o.6o.14o.4o2.6oqjo.8o3.oq2o.3o.7ojq2o.5o.o.2oqjo.18o.14o.12oq2o.10o.oq3o2.o.5o2qjq2o.4o2.o.2oj2o.9o2.7o.2o.11o2.2o.2o2.3oq3o.7o.2o2q4o.9oqjq2o.7o.2ojqo.9o2.6o.3o.12o.6o.3oq3jo.6o.3oq3jo.3o.6oq3o.3o.4o.ojq2o2.7o2.6o.3o.7o.4o.2o.3o.3oq3jo.6o.4oq2o.4o.6ojq2o.8o.ojq2o3.6o2.18o.4o.2o.8o3jo.6o.4oj2o.11ojo2.11o4.2o.6o2.5o.12o.5o.13o2.6o.5o2.12o2.12o.13o2.5o.292",
+  ".535o8.72o16C2c5o.72oC22co.71oCY14C7co.70oCY12C11co.69oCY9C14co.69oCY7C15co.70oCY6C17co2.67oCY5C20co.67oCY4C21co.67oCY2C24co.66oC27co.66oC21c3C3co.62o4C17c12o.62oC3YC13c15o.61oxc2Y2C11c17o.56o5xc2Y2C8c22o.55ox4c4YC8c22xo3.52oxc6Y2C6c25x2o.52oxc39xo2.52oxc38xo.54oxc39xo3.51oxc7C3c30x3o3.48oxc7C2c34x3o.47oxc7C2c10x10cxc15xo2.45oxc7Cc7x5GgGg4x5c15x2o3.42oxc14x3GgH6G3jgx3c11Y4cx3o.42oxc11x4H7G8x3c9Y6c2xo.42oxc13xH5G12jxc8Y8xo.43oxc13xH4G12j2xc7Y8Co.44oxc9x5H2G15x6c2Y10Co.43oxc7x3gGgG19jgjx4cY9Co.43oxc6x2GH5G12gGg2G5jgx2cY9Co.43oxc5x2gH2G11g11G6jcY9Co.43oxc5xg2G9g21j2CY8xo.43oxc6jgG7g22j2c3Y6xo.44oxc8j3g24j3c5Y4cxo.44oxc7x3j5g16j5x2c10xo.44oxc10x4j18x3c13xo.44oxc13xu3q3u6q3u3xCY2c3x2c7xo.44oxc13xumuq3um4uq3umuY5Cxo2x3c3xo.45oxc9C3cxumuq3um4uq3umuY3C2co.2o3x4o.45oxc7C6xum2u3m6u3m2uC6co.4o5.45oxc7C5cxum14u3C5co.55oxc7C5cxu18C5co.55oxc7C5c2xg4GgGg6j3C7co2.53ox2c6C4c3xg2H7G5j2c8xo.53o3xc4C3c6xgH4G7j2xc8xo.56oxc12xG13jxc8xo.55oxc13xG12j2xc8xo.55oxc13xgG10gj2x5c4xo.55oxc9x6G7g4jA3ex2c4xo.55oxc9xA3e2G5g6jAB3dxc4xo.55oxc8x2AB3ejg10jAB2d2xc4xo.55oxc8x2B3e2j2g8j2AB3x7o.55oxc7x2B5Aj2g7j2AB4exo6.55ox9B2AB3A2j10AB4do.61o8xB3AB5eAeAeAeAeB2A4e2o2.8o4.45o2.8oABA2B16A4e4o.6oq3o.43o2q2o.6oABA3B16A3d2e2Aeo.5oq4o.42oq4o.4oABA3B16A5d2e2Aeo2.3oq4o.42oq4o.3oAB2A4B8A5B2A4eq2de2Ae2o.2oq4o.42oq4o.2oAB2e3qoABA2B3A12do2qde2A2eo.2oq2o.43oq3o2.oABA2dq2o.oAB5A10edo.2oqe2A3eo.2ojo.44oqo.2oABA2dq2o.2oABAB2A10e2do.3ode3A2eo.ojgo.43ojo.oeA3dq2o.3oeA2B2A4e2A4e2do.4ode3A2eoj2go.43oj2oeA3eq2o.4oeA6e4A4e2do.5oqde2A2djGgo.42oj3eA2e3qo.5oeA6e5A2e3do.6o2qe2do2g2o.42oj3dA2e2qo.6oeA6e6Ae3do.8od2o.2o2.43oj2oqd2q2o.7oeA5e11do.9oqo.2ogo2.41ojo.oq2o2.8oeA5e3d2e6do.10o2.2og2o.41ojo.2o2.10oeA4e2d4e6do.15o2.42o2.15oeA4e2q4de4dqo.15ogo.40ogo.14oeAe2A2eqo4de3d2qo.15o2.41ogjo.13ode5qo.4ode5qo.14ogo2.39oj2o.13ode5qo.4ode4dqo.14ojo.40ojo.14ode5qo.4ode3d2qo.15ogo.39ojo.14ode4qo.5oqe3d2qo.15ogo.39ojo.14ode2d2qo.6oded3qo.15ogo.38ogjo.13oe2d4qo.3o.2oded3qo.15ogo.38ogjo.13oe2d4qo.3o.2oded5o.14ojgo.37ogjo.13oqd5qo.2o.3oded4qo.o.13ogo.27o2.8ojo.14oqd4qo.3o.4od5qo.o.13ogo.28o.7ogjo.11o2.oqd4qo.2o.5oqd4qo.2o.12ogo.25o.2o.7ogjo.12o2jq5o.9oq5o.3o.11ojg2o.23o.11ogjo.11ogG2jgjgq2o.5o2.oqg4jo4.10og3jo.7o.21o.4ogGgjo2.7o2G8go.7o2jgG5g3jo2.8o2j2o.7o.5o.9o.6o.4og2jo.o2.5og2G9go3.5ogG9gjo.8o.oj2o.6o.6o.8o.10o2j2o.3o2.4ogG2gGgGg5j2o.5ogG6g4jo.8o.2ojo.5o.29ojo.9ojgj10o2.6oj12o.11oj2o.34o3.10o12.9o13.11o3.12",
+  ".859o3.87o6W3o.80o6W6V2Wo.73o7W6V8Wo.67o6W7V14Wo.67oW5V21Wo.67oWV25Wo.67oWV15qdqdqdqV3Wo.67oWV2qdqdqdqdqdqdqV10Wo.67oWV25Wo.67oWV25Wo.67oWV25Wo.67oWV25Wo.68oWV10qdqV11Wo.68oWVqdqdqdqdV15Wo.68oWV24Wo.68oWV23Wo.69oWV24Wo.68oWV24Wo.68oWV14qdqdqdqV3Wo.68oWVqdqdqdqdqdqdqV10Wo.68oWV24Wo.68oWV24Wo.68oWV24Wo.68oWV20W5o.68oWV10qdqVW5Bo6.68oWVqdqdqdq2W4Bo6.74oWV3WVW2Bo6.68o12AV2B5Ao.61o13C10xAB4cCcCxo.47o14C13Y11cCcCY6Co.33o13C14Y34Co.31o2x3cC9Y32Z4Y2C8c3xo.25o5x2c4Y35C4Y2Z4Y2cC2c8xo.20o5x5c5Y25C5Z6c24xo.19ox4c11Y7C11YZ5C4Z7Yc23xo.19oxc14C17ZYZ5YC2c29x5o.19oxc11xc2C7ZYZYZYC2cC6c26x9o4.19oxc6xc3xox2C2c4C6c24x13AeAeAedo.23oxc3x3oxcxo.odxc5C4c20x7e3AeAeAeAeB6Ao.24oxc2xo3.ocxo.odx2c12x3c8x12eB17Ao.23o2x2o.4ocxo.odx7c7xexc7x2AeAeAeAeAeB20Ao.24oco.4ox2o.oAeAeAex2c6x2ex10B27A4eo.23oco.4oco.2oAB5x10eAeAeAeAeAB22A10eo.23o2.5oxo.2oBW3B3eAeAeAeAB25A18eo.23oxo.4oxo.2oAW3B34A20eo.4o2.17oxo.3ocxo.2oABWB2A9e3B21A20eo.4ogo.17oco.2ox2o.2oAB3edededeq7B17A23eo.4o2.18oxo.2oxo.3oAB2Aq9c3x2B20A20eo.4o2.18oxo.2oxo.3oABA2dCc7C3cxB19A21eo.4o2.18oxCo.oxo.3oABAd2Y3C8cxB16A21e4o.4ogo2.16oxYCocxo.3oA4dC9c3xB14A20e6do.4ojo.17oxY2C2xo.3oeA2d2C7c5xB10A22e7do.6ogo.17oCY2Cxo.3oeA3dxc7x5B9A21e10do.5ogo.17ocYCxo.4oeA2qx10eAeBAB4A3eA18e13do.5ogo.17ocC2co.4oAB3A3BAeq4d34e9do.6ogo.17ocC2xo.4oeB2A2W6d37e9do.6ogo.17ocC2co.4oeA3W2B4d38e10do.5o2.18oxC2xo.4oeA4B6d37e9do.6ogo.18oc2o.5oeA4B5d38e8d3o.5ojgo.17oc2o.5oeA4B6d37e4d6qo.5og2o.17ocxo.5oeA4B10A7e28d8qo.6ogo.17oc2o.5oeA4B8A7e27d11qo.6ogo.17ocxo.5oeA4B2A11e26d14qo.6ogo.17ocxo.5oeA3eA13e22d18qo.6ogo.17ox2o.5oeA2e2A13e20d20qo.6ogo.17ox2o.5oeA2e2A13e16d24qo.6ojo.16oc2xo.5ode4A13e15d25qo.6ojgo.15oc2xo.5ode4A9e14d30qo.6ojo.16oxc2xo.4ode4A3e19d29q3o.7ogo.15oxc2xo.4ode4Ae16d30q7o.7o2.16oxc2xo.4ode19d28q11o.7ogo.15oxc2xo.4ode17d29q12o.7ogo.14oc2x3o.4ode17d15q14o12.8o2.15ox2o2x2o.3od2q3e7d8q13o14.20ogo.14oxo.2oxo.3oqdqjqdedq12o13.34og2o.13oxo.2oxo.3oq3jq3o13.47ojgo.13oxo.2ojo.3o3qjo3.20o.10o2.12o.14ojgo.o.10ox2o.2ojo.6o2.23o.24o.15ogo.o.10ox2o.2ojo.19o.11o.10o3.10o.11o.4ojo.12o4.o4.6o.12o.o.8o2.9o.2o.10o.10o.2o.2oj2o2.15o.2o2.4o.13o2.9o.13o2.9o.13o.2oj2o.15o2.3o.4o.27o.6o.4o.8o2.13o2.ojo.30o.9o3.7o.4o.5o.13o2.14o.ojo.6o.8o.15o2.9o.7o.9o.14o2.14o2jgjo.6o.7o.44o.13o.17oj3o.92o4.101",
+  ".1848o10.83o3q10o3.77o3q14A2o.76oq15B3Ao.75oq16B2Ao.50o4.21oq15B3Ao.50oW3o.19oeq2n4q9B4Ao.48oBW2o2.19odqB3n2q5A4B4edo.48o3.21oden2Bn3A8B5do.72odeAn4A9B4Ado.44o5.23odeAn4A4eA4B4Aqo.43oW3o.23o2qeAB4Ae8A4do.44oWV2Wo.19o2.3odAB4Ae8A4do.44o2BWo.16o5.4o2dA5e2d2e4A3eo.43o2.2o2.16o4.8od3Ae2d3e4A3eo.41o2W2o2.16o2.13o3qdq4d2e2A4eo.40oWV2W2o.15o.17o6qde2A6o.38oWV4Wo.17o2.20ode2B2A3BAo.38oWVW2Bo.18o2.19oqeB2A5o.36o3WVBo3.20o.20oqB3A3BAo2.33oW3VWo.45oAB3A2B2Ao.32oWV5Wo.44oAB2A3BAeo.32oWV5Wo.45oAB3AB3Ao11.21oWV4WBo.46oAB2AB4A5q5o.18o3WV4Bo2.47oAB2AB8q7o3.14oW3V4Bo.44o2.2oAB3AB9q7A2o.13oBV5Wo.44oq2o2B2A4BA2B5q8B2Ao6.6oBA3V3Wo.43oq4BWA5BA3B4Aq6B4q5o.7oeA2V3Wo.42oq6BA5BA4B3A2q6B2q6o.6oA3eV2Wo.43oq5B2A5BA4B3A3q4B2Aq7o.3o2A3e2dqo2.43oq6BA5BA4B3A3Bq2A4q7o.2oBABAe2q2o.45oq5B2A5BA4B3A3B6Aq7Bo2ABA2ed2qo.45oq11A7B3A3B3ABq8A4BA3edqo.42o4eq14A4B2Ae3A4q10ABA5eqo.42oq4B2q4B2q4Aq3A3BA2e3A3q10A8q2o.41oq6B6q10A5e3A4q4A12q2Hgo2.39oq5B6q6e3qeA5e3A3q6A6q2A4qgGgGo.38oq6B2q10eAqde2A3e3A2q6A6q4A2q2gG2HGo.37oq5B2q10e2Ae4A3d2eA3q10A2q7gG2H2Go2.33o2q7B2q8A2eAe4A2d4A4q8A2q8H2GH3Ggo.31og2jq5B2q6A5eAe4A3d2A6q8A2q7H8Go2.27o2gGgjq4B4q6A4eAe4A2d4A6q8A2q5gH9g2o.24o2G3g3Aq2B4Aq5A2e2AeAe4Aeq4A7q6e4q4g2H6G4go.21o2G2H2g2q4A6q4A2e4ded4e2qGg2A8q4A5dq5GH8G2go2.17o2G2H3g2q6A4q6Ae4ded4eq2Hg2A7q6A3eq7H8G3g2o.15oG2H4g3q5A4q6A2e4ded4e2g4eA7eq5e4q6H8G5go.12o2GH7gq7A2q6A3e6d3A6e10q6e2q7GH9G4go2.8o2G2H7g2q8A2q6A2e6d4A3B3e8q6e2q9H10G4g2o.7oGH10g2q6A2eq5A3e5q3d2e3B2e10q6e2q7gH4G12go.6oGH11gq5A3eq6e2d5q3dA4B3A5e3q6e4q6gG17go.5oGH3G7jq7e4q6ed6gqdA4B3A3e4q6e4dq6gG17go.5oGH3G8jq5e6q4e2d6AeqeA3B3A3e5q4e5d2q4H2G17go.5oGH3G9j3q3e4q7d5eAegdA3B3A2e5q6e2d2q4g2H2G16go.6oGH2G11j2q4e2A2q6de3deB2e5A3e6q7d3q5jH3G17go.5oGHG11j2q6e2q8e3dB4e4A3e6q7d2q6jH3G17go.5oG14jq7e2q8e2deB4e3A3e4q9d2q7H3G17go.5ogG12j2q6e2q11deA2Be4A2e4q10d2q7H3G17go.5ogG10gG2jq7e4q8de2qBe4Aq2e2q10d3q7H2G17go.6ogG9g2Gj2q6e6q7d2q3e4q4eq7d6q7gHG17go.6ogG8g3G2q6e7q13e2q13d6q7gG11g4G2g2jo.5ogG8g3G3q6e2q10jq13eq6d2q3d3q5G8g13jo.5ogG7g5G3q3gq12d2q6eq7d2q4dq5dq5HG2g19jo.5ogG7g4G5jg2q12dBq7dq6d3q2dq8g8Gg17jo.5ogG7g5G7j2q6e3d3q6d3q5d6q7Gg2H4G3g17jo.5ogG5g9G6jq7ed4q5d5q5d5q7H6G4g17jo.5ogG4g10G5j2q6e2d3q5e2d4q6d4q7H5G5g17jo.5ogG3g11G6q8d4q6ed4q6d4q7GH2G6g18jo.5ogG2g12G4gG2jq5d4q6e2d4q7d2q7gG8g19jo.5og22jq7d2q7ed4q16gG7g20jo.5ojg23jgjgq3dq7d5q10g3qgHG8g20jo.5ojg21G7q10d5q9H7G7g20j2o.5ojg22G7j3q6d5q6gGHG9g20j7o.5ojg31jq16GH3G8g17j11o.5ojg33q3g5jgjq3G12g14j15o.5oj41gjgj3gj41o.5o91.98"];
 
 /* [name, category, rarity, silhouette, palette, grip, material, accent material] */
 const GEAR=[
@@ -2729,9 +2782,16 @@ function bossRows(i){
  r=[]; for(let y=0;y<n;y++) r.push(flat.slice(y*n,(y+1)*n));
  BROW.set(i,r); return r;
 }
-function bossArt(B){
+function encRows(i){
+ const k='e'+i; let r=BROW.get(k); if(r) return r;
+ const flat=_unrle(ENCPIX[i]), n=Math.round(Math.sqrt(flat.length));
+ r=[]; for(let y=0;y<n;y++) r.push(flat.slice(y*n,(y+1)*n));
+ BROW.set(k,r); return r;
+}
+function bossArt(B,isEnc){
  const hit=BART.get(B.n); if(hit) return hit;
- const sp=bossRows(B.p), T=tones(['','',0,0,B.m,B.gm]), N=sp.length;
+ const sp=isEnc?encRows(B.p):bossRows(B.p);
+ const T=tones(['','',0,0,B.m,B.gm]), N=sp.length;
  const c=document.createElement('canvas'); c.width=N; c.height=N;
  const q=c.getContext('2d'), img=q.createImageData(N,N), P=img.data;
  for(let y=0;y<N;y++){const row=sp[y];
@@ -3063,8 +3123,36 @@ function advance(n){
   const nb=BSCHED.find(x=>x.m>S.bm && x.m<=after);
   if(nb){ S.bm=nb.m; startFight(nb); }
  }
+ encTick(n,before,after);
  surge=Math.min(.55,surge+n/22000);
  save(); hud();
+}
+
+/* ---- what is up ahead ----
+   `enc` is deliberately a plain variable and never goes into S: close
+   the app with one pending and you walked past it. */
+let enc=null, encWalk=0;
+function encTick(n,before,after){
+ if(enc){
+  if(after>=enc.m) resolveEnc();
+  return;
+ }
+ if(S.fight) return;
+ encWalk+=n;
+ if(encWalk<300) return;
+ encWalk=0;
+ if(Math.random()>0.22) return;
+ enc={k:(Math.random()*ENC.length)|0, m:after+0.10+Math.random()*0.15,
+      side:Math.random()<0.5?-1:1};
+}
+function resolveEnc(){
+ const E=ENC[enc.k];
+ const gain=E.st[0]+((Math.random()*(E.st[1]-E.st[0]+1))|0);
+ S.stones=stones()+gain;
+ S.log=S.log||[];
+ S.log.push({e:1,k:enc.k,day:S.day,m:Math.round(enc.m*100)/100,st:gain});
+ toast(E,gain);
+ enc=null; save();
 }
 
 /* ---- the fight ---- */
@@ -3121,8 +3209,28 @@ document.getElementById('bday').onclick=()=>{
 document.getElementById('brst').onclick=()=>{
  S={steps:0,today:0,day:1,opened:[],log:[],stones:0,bm:0,beat:{},fight:null,
     own:{},eq:{}}; chestQ=[]; fightQ=[]; banner=null; anim=null;
- bend.classList.remove('open');
+ bend.classList.remove('open'); enc=null; encWalk=0;
  shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();};
+
+/* ---------- a small moment, not a modal ----------
+   Encounters happen often enough that a full screen card for each one
+   would be a tax on walking. A strip over the bottom frame, four
+   seconds, no button. */
+let toastT=0;
+function toast(E,gain){
+ const el=document.getElementById('etoast');
+ const c=document.getElementById('etart'), A=bossArt(E,1);
+ c.width=A.width; c.height=A.height;
+ const q=c.getContext('2d'); q.imageSmoothingEnabled=false; q.drawImage(A,0,0);
+ document.getElementById('etn').textContent=E.n;
+ document.getElementById('etw').textContent=E.w;
+ document.getElementById('ets').textContent='▲ '+gain;
+ el.classList.add('on'); toastT=performance.now()+4200;
+}
+function toastTick(now){
+ if(toastT && now>toastT){ document.getElementById('etoast').classList.remove('on');
+                           toastT=0; }
+}
 
 /* ---------- the banner and the card ---------- */
 function bannerTick(now){
@@ -3170,7 +3278,7 @@ let last=performance.now();
 let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
- try{ step(dt,now); paint(now,dt); bannerTick(now);
+ try{ step(dt,now); paint(now,dt); bannerTick(now); toastTick(now);
       /* whatever is left of the frame goes into baking what is coming */
       bakeBudget(Math.max(2,9-(performance.now()-now))); }
  catch(e){ if(_errs++<3) console.error('frame',e); }
@@ -3333,18 +3441,20 @@ function drawGrid(){
 function drawJournal(){
  const G=document.getElementById('jlist'); G.innerHTML='';
  const log=(S.log||[]).slice().sort((a,b)=>a.m-b.m);
- const places=log.filter(e=>!e.f).length, kills=log.filter(e=>e.f&&e.won).length;
+ const places=log.filter(e=>!e.f&&!e.e).length, kills=log.filter(e=>e.f&&e.won).length;
+ const met=log.filter(e=>e.e).length;
  document.getElementById('jcount').textContent=
   places+' / '+TRAIL.length+(kills?'  \u2620 '+kills:'');
  const far=log.length?Math.max.apply(null,log.map(e=>e.m)):0;
- const hi=log.filter(e=>!e.f).map(e=>TRAIL.find(t=>t.m===e.m))
+ const hi=log.filter(e=>!e.f&&!e.e).map(e=>TRAIL.find(t=>t.m===e.m))
              .filter(L=>L&&L.e).sort((a,b)=>b.e-a.e)[0];
  document.getElementById('jsum').innerHTML=
   log.length
    ? ('Furthest point mile '+far.toFixed(1)+', '+pctAT(far)
       +' percent of the way to Katahdin.'
       +(hi?' Highest ground so far is '+hi.n+' at '+hi.e.toLocaleString()+' feet.':'')
-      +(kills?' '+kills+(kills===1?' thing':' things')+' put down on the way.':''))
+      +(kills?' '+kills+(kills===1?' thing':' things')+' put down on the way.':'')
+      +(met?' '+met+' met and let be.':''))
    : 'Every place you reach is written down here, with the day you got there '
      +'and what came out of the ground.';
  if(!log.length){
@@ -3354,6 +3464,16 @@ function drawJournal(){
  }
  for(let x=log.length-1;x>=0;x--){
   const en=log[x];
+  if(en.e){                                   /* something you met */
+   const E=ENC[en.k];
+   const d=document.createElement('div'); d.className='jrow jmet';
+   let h='<div class="jhead"><span class="jn" style="color:#9fd8ff">'+E.n+'</span>';
+   if(en.day) h+='<span class="jd">DAY '+en.day+'</span>';
+   h+='</div><div class="jm">MILE '+en.m.toFixed(1)+'</div>'
+     +'<div class="jw">'+E.w+'</div>'
+     +'<div class="jg">\u25b2 '+en.st+' STONES</div>';
+   d.innerHTML=h; G.appendChild(d); continue;
+  }
   if(en.f){                                   /* a fight, not a place */
    const B=BOSS[en.b], g=en.i?BYID[en.i]:null;
    const d=document.createElement('div');
