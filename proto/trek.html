@@ -27,13 +27,19 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  background-image:
   repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
-.top{padding:8px 11px}
+.top{padding:8px 92px 8px 11px}
 .trailname{font-family:var(--pix);font-size:8px;letter-spacing:2px;color:var(--gold);
- text-shadow:2px 2px 0 rgba(0,0,0,.7)}
+ text-shadow:2px 2px 0 rgba(0,0,0,.7);
+ /* the button is anchored to the bottom of the frame, so the top line
+    can have the width back that the padding reserves for it */
+ margin-right:-81px}
 .mile{font-family:var(--pix);font-size:17px;margin:7px 0 3px;letter-spacing:1px;
  text-shadow:2px 2px 0 rgba(0,0,0,.75)}
 .mile small{font-size:8px;color:var(--dim);letter-spacing:2px}
-.biome{font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.biome{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+ gap:4px 10px;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.bpct{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--gold);
+ white-space:nowrap;flex:none}
 .btm{margin-top:auto;padding:10px 11px 11px}
 .nextrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
 .nextname{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--gold);
@@ -169,8 +175,15 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .cinfo{position:absolute;left:0;right:0;bottom:0;
  padding:18px 22px max(22px,env(safe-area-inset-bottom));text-align:center;
  background:linear-gradient(rgba(3,6,11,0) 0%,rgba(3,6,11,.92) 16%,rgba(3,6,11,.98) 100%)}
-.clm{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:2px;line-height:1.8;
- margin-bottom:14px;opacity:0;transition:opacity .5s}
+.clm{font-family:var(--pix);color:var(--dim);line-height:1.8;
+ margin-bottom:12px;opacity:0;transition:opacity .5s}
+.clmn{display:block;font-size:13px;line-height:1.5;color:var(--gold);letter-spacing:3px;
+ text-shadow:2px 2px 0 rgba(0,0,0,.8)}
+.clmm{display:block;font-size:7px;letter-spacing:2px;line-height:2.1;margin-top:9px}
+.clore{font-size:12px;line-height:1.8;color:#bac6d4;max-width:430px;
+ margin:0 auto 16px;opacity:0;transition:opacity .6s}
+.cdiv{width:54px;height:2px;background:var(--edge2);margin:0 auto 16px;
+ opacity:0;transition:opacity .5s}
 .crar{font-family:var(--pix);font-size:12px;letter-spacing:3px;margin-bottom:9px;
  text-shadow:0 0 10px currentColor,2px 2px 0 rgba(0,0,0,.8);opacity:0;transform:scale(.6);
  transition:opacity .35s,transform .35s cubic-bezier(.2,1.7,.5,1)}
@@ -180,6 +193,19 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  margin-bottom:18px;opacity:0;transition:opacity .4s}
 #cok{opacity:0;transition:opacity .4s;width:100%;flex:none;padding:12px}
 .show{opacity:1 !important;transform:none !important}
+
+/* ---- journal ---- */
+.pgrid.jlist{display:block;grid-template-columns:none}
+.jrow{border:2px solid var(--edge);background:rgba(0,0,0,.26);padding:11px 13px;margin-bottom:7px}
+.jhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.jn{font-family:var(--pix);font-size:9px;letter-spacing:2px;color:var(--gold);line-height:1.75}
+.jd{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim);flex:none}
+.jm{font-family:var(--pix);font-size:7px;letter-spacing:1px;line-height:2.1;
+ color:var(--dim);margin-top:7px}
+.jw{font-size:11px;line-height:1.75;color:#bac6d4;margin-top:8px}
+.jg{font-family:var(--pix);font-size:7px;letter-spacing:1px;line-height:2;
+ color:var(--dim);margin-top:9px}
+.jempty{font-size:11px;line-height:1.75;color:var(--dim);padding:8px 2px}
 </style>
 </head>
 <body>
@@ -189,7 +215,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   <div class="frame top">
     <div class="trailname">★ APPALACHIAN TRAIL · NOBO</div>
     <div class="mile"><span id="mile">0.0</span> <small>MI OF 2197</small></div>
-    <div class="biome" id="biome">Georgia hardwood</div>
+    <div class="biome"><span id="biome">Georgia hardwood</span><span class="bpct"><span id="pct">0.0</span>% TO KATAHDIN</span></div>
     <button class="btn packbtn" id="packopen">★ PACK</button>
   </div>
   <div class="frame btm">
@@ -217,6 +243,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   <canvas id="fxhi"></canvas>
   <div class="cinfo">
     <div class="clm" id="clm"></div>
+    <div class="clore" id="clore"></div>
+    <div class="cdiv" id="cdiv"></div>
     <div class="crar" id="crar"></div>
     <div class="citem" id="citem"></div>
     <div class="ckind" id="ckind"></div>
@@ -279,28 +307,55 @@ function hash(n){let t=(n|0)+0x6D2B79F5|0;t=Math.imul(t^t>>>15,1|t);
  t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;}
 
 /* ---------- the trail, northbound from Springer ---------- */
+const AT_TOTAL=2197;                 /* Springer to Katahdin, near enough */
+const pctAT=mi=>(mi/AT_TOTAL*100).toFixed(1);
+/* Elevations are in feet. `w` is one line about the place, shown when you
+   reach it and kept in the journal afterwards. The summits and gaps are
+   the figures the guides print; the shelter elevations are close rather
+   than surveyed. */
 const TRAIL=[
- {m:  0.0,n:'SPRINGER MOUNTAIN',      k:'summit', t:3,a:.18},
- {m:  2.8,n:'STOVER CREEK SHELTER',   k:'shelter',t:0},
- {m:  4.9,n:'THREE FORKS',            k:'water',  t:0},
- {m:  5.2,n:'LONG CREEK FALLS',       k:'water',  t:1},
- {m:  8.1,n:'HAWK MOUNTAIN SHELTER',  k:'shelter',t:1},
- {m: 15.8,n:'GOOCH MOUNTAIN SHELTER', k:'shelter',t:1},
- {m: 20.5,n:'WOODY GAP',              k:'gap',    t:1},
- {m: 28.8,n:'BLOOD MOUNTAIN',         k:'summit', t:4,a:1.0},
- {m: 31.7,n:'NEEL GAP',               k:'town',   t:3},
- {m: 37.4,n:'HOGPEN GAP',             k:'gap',    t:1},
- {m: 43.2,n:'LOW GAP SHELTER',        k:'shelter',t:1},
- {m: 50.5,n:'BLUE MOUNTAIN SHELTER',  k:'shelter',t:1},
- {m: 52.9,n:'UNICOI GAP',             k:'gap',    t:2},
- {m: 56.0,n:'TRAY MOUNTAIN',          k:'summit', t:3,a:.60},
- {m: 69.6,n:'DICKS CREEK GAP',        k:'town',   t:2},
- {m: 78.1,n:'BLY GAP',                k:'border', t:4},
- {m: 85.5,n:'STANDING INDIAN',        k:'summit', t:3,a:.70},
- {m: 99.6,n:'ALBERT MOUNTAIN',        k:'summit', t:4,a:.80},
- {m:100.0,n:'ONE HUNDRED MILES',      k:'mark',   t:4,a:.45},
- {m:106.4,n:'ROCK GAP',               k:'gap',    t:1},
- {m:109.8,n:'WINDING STAIR GAP',      k:'town',   t:3}];
+ {m:  0.0,n:'SPRINGER MOUNTAIN',      k:'summit', t:3,a:.18,e:3782,
+  w:'Southern terminus. A bronze plaque set in bare rock, and a register in the stone beside it.'},
+ {m:  2.8,n:'STOVER CREEK SHELTER',   k:'shelter',t:0,e:2870,
+  w:'The creek below runs through old growth hemlock, rare now that the adelgid has been through.'},
+ {m:  4.9,n:'THREE FORKS',            k:'water',  t:0,e:2530,
+  w:'Three creeks meet here, and the Benton MacKaye Trail crosses the AT.'},
+ {m:  5.2,n:'LONG CREEK FALLS',       k:'water',  t:1,e:2800,
+  w:'A short blue blaze to the falls. Hardly anyone walks past it.'},
+ {m:  8.1,n:'HAWK MOUNTAIN SHELTER',  k:'shelter',t:1,e:3200,
+  w:'The Army Ranger camp is close enough that blank fire in the night is normal here.'},
+ {m: 15.8,n:'GOOCH MOUNTAIN SHELTER', k:'shelter',t:1,e:2780,
+  w:'About where a first pack gets opened up and made lighter.'},
+ {m: 20.5,n:'WOODY GAP',              k:'gap',    t:1,e:3173,
+  w:'GA 60. The first road crossing easy enough to hitch out of, down into Suches.'},
+ {m: 28.8,n:'BLOOD MOUNTAIN',         k:'summit', t:4,a:1.0,e:4458,
+  w:'Highest point on the AT in Georgia. The stone shelter on top was built by the CCC.'},
+ {m: 31.7,n:'NEEL GAP',               k:'town',   t:3,e:3125,
+  w:'Mountain Crossings. The only building the trail passes through, and the boot tree out front.'},
+ {m: 37.4,n:'HOGPEN GAP',             k:'gap',    t:1,e:3450,
+  w:'GA 348, the Richard Russell Scenic Highway, running the ridge beside you.'},
+ {m: 43.2,n:'LOW GAP SHELTER',        k:'shelter',t:1,e:3050,
+  w:'Down in a hollow by water, which is why it fills first on a cold night.'},
+ {m: 50.5,n:'BLUE MOUNTAIN SHELTER',  k:'shelter',t:1,e:3900,
+  w:'Sits high and open. The view is the reason, the wind is the price.'},
+ {m: 52.9,n:'UNICOI GAP',             k:'gap',    t:2,e:2949,
+  w:'GA 75. Hitch west to Helen or north to Hiawassee.'},
+ {m: 56.0,n:'TRAY MOUNTAIN',          k:'summit', t:3,a:.60,e:4430,
+  w:'An open summit, and the one most people in Georgia name as their favorite.'},
+ {m: 69.6,n:'DICKS CREEK GAP',        k:'town',   t:2,e:2675,
+  w:'US 76, and the last real resupply before the state line.'},
+ {m: 78.1,n:'BLY GAP',                k:'border', t:4,e:3840,
+  w:'The North Carolina line. The gnarled oak standing here is the most photographed tree on the trail.'},
+ {m: 85.5,n:'STANDING INDIAN',        k:'summit', t:3,a:.70,e:5498,
+  w:'First summit over five thousand feet going north. The grandstand of the southern Appalachians.'},
+ {m: 99.6,n:'ALBERT MOUNTAIN',        k:'summit', t:4,a:.80,e:5250,
+  w:'Hand over hand straight up to the fire tower. The trail gives you no switchbacks here.'},
+ {m:100.0,n:'ONE HUNDRED MILES',      k:'mark',   t:4,a:.45,e:4500,
+  w:'A hundred down. The number that matters is still the one in front of you.'},
+ {m:106.4,n:'ROCK GAP',               k:'gap',    t:1,e:3760,
+  w:'The shelter is a tenth of a mile off the trail, and its water is reliable.'},
+ {m:109.8,n:'WINDING STAIR GAP',      k:'town',   t:3,e:3770,
+  w:'US 64. Hitch into Franklin, the first trail town in North Carolina.'}];
 
 /* ---------- biomes, a keyframed ramp by mile ---------- */
 const BIOMES=[
@@ -417,6 +472,12 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 function prune(){
  if(S.own) for(const k in S.own) if(!BYID[k]) delete S.own[k];
  if(S.eq)  for(const k in S.eq)  if(S.eq[k]&&!BYID[S.eq[k]]) S.eq[k]=null;
+ /* The journal arrived after S.opened did. A save from before it only
+    knows which miles were crossed, not on what day or for what, so those
+    entries come back without either rather than with a guess. */
+ if(!S.log) S.log=[];
+ if(!S.log.length&&S.opened&&S.opened.length)
+  for(const m of S.opened) S.log.push({m:m,day:0,i:null});
 }
 const miles=()=>S.steps/SPM;
 if(_qm!==null) S.steps=Math.round((+_qm)*SPM);
@@ -2432,16 +2493,26 @@ function startChest(){
  anim={L,d,R,t0:performance.now(),done:false,sp:[]};
  const box=document.getElementById('chest');
  box.classList.add('open');
- document.getElementById('clm').innerHTML=L.n+'<br>MILE '+L.m.toFixed(1);
+ S.log=S.log||[];
+ if(!S.log.some(e=>e.m===L.m)) S.log.push({m:L.m,day:S.day,i:d.id});
+ save();
+ document.getElementById('clm').innerHTML=
+  '<span class="clmn">'+L.n+'</span><span class="clmm">MILE '+L.m.toFixed(1)
+  +(L.e?' &middot; '+L.e.toLocaleString()+' FT':'')
+  +' &middot; '+pctAT(L.m)+'% TO KATAHDIN</span>';
+ document.getElementById('clore').textContent=L.w||'';
  document.getElementById('crar').textContent=R[0];
  document.getElementById('crar').style.color=R[1];
  document.getElementById('citem').textContent=d[0];
  document.getElementById('citem').style.color=R[1];
  document.getElementById('ckind').textContent=
   (isNew?'NEW · ':'ALREADY YOURS · ')+SLOTNAME[CAT2SLOT[d[1]]];
- for(const id of ['clm','crar','citem','ckind','cok'])
+ for(const id of ['clm','clore','cdiv','crar','citem','ckind','cok'])
   document.getElementById(id).classList.remove('show');
+ /* The place lands first and gets a beat to itself. The chest is still
+    falling while you read it, so nothing waits on nothing. */
  setTimeout(()=>document.getElementById('clm').classList.add('show'),250);
+ setTimeout(()=>document.getElementById('clore').classList.add('show'),950);
  requestAnimationFrame(fxFrame);
 }
 /* The mile you are at tilts the roll. It does not guarantee anything,
@@ -2640,6 +2711,7 @@ function fxFrame(now){
  /* --- the text, after the item has arrived --- */
  if(t>T_SETTLE && !anim.done){
   anim.done=true;
+  document.getElementById('cdiv').classList.add('show');
   document.getElementById('crar').classList.add('show');
   setTimeout(()=>document.getElementById('citem').classList.add('show'),180);
   setTimeout(()=>document.getElementById('ckind').classList.add('show'),340);
@@ -2657,6 +2729,7 @@ document.getElementById('cok').onclick=()=>{
 function hud(){
  const mi=miles();
  document.getElementById('mile').textContent=mi.toFixed(1);
+ document.getElementById('pct').textContent=pctAT(mi);
  document.getElementById('biome').textContent=biomeAt(mi).name;
  document.getElementById('today').textContent=S.today.toLocaleString();
  document.getElementById('day').textContent=S.day;
@@ -2686,7 +2759,7 @@ document.getElementById('b5k').onclick=()=>addSteps(5000);
 document.getElementById('bday').onclick=()=>{
  S.day++; S.today=0; save(); addSteps(3000+((Math.random()*6000)|0));};
 document.getElementById('brst').onclick=()=>{
- S={steps:0,today:0,day:1,opened:[],own:{},eq:{}}; chestQ=[]; anim=null;
+ S={steps:0,today:0,day:1,opened:[],log:[],own:{},eq:{}}; chestQ=[]; anim=null;
  shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();};
 
 /* ---------- loop ---------- */
@@ -2709,7 +2782,8 @@ function frame(now){
    still missing, and the five slots that decide who walks the trail.
    =================================================================== */
 const CATS=[['all','ALL'],['sword','SWORDS'],['staff','STAFFS'],['shield','SHIELDS'],
-            ['helm','HELMS'],['chest','ARMOR'],['shoes','BOOTS'],['pet','PETS']];
+            ['helm','HELMS'],['chest','ARMOR'],['shoes','BOOTS'],['pet','PETS'],
+            ['journal','JOURNAL']];
 let pcat='all', psel=null;
 const CELL=()=>innerWidth<430?46:64;
 const pack=document.getElementById('pack');
@@ -2818,6 +2892,8 @@ function drawTabs(){
 }
 function drawGrid(){
  const G=document.getElementById('pgrid'); G.innerHTML='';
+ if(pcat==='journal'){ G.className='pgrid jlist'; drawJournal(G); return; }
+ G.className='pgrid';
  const list=GEAR.filter(g=>pcat==='all'||g[1]===pcat)
    .sort((a,b)=>CATS.findIndex(c=>c[0]===a[1])-CATS.findIndex(c=>c[0]===b[1])||a[2]-b[2]);
  for(const g of list){
@@ -2835,6 +2911,31 @@ function drawGrid(){
   d.onclick=()=>{psel=g; drawPack();};
   d.ondblclick=()=>{if(has) equip(g);};
   G.appendChild(d);
+ }
+}
+/* The journal. Every place you have reached, what it was, and what came
+   out of the ground there. Newest at the top, because the thing you want
+   when you open this is the place you were standing an hour ago. */
+function drawJournal(G){
+ const log=(S.log||[]).slice().sort((a,b)=>a.m-b.m);
+ if(!log.length){
+  const e=document.createElement('div'); e.className='jempty';
+  e.textContent='Nothing written here yet. The journal fills itself in as you reach places.';
+  G.appendChild(e); return;
+ }
+ for(let x=log.length-1;x>=0;x--){
+  const en=log[x], L=TRAIL.find(t=>t.m===en.m); if(!L) continue;
+  const g=en.i?BYID[en.i]:null;
+  const d=document.createElement('div'); d.className='jrow';
+  let h='<div class="jhead"><span class="jn">'+L.n+'</span>';
+  if(en.day) h+='<span class="jd">DAY '+en.day+'</span>';
+  h+='</div><div class="jm">MILE '+L.m.toFixed(1)
+    +(L.e?' &middot; '+L.e.toLocaleString()+' FT':'')
+    +' &middot; '+pctAT(L.m)+'% TO KATAHDIN</div>';
+  if(L.w) h+='<div class="jw">'+L.w+'</div>';
+  if(g) h+='<div class="jg">FOUND &middot; <b style="color:'+RAR[g[2]][1]+'">'
+          +g[0].toUpperCase()+'</b></div>';
+  d.innerHTML=h; G.appendChild(d);
  }
 }
 let DART=null;
@@ -2870,6 +2971,18 @@ const MATNAME={metal:'forged',wood:'turned wood',leather:'oiled leather',
 function drawDetail(){
  const D=document.getElementById('pdetail');
  D.innerHTML='';
+ if(pcat==='journal'){
+  DART=null;
+  const log=S.log||[];
+  const far=log.length?Math.max.apply(null,log.map(e=>e.m)):0;
+  const hi=log.map(e=>TRAIL.find(t=>t.m===e.m))
+              .filter(L=>L&&L.e).sort((a,b)=>b.e-a.e)[0];
+  D.innerHTML='<div class="dtxt">'+log.length+' of '+TRAIL.length+' places reached. '
+   +'Furthest point mile '+far.toFixed(1)+', '+pctAT(far)+' percent of the way to Katahdin.'
+   +(hi?' Highest ground so far is '+hi.n+' at '+hi.e.toLocaleString()+' feet.':'')
+   +'</div>';
+  return;
+ }
  if(!psel){D.innerHTML='<div class="dtxt">Every piece is cosmetic. '
   +'Nothing here walks for you.</div>'; return;}
  const g=psel, has=owned(g.id), R=RAR[g[2]], n=owned(g.id);
