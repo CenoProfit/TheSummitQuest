@@ -21,11 +21,17 @@ from pixlib import *
 
 P.setsize(64)
 CX = 32
-HEAD_Y = 12; HEAD_R = 9.6
-SH_Y   = 25                 # shoulder line
+# The head sits one row higher than it used to: with the shoulder line
+# raised, a helm whose neckguard reached HEAD_Y+13 ended up buried in
+# the pauldrons and head and torso read as one mass.
+HEAD_Y = 13; HEAD_R = 9.6
+# The torso used to be 22 rows tall and 32 wide: wider than it was
+# high, which no amount of detail on it could rescue. Raising the
+# shoulder and dropping the hem buys the room the layers need.
+SH_Y   = 24                 # shoulder line
 WAIST  = 41
-HEM    = 47
-GROUND = 61
+HEM    = 49
+GROUND = 62
 
 def legs(step):
     g = blank()
@@ -37,13 +43,112 @@ def legs(step):
 
 def arms(g):
     for k in (-1, 1):
-        taper(g, CX + k * 10, SH_Y + 1, CX + k * 13, WAIST, 7, 6, 'A')
-        disc(g, CX + k * 13, WAIST + 2, 3.4, 'm')
+        taper(g, CX + k * 9.4, SH_Y + 1, CX + k * 12.2, WAIST, 6.6, 5.8, 'A')
+        disc(g, CX + k * 12.2, WAIST + 2, 3.3, 'm')
 
-def shell(g, ch='A', sh=11, wa=9, hm=14):
-    """the torso silhouette every chest layer shares"""
-    poly(g, [(CX - sh, SH_Y), (CX + sh, SH_Y), (CX + wa, WAIST),
-             (CX + hm, HEM), (CX - hm, HEM), (CX - wa, WAIST)], ch)
+def shell(g, ch='A', sh=10, wa=8, hm=11):
+    """The torso silhouette every chest layer shares. The sides bow in
+       at the waist rather than running straight from shoulder to hem:
+       a trapezoid that only widens on the way down reads as a slab
+       hung off his neck, which is exactly what the armour looked like."""
+    pts = []
+    rows = [(SH_Y, sh), (SH_Y + 4, sh * 0.99), (WAIST - 4, wa * 1.06),
+            (WAIST, wa), (WAIST + 3, wa * 1.09), (HEM, hm)]
+    for (y, w) in rows:  pts.append((CX + w, y))
+    for (y, w) in reversed(rows): pts.append((CX - w, y))
+    poly(g, pts, ch)
+
+# --------------------------------------------------------- body helpers
+# These three are what give a worn piece layers. Before them every chest
+# was one filled silhouette with a texture stamped across it, which is
+# why they all read as the same slab in different colours.
+def plackart(g, top=None, w=10.0, drop=9.0, ch='B', trim='C'):
+    """The upper chest plate, a separate piece lapped over the torso
+       with its own lit top edge and a shadow where the one below tucks
+       under it."""
+    t = SH_Y + 1 if top is None else top
+    edgelight(g, CX - w, t + 0.6, CX + w, t + 0.6, 1.1, 2)
+    cut(g, CX - w * 0.93, t + drop * 0.74, CX, t + drop + 0.2, 1.2)
+    cut(g, CX + w * 0.93, t + drop * 0.74, CX, t + drop + 0.2, 1.2)
+    if trim:
+        for k in (-1, 1): stud(g, CX + k * (w - 1.6), t + 2.0, 1.2, trim)
+
+def belt(g, y=None, h=3.2, w=9.6, ch='G', buckle='C'):
+    """A waist. Without one the torso and the skirt are one mass and he
+       has no middle."""
+    y = WAIST if y is None else y
+    poly(g, [(CX - w, y), (CX + w, y), (CX + w, y + h), (CX - w, y + h)], ch)
+    line_on(g, CX - w, y + 0.6, CX + w, y + 0.6, 'H', ch, 0.9)
+    line_on(g, CX - w, y + h - 0.6, CX + w, y + h - 0.6, 'j', ch, 0.9)
+    if buckle:
+        rect(g, CX - 2.6, y + 0.3, CX + 2.6, y + h - 0.3, buckle)
+        rect(g, CX - 1.1, y + 1.0, CX + 1.1, y + h - 1.0, 'c')
+
+def shoulder(g, k, w=6.2, h=11.5, plates=3, ch='A', trim='C'):
+    """A shoulder cap that comes DOWN over the arm. pixlib's pauldron
+       lays its plates out almost horizontally, which on a figure seen
+       from behind turns into a shelf either side of his neck and makes
+       the whole silhouette a letter T."""
+    ox = CX + k * 8.6
+    for i in range(plates):
+        f = 1.0 - i * 0.17
+        y0 = SH_Y - 3.0 + i * 2.1
+        poly(g, [(ox - k * 4.5, y0),
+                 (ox + k * w * f, y0 + h * 0.30),
+                 (ox + k * w * f * 0.86, y0 + h * f),
+                 (ox - k * 4.5, y0 + h * f * 0.78)], ch)
+        line_on(g, ox - k * 4.5, y0 + 0.7, ox + k * w * f, y0 + h * 0.30 + 0.7, 'W', ch, 0.9)
+        line_on(g, ox - k * 4.5, y0 + h * f * 0.78, ox + k * w * f * 0.86, y0 + h * f, 'q', ch, 1.2)
+    if trim:
+        poly(g, [(ox - k * 4.5, SH_Y - 3.0), (ox + k * w, SH_Y - 3.0 + h * 0.30),
+                 (ox + k * w, SH_Y - 1.2 + h * 0.30), (ox - k * 4.5, SH_Y - 1.2)], trim)
+        stud(g, ox + k * (w - 2.0), SH_Y - 1.4 + h * 0.30, 1.2, trim)
+
+def sleeves(g, ch='A', to=None, w0=7.0, w1=5.8, cuff='C'):
+    """Re-clothe the upper arms in the piece's own material. The body
+       layer hangs two bare arms either side of the torso, and a steel
+       cuirass worn over them left two skin coloured lumps at the
+       shoulders that belonged to no piece of armour at all."""
+    to = WAIST - 0.5 if to is None else to
+    for k in (-1, 1):
+        taper(g, CX + k * 9.4, SH_Y + 0.5, CX + k * 12.2, to, w0, w1, ch)
+        line_on(g, CX + k * 9.4 - 2.2, SH_Y + 1.5, CX + k * 12.2 - 2.2, to - 1, 'W', ch, 0.9)
+        line_on(g, CX + k * 9.4 + 2.4, SH_Y + 1.5, CX + k * 12.2 + 2.4, to - 1, 'q', ch, 0.9)
+        if cuff:
+            poly(g, [(CX + k * 12.2 - w1 * 0.55, to - 2.2), (CX + k * 12.2 + w1 * 0.55, to - 2.2),
+                     (CX + k * 12.2 + w1 * 0.50, to), (CX + k * 12.2 - w1 * 0.50, to)], cuff)
+
+def seam(g, sh=10.4, wa=8.2, hm=11.4, ch='q'):
+    """A dark line down the torso edge. Pauldrons, sleeves and swept
+       plates are drawn in the same body tone as the shell, so without
+       this they melt into one mass and the whole piece reads as a slab
+       the width of his shoulders. Call it before model(), which only
+       rewrites mid tones and so leaves the line alone."""
+    for k in (-1, 1):
+        line_on(g, CX + k * sh, SH_Y - 1, CX + k * wa, WAIST, ch, 'A', 1.3)
+        line_on(g, CX + k * wa, WAIST, CX + k * hm, HEM, ch, 'A', 1.3)
+    line_on(g, CX - sh, SH_Y - 0.4, CX + sh, SH_Y - 0.4, ch, 'A', 1.1)
+
+def fauld(g, n=3, top=None, w=10.6, ch='A', trim='C'):
+    """The skirt, narrower than the torso and cut into tassets, so the
+       bottom edge is a shape instead of a straight line."""
+    t = (WAIST + 3.4) if top is None else top
+    span = HEM - t
+    for i in range(n):
+        y0 = t + span * i / float(n)
+        y1 = t + span * (i + 1) / float(n) + 0.9
+        f = 1.0 + 0.10 * i
+        poly(g, [(CX - w * f, y0), (CX + w * f, y0),
+                 (CX + w * f * 0.95, y1), (CX - w * f * 0.95, y1)], ch)
+        edgelight(g, CX - w * f, y0 + 0.6, CX + w * f, y0 + 0.6, 1.0, 2)
+        shift_line(g, CX - w * f * 0.95, y1 - 0.5, CX + w * f * 0.95, y1 - 0.5, -2, 1.1)
+    # cut a notch out of the bottom edge either side of centre, so the
+    # skirt ends in tassets rather than a ruler line
+    for k in (-1, 1):
+        poly(g, [(CX + k * 2.2, HEM - 2.2), (CX + k * 4.4, HEM - 2.2),
+                 (CX + k * 4.4, HEM + 2), (CX + k * 2.2, HEM + 2)], '.')
+    if trim:
+        line_on(g, CX - w * 1.18, HEM - 1.3, CX + w * 1.18, HEM - 1.3, trim, ch, 1.2)
 
 def body(step):
     g = legs(step)
@@ -57,7 +162,23 @@ def body(step):
     # where it meets the neck, which is what made the head look pinched.
     ellipse(g, CX, HEAD_Y - 1, HEAD_R, HEAD_R * 0.80, 'm')
     poly(g, [(CX - HEAD_R * 0.94, HEAD_Y - 3), (CX + HEAD_R * 0.94, HEAD_Y - 3),
-             (CX + HEAD_R * 0.78, HEAD_Y + 7), (CX - HEAD_R * 0.78, HEAD_Y + 7)], 'm')
+             (CX + HEAD_R * 0.80, HEAD_Y + 6), (CX + HEAD_R * 0.62, HEAD_Y + 9),
+             (CX - HEAD_R * 0.62, HEAD_Y + 9), (CX - HEAD_R * 0.80, HEAD_Y + 6)], 'm')
+    # Hair. He is seen from behind, so the back of his head is most of
+    # what you ever see of him, and bare it read as a bald egg: a crown
+    # worn over it looked as though it were floating on a neck.
+    ellipse(g, CX, HEAD_Y - 1.6, HEAD_R * 0.98, HEAD_R * 0.80, 'G')
+    poly(g, [(CX - HEAD_R * 0.92, HEAD_Y - 2), (CX + HEAD_R * 0.92, HEAD_Y - 2),
+             (CX + HEAD_R * 0.78, HEAD_Y + 5.5), (CX - HEAD_R * 0.78, HEAD_Y + 5.5)], 'G')
+    for i in range(5):                   # locks at the nape, uneven
+        x = CX - 7.2 + i * 3.6
+        poly(g, [(x - 1.7, HEAD_Y + 3), (x + 1.7, HEAD_Y + 3),
+                 (x + 1.3, HEAD_Y + 7.4 + (1.6 if i % 2 else 0)),
+                 (x - 1.3, HEAD_Y + 6.6 + (1.6 if i % 2 else 0))], 'G')
+    for i in range(6):                   # strand shadow and sheen
+        x = CX - 7.6 + i * 3.1
+        line_on(g, x, HEAD_Y - 8, x + 0.9, HEAD_Y + 6, 'g', 'G', 1.0)
+        line_on(g, x - 1.3, HEAD_Y - 8, x - 0.4, HEAD_Y + 6, 'H', 'G', 0.9)
     poly(g, [(CX - 10, HEAD_Y - 7), (CX + 10, HEAD_Y - 7), (CX + 10.4, HEAD_Y + 3),
              (CX + 6, HEAD_Y - 1), (CX - 6, HEAD_Y - 1), (CX - 10.4, HEAD_Y + 3)], 'G')
     g = model(g)
@@ -201,15 +322,17 @@ def neckguard(g, y, w=11.0, drop=5.0, ch='A'):
         line_on(g, CX - w, yy - 1, CX + w, yy - 1, 'W', ch, 0.9)
 
 def H_hood():
-    g = blank(); dome(g, HEAD_R + 2.8)
-    poly(g, [(CX - 12, HEAD_Y), (CX + 12, HEAD_Y),
-             (CX + 15, SH_Y + 4), (CX - 15, SH_Y + 4)], 'A')
+    g = blank(); dome(g, HEAD_R + 2.0)
+    poly(g, [(CX - 11, HEAD_Y), (CX + 11, HEAD_Y),
+             (CX + 13, SH_Y + 2), (CX - 13, SH_Y + 2)], 'A')
     g = model(g)
-    folds(g, CX - 12, CX + 12, HEAD_Y - 7, SH_Y + 3, n=4)
-    poly(g, [(CX - 14, SH_Y), (CX + 14, SH_Y),
-             (CX + 14, SH_Y + 4), (CX - 14, SH_Y + 4)], 'C')
-    line_on(g, CX - 14, SH_Y + 0.8, CX + 14, SH_Y + 0.8, 'Z', 'C', 0.9)
-    for sx in (-9, 0, 9): stud(g, CX + sx, SH_Y + 2, 1.3, 'A', 'W')
+    for i in range(4):
+        x = CX - 8.4 + i * 5.6
+        cut(g, x, HEAD_Y - 6, x + (1.4 if i % 2 else -1.4), SH_Y + 1, 1.1)
+    poly(g, [(CX - 12.4, SH_Y - 1), (CX + 12.4, SH_Y - 1),
+             (CX + 12.4, SH_Y + 2.6), (CX - 12.4, SH_Y + 2.6)], 'C')
+    line_on(g, CX - 12.4, SH_Y - 0.2, CX + 12.4, SH_Y - 0.2, 'Z', 'C', 0.9)
+    for sx in (-8, 0, 8): stud(g, CX + sx, SH_Y + 1, 1.3, 'A', 'W')
     return fin(g)
 
 def H_horned():
@@ -227,19 +350,27 @@ def H_horned():
     return fin(g)
 
 def H_great():
+    """A great helm: a tapered barrel with a rounded crown, not the flat
+       slab it was, which with its two bands read as three plates
+       stacked on his shoulders rather than one helmet."""
     g = blank()
-    poly(g, [(CX - 7, HEAD_Y - 13), (CX + 7, HEAD_Y - 13), (CX + 11, HEAD_Y - 7),
-             (CX + 12, HEAD_Y + 6), (CX + 14, HEAD_Y + 12), (CX - 14, HEAD_Y + 12),
-             (CX - 12, HEAD_Y + 6), (CX - 11, HEAD_Y - 7)], 'A')
-    ellipse(g, CX, HEAD_Y - 10, 8.0, 3.4, 'A')
+    poly(g, [(CX - 8.4, HEAD_Y - 9.4), (CX + 8.4, HEAD_Y - 9.4),
+             (CX + 10.6, HEAD_Y - 5), (CX + 10.8, HEAD_Y + 5),
+             (CX + 9.0, HEAD_Y + 12), (CX - 9.0, HEAD_Y + 12),
+             (CX - 10.8, HEAD_Y + 5), (CX - 10.6, HEAD_Y - 5)], 'A')
+    ellipse(g, CX, HEAD_Y - 8.6, 8.6, 4.4, 'A')
     g = model(g)
-    comb(g, HEAD_Y - 10, HEAD_Y - 7, 2.8)
-    band(g, HEAD_Y - 7, 2.8, 12.0, 4)
-    band(g, HEAD_Y + 5, 2.8, 12.0, 4)
-    for bx in (-6, -2, 2, 6):                           # breath holes round the back
-        disc(g, CX + bx, HEAD_Y + 10, 1.0, 'q')
-    for sx in (-10, 10):
-        for sy in (-2, 1, 4): stud(g, CX + sx, HEAD_Y + sy, 1.2)
+    comb(g, HEAD_Y - 12.4, HEAD_Y - 5.6, 2.6)
+    # a reinforce down the spine of the helm, and the brow band
+    cut(g, CX - 3.0, HEAD_Y - 7, CX - 3.0, HEAD_Y + 11, 1.1)
+    cut(g, CX + 3.6, HEAD_Y - 7, CX + 3.6, HEAD_Y + 11, 1.1)
+    edgelight(g, CX, HEAD_Y - 7, CX, HEAD_Y + 11, 1.2, 2)
+    band(g, HEAD_Y - 6.4, 2.8, 10.6, 4)
+    cut(g, CX - 9.4, HEAD_Y + 8.4, CX + 9.4, HEAD_Y + 8.4, 1.2)
+    for bx in (-5, -1.6, 1.6, 5):
+        disc(g, CX + bx, HEAD_Y + 10.2, 0.9, 'q')
+    for sx in (-8.6, 8.6):
+        for sy in (-1, 2.4, 5.8): stud(g, CX + sx, HEAD_Y + sy, 1.1)
     return fin(g)
 
 def H_crown():
@@ -260,31 +391,45 @@ def H_crown():
     return fin(g)
 
 def H_brim():
+    """A travelling hat: a real cone with volume in it, over a brim that
+       no longer spans half the sprite."""
     g = blank()
-    poly(g, [(CX, HEAD_Y - 14), (CX + 9, HEAD_Y), (CX - 9, HEAD_Y)], 'A')
-    ellipse(g, CX, HEAD_Y + 2, 17, 4.4, 'A')
+    poly(g, [(CX - 1.2, HEAD_Y - 13.4), (CX + 2.4, HEAD_Y - 12.8),
+             (CX + 7.6, HEAD_Y + 0.5), (CX - 7.6, HEAD_Y + 0.5)], 'A')
+    ellipse(g, CX, HEAD_Y + 2.4, 11.6, 3.4, 'A')
     g = model(g)
-    folds(g, CX - 7, CX + 7, HEAD_Y - 12, HEAD_Y - 1, n=3)
-    poly(g, [(CX - 9, HEAD_Y - 4), (CX + 9, HEAD_Y - 4),
-             (CX + 10, HEAD_Y), (CX - 10, HEAD_Y)], 'C')
-    line_on(g, CX - 9, HEAD_Y - 3.2, CX + 9, HEAD_Y - 3.2, 'Z', 'C', 0.9)
-    poly(g, [(CX + 4, HEAD_Y - 5), (CX + 8, HEAD_Y - 5),
-             (CX + 8, HEAD_Y + 1), (CX + 4, HEAD_Y + 1)], 'G')
-    put(g, CX + 6, HEAD_Y - 2, 'x')
-    ellipse(g, CX, HEAD_Y + 4, 14, 2.4, 'd')            # under the brim
+    # the cone's lit side and the crease down its shaded side
+    edgelight(g, CX - 1.8, HEAD_Y - 11.6, CX - 5.0, HEAD_Y - 0.5, 1.3, 2)
+    cut(g, CX + 3.2, HEAD_Y - 10, CX + 6.0, HEAD_Y - 0.5, 1.1)
+    # a band with a buckle, and the brim's own lit edge
+    poly(g, [(CX - 7.4, HEAD_Y - 3.6), (CX + 7.4, HEAD_Y - 3.6),
+             (CX + 8.0, HEAD_Y + 0.4), (CX - 8.0, HEAD_Y + 0.4)], 'C')
+    line_on(g, CX - 7.6, HEAD_Y - 2.9, CX + 7.6, HEAD_Y - 2.9, 'Z', 'C', 0.9)
+    line_on(g, CX - 7.9, HEAD_Y - 0.2, CX + 7.9, HEAD_Y - 0.2, 'x', 'C', 0.9)
+    poly(g, [(CX + 3.4, HEAD_Y - 4.6), (CX + 6.6, HEAD_Y - 4.6),
+             (CX + 6.6, HEAD_Y + 1.2), (CX + 3.4, HEAD_Y + 1.2)], 'G')
+    put(g, CX + 5, HEAD_Y - 1.8, 'x')
+    edgelight(g, CX - 11.0, HEAD_Y + 1.4, CX + 11.0, HEAD_Y + 1.4, 1.1, 2)
+    shift_line(g, CX - 10.6, HEAD_Y + 4.0, CX + 10.6, HEAD_Y + 4.0, -2, 1.3)
     return fin(g)
 
 def H_barbute():
+    """Rounded crown, a raised comb, and cheeks that come down past the
+       jaw. It was a flat topped box with a band across it."""
     g = blank()
-    poly(g, [(CX - 10, HEAD_Y - 12), (CX + 10, HEAD_Y - 12), (CX + 13, HEAD_Y - 4),
-             (CX + 12, HEAD_Y + 9), (CX + 7, HEAD_Y + 13), (CX - 7, HEAD_Y + 13),
-             (CX - 12, HEAD_Y + 9), (CX - 13, HEAD_Y - 4)], 'A')
+    ellipse(g, CX, HEAD_Y - 5.0, 10.6, 8.0, 'A')
+    poly(g, [(CX - 10.6, HEAD_Y - 5), (CX + 10.6, HEAD_Y - 5),
+             (CX + 11.4, HEAD_Y + 4), (CX + 7.6, HEAD_Y + 12),
+             (CX - 7.6, HEAD_Y + 12), (CX - 11.4, HEAD_Y + 4)], 'A')
     g = model(g)
-    comb(g, HEAD_Y - 11, HEAD_Y - 3, 3.0)
-    band(g, HEAD_Y - 7, 2.6, 12.5, 4)
-    for sx in (-9, -3, 3, 9): stud(g, CX + sx, HEAD_Y + 11, 1.2)
-    line_on(g, CX - 12, HEAD_Y + 4, CX + 12, HEAD_Y + 4, 'q', 'A', 1.0)
-    line_on(g, CX - 12, HEAD_Y + 3, CX + 12, HEAD_Y + 3, 'W', 'A', 0.9)
+    comb(g, HEAD_Y - 13, HEAD_Y - 4, 2.8)
+    band(g, HEAD_Y - 5.6, 2.6, 11.0, 4)
+    # the two cheek plates, cut away from the crown so they read as
+    # separate pieces hinged on
+    for k in (-1, 1):
+        cut(g, CX + k * 7.2, HEAD_Y - 2, CX + k * 5.6, HEAD_Y + 11.4, 1.1)
+    cut(g, CX - 9.6, HEAD_Y + 4.4, CX + 9.6, HEAD_Y + 4.4, 1.2)
+    for sx in (-7.6, -2.6, 2.6, 7.6): stud(g, CX + sx, HEAD_Y + 10.4, 1.1)
     return fin(g)
 
 def H_cap():
@@ -294,7 +439,7 @@ def H_cap():
     band(g, HEAD_Y + 1, 3.2, 10.0, 3)
     for k in (-1, 1):                                   # cheek flaps, laced
         poly(g, [(CX + k*9, HEAD_Y + 4), (CX + k*13, HEAD_Y + 4),
-                 (CX + k*12, HEAD_Y + 13), (CX + k*8, HEAD_Y + 11)], 'G')
+                 (CX + k*12, HEAD_Y + 12), (CX + k*8, HEAD_Y + 10)], 'G')
         line_on(g, CX + k*9, HEAD_Y + 6, CX + k*12, HEAD_Y + 6, 'K', 'G', 0.9)
         line_on(g, CX + k*9, HEAD_Y + 10, CX + k*12, HEAD_Y + 10, 'j', 'G', 0.9)
         stud(g, CX + k*11, HEAD_Y + 8, 1.2)
@@ -305,73 +450,144 @@ def H_cap():
 # with the same helpers so a fluted cuirass in the pack is a fluted
 # cuirass on his back, not a differently shaped grey rectangle.
 def B_cuirass():
+    """Fluted plate: pauldrons that break the shoulder line, a plackart
+       lapped over the breast, a belt, and a tasseted fauld."""
     g = blank()
-    pauldron(g, CX - 8, SH_Y - 2, -1, w=13, h=8, plates=3)
-    pauldron(g, CX + 8, SH_Y - 1, 1, w=11, h=7, plates=2)
-    shell(g)
+    sleeves(g)
+    shoulder(g, -1, w=8.2, h=12.0, plates=3)
+    shoulder(g,  1, w=7.0, h=10.5, plates=2)
+    shell(g, 'A', 9.0, 7.0, 9.8)
+    seam(g, 9.0, 7.0, 9.8)
     g = model(g)
-    flute(g, CX, SH_Y + 2, CX, HEM - 4, n=3, spread=5, bow=0.8)
-    line_on(g, CX, SH_Y + 1, CX, HEM - 3, 'V', 'B', 0.9)
-    lames(g, CX - 13, CX + 13, HEM - 7, HEM, n=2)
-    gorget(g, CX, SH_Y - 2, 8, 3)
-    strap(g, CX - 11, SH_Y + 7, CX + 11, SH_Y + 11, 2.6)
+    for t in (-1, 1):
+        cut(g, CX + t * 4.6, SH_Y + 9, CX + t * 5.4, WAIST - 1, 1.1, 2, -2, 1.2)
+    edgelight(g, CX, SH_Y + 8, CX, WAIST - 1, 1.1, 3)
+    plackart(g, SH_Y + 1, 9.4, 8.4)
+    belt(g)
+    fauld(g, 3, w=9.0)
+    gorget(g, CX, SH_Y - 3, 7.5, 3)
+    for k in (-1, 1):
+        stud(g, CX + k * 6.6, WAIST - 2.6, 1.2)
+        cut(g, CX + k * 8.6, SH_Y + 2, CX + k * 7.2, WAIST - 2, 1.0)
     return fin(g)
 
 def B_scale():
+    """Mail: a scale field over a padded gambeson, with a collar, a
+       sash, and a brass-edged hem."""
     g = blank()
-    pauldron(g, CX - 8, SH_Y - 1, -1, w=11, h=7, plates=2)
-    pauldron(g, CX + 8, SH_Y, 1, w=12, h=8, plates=3)
-    shell(g); g = model(g)
-    for row in range(8):
-        y = SH_Y + 3 + row * 2.6
+    sleeves(g)
+    shoulder(g, -1, w=6.8, h=10.0, plates=2)
+    shoulder(g,  1, w=7.4, h=11.0, plates=3)
+    shell(g, 'A', 9.0, 7.2, 10.0)
+    seam(g, 9.0, 7.2, 10.0)
+    g = model(g)
+    for row in range(10):
+        y = SH_Y + 2.4 + row * 2.3
+        if y > HEM - 1: break
         t = (y - SH_Y) / float(HEM - SH_Y)
-        half = 11 - 2.0 * t
-        off = 1.3 if row % 2 else 0
-        scales(g, CX - half + off, CX + half, y, y, step=2.7, r=1.5)
-    gorget(g, CX, SH_Y - 2, 9, 3)
-    strap(g, CX - 10, SH_Y + 2, CX + 9, SH_Y + 12, 2.6)
+        half = 10.2 - 2.4 * (1 - abs(t - 0.52) * 2.0)
+        off = 1.2 if row % 2 else 0
+        scales(g, CX - half + off, CX + half, y, y, step=2.5, r=1.4)
+    gorget(g, CX, SH_Y - 2, 8.4, 3)
+    belt(g, WAIST - 1, 2.8, 8.8)
+    strap(g, CX - 9, SH_Y + 3, CX + 8, SH_Y + 13, 2.4)
+    poly(g, [(CX - 9.8, HEM - 2.4), (CX + 9.8, HEM - 2.4),
+             (CX + 9.6, HEM - 0.4), (CX - 9.6, HEM - 0.4)], 'C')
+    line_on(g, CX - 9.8, HEM - 1.9, CX + 9.8, HEM - 1.9, 'Z', 'C', 0.9)
     return fin(g)
 
 def B_robe():
+    """Cloth: a narrow body under a long open overrobe, sleeves that
+       flare at the cuff, a sash, and a trimmed stole down the front."""
     g = blank()
-    for k, w in ((-1, 18), (1, 17)):
-        poly(g, [(CX + k*9, SH_Y), (CX + k*w, SH_Y + 5),
-                 (CX + k*(w-1), HEM - 3), (CX + k*9, HEM - 5)], 'A')
-    shell(g, 'A', 11, 10, 15)
+    sleeves(g, 'A', HEM - 6, 8.4, 7.2, None)
+    for k, w, c in ((-1, 13.2, 5.5), (1, 12.4, 5.0)):
+        poly(g, [(CX + k * 9.4, SH_Y - 1), (CX + k * w, SH_Y + 7),
+                 (CX + k * (w - 2.0), WAIST), (CX + k * (w - 0.5), HEM - 1),
+                 (CX + k * 9.4, HEM - 3)], 'A')
+        # cuff, a step wider than the sleeve so the arm reads as ending
+        poly(g, [(CX + k * (w - 0.5), HEM - 5.5), (CX + k * (w + 1.4), HEM - 5.0),
+                 (CX + k * (w + 1.0), HEM - 1.2), (CX + k * (w - 1.8), HEM - 1.6)], 'C')
+    shell(g, 'A', 8.8, 7.0, 9.8)
+    seam(g, 8.8, 7.0, 9.8)
     g = model(g)
-    folds(g, CX - 10, CX + 10, SH_Y + 3, HEM - 1, n=5)
-    poly(g, [(CX - 2, SH_Y - 2), (CX + 2, SH_Y - 2), (CX + 1, WAIST), (CX - 1, WAIST)], 'd')
-    poly(g, [(CX - 13, WAIST - 3), (CX + 13, WAIST - 3), (CX + 12, WAIST + 1), (CX - 12, WAIST + 1)], 'C')
-    poly(g, [(CX + 5, WAIST + 1), (CX + 9, WAIST + 1), (CX + 8, HEM - 2), (CX + 5, HEM - 3)], 'C')
-    disc(g, CX, SH_Y + 1, 2.4, 'C'); put(g, CX - 1, SH_Y, 'Z')
+    folds(g, CX - 9, CX + 9, SH_Y + 3, HEM - 1, n=5)
+    # the overrobe's front edges, lit on one lip and shadowed on the other
+    for k in (-1, 1):
+        cut(g, CX + k * 4.6, SH_Y + 2, CX + k * 5.8, HEM - 1, 1.2, 2, -3, 1.1)
+    # stole: a trimmed band down the centre
+    poly(g, [(CX - 2.6, SH_Y + 1), (CX + 2.6, SH_Y + 1),
+             (CX + 2.2, HEM - 1), (CX - 2.2, HEM - 1)], 'C')
+    line_on(g, CX - 2.6, SH_Y + 1.6, CX - 2.6, HEM - 1.4, 'Z', 'C', 0.9)
+    line_on(g, CX + 2.2, SH_Y + 1.6, CX + 2.2, HEM - 1.4, 'c', 'C', 0.9)
+    for i in range(4):
+        y = SH_Y + 5 + i * 4.8
+        shift_line(g, CX - 2.4, y, CX + 2.4, y, -2, 1.0)
+        shift_line(g, CX - 2.4, y - 1.1, CX + 2.4, y - 1.1, 2, 0.9)
+    belt(g, WAIST - 2, 3.0, 9.0, 'G', 'C')
+    # a hood pooled at the back of the neck, which is what makes it a robe
+    poly(g, [(CX - 7.5, SH_Y - 3), (CX + 7.5, SH_Y - 3),
+             (CX + 6.2, SH_Y + 3.4), (CX - 6.2, SH_Y + 3.4)], 'd')
+    edgelight(g, CX - 7.2, SH_Y - 2.4, CX + 7.2, SH_Y - 2.4, 1.0, 2)
     return fin(g)
 
 def B_banded():
+    """Lamellar: horizontal bands the whole way down, held by vertical
+       leather, with shoulder caps and a studded belt."""
     g = blank()
-    pauldron(g, CX - 8, SH_Y - 1, -1, w=12, h=6, plates=3)
-    pauldron(g, CX + 8, SH_Y - 1, 1, w=12, h=6, plates=3)
-    shell(g); g = model(g)
-    lames(g, CX - 12, CX + 12, SH_Y + 2, HEM - 2, n=5)
-    gorget(g, CX, SH_Y - 2, 8, 3)
-    for k in (-1, 1): strap(g, CX + k*7, SH_Y + 1, CX + k*9, HEM - 3, 2.2, False)
+    sleeves(g)
+    shoulder(g, -1, w=7.6, h=11.0, plates=3)
+    shoulder(g,  1, w=7.6, h=11.0, plates=3)
+    shell(g, 'A', 9.0, 7.0, 9.8)
+    seam(g, 9.0, 7.0, 9.8)
+    g = model(g)
+    for i in range(4):
+        y = SH_Y + 2 + (WAIST - 3 - SH_Y) * (i + 1) / 5.0
+        cut(g, CX - 9.6, y, CX + 9.6, y, 1.2, 2, -3, 1.2)
+        for k in (-1, 1): stud(g, CX + k * 8.2, y - 2.0, 1.1)
+    gorget(g, CX, SH_Y - 3, 7.8, 3)
+    belt(g, WAIST - 1, 3.2, 9.0)
+    fauld(g, 2, WAIST + 2.6, 9.2)
+    for k in (-1, 1):
+        strap(g, CX + k * 6.4, SH_Y + 1, CX + k * 7.4, WAIST - 1, 2.2, False)
+        for i in range(3):
+            stud(g, CX + k * 6.8, SH_Y + 4 + i * 4.4, 1.1)
     return fin(g)
 
 def B_carapace():
+    """Legendary: a ridged spine, a high asymmetric collar, swept plates
+       that run past the shoulders, and veins of accent light in the
+       gaps between them."""
     g = blank()
-    for k, w, h in ((-1, 16, 9), (1, 14, 8)):
-        poly(g, [(CX + k*6, SH_Y), (CX + k*w, SH_Y + h),
-                 (CX + k*(w-1), HEM - 4), (CX + k*7, HEM - 2)], 'A')
-    shell(g, 'A', 10, 9, 13)
+    # swept back plates, longer on his left, which stops it reading as
+    # a symmetrical machined thing
+    sleeves(g)
+    for k, w, h in ((-1, 14.4, 10), (1, 12.8, 8)):
+        poly(g, [(CX + k * 9, SH_Y - 3), (CX + k * w, SH_Y + h),
+                 (CX + k * (w - 2.5), WAIST + 2), (CX + k * 9, HEM - 2)], 'A')
+        line_on(g, CX + k * 9, SH_Y - 2.4, CX + k * w, SH_Y + h - 0.6, 'W', 'A', 1.1)
+        line_on(g, CX + k * (w - 2.5), WAIST + 2, CX + k * 9, HEM - 2, 'q', 'A', 1.1)
+    shell(g, 'A', 9.0, 7.2, 10.0)
+    seam(g, 9.0, 7.2, 10.0)
     g = model(g)
+    # the spine: chevrons stacked up the centre with an accent core
     for i in range(7):
-        y = SH_Y + i * 3.4
-        poly(g, [(CX, y), (CX + 4, y + 1.6), (CX, y + 3.4), (CX - 4, y + 1.6)], 'C')
-        line_on(g, CX - 3, y + 1.6, CX + 3, y + 1.6, 'Z', 'C', 0.9)
+        y = SH_Y + 1 + i * 3.1
+        poly(g, [(CX, y), (CX + 3.6, y + 1.5), (CX, y + 3.1), (CX - 3.6, y + 1.5)], 'C')
+        line_on(g, CX - 2.8, y + 1.5, CX + 2.8, y + 1.5, 'Z', 'C', 0.9)
+        line_on(g, CX - 3.2, y + 2.4, CX + 3.2, y + 2.4, 'c', 'C', 0.9)
+    # ribs sweeping out from the spine, each with a lit upper lip
     for k in (-1, 1):
-        for i in range(4):
-            y = SH_Y + 4 + i * 5
-            line_on(g, CX + k*7, y, CX + k*15, y + 2, 'q', 'A', 1.0)
-            line_on(g, CX + k*7, y - 1.1, CX + k*15, y + 0.9, 'W', 'A', 0.8)
+        for i in range(5):
+            y = SH_Y + 3 + i * 4.2
+            cut(g, CX + k * 5, y, CX + k * 12, y + 1.8, 1.2, 3, -3, 1.2)
+            if i % 2 == 0:
+                line_on(g, CX + k * 6.4, y + 3.0, CX + k * 10.6, y + 4.2, 'Z', 'A', 0.9)
+    # high collar, taller on one side
+    poly(g, [(CX - 8.4, SH_Y - 2), (CX - 5.2, SH_Y - 8), (CX - 3.0, SH_Y - 2)], 'C')
+    poly(g, [(CX + 3.0, SH_Y - 2), (CX + 5.6, SH_Y - 6), (CX + 8.4, SH_Y - 2)], 'C')
+    gorget(g, CX, SH_Y - 2.6, 8.2, 3)
+    belt(g, WAIST, 2.8, 9.0, 'G', 'C')
     return fin(g)
 
 # ----------------------------------------------------------------- feet

@@ -374,6 +374,51 @@ def _run(g, x, y, dx, dy, fam):
         if c not in FAM or FAM[c][0] is not fam: return n
         if n > N: return n
 
+# ------------------------------------------- detail over a modelled face
+# line_on() matches one exact tone. That is right before model(), and
+# useless after it: model() has by then spread the family across its
+# whole ramp, so a groove ruled with only='A' lands on the handful of
+# pixels that happen to still sit at the mid tone and the detail simply
+# does not appear. These shift each pixel along its OWN ramp instead,
+# which both shows up and keeps the shading underneath.
+FAMS = ('qdeABWV', 'xcCYZ', 'jgGHK', 'umM')
+
+def _famof(c):
+    for f in FAMS:
+        if c in f: return f
+    return None
+
+def _walk(x0, y0, x1, y1, w):
+    x0, y0, x1, y1, w = _s(x0), _s(y0), _s(x1), _s(y1), max(1.0, _s(w))
+    steps = int(max(abs(x1 - x0), abs(y1 - y0)) * 3) + 1
+    h = (w - 1) / 2.0
+    seen = set()
+    for i in range(steps + 1):
+        t = i / steps
+        for dy in range(int(-h), int(h) + 1):
+            for dx in range(int(-h), int(h) + 1):
+                x = int(round(x0 + (x1 - x0) * t)) + dx
+                y = int(round(y0 + (y1 - y0) * t)) + dy
+                if 0 <= x < N and 0 <= y < N: seen.add((x, y))
+    return seen
+
+def shift_line(g, x0, y0, x1, y1, step, w=1):
+    """move every pixel the line covers `step` places along its ramp"""
+    for (x, y) in _walk(x0, y0, x1, y1, w):
+        f = _famof(g[y][x])
+        if not f: continue
+        g[y][x] = f[max(0, min(len(f) - 1, f.index(g[y][x]) + step))]
+
+def cut(g, x0, y0, x1, y1, w=1.1, lift=2, depth=-2, gap=1.1):
+    """A groove with a lit lip above it. This is the mark that puts a
+       panel line, a flute or a plate join onto an already shaded
+       surface without flattening it."""
+    if lift: shift_line(g, x0, y0 - gap, x1, y1 - gap, lift, max(0.9, w - 0.2))
+    shift_line(g, x0, y0, x1, y1, depth, w)
+
+def edgelight(g, x0, y0, x1, y1, w=0.9, step=2):
+    shift_line(g, x0, y0, x1, y1, step, w)
+
 def model(g):
     """Light the form. Every pixel a builder left at its family's mid
        tone gets a tone chosen from where it sits inside its own mass:
