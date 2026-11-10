@@ -104,6 +104,15 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  box-shadow:inset 0 0 0 1px rgba(245,198,81,.22),0 0 10px rgba(245,198,81,.10)}
 .pslot:active{transform:translate(1px,1px)}
 .pslot.plainrow{grid-column:1/-1;margin-top:6px;min-height:34px}
+.statbar{display:grid;grid-template-columns:1fr 1fr;gap:5px;flex:none;margin-top:2px}
+.stat{display:flex;justify-content:space-between;align-items:baseline;gap:6px;
+ border:2px solid #243246;background:rgba(0,0,0,.26);padding:5px 7px;
+ font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim)}
+.stat b{font-size:10px;font-weight:normal}
+/* the same four numbers on one line, for a single piece */
+.srow{display:flex;flex-wrap:wrap;gap:4px 9px;margin-top:7px;
+ font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim)}
+.srow span b{font-weight:normal;font-size:9px}
 .pslot canvas{flex:0 0 auto;image-rendering:pixelated}
 .pslotxt{font-size:9px;line-height:1.3;letter-spacing:.5px;overflow:hidden;min-width:0}
 .pslotxt b{display:block;font-family:var(--pix);font-size:6px;color:#6d7d92;
@@ -166,7 +175,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .wearbtn:active{transform:translate(2px,2px);box-shadow:none}
 @media(max-width:560px){
  .pbody{flex-direction:column;gap:10px}
- .pleft{flex:0 0 auto;flex-direction:row;gap:8px}
+ .pleft{flex:0 0 auto;flex-direction:row;flex-wrap:wrap;gap:8px}
+ .statbar{flex:1 0 100%;grid-template-columns:repeat(4,1fr)}
  .doll{flex:0 0 132px;height:132px}
  .slots{flex:1;grid-template-columns:1fr 1fr}
  .pgrid{grid-template-columns:repeat(auto-fill,60px);gap:5px}
@@ -293,11 +303,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="pleft">
       <div class="doll"><canvas id="doll"></canvas><div class="dollbase"></div></div>
       <div class="slots" id="pleft"></div>
+      <div class="statbar" id="statbar"></div>
     </div>
     <div class="pright">
       <div class="ptabs" id="ptabs"></div>
       <div class="pgrid" id="pgrid"></div>
-      <div class="pdetail" id="pdetail">Every piece is cosmetic. Nothing here walks for you.</div>
+      <div class="pdetail" id="pdetail">Nothing here walks for you.</div>
     </div>
   </div>
 </div>
@@ -3042,14 +3053,81 @@ function paintDart(){
  else if(A) drawAura(q,g,[0.5,0.5],o,o,px*s,1.0,performance.now());
  blitGear(q,g,false,o,o,Math.round(px*s));
 }
+/* ---------- what a piece is worth ----------
+   No item carries a hand written stat line and none of them needs one.
+   Four numbers fall out of what the table already says: the category
+   decides the SHAPE of the profile, so a sword leans on attack and a
+   staff on magic; the rarity decides how much there is to spread; the
+   materials bend it, so an ember blade reads hotter than an iron one;
+   and a hash of the name adds a small wobble so two rare swords are not
+   twins. 115 items, four stats each, no new data.
+
+   These do not make you walk further. They decide how a fight on the
+   trail goes, and nothing else. */
+const STATS=['atk','def','spd','mag'];
+const STATNAME={atk:'ATK',def:'DEF',spd:'SPD',mag:'MAG'};
+const STATFULL={atk:'ATTACK',def:'DEFENSE',spd:'SPEED',mag:'MAGIC'};
+const STATCOL={atk:'#f0795a',def:'#5aa9f0',spd:'#74e84f',mag:'#b978f0'};
+const CATPROF={sword:[.55,.15,.20,.10], staff:[.20,.10,.15,.55],
+               shield:[.05,.65,.10,.20], helm:[.10,.45,.15,.30],
+               chest:[.10,.60,.10,.20],  shoes:[.05,.20,.65,.10],
+               pet:[.25,.20,.25,.30]};
+const RARPOOL=[12,20,30,44,62];      /* points to spread, by rarity */
+const MATBIAS={
+ iron:[.45,.40,.10,.05], steel:[.48,.37,.10,.05], bronze:[.40,.38,.14,.08],
+ copper:[.36,.34,.16,.14], metal:[.42,.40,.10,.08], mithril:[.30,.30,.18,.22],
+ stone:[.26,.56,.06,.12], obsid:[.50,.22,.12,.16], gold:[.18,.30,.10,.42],
+ silver:[.20,.26,.16,.38], ivory:[.22,.26,.26,.26], bone:[.28,.22,.28,.22],
+ ash:[.24,.18,.34,.24],   jade:[.14,.34,.16,.36],  moss:[.10,.36,.18,.36],
+ ember:[.34,.10,.14,.42], frost:[.20,.22,.12,.46], storm:[.24,.10,.26,.40],
+ venom:[.30,.08,.26,.36], sun:[.22,.18,.14,.46],   dusk:[.22,.14,.24,.40],
+ void:[.26,.12,.16,.46],  arcane:[.12,.12,.16,.60],sea:[.16,.20,.22,.42],
+ wood:[.26,.20,.38,.16],  cloth:[.08,.20,.40,.32], leather:[.16,.26,.44,.14],
+ fur:[.14,.30,.38,.18],   feather:[.12,.10,.62,.16],skin:[.18,.18,.46,.18],
+ scale:[.20,.42,.26,.12]};
+const _SCACHE={};
+function statsOf(g){
+ if(_SCACHE[g.id]) return _SCACHE[g.id];
+ const prof=CATPROF[g[1]]||[.25,.25,.25,.25];
+ let bias=[0,0,0,0], bw=0;
+ const add=(m,w)=>{const b=MATBIAS[m]; if(!b) return;
+                    for(let i=0;i<4;i++) bias[i]+=b[i]*w; bw+=w;};
+ add(g[4],3); add(g[5],1); add(g[6],1); add(g[7],1);
+ if(bw) for(let i=0;i<4;i++) bias[i]/=bw;
+ let h=2166136261>>>0;
+ for(let i=0;i<g[0].length;i++){ h^=g[0].charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+ const mix=[];
+ for(let i=0;i<4;i++){
+  h=(Math.imul(h,1103515245)+12345)>>>0;
+  const w=0.86+((h>>>16)%1000)/1000*0.28;
+  mix.push(Math.max(0.02,(prof[i]*0.70+bias[i]*0.30)*w));
+ }
+ const sum=mix.reduce((a,b)=>a+b,0), pool=RARPOOL[g[2]];
+ const o={total:0};
+ for(let i=0;i<4;i++){ const v=Math.max(1,Math.round(pool*mix[i]/sum));
+                       o[STATS[i]]=v; o.total+=v; }
+ return _SCACHE[g.id]=o;
+}
+/* everything you are wearing, added up */
+function loadout(){
+ const t={atk:0,def:0,spd:0,mag:0,total:0};
+ for(const sl of SLOTS){
+  const id=S.eq&&S.eq[sl], g=id?BYID[id]:null; if(!g) continue;
+  const st=statsOf(g);
+  for(const k of STATS) t[k]+=st[k];
+  t.total+=st.total;
+ }
+ return t;
+}
 const MATNAME={metal:'forged',wood:'turned wood',leather:'oiled leather',
  cloth:'woven cloth',stone:'cut stone',bone:'bone',arcane:'something else',
  fur:'',feather:'',scale:'',skin:''};
 function drawDetail(){
  const D=document.getElementById('pdetail');
  D.innerHTML='';
- if(!psel){D.innerHTML='<div class="dtxt">Every piece is cosmetic. '
-  +'Nothing here walks for you.<span style="display:block;margin-top:7px;color:#5c6a7c">'
+ if(!psel){D.innerHTML='<div class="dtxt">Nothing here walks for you. '
+  +'What you wear decides how a fight on the trail goes, and nothing else.'
+  +'<span style="display:block;margin-top:7px;color:#5c6a7c">'
   +'A piece you already own is left at the cairn for stones. Stones claim '
   +'something you have never found.</span></div>'; return;}
  const g=psel, has=owned(g.id), R=RAR[g[2]], n=owned(g.id);
@@ -3071,7 +3149,8 @@ function drawDetail(){
         +(n>1?(MATNAME[g[6]]?' &nbsp;·&nbsp; ':'')+n+' found':'')+'</span>'
       :'<br><span style="color:#5c6a7c">Not found yet.'
         +(g[2]===4?' The trail will not give this up. The cairn is the only way.'
-                  :' Keep walking, or claim it.')+'</span>');
+                  :' Keep walking, or claim it.')+'</span>')
+  +statRow(g);
  if(has){
   const sl=CAT2SLOT[g[1]], worn=(S.eq&&S.eq[sl]===g.id);
   const b=document.createElement('button');
@@ -3090,12 +3169,27 @@ function drawDetail(){
  }
  D.appendChild(art); D.appendChild(txt);
 }
+function drawStats(){
+ const B=document.getElementById('statbar'); B.innerHTML='';
+ const t=loadout();
+ for(const k of STATS){
+  const d=document.createElement('div'); d.className='stat';
+  d.innerHTML='<span>'+STATNAME[k]+'</span><b style="color:'+STATCOL[k]+'">'+t[k]+'</b>';
+  B.appendChild(d);
+ }
+}
+/* the four numbers for one piece, used on its entry in the pack */
+function statRow(g){
+ const st=statsOf(g);
+ return '<div class="srow">'+STATS.map(k=>'<span>'+STATNAME[k]
+   +' <b style="color:'+STATCOL[k]+'">'+st[k]+'</b></span>').join('')+'</div>';
+}
 function drawPack(){
  packStart();
  const tot=GEAR.length, got=GEAR.filter(g=>owned(g.id)).length;
  document.getElementById('pcount').textContent=got+' / '+tot;
  document.getElementById('pstones').textContent='\u25b2 '+stones();
- drawSlots(); drawTabs(); drawGrid(); drawDetail();
+ drawSlots(); drawStats(); drawTabs(); drawGrid(); drawDetail();
 }
 let packTick=null;
 function packAnimate(){
