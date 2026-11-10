@@ -9,6 +9,7 @@
      16-19   feet layers,  boot shapes 0-3
      20      a plain walking stick, carried when the hand is empty
      21      his hands, drawn over the gear so he grips it
+     22      the legendary crown, which has a shape of its own
 
    Proportions: he stands 58 of the 64 rows and is 30 wide at the
    shoulder. The first attempt made him as wide as he was tall and he
@@ -64,6 +65,28 @@ def body(step):
     poly(g, [(CX - 14, HEM - 3), (CX + 14, HEM - 3), (CX + 14, HEM), (CX - 14, HEM)], 'C')
     g = ao(g); g = rim(g); g = dither(g); g = despeckle(g)
     return dump(softline(outline(g)))
+
+def H_crown_grand():
+    """the legendary crown, worn: arches, points and the orb on top"""
+    g = blank()
+    for (px, top) in ((CX-10, HEAD_Y-4), (CX-5, HEAD_Y-9), (CX, HEAD_Y-13),
+                      (CX+5, HEAD_Y-9), (CX+10, HEAD_Y-4)):
+        poly(g, [(px - 3.4, HEAD_Y + 4), (px - 2.0, top + 3), (px, top),
+                 (px + 2.0, top + 3), (px + 3.4, HEAD_Y + 4)], 'C')
+        stud(g, px, top - 0.8, 1.5, 'A', 'W')
+    for k in (-1, 1):
+        line(g, CX + k*9, HEAD_Y - 5, CX + k*4, HEAD_Y - 12, 'C', 2)
+        line(g, CX + k*4, HEAD_Y - 12, CX, HEAD_Y - 13, 'C', 2)
+    disc(g, CX, HEAD_Y - 15, 2.4, 'C')
+    poly(g, [(CX - 2, HEAD_Y - 18), (CX + 2, HEAD_Y - 18),
+             (CX + 2, HEAD_Y - 16), (CX - 2, HEAD_Y - 16)], 'C')
+    poly(g, [(CX - 11, HEAD_Y + 1), (CX + 11, HEAD_Y + 1),
+             (CX + 11, HEAD_Y + 6), (CX - 11, HEAD_Y + 6)], 'C')
+    g = model(g)
+    line_on(g, CX - 11, HEAD_Y + 2, CX + 11, HEAD_Y + 2, 'Z', 'C', 0.9)
+    line_on(g, CX - 11, HEAD_Y + 5, CX + 11, HEAD_Y + 5, 'x', 'C', 0.9)
+    for gx in (-6, 0, 6): gem(g, CX + gx, HEAD_Y + 3.5, 2.2, 'A', 5)
+    return fin(g)
 
 def fin(g):
     g = ao(g); g = rim(g); g = dither(g); g = despeckle(g)
@@ -271,5 +294,5 @@ SHAPES = [body(0), body(1), body(2), hat()]
 SHAPES += [f() for f in (H_hood, H_horned, H_great, H_crown, H_brim, H_barbute, H_cap)]
 SHAPES += [f() for f in (B_cuirass, B_scale, B_robe, B_banded, B_carapace)]
 SHAPES += [F(HEM - 1)(), F(HEM - 4, knee=True)(), F(GROUND - 7)(), F(HEM - 1, cuff=True)()]
-SHAPES += [stick(), hands()]
+SHAPES += [stick(), hands(), H_crown_grand()]
 P.setsize(96)

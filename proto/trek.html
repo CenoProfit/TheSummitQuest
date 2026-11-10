@@ -911,7 +911,9 @@ function heroCanvas(f){
  const ft=get('feet'); if(ft) q.drawImage(heroLayer(16+ft[3],ft),0,0);
  if(!eq.hand) q.drawImage(heroLayer(20,HERO_PAL),0,0);
  const hd=get('head');
- q.drawImage(hd?heroLayer(4+hd[3],hd):heroLayer(3,HERO_PAL),0,0);
+ /* helm shapes 0-6 are layers 4-10; the legendary crown is its own
+    shape and sits at the end of the table */
+ q.drawImage(hd?heroLayer(hd[3]===7?22:4+hd[3],hd):heroLayer(3,HERO_PAL),0,0);
  HCOMP.set(sig,c);
  if(HCOMP.size>40) HCOMP.delete(HCOMP.keys().next().value);
  return c;
@@ -987,13 +989,17 @@ const AURA={
  flame :{c:[[255,252,228],[255,206,110],[255,146,38],[224, 66, 14]],rise:0.46,speed:0.0068,sway:0.055,n:20,sparks:7, glow:0.52},
  void  :{c:[[234,218,255],[184,134,245],[122, 63,208],[ 46, 18, 80]],rise:0.54,speed:0.0031,sway:0.095,n:16,sparks:10,glow:0.46},
  frost :{c:[[242,255,255],[185,236,255],[ 95,196,240],[ 31,111,168]],rise:0.34,speed:0.0026,sway:0.115,n:14,sparks:12,glow:0.44},
- arcane:{c:[[236,255,236],[152,240,172],[ 56,200,124],[ 14, 90, 60]],rise:0.42,speed:0.0048,sway:0.075,n:16,sparks:9, glow:0.46}};
+ arcane:{c:[[236,255,236],[152,240,172],[ 56,200,124],[ 14, 90, 60]],rise:0.42,speed:0.0048,sway:0.075,n:16,sparks:9, glow:0.46},
+ halo  :{c:[[255,253,236],[255,228,150],[255,190, 70],[190,126, 20]],rise:0.30,speed:0.0019,sway:0.130,n:12,sparks:16,glow:0.60}};
 const AURAPAL={sun:'flame',ember:'flame',crimson:'flame',blood:'flame',
  void:'void',obsid:'void',amethyst:'void',dusk:'void',
- frost:'frost',mithril:'frost',sea:'frost',storm:'frost',silver:'frost',cobalt:'frost'};
+ frost:'frost',mithril:'frost',sea:'frost',storm:'frost',silver:'frost',cobalt:'frost',
+ gold:'halo',ivory:'halo',sun:'halo'};
 function auraOf(item){
  if(item[2]<3) return null;
- if(item[1]!=='sword'&&item[1]!=='staff'&&item[1]!=='shield') return null;
+ if(item[1]!=='sword'&&item[1]!=='staff'&&item[1]!=='shield'&&item[1]!=='helm') return null;
+ /* a blade that happens to be gold still burns; only a crown shines */
+ if(item[1]!=='helm'&&item[4]==='sun') return 'flame';
  return AURAPAL[item[4]]||'arcane';
 }
 const _rgba=(c,a)=>'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';
@@ -1060,6 +1066,40 @@ function wield(g,item,hand,x,y,span,size){
   Math.round(y+span*hand[1]-s*gp[1]), Math.round(s));
 }
 
+/* A head piece gets a ring of light around it rather than tongues off
+   an edge: rays out from the crown, and motes turning slowly round it. */
+function drawHalo(ctx,item,cx,cy,r,t){
+ const A=AURA[auraOf(item)||'halo'], C=A.c;
+ ctx.save(); ctx.globalCompositeOperation='lighter';
+ const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,r*1.9);
+ rg.addColorStop(0,   _rgba(C[1],A.glow*0.85));
+ rg.addColorStop(0.42,_rgba(C[2],(A.glow*0.42).toFixed(2)));
+ rg.addColorStop(1,   _rgba(C[3],0));
+ ctx.fillStyle=rg; ctx.fillRect(cx-r*2,cy-r*2,r*4,r*4);
+ const unit=Math.max(1,Math.round(r*0.17));
+ for(let i=0;i<10;i++){                       /* rays off the points */
+  const a=-Math.PI/2+(i-4.5)*0.30;
+  const ph=t*A.speed+i*1.31;
+  const L=r*(0.72+0.42*Math.abs(Math.sin(ph)));
+  for(let k=0;k<4;k++){
+   const q2=(k+0.5)/4, w=Math.max(1,Math.round(unit*(1.2-q2*0.85)));
+   ctx.fillStyle = q2<0.3?_rgba(C[0],0.92):q2<0.65?_rgba(C[1],0.76):_rgba(C[2],0.48);
+   ctx.fillRect(Math.round(cx+Math.cos(a)*L*q2-w/2),
+                Math.round(cy+Math.sin(a)*L*q2-w/2),w,w);
+  }
+ }
+ for(let i=0;i<A.sparks;i++){                 /* motes turning round it */
+  const a=t*0.00042+i*(6.283/A.sparks);
+  const rr=r*(1.05+0.22*Math.sin(t*0.0013+i));
+  const w=Math.max(1,Math.round(unit*0.6));
+  ctx.fillStyle=_rgba(i%2?C[0]:C[1],0.70);
+  ctx.fillRect(Math.round(cx+Math.cos(a)*rr), Math.round(cy+Math.sin(a)*rr*0.72), w, w);
+ }
+ ctx.restore();
+}
+/* his head sits here in the 64 pixel sprite */
+const HEAD_A=[0.500,0.215];
+
 /* pxH is the height he should stand, in screen pixels */
 function climberAt(g,cx,footY,pxH,f,lamp){
  const c=heroCanvas(f), sc=pxH/64, dw=64*sc;
@@ -1079,6 +1119,9 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  rg.addColorStop(0.45,'rgba('+ocs+','+(glow*0.30).toFixed(2)+')');
  rg.addColorStop(1,'rgba('+ocs+',0)');
  g.fillStyle=rg; g.fillRect(ox-rr,oy-rr,rr*2,rr*2);
+ const hdg=eq.head&&BYID[eq.head]?BYID[eq.head]:null;
+ if(hdg&&auraOf(hdg))
+  drawHalo(g,hdg,x+dw*HEAD_A[0],y+pxH*HEAD_A[1],pxH*0.30,performance.now());
  /* carried first, because they are on the far side of him */
  if(off){
   if(auraOf(off)) drawAura(g,off,SHIELD_A,x,y,pxH,0.62,performance.now());
@@ -1543,7 +1586,8 @@ const SHAPE={
   ".1478o3.15o3.74oB2eo.13oB2eo.72oBWeqo.12oBWeqo.72oBAq2o.12oBAq2o.72oq2x2o.12oq2x2o.73ox2o.14ox2o.75oqo.14oqo.76oc2o.13oxo.75oCYCo.13oC2o.57o3.14oCY2Co.11oCYCo.15o3.38oBeo.14oCY2co.11oCY2Co.13oBe2o.36oAWdqo.13oCY2co.11oCY2co.12oAWdqo.36oe2q2o.12oCY3Cco.9oCY3Cco.11oe2q2o.36oq2x2o.12oCY2C2co.9oCY3co.12oq2x2o.37ox2o.13oCY2C2co.9oCY3Cco.12ox2o.39oqo.13oCY2C3co.7oCY2C3co.12oqo.40ocCo.12oCY2C3co.7oCY2C2co.12oxCxo.39oCYCo.10oCY2C4co.7oCY2C3co2.10oCYCo.39oCYxo.10oCY2C4co.7oCY2C3co.11oCYco.39oCYCo.10oCY2C5co.5oCY2C5co.9oCY2co.38oCY2co.10oCYC6co.5oCY2C5co.9oCY3co.37oCY3co2.8oCYC6co.5oCY2C5co.8oCY3Cco.37oCY2Cco.8oCYC8co.3oCY2C7co.7oCY3Cco.37oCY2Cco.8oCYC7co.4oCY2C7co.7oCY2C2co.37oCY2C2co2.6oCYC8co.3oCY2C7co.6oCY2C3co.37oCY2C2co.7oCYC7co.4oCYC8co.6oCY2C3co.37oCYC4co2.5oCYC8co2.oCY2C8co.5oCY2C4co.36oCYC6co.4oCYC9co.2oCY2C9co.4oCY2C5co.35oCYC6co.4oCYC10co.oCYC10co.4oCY2C5co.35oC9co.3oCYC10YCoC5c5C3co.3oCY2C6co.35oC8co.4oCYC11YCYC3c6C3co.3oCY2C6co.35oC9co2.2oCYC11Y2C4c7C2co.2oCY2C7co.35oC9co.2oCYC13YC3c8C3co.oCY2C7co.35oC10co.oCYC13YCYCc8C2co.2oCY2C7co.34oCYC7Y3CoCYC7c4C4Y2Cc7C4co2CY2C4c4Cco.33oC9Y4CY2C6c5C3Y4c7C5c2Y4C2c5Cco.33oC10Y7C5c7Y6c7C5Y6Cc7o.33oC10Y7C5c6Y6c9C3Y6c9o.33oC10Y8C4c5Y8c8C3Y7c8o.33oC9Y10C3c4Y10c8CY9c7o.33ocC9Y8C3c6Y8c9C2Y7c7xo.32oC11Y7C3c8Y6c10C2Y6c10o.31oC12Y6C3c9Y6c10C2Y6c9o.31oC13Y4C3c11Y4c11C3Y4c10o.31ocC13Y2C4c12Y2c13C4Yc11o.31ocC18c9x7c12C3c12xo.31ocC15c10x3A3ex4c10C2c13xo.31ocC5c4C6c9x2A2B4e3x2c24xo.30oCYC3c6C4cCc8x2B9Ax3c25o.29oCYZYc2ZYZYZYZYZYZc7x2BW5VB2A3x3c22xo.30ocC3c20xB2W4V3WA4dxc23xo.29ocC2c20x2B2W3V4WA3d2x2c22xo.29ocC2c20xeB2W4V3WA4ex2c22xo.29ocCc21xeABW5VWe6qxc17x2c3xo.29ocCc21xA3W8e4q2xc15x4c3xo.29ocCc21xA2W8e6qxc14x6c2xo.29oc23xdeAW6e5dq2xc13x8cxo.29oc24xqe10d3qxc12x12o.29oxc23xq2e7d4q2x5c7x13o.29oxc24q3e4d5q2x9c2x15o.29oxc25q3e2d5q2x27o.29ox28q9x28o.29o67.1742",
   ".618o16.80oB4A10o.80oBW3B9Ao.79oBW2B2d2B7Ao.77o2qd14qo.73o4q2d16qo4.66o3q4oqd17q4o3.61o2q4o3.oB14A2dqo2q4o2.57o2q3o3.4oB14A2eo.2o3q3o2.53o2q3o2.7oB13A4do.4o2q3o2.49o2q3o2.9oB12A5do.6o2q3o2.46oq3o2.10oB13A5do.8o2q3o.43o2q2o2.12oB13A4e3o.9o2q2o2.40oq3o.14oB11ABA4edo.12oq2o.39oq3o.15oAB9eABA2e4do.12oq2o2.36oq2o2.16oAB8AeABAe5do.13o2q2o.34oq2o.17oB9A2eA2e7Ao.14oq2o.32oqo2.18oB8A3eAe7Ao.16oq2o.30oqo.20oAB6A4e9do.17oq2o.28oq2o.20oAB5A3e3Be7BAo.17oq2o.26oq2o.20oB6A2e12B2e2o.17oq2o.24oq2o.21oB5e17do.19oq2o.23oq2o.21oAB3e8deBe7do.19oqo.23oq2o.22oAB2e9de7Ae2do.19oqo.21oq2o.22oB5e8deBe8do.20oqo2.19oqo.23oB4e9de8d3o.21o2.19oq2o.23oAB3e9deBde4Bd2edo.20oqo2.17oqo.24oABdAe9dede7dqo.22o2.17oqo.25oAB3e8d2ede7dqo.22oqo2.15oqo.24oAB2dAe6d4e10dqo.22oqo.14oq2o.24oABe2Be4d6e10d2qo.21oq2o.13oqo.25oAB2e4d7e11dqo.23o2.13oq2o.25oABe2Bd8e12d2qo.22oqo2.11oqo.25oB2e3Ad6e8q9o.23o2.12oqo.25oeBde3d6e8q2Gg4jgjo.22oqo.10oq2o.25odeqde2q16HG7jo.21oq2o.9oqo.20o6cCcCcCcCc8xcxcx3gG2g5j2o2.20o2.10oqo.14o6B3ec2Y11CYCYCYCYCcx2g2j8eAo6.14oqo.9oqo.10o4B8e3CY10ZYZYZYZYZYZcj3x6j2dBA6o4.10oqo.8oqo.8o3B4WB8ecC22cxj2x6j2dB7A4o3.8oqo.7oqo.5o3B3WB11e2cC16c7xj2x6j2AB11A3o3.5oqo.7oqo.3o2B19eC11c13xj2x6j2xB14A2eo2.3oqo.7oqo.o2B20e2C5c19xj2x6j2xB13ABA2e2o2.oqo.7oq2oB22dx2c22x2j2x6j2xB12A2BA4e2oq2o.7oqWAB20Adqx26jg4j5xB8A13edqo.7oqdB15A11edqdqdqdqdqdqdqdqdqdq4jg3Gg3j2BAB2A7eA2eA7edqo.7oqB9A17B4e19dqj10e23dqo.7oqdBA2B2A20B3e16d6q7dqe24dqo.6oqdA26B2e14d14e28dqo.7oqdA25Be11d19e26d2qo.7oqA26d32e20d7qo.7oqde5A11d51e3d14qo.7oqd2e9d72qdqo.7oq2oqde3d74q2oq2o.7oqo.o2qd75qo2.oqo.7oqo.3oqd73qo.3oqo.7oqo.3oq2d71qo2.3oqo.7oqo.4o2q4d63q4o.5oqo.8oqo.5o4q6d51q6o4.5oqo.9oqo.9o6q10d31q10o6.9oqo.9oqo.15o10q31o10.15oqo.9oq2o.24o31.24oq2o.10oqo.79oqo.11oqo.79oqo.11oq2o.77oq2o.12o2.78oqo.13oqo2.75oq2o.14o2.76oqo.15oqo2.73oq2o.16o2.74oqo.17oqo2.71oq2o.18o2.72oqo.19oqo2.69oq2o.20oq2o.67oq2o.22oq2o.65oq2o.23oqo.66oq2o.24oqo2.63oq2o.26oq2o.61oq2o.28oqo.60oq2o.30oqo.58oq2o.32oqo2.55oq2o.34oq2o2.51o2q2o.36oq3o.49oq3o.38oq2o.48oq3o.40o2qo3.43o2qo3.43oq3o2.39o2q2o.47o2q3o2.35o2q3o2.49o2q3o2.31o2q3o2.53o2q3o3.25o3q3o2.57o8.20o9.29",
   ".815o3.92oCYCo.89o2CYZYco2.86oC2Y2ZC2xco.85oCY4CxCco.85oCY3C4co.85oCYC4x3o.63o22xY2CZC3x3o22.41oB19Ae2Y2C4x3BA21o.40oBW17B4eC3Zcxcx2B21Ao.40oBW15B5e2C5cCx2B19e3do.39oBW13BAB5e2C3Zcxc2xB18d4qo.39oeA11e11C6c3e17q6o.37o2c2CcCcCcCcCcCcCcCcCcCcC13c4xcxcxcxcxcxcxcxcxco2.35oYZ3Y5ZYZYZY7ZYZYZYC3cZYZYZYZYCYCYZYZYZYZYCYCYZYZco.35oCY3Z2C10Z2C7c2Z3c4C6Z2C10Z2C3co.36ocC2YZxcC8Z2xcC6c2Z2x3c2C5Z2x2cC4c3CZx3c2xo.35ocC3xcC10c3C6c4x2c10x2c10x2c3xo.35ocC3cCcC8c43xo.35ox59o.35ox26c7x25o.36odAeAeAeAeAeAeAeAeAeAeAe3xc2Zc2xcxABABABABA4eAeAeAeAeAe2o.35oB24e2x2c4x3W9B15Ao2.33oB25ex2cZc2x2W8B18eo.33oB26x8BW5B3W6B10Aeo.32oB18q8B2eAeAeAB2q8B10A8eo.31oB19q6B12q6B10A9eo.31oB18q8B10q8B7A11eo.31oAB18q6B12q6B5A14eo.31oAB17q8B10q8A13e3A2eo.30oAB19q8B8q8A13e4A3eo.29oAB18q8B10q8A12e4A2eo.30oAB19q8B8q8A11e7A2do.29oAB18q8B10q8A9e9Ado.29oAB19q8B8Aq7A9e11qo.29oAB18q8B9Aq8A7e12do.29oeB19q8B4A3Bq8A6e14qo.30oAB17Aq9BA5q10A3e15do.31oAB17Aq8B2A6q8A2e17do.31oeB16Aq10A6q10e18qo.31oeB16A2q8A8q8e19do.31oeA2B12A3q10A6q10e18qo.31oeA10B2A6q8A8q8e18do.32oeA17q10A6q10e18qo.31oeA18q8A5e3q8e19do.31oeA17q10A2e4q10e18qo.31oeA18q10e4q10e15d2e2qo.31oeA17q10e6q10e13d5qo.31oeA18q10e4q10e13d6qo.31odA17q26e12d6qo.32oeA17q24e12d6qo.33oeA16q26e10d7qo.33oe6A9e3q24e10d8qo.33ode9A3e4q26e8d9qo.33ode17q24e9d9qo.33ode16q26e7d10qo.33ode17q24e6d12qo.33ode16q26e3d14qo.33ode17q24e2d16qo.33ode16q26d17qo.33ode17q25d17qo.34ode15q26d16qo.35ode16q25d15q2o.35ode15q26d14q3o.35ode16q25d14q3o.35ode15q26d13q4o.35ode16q25d12q4o.36oqe15q26d12q5o.36oqe15q25d11q5o.38ode13q26d10q5o.39oqe17d31q6o.40oqe15d31q6o.42oqe12d33q5o.44oqe10q3d9q3d9q3d6q4o2.46oqe8q5d7q5d7q5d3q5o.47oYxde6q2Zx2q2d5q2Zx2q2d5q2Zx2q2dq6Yo.45oCYx2e5dqCYx3qd5qCYx3qd5qCYx3q7cCxo2.44oxo2qe3d3x4d8x4d8x4q8o4.46o.2oqed5x2d10x2d10qxq8o.54oqd27q11o.55oq39o.56o39.604",
-  ".2152o17.76o3B3d3C2Ycxd2A4o3.70o3B3W2e2c2Y2Zx2cxB4A3o3.65o2B3W3B3exY3Zx2cxB7A3o2.61o2B2W4B4e2xY4x4B10A2o.59oB2W5B6e2Y3cx3B13Ao2.55o2BW4B10ecY2Cx3B12ABeAo.53oB2W3B11e2cCZcx3B9A7eo.51oBW3B14ecC3x3B6A11eo.49oBW3B14e2cCZcx3B3A15eo.47oBW2B17eC4x3B2A17eo2.45oBWB17e2C2Zcx3eA18eo.45oBWB18q2C4x3eA19eo.43oBWB17e2q2C2Zc2x2eA20eo2.41oB16e6qC3c2x2eA11eAe2Ae2A2eo.41oB16e6dqC2Zc2x2A9e12Aeo2.39oAB12e7d3qxCYc2x2A6e17o.39oAB10e9d4qxcZc2x2dA2e20do2.37oAB9e7d7qxc4x2de23do.37oAB6e8d9qxcZc2x2de23do.37oAB3e10d10qxc4x2de23do.37oAB2e8d13qxcZc2x2e24do.37ode8d15qxc4x2e23do.37ode6d16q3xcZc2x2e24do.36ode4d16q5x7e24do.36oq59o.35oc2CcCcCcCcCcCcCcCcCcCcCcCcCc16xcxcxcxcxcxcxcx2o.35oCY29CYCYCYCYCYCYCYCYCYCYCYCYCYCYxo.35oCY28ZYZYZYZYZYZYZYZYZYZYZYZYZYZY2o.36ocC54c3xo.35ocC2ZYC10ZYC10ZYC10ZYC6c4CYc5xo.35ocC3xcxC9xcxC9cx3C2c7x3c9x3c2xo.35ocC4cC11cC2c9xc11xc11xc4xo.35oxc54x4o.35ox59o.32o3g2Gg7x40GgGgGg5Go2.30oG2H4G6j2q3dqdqdqdqdqdq23H7G5go.30oGH3G9jqe15d20qH4G9go.29ogH11j2e14d22qH12Gjo.29ojH3G9je12d23q2H4G9jo.30oGH2G4gG3j2e8d25q4H4G4gG3go.31oGH2Gg5G3qd2e4d25q6H3G2g5G2jo.31ogHGg6G4qoq2d26q5oG5g6G2go.31ogG2g6G3go.o2q3d20q6o2.ogG3g6G2jo.31ogG2j6G3go.3o3q3d16q4o3.3ogG2j6gG2jo.31ogGj2c3j3Ggo.7o3q17o3.6ogGj3CxcjgG2jo.31ogj2ZYCcx2G3go.9o17.9ogG2jcZ2C2xG2go.31ogGjxZcx3G3jo.35ogGgjcZC2x2G2jo.31ojgjx6G2gjo.35og3jx6g2jo.32ogjx5G3gjo.35og5x4Ggjo.33ogG3g3Gg3jo.34ogG4g5Ggjo.33ogGH4G2g3jo.34ogGg3G6gjo.33ogG2gGgG2g4jo.33og5G5g2jo.33og3jgjgj3g2jo.33ojg2j3gjgjg2jo.33og2G6g4jo.33ojg4G6gjo.33ojgG5g3j3o.33ojg4G4g3jo.33ojgG3g5j2o2.32o3j2g9jo.33ojgGg5j2o2.37o2j2g7jo.34ojg3j3o2.41o2j3g3jo.35ojgj2o3.45o3j3o.36oj2o2.51o2j2o.35o3.55o3.1169"],
+  ".2152o17.76o3B3d3C2Ycxd2A4o3.70o3B3W2e2c2Y2Zx2cxB4A3o3.65o2B3W3B3exY3Zx2cxB7A3o2.61o2B2W4B4e2xY4x4B10A2o.59oB2W5B6e2Y3cx3B13Ao2.55o2BW4B10ecY2Cx3B12ABeAo.53oB2W3B11e2cCZcx3B9A7eo.51oBW3B14ecC3x3B6A11eo.49oBW3B14e2cCZcx3B3A15eo.47oBW2B17eC4x3B2A17eo2.45oBWB17e2C2Zcx3eA18eo.45oBWB18q2C4x3eA19eo.43oBWB17e2q2C2Zc2x2eA20eo2.41oB16e6qC3c2x2eA11eAe2Ae2A2eo.41oB16e6dqC2Zc2x2A9e12Aeo2.39oAB12e7d3qxCYc2x2A6e17o.39oAB10e9d4qxcZc2x2dA2e20do2.37oAB9e7d7qxc4x2de23do.37oAB6e8d9qxcZc2x2de23do.37oAB3e10d10qxc4x2de23do.37oAB2e8d13qxcZc2x2e24do.37ode8d15qxc4x2e23do.37ode6d16q3xcZc2x2e24do.36ode4d16q5x7e24do.36oq59o.35oc2CcCcCcCcCcCcCcCcCcCcCcCcCc16xcxcxcxcxcxcxcx2o.35oCY29CYCYCYCYCYCYCYCYCYCYCYCYCYCYxo.35oCY28ZYZYZYZYZYZYZYZYZYZYZYZYZYZY2o.36ocC54c3xo.35ocC2ZYC10ZYC10ZYC10ZYC6c4CYc5xo.35ocC3xcxC9xcxC9cx3C2c7x3c9x3c2xo.35ocC4cC11cC2c9xc11xc11xc4xo.35oxc54x4o.35ox59o.32o3g2Gg7x40GgGgGg5Go2.30oG2H4G6j2q3dqdqdqdqdqdq23H7G5go.30oGH3G9jqe15d20qH4G9go.29ogH11j2e14d22qH12Gjo.29ojH3G9je12d23q2H4G9jo.30oGH2G4gG3j2e8d25q4H4G4gG3go.31oGH2Gg5G3qd2e4d25q6H3G2g5G2jo.31ogHGg6G4qoq2d26q5oG5g6G2go.31ogG2g6G3go.o2q3d20q6o2.ogG3g6G2jo.31ogG2j6G3go.3o3q3d16q4o3.3ogG2j6gG2jo.31ogGj2c3j3Ggo.7o3q17o3.6ogGj3CxcjgG2jo.31ogj2ZYCcx2G3go.9o17.9ogG2jcZ2C2xG2go.31ogGjxZcx3G3jo.35ogGgjcZC2x2G2jo.31ojgjx6G2gjo.35og3jx6g2jo.32ogjx5G3gjo.35og5x4Ggjo.33ogG3g3Gg3jo.34ogG4g5Ggjo.33ogGH4G2g3jo.34ogGg3G6gjo.33ogG2gGgG2g4jo.33og5G5g2jo.33og3jgjgj3g2jo.33ojg2j3gjgjg2jo.33og2G6g4jo.33ojg4G6gjo.33ojgG5g3j3o.33ojg4G4g3jo.33ojgG3g5j2o2.32o3j2g9jo.33ojgGg5j2o2.37o2j2g7jo.34ojg3j3o2.41o2j3g3jo.35ojgj2o3.45o3j3o.36oj2o2.51o2j2o.35o3.55o3.1169",
+  ".46o5.91oc3o.89o2cC3co2.87oC4cCco.87oxc6o.86oCcx5c2o.85oxcxd2x2c2o.84ox2cYcx5co.83oCxYZCx2d2Co.84ocxc4xq2co.84oCx8co.81o3CYCdq2xqcY2Co4.75o2C7q2xcY4C3co.73oY2C4Y4x2Y3C5ZCo.70o2YC6Y9C2cCcYZCo2.66o2CYZC6YCY7C2cCc2C4o2.63oY3ZC4cC2YCYZYCY3C2c2xc3ZY2Co.60o2Y2C6xoxcYCYZYCY2C3cxoxc5ZCo2.56o2Y2ZC2c4xo.ocYCYZYCYxC3xo.oxc2C3ZY2o3.52oC2Z2C2c3x2o.2oxYCYZYCYcC3xo.2ox2c2C2Z2Cc2o.51oCY2C2c2x3o.3oxYCYZYC2xC3xo.3ox2cC4YCo.51oCYCYCc2x2dqo.4ocCYZYC5xo.4oeAx2c2CYCco2.49oC3Yx4q3o.5ocYZYC2xCco.5oeAx4cYCco.49oC4x2oq2x3o.5ocYZYC3co.6oqx3o2xYC2co2.47oCYC2co.ox3qo.o4cC6xCco4.2oqx2o.2oC3co.47oCYC3xo.2oqdeAodqx2C2ZC7x2eAo2q4o.2ocCZYco2.45oC2c2xo.3oxCqd3q2cC7xC3xd2q3c2o.4ocCZco.45oCYc3xo.2oCY3q5cC2ZC7x2q4Y3Co.3ocC3co2.43oCYC2c2Co2CZY2C2xcq2C8xC3q2cCY2ZY2Co3c6o.43oCYC3cCYC2YZY7CYC2ZC8cY5ZC3c3Cc3ZYco2.41oC4c2CY4ZY7CYC7xC5Y4C8c4ZCco.40oCYC3c3CY3ZY3xY3CYC2ZC10YC2ZC3xC4cxc3C2co.39oCYC2x3cCY3ZY6cC9xC3c3C11x3c4o.39oCYc3x3cY4ZY3C3xc2C2ZC7cx3C2YC3xC3x5cZYco2.37oCc4xBd2Y4ZYC5xc2C7x2c2xCY5C5x2Bex2c2Zco.38ocCc2x2ed2Y5C3xcx2c2C2ZC5xc2xcY4C3xC3xedx3c3xo.36oxCc3xe2q2Y4ZY5C11x2c2C12x2Aedx2c3xo.36oxc3x2edq2Y4ZY2CxC3YC3ZC5xc2CYC3ZC3xC3xqA2x3c2xo.36ox5Ad2q2Y4ZYC6YC6cCx2c2CYC10x2qdA2x5o.37ox2e4dqcCY2Z2YC2xC3YC2cZC2cC2xc2C5ZC3xC3cxdeA2dx2qo.37oqd4edqcC3Z2YC6YC2cC3c3xc2C13cxe4dq2o2.38ocq3d2qcC8xC3YC2cC3c3xc2C5ZC3x2Cc2xe2q3co.39oCYxq5C4ZC8YCc3C2c3xc2C10xc4q4Y2Co2.33o4CY3cCcCY2C8xC3YCc2ZC2c3xc2C5ZC3x2C2cCxcxC4c2o4.28oC4YZY8C3ZC10c3C2c3xc2C10xc3C10c3o.28oCY4ZY2xY4C9xC5c2Zc5xc2C5Zc2Cx2c3C5ZC3xC3xo.27oCY4ZY7C4ZC10c8xc2C4c4C2xc3C13co.27oCY4ZY2xY4C9xC5c2Zc5xc2C2c3Zc2Cx2c3C5ZC3xC3xo.28oCY3ZY6C2cC2ZC10c8xc2C2c6C2xc3C12co.29oCY3ZC2xC2YC2cC7xC5c2Zc5xc2C2c3Zc2Ccxc3C5ZC3xC2co.29oC13cC2ZC10c8xc2C2c8xc3C8c2C2co.29ocC2ZC3xC5c2C5c2xc2C2c2Zc5xc3Cc3Zc4xc3Cc4Cc4xcxo.29ocC12c2CZC2c3xc2C2c8xc3Cc8xc13xcxo.28ocC3ZC3xC5c4C2c3xc2C2c2Zc5xc3Cc3Zc4xc8Zc4xcxo.28ocC12c4ZC2c3xc2C2c8xc3Cc8xc13xc2xo.27ocC3ZC3xC4c5C2c3xc2Cc3Zc5xc3Cc3Zc4xc8Zc4xc2xo.27ocC8cC2c5ZC2c3xc2Cc9xc3Cc8xc13xc2xo.26oC6YC3cC3c4YC3c2Cc7Cc8Cc4Cc3Cc9Cc3Cc2xo.26oCYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZYZcxo.25ocCc49x8c5xc3xo.25ocCc10x4c17x5c13x8c3x5cxo.24ox2c8x4d2x3c11x5d2x3c11x5d2x3c8xo.24o3xcx4cx2qcxd3x2c7x2c2x2qx3d2x2c7x2c2x2qcxd3x2c3x3cxo2.27ox2ex4cY3q3x3c2x6c2xcC3q3x3c2x6c2xcY3q3x6ex2o.29oe3d2x3ZY3cx2ex4Aedx5C2Y2c2x7ed3x5ZY3cx2ex2Ae2dqo.29oAWq3xd2cY2c2xe2x3WBAq3x2d2CY3cxAdx3eWeq3x2d2cY2c2xe2dxBWq3o.29odeq2xd3c2Yx2q4x2BAqx5d2CY2x2q4x2e2qx5d2c2Yx2q3d3eq2o.30oq2x4q3c2x4q2x2q3x5q3c2x4q2x2q2x6q3c2x4q2xq2x3o.29oqx2qc2xqx4d3x2c2q2dqc4q2x4d3x2c3qdqc4xqx4d3x3qx2qxo.29oxc5x3d2xd2q2xc2C3c2Cc2x3d2xd2q2c2YcC2c2Ccx4d2xd2q2x2cdc2xo.29ocC5x2q3x2q2C2c2C6c2x2q3x2q2C2c2C6x2cxq3x2q2C7xo.29ocC6xcq3x2C3c2C6x2c3q3x2C3c2C5cx2c3q3x2C8xo.29ocC9xcC5c2C5c4C2c2x2C3cxc7x2c2C2x2cC2c7xo.29ocC4c3C2cCcC2c23x2c6x2c15xo.30ox64o.31ojg2GgGgGgGgGgGgGgGgGgGgGgGg20jgjgjgjgjgjgjgj2o.33oGH25G34jo.33ogH4GH6GH5G41jo.35oG49gG6g2jo.34oG43g2G3g5Gg5jo.34ogG25g3G5g3G4g18jo.34ogG4gG6gG7g7jg21j2g7jo.35ogG3jojG4gjgG2g5j2g3jojg6jg7j2g3jo2jg5jo2.35oj4o.ojg3jojg5j2o2j3o.oj2g2j2ojg5jo2j3o.2ojg3jo.38o4.3oj3o.oj5o2.2o3.3o2j2o2.oj5o.2o4.3oj3o.47o3.3o5.12o2.4o5.11o3.982"],
  chest:[".2046o.o32.54o9.oY13CY5C3Y2C2YC3o.48o6c3xAeB3oxC27c3xo7.35o6c9xW4Aex2C15c14x2A5o.29o6c6Cc5x4W5A2C4c26xB5dqo3.26ocY2cxC2c4x7BAB5W2Ax31B5d2xc2o5.21ocx11ABABAW4B7eAeAeAeAeAeAeABAeAeAeAeAeAeAeA7d2x2Cc2xc2o7.14ox6BA4BW5B41A7ex10C4co2.13oeA4BW2B33VB17A4e4dedex10o.13oAB19A3B37A3e2A7dedex4o2.13oAB19Ae2B18VB18A3e2A12d2o.16oAB3AB14Ae3B34e7A13eo.16oeA4B5AB5A4e2B18VB13A3e8A3e3A3e3do.16oeA19e3B28dAe24do.16oeA19d2eB17VB7e3dBe9d2e11de2qo.15ode4A14q4B22e6dAe9d2e11d3qo.15od5e13q2g3e5B12VAB2e7dBe9d13q3o.17o5qe13qgH2g4e6B6edeAd3e5dAe8d13qo4.22ode11q2gG4H3g3e7q4eq3e5dBe5d2edq3d8qo.26ode12qjG8H2Gg4qcCc4x2e6de7deqo3q8o2.26od5e7q2j4g3G9gCYc3Cx2de2d4ed7qo.3o8.28o6de7qdqj6g4Gg4jcx4cxgq6d8qo.45ode12Aj7g4jCx4cxg5q2dq4d3qo.45oded5q3eB4eAeqj7xcx3cxgG2H3g4q6o.45oq2o8dB7dAeAeAj2xcx3cxjG6H4g3q2o.45o3.8oAB13x8j2G2g3G5H2g2o.56oAB6dB7eAed2Aej7g4G2g2Ggo.55oAB17d2B2eAeAej6g5jo.55oAB6dB19qdqdj8o.55oeB17dB7e6qdqdj2o2.55oeB6dB17e11do.57oeB17dB5e12qo.57oAB6dB15e13qo.58oAB16d2B2e13do.57o2eB6dB11de15q2o2.54ocx2B17e16q2ZYco.53ox3B6dB9e18qxCco.53ox3B12A3e18q2x3o.54o2AB6AB2A5e20qo3.57oAB5AB2A4e20do.59oAB2ABA2dB2A2e23do2.57oA8B2Ae25qo.57oA7de27qo.58oA8e25d3qo.57oeA5e26d4qo.56oA5e27d5qo.56oA4e27d8o.55oAe28d9qo.55ode27d10qo.55oAe25d12qo.55oq2e23d12q2o.53o2xq3e21d12q2cxo.51oeYcx2e20d14qxCx2o.50oex4e19d15qx4eo.49odex2e18d18qx2Wdo.49odeq2e16d20q4do.49odex2de14d20q2x2q2o.48oAxcx3e12d22qCx3edo.47oABx3e11d25qx2e2do.47od5e9d27q4edo.47odq2c2de6d28q2xq3do.47odqxCx2e5d29qZcx2edo.47oq2x4e3d31qx4dqo.47odqx3d34q3x2d2qo.46oe3qd35q6d2qo.46oe6d31q6d5qo.45ode5d29q9d4qo.45od4q45o.45o51.598",
   ".2046o37.59oCY14CY5C3Y2C2YC5co.54o5eC30c4xWo4.44o6xAB3AxC17c16xBA2o.39o6cx6B2WA2x2C2c29x2B3eo.35o3xcxc2x8B4Ax34B4Aqo.34ocx8A5BA3WBeAeA5eAeAeAeAeAeA5eAeAeA7BAd2xo6.28ox4A5B7A3eA2B31A6dxcxc4o6.23oeA2B11e5A13eA9eA14d2x4C3xcxc3o5.18oAB13ed2q3edqA7deqA7deqA7deqA5e2dex9YCx3o.18oeB2AB5A4e2dq5e3A34eA5e3dex7o.19oeA8e4q3Gjgqe2qA2WA4B2A3WA5WA9WA4e2A11dededxo.19oeAe2A3e7qgGH3jq3e3A28e3A16do.19od3e10q2gG3H2jgqde3A27e3A16do.19o4qe8q2j2G5H2gq4edede2qe4A3deqA7dA2e3A7e8do.24ode6d4j4G4H2jq3ede7A17e7A2e9do.25od5qo2A4j4G5jgAq3e6Ae2A7WA4e17d3qo.25o7.2oAB2ej4g2G2H3jq3ede10AeA6e17d3qo.34oAB3e3j3G4H2gq7e17d3e7d5q4o.33o2dB4d3j4g2G2gc5x2e2de6qe7d3e6d5qo5.35oeB6eAj4g2jcCc3x2e2de14d13qo.41oAB8j6cx3Cx2q3We9We3d10q4o.41oAB9ej4cx4cxgq3e13d9qo4.42oeB10e2j2Cx4cxgjq3e12q4d4qo.46oeB5dAqB3edx6cxgG2gq4e2dede2dqo4q4o.46oeAB12ex8jG2H2jq4d5qo.4o5.45oAeAB14AeAj5G3H2jgq4d3qo.54odeAB18ej4g2G2H3jq3d2qo.54odeAB19edj4G4H2jq5o.54o2qeqB7dAqB7dAqAej3G7gq3o.56odB23ej5G4H2jqo.57oAB23eAj4g2G2H2j2o2.55oAB26ej4g3j3qo.55oAB27eAj7dqo.56oABqAdB7qB7A3B6dqj4dqo2.54o2AB18A6BAB5ej3do.55oA2B12AB5A7BAB7eAqo.55oeAB3ABA30edo.55ode2A34edo.54o3deA7de3A4qedA7qA7dqo.58odA9eA9BA14qo.59oeA8WA9WA9WA4eo.58oeA34qo.58oeA35qo.57oedeqA3eA3deqA3eAe6A2eAqedeA2dqo.56oeA3BA3eA5BA3e2A3e2A3e2A3dBAedo.55oABA3WA9WA9WA9We2do.55oeBA23e2AeAe9do.54oeBA17e19do.55o2deA3deqA3eAe3d2e3de4d3e2ded2ed2o.57odA7eAeAe8de4dAe3de4dqo.56oABA5e4We5We9We9qo.56oA4e33d2o.55oAe4qe9qe5de3qe5de5qo.56oe14d2e3dede2d2e3dede2ded3o.55oe14de4de4de4de4d5o.55oAe3We9We9We5We4d3qo.55oe29d9qo.54oeAeqe11de3qe5d2ed10qo.56oe14de4d3ed15qo.55ode16Ad20qo.55ode6We5d3e2d9Wd10qo.54ode13d24q2o.54odede3qe3ded16qd4qd2q5o.53odede2de2d19q2d4qd2q5o.53ode4dWd9Wd9Wd4qd3qo6.54ode3d26q4o.60odedq2d4qd4q2d3q2d3q2d2q6o.60oq3o2q4oq4o2q3o2q3o2q4oq2o.62o3.2o4.o4.2o3.2o3.2o4.o4.512",
   ".2063o3.91o2Yc2o2.72o17Y2Z2Cc2o16.56oB13d2cZ3C4xA14o.56oBW11B2eYZ4C2cxB14eo.55oBW10B2e2CYZ2c4xB14eo.55oBW8B5exc7xB12Aeo.54o2BW6B7e2x2c5x2B11A3eo.51o2B2W5B10qx4cx3B12A4eo3.46o2B2W4B14dq2x3q2B11A8o.45oB2W4B15d4q3d3B9A7BAeo2.41o2BW6B16d8B9A2eABA3BA2e2o2.37o2B2W3B2W2B17d6B9A3eABA8eAo.34o2B2W3B22d8B6ABA3eABA10eo3.29o2B2W4B24d6B5AeABA3eABA11e3o.27oB2W4B25d8B2A3eABA3eABe3A11eo2.23o2BW4B28d6A2BA3eABAe8A12e2o.21oB2W4B28d8ABA2e2ABe4Be4A14eo.20oBW4B30d6A3e18A10eo.21oAB33d8Ae5Be5Be8A5eABAdo.22oAB13AB15e3Ad6eA2e21A3eABAdo.22oAB12eAB12e2Be3Aed5eAe5Be5Be11A2eABAqo.22oAB10A2eAB9e9Aed5e28ABedo.22oAB9A3eAB10e4Be5d5eBe5B2e4Be17qo.22oAB9A3eB6e2B2e11d5e6B2e9de12q2o.22oAB6AeB2AeB4e12BAe4d5eBAe8d2Be2d2e12do.23oAB5A2eABAe2B2e6Be7Be4d5e2Be4d6eBd4e11qo.23oqAB2A4eABAeB4e18d5e2Ad2eAd6eAd7e7do.25oeBA5eABAe2B2e6Be7Be4d5e3d2e2d6e2d8e7qo.24oeBA5eABAeB3e15d2e3d5eAd2eAd6e5d7ede3qo.24oeBA5eABAe10Be4d2e2d2e2d6e2d2e2d6e5d12qo.24odBA4e2ABAe10Ad6eAd2eAd6eAd2ed4e9d10qo.25oqBA3d2eA2e6d4e2d6e2d2e2d6e2d2ede12d10qo.25oqBA4deAe5d6eAd6eAd2eAd6ed3e14d10qo.26oA4d2e6d7e2d6e2d2e2d6ed3e13d11qo.26oA6e3q52d6qo.26ode9qCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCcCxcxcxcxcxq2d6qo.26ode8q2Z17YZYZYZYZYZYZYZYZYZYZYZYZYZYZYZcq2d5qo.27ode9qxY14C32cxoq2d3qo.27ode8q2xcY3C42xo.o2q2dqo.27ode9dqcC40c4xo.4o2q2o.27ode9dqC40c5xo.6o3.28ode7q3C22c10C8c5xo.37oded5qo3cC12c19C7c6xo.37od5q2o.3ocCc29C7c6xo.37oqd2q2o2.4oxc30C7cx6o.37oq3o2.6ox31C6cx6o2.37o4.9oA2BAdqdqdqdqdqdqdqdqdqdqdqdq3C6cxq4o.52oBW3e24q2C6cxqd2qo.52oBW2e26qC6cxqd3qo.51ode27q2C6cxqd3qo.51oAe26q2cC5c2xqd3qo.51ode27qcC4c2x2qd2qo.52ode25d2qcC2c4xqd4qo.51ode24d3qcC2c4xqd4qo.50ode23d5qxc6xqd4qo.50ode21d7qxc6xqd6o.49ode20d8qxc6xqd4qo.50ode18d10qxc5x2qd6o.49ode17d11qxc5xqd7o.49ode15d13qxc5xqd6qo.49ode13d15qxc5xqd6qo.49ode12d16qxc4x2qd6qo.49ode10d18qx3c2x2qd4q3o.49ode9d20q2x5qd2q5o.49ode7d24q2x3qdq5o.49ode6d28q11o2.47ode4d32q8dqo.47ode2d32q12o.47oded32q13o.47odq46o.47o49.311",
@@ -1594,7 +1638,8 @@ const HERO=[".285o7.50o7j6Go6.44oG4g2G7g6o.43oGHG16go.43ogG9g7Ggo.43ogG3g14jo.43
   ".3478o10.o9.44oe7qo.oe7do.43oe4dedqo.oeAedededo.43oq8o.oq8o.42oxc7xcox2cx6o.42ocx6cxc3xcx7o.41o23.212",
   ".2838o10.o10.42oGg9og9o.42ogG9gG4g5jo.41ojgG3g4jojg8jo.42oj8o.oj8o.43odAeAe2do.2oeA2e3do.44oAB4A2eo.oAB4A2eo.43oABA5eo.oABA5eo.43oeA6do.oeA6do.43oeA3e3do.oeA3e3do.43oeAe5do.oeAe5do.43ode5dqo.ode5dqo.43ode2d4qo.oded5qo.43oq8o.oq8o.42oxc7xcox2cx6o.42ocx6cxc3xcx7o.41o23.212",
   ".750o4.59ocCc2o.57oYZ3Cco.56oYZ2Cco.57oYZ2C2xo.56ocCc3xo.56oxc4xo.57oxc2xo.58ox3o.59ojgo.60ojGo.60oGHjo.59oGHGo.59oGHjo.59oGgo.60oGgo.60oGgo.60oGgo.60og2o.60og2o.60og2o.60og2o.60og2o.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojgjo.59oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60ojgo.59ojGo.60ojgjo.59ojHjo.59ojgjo.59ojHjo.59o2jgo.61o3.144",
-  ".2577o5.21o5.32ou5o.19ou5o.30ou6o.19ou5o.30oum5uo.17oum5uo.29ou7o.17ou7o.30oum3uo.19oum3uo.31ou5o.19ou5o.32o5.21o5.1040"];
+  ".2577o5.21o5.32ou5o.19ou5o.30ou6o.19ou5o.30oum5uo.17oum5uo.29ou7o.17ou7o.30oum3uo.19oum3uo.31ou5o.19ou5o.32o5.21o5.1040",
+  ".28o8.55o.3o2.3o.53oCo.oC2o2.o2.52oxo.oC2co.oxo.50oc2o.ocCco.oc2o.48oC2co.ocCco.ocCco.45o3C3YocC3YocC2xo2.43o2.2ocC8cC2co.o2.42o2.2ocC2YC7c2o.o2.42o2.2ocC10xo.2oco.41oco2cC6c2C3cxo2c2o.40oC2cC7c4Cc3xcCco.40ocC4c3Cc10C2cxo.38oC5x3cCcx3c3x2cCc3xo.37oY2ZYx4c3x3c3x3c4xo.37o2xc2xcx3cxcx3cxcx3c2xo2.39ox21o.41o23.2964"];
 
 /* [name, category, rarity, silhouette, palette, grip, material, accent material] */
 const GEAR=[
@@ -1672,7 +1717,7 @@ const GEAR=[
 ['Visage of the Ember Jarl','helm',2,1,'ember','obsid','metal','arcane'],
 ['Helm of the Nine Peaks','helm',3,2,'mithril','silver','metal','arcane'],
 ['Crest of the Ninth Storm','helm',3,1,'storm','silver','metal','arcane'],
-['Diadem of the Last Light','helm',4,3,'gold','ivory','metal','arcane'],
+['Diadem of the Last Light','helm',4,7,'gold','ivory','metal','arcane'],
 /* --- CHESTPLATES, 16 : 8/4/1/1/2 --- */
 ['Padded Gambeson','chest',0,2,'leather','leather','cloth','leather'],
 ['Trail Vest','chest',0,2,'moss','leather','cloth','leather'],
@@ -2181,6 +2226,9 @@ function drawDoll(){
  const off=eq.off&&BYID[eq.off]?BYID[eq.off]:null;
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
  const SP=n*0.74, X0=Math.round(n*0.11), Y0=Math.round(n*0.14);
+ const hdq=S.eq&&S.eq.head&&BYID[S.eq.head]?BYID[S.eq.head]:null;
+ if(hdq&&auraOf(hdq))
+  drawHalo(q,hdq,X0+SP*HEAD_A[0],Y0+SP*HEAD_A[1],SP*0.30,performance.now());
  if(off){
   if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,0.62,performance.now());
   wield(q,off,SHIELD_A,X0,Y0,SP,0.62);
@@ -2229,7 +2277,8 @@ function paintDart(){
  const A=auraOf(g);
  /* the showcase holds the piece a little smaller so the flame has room */
  const s=A?0.80:1.0, o=Math.round(px*(1-s)/2);
- if(A) drawAura(q,g,[0.5,0.5],o,o,px*s,1.0,performance.now());
+ if(A&&g[1]==='helm') drawHalo(q,g,px*0.5,px*0.44,px*0.38,performance.now());
+ else if(A) drawAura(q,g,[0.5,0.5],o,o,px*s,1.0,performance.now());
  blitGear(q,g,false,o,o,Math.round(px*s));
 }
 const MATNAME={metal:'forged',wood:'turned wood',leather:'oiled leather',
@@ -2278,10 +2327,11 @@ let packTick=null;
 function packAnimate(){
  if(!pack.classList.contains('open')){packTick=null;return;}
  const eh=S.eq&&S.eq.hand?BYID[S.eq.hand]:null;
- const eo=S.eq&&S.eq.off?BYID[S.eq.off]:null;
- const live=(eh&&auraOf(eh))||(eo&&auraOf(eo))||(DART&&auraOf(DART.g));
+ const eo=S.eq&&S.eq.off ?BYID[S.eq.off ]:null;
+ const ed=S.eq&&S.eq.head?BYID[S.eq.head]:null;
+ const live=(eh&&auraOf(eh))||(eo&&auraOf(eo))||(ed&&auraOf(ed))||(DART&&auraOf(DART.g));
  if(!live){packTick=null;return;}
- if((eh&&auraOf(eh))||(eo&&auraOf(eo))) drawDoll();
+ if((eh&&auraOf(eh))||(eo&&auraOf(eo))||(ed&&auraOf(ed))) drawDoll();
  if(DART&&auraOf(DART.g)) paintDart();
  packTick=requestAnimationFrame(packAnimate);
 }

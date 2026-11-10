@@ -134,5 +134,44 @@ def hm_cap():
     rivets(g, 16, 48, 35, 5, 1.5)
     return g
 
+def hm_crown_grand():
+    """The one legendary helm. An arched imperial crown rather than the
+       open circlet the rare ones wear: a jewelled band, five fleured
+       points with pearls on them, two arches closing over a velvet cap,
+       and an orb on top."""
+    g = blank()
+    ellipse(g, CX, 30, 17, 15, 'A')                 # the cap, inside
+    for i in range(5):                              # quilting on it
+        line_on(g, 17 + i*7, 18, 17 + i*7, 40, 'd', 'A', 1.1)
+    # five points, tallest in the middle, each with a trefoil and a pearl
+    for (px, top) in ((14, 26), (23, 16), (32, 8), (41, 16), (50, 26)):
+        poly(g, [(px - 6, 42), (px - 3.4, top + 5), (px, top),
+                 (px + 3.4, top + 5), (px + 6, 42)], 'C')
+        for k in (-1, 1):
+            disc(g, px + k*3.0, top + 4.5, 2.2, 'C')
+        stud(g, px, top - 1.2, 2.3, 'A', 'W')
+        line_on(g, px - 1, top + 3, px - 1, 40, 'Z', 'C', 0.9)
+        line_on(g, px + 2, top + 4, px + 2, 40, 'x', 'C', 0.9)
+    # two arches closing over the cap, meeting under the orb
+    for k in (-1, 1):
+        for (ax, ay, bx, by) in ((CX + k*18, 24, CX + k*13, 14),
+                                 (CX + k*13, 14, CX + k*5, 9),
+                                 (CX + k*5, 9, CX, 8)):
+            line(g, ax, ay, bx, by, 'C', 4)
+            line_on(g, ax, ay - 1, bx, by - 1, 'Z', 'C', 1.0)
+    disc(g, CX, 6, 4.4, 'C'); gem(g, CX, 6, 2.8, 'A', 5)
+    poly(g, [(CX - 1, 0), (CX + 1, 0), (CX + 1, 4), (CX - 1, 4)], 'C')
+    poly(g, [(CX - 3, 1), (CX + 3, 1), (CX + 3, 3), (CX - 3, 3)], 'C')
+    # the band, with alternating stones and pearls
+    poly(g, [(10, 38), (54, 38), (54, 50), (10, 50)], 'C')
+    line_on(g, 10, 39, 54, 39, 'Z', 'C', 1.0)
+    line_on(g, 10, 49, 54, 49, 'x', 'C', 1.0)
+    for gx in (18, 32, 46): gem(g, gx, 44, 4.2, 'A', 6)
+    for nx in (12, 25, 39, 52): stud(g, nx, 44, 2.0, 'A', 'W')
+    poly(g, [(11, 50), (53, 50), (51, 55), (13, 55)], 'G')     # the fur lining
+    furtrim(g, [(x, 54) for x in range(13, 52, 5)], 3.0)
+    return g
+
 SHAPES = [dump(paint(f())) for f in
-          (hm_hood, hm_horned, hm_great, hm_crown, hm_brim, hm_barbute, hm_cap)]
+          (hm_hood, hm_horned, hm_great, hm_crown, hm_brim, hm_barbute, hm_cap,
+           hm_crown_grand)]
