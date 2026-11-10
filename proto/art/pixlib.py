@@ -175,6 +175,83 @@ def wrap(g, x0, y0, x1, y1, w, n=5, ch='j'):
             line_on(g, cx + px * w * 0.6, cy + py * w * 0.6,
                        cx - px * w * 0.6, cy - py * w * 0.6, ch, src, 1.1)
 
+def flute(g, x0, y0, x1, y1, n=3, spread=6, body='A', bow=0.0):
+    """Parallel grooves down a plate: a dark channel with a lit ridge
+       beside it, which is what makes a breastplate read as hammered
+       steel rather than as a flat shape."""
+    for i in range(n):
+        t = (i - (n - 1) / 2.0) / max(1, (n - 1) / 2.0)
+        ox = t * spread
+        mid = bow * (1 - abs(t))
+        line_on(g, x0 + ox, y0, x1 + ox + mid, y1, 'd', body, 1.2)
+        line_on(g, x0 + ox + 1.2, y0, x1 + ox + mid + 1.2, y1, 'B', body, 0.9)
+
+def folds(g, x0, x1, y0, y1, n=5, body='A'):
+    """Cloth drapery: a soft shadow and a lift, paired, wandering a
+       little so it does not read as corduroy."""
+    for i in range(n):
+        t = (i + 0.5) / n
+        x = x0 + (x1 - x0) * t
+        sway = 1.4 * (1 if i % 2 else -1)
+        line_on(g, x, y0, x + sway, y1, 'e', body, 1.1)
+        line_on(g, x + 1.3, y0, x + sway + 1.3, y1, 'B', body, 0.8)
+        line_on(g, x, y0 + (y1 - y0) * 0.55, x + sway, y1, 'd', body, 0.8)
+
+def lames(g, x0, x1, y0, y1, n=5, body='A', rivet='C'):
+    """Horizontal plate bands with a real gap between them, a lit top
+       edge on each, and a rivet at either end."""
+    for i in range(n):
+        y = y0 + (y1 - y0) * (i + 1) / float(n + 1)
+        line_on(g, x0, y, x1, y, 'q', body, 1.1)
+        line_on(g, x0, y - 1.1, x1, y - 1.1, 'W', body, 0.9)
+        if rivet:
+            stud(g, x0 + 2.0, y - 2.0, 1.2, rivet)
+            stud(g, x1 - 2.0, y - 2.0, 1.2, rivet)
+
+def scales(g, x0, x1, y0, y1, step=3.4, r=1.9, body='A'):
+    """An overlapping scale field, each scale lit on its crown and
+       shadowed where the one below tucks under it."""
+    rows = int((y1 - y0) / step)
+    for row in range(rows + 1):
+        y = y0 + row * step
+        off = step / 2.0 if row % 2 else 0.0
+        x = x0 + off
+        while x <= x1:
+            disc(g, x, y, r, body)
+            put(g, x - r * 0.4, y - r * 0.5, 'W')
+            put(g, x, y + r * 0.6, 'd')
+            put(g, x - r, y + r * 0.5, 'q')
+            x += step
+
+def pauldron(g, cx, cy, k, w=11, h=7, body='A', trim='C', plates=3):
+    """A layered shoulder. k is -1 for his left, +1 for his right; the
+       two are deliberately not identical, because a matched pair of
+       perfect arcs is the thing that reads as machine made."""
+    for i in range(plates):
+        f = 1.0 - i * 0.22
+        poly(g, [(cx + k * 2, cy + i * (h * 0.42)),
+                 (cx + k * w * f, cy + i * (h * 0.42) + h * 0.22 * f),
+                 (cx + k * w * f * 0.92, cy + i * (h * 0.42) + h * f),
+                 (cx + k * 2, cy + i * (h * 0.42) + h * 0.86 * f)], body)
+    if trim:
+        poly(g, [(cx + k * 3, cy), (cx + k * w, cy + h * 0.22),
+                 (cx + k * w, cy + h * 0.44), (cx + k * 3, cy + h * 0.22)], trim)
+        stud(g, cx + k * (w - 2), cy + h * 0.30, 1.3, trim)
+
+def strap(g, x0, y0, x1, y1, w=3.0, buckle=True):
+    taper(g, x0, y0, x1, y1, w, w, 'G')
+    line_on(g, x0, y0 - w * 0.3, x1, y1 - w * 0.3, 'H', 'G', 0.9)
+    line_on(g, x0, y0 + w * 0.4, x1, y1 + w * 0.4, 'j', 'G', 0.9)
+    if buckle:
+        mx, my = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        rect(g, mx - 2.0, my - 2.0, mx + 2.0, my + 2.0, 'C')
+        rect(g, mx - 0.8, my - 0.8, mx + 0.8, my + 0.8, 'x')
+
+def gorget(g, cx, y, w=11, h=4, ch='C'):
+    poly(g, [(cx - w, y), (cx + w, y), (cx + w * 0.88, y + h), (cx - w * 0.88, y + h)], ch)
+    line_on(g, cx - w, y + 0.8, cx + w, y + 0.8, 'Z', ch, 0.9)
+    line_on(g, cx - w * 0.9, y + h - 0.8, cx + w * 0.9, y + h - 0.8, 'x', ch, 0.9)
+
 def stud(g, cx, cy, r=1.6, ch='C', hi='Z'):
     disc(g, cx, cy, r, ch)
     disc(g, cx - r * 0.28, cy - r * 0.28, r * 0.45, hi)

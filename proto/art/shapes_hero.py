@@ -150,54 +150,77 @@ def H_cap():
     return fin(g)
 
 # --------------------------------------------------------------- bodies
+# These are the same five pieces as the icons, worn. They are built
+# with the same helpers so a fluted cuirass in the pack is a fluted
+# cuirass on his back, not a differently shaped grey rectangle.
 def B_cuirass():
-    g = blank(); shell(g)
-    for k in (-1, 1): poly(g, [(CX + k*7, SH_Y - 2), (CX + k*15, SH_Y + 1),
-                               (CX + k*14, SH_Y + 7), (CX + k*7, SH_Y + 5)], 'A')
+    g = blank()
+    pauldron(g, CX - 8, SH_Y - 2, -1, w=13, h=8, plates=3)
+    pauldron(g, CX + 8, SH_Y - 1, 1, w=11, h=7, plates=2)
+    shell(g)
     g = model(g)
-    line_on(g, CX, SH_Y, CX, HEM, 'W', 'A', 1.3)
-    for k in (-1, 1): poly(g, [(CX + k*8, SH_Y - 1), (CX + k*15, SH_Y + 2),
-                               (CX + k*15, SH_Y + 4), (CX + k*8, SH_Y + 2)], 'C')
-    rect(g, CX - 14, HEM - 3, CX + 14, HEM, 'C')
+    flute(g, CX, SH_Y + 2, CX, HEM - 4, n=3, spread=5, bow=0.8)
+    line_on(g, CX, SH_Y + 1, CX, HEM - 3, 'V', 'B', 0.9)
+    lames(g, CX - 13, CX + 13, HEM - 7, HEM, n=2)
+    gorget(g, CX, SH_Y - 2, 8, 3)
+    strap(g, CX - 11, SH_Y + 7, CX + 11, SH_Y + 11, 2.6)
     return fin(g)
 
 def B_scale():
-    g = blank(); shell(g); g = model(g)
-    for row in range(7):
-        y = SH_Y + 3 + row * 3
-        off = 2 if row % 2 else 0
-        for x in range(CX - 12 + off, CX + 13, 4):
-            disc(g, x, y, 1.7, 'A'); put(g, x - 1, y - 1, 'W'); put(g, x + 1, y + 1, 'd')
-    rect(g, CX - 11, SH_Y, CX + 11, SH_Y + 2, 'C')
+    g = blank()
+    pauldron(g, CX - 8, SH_Y - 1, -1, w=11, h=7, plates=2)
+    pauldron(g, CX + 8, SH_Y, 1, w=12, h=8, plates=3)
+    shell(g); g = model(g)
+    for row in range(8):
+        y = SH_Y + 3 + row * 2.6
+        t = (y - SH_Y) / float(HEM - SH_Y)
+        half = 11 - 2.0 * t
+        off = 1.3 if row % 2 else 0
+        scales(g, CX - half + off, CX + half, y, y, step=2.7, r=1.5)
+    gorget(g, CX, SH_Y - 2, 9, 3)
+    strap(g, CX - 10, SH_Y + 2, CX + 9, SH_Y + 12, 2.6)
     return fin(g)
 
 def B_robe():
-    g = blank(); shell(g, 'A', 11, 10, 15)
-    for k in (-1, 1): poly(g, [(CX + k*10, SH_Y), (CX + k*17, SH_Y + 2),
-                               (CX + k*16, HEM - 2), (CX + k*9, HEM - 4)], 'A')
+    g = blank()
+    for k, w in ((-1, 18), (1, 17)):
+        poly(g, [(CX + k*9, SH_Y), (CX + k*w, SH_Y + 5),
+                 (CX + k*(w-1), HEM - 3), (CX + k*9, HEM - 5)], 'A')
+    shell(g, 'A', 11, 10, 15)
     g = model(g)
+    folds(g, CX - 10, CX + 10, SH_Y + 3, HEM - 1, n=5)
     poly(g, [(CX - 2, SH_Y - 2), (CX + 2, SH_Y - 2), (CX + 1, WAIST), (CX - 1, WAIST)], 'd')
-    rect(g, CX - 13, WAIST - 3, CX + 13, WAIST + 1, 'C')
-    disc(g, CX, SH_Y + 1, 2.4, 'C')
+    poly(g, [(CX - 13, WAIST - 3), (CX + 13, WAIST - 3), (CX + 12, WAIST + 1), (CX - 12, WAIST + 1)], 'C')
+    poly(g, [(CX + 5, WAIST + 1), (CX + 9, WAIST + 1), (CX + 8, HEM - 2), (CX + 5, HEM - 3)], 'C')
+    disc(g, CX, SH_Y + 1, 2.4, 'C'); put(g, CX - 1, SH_Y, 'Z')
     return fin(g)
 
 def B_banded():
-    g = blank(); shell(g); g = model(g)
-    for i in range(5):
-        y = SH_Y + 2 + i * 4
-        rect(g, CX - 13, y + 2, CX + 13, y + 2, 'q')
-        for sx in (-9, 0, 9): stud(g, CX + sx, y + 1, 1.3)
-    rect(g, CX - 11, SH_Y, CX + 11, SH_Y + 2, 'C')
+    g = blank()
+    pauldron(g, CX - 8, SH_Y - 1, -1, w=12, h=6, plates=3)
+    pauldron(g, CX + 8, SH_Y - 1, 1, w=12, h=6, plates=3)
+    shell(g); g = model(g)
+    lames(g, CX - 12, CX + 12, SH_Y + 2, HEM - 2, n=5)
+    gorget(g, CX, SH_Y - 2, 8, 3)
+    for k in (-1, 1): strap(g, CX + k*7, SH_Y + 1, CX + k*9, HEM - 3, 2.2, False)
     return fin(g)
 
 def B_carapace():
-    g = blank(); shell(g)
-    for k in (-1, 1): poly(g, [(CX + k*8, SH_Y), (CX + k*16, SH_Y + 6),
-                               (CX + k*14, HEM - 2), (CX + k*8, HEM - 3)], 'A')
+    g = blank()
+    for k, w, h in ((-1, 16, 9), (1, 14, 8)):
+        poly(g, [(CX + k*6, SH_Y), (CX + k*w, SH_Y + h),
+                 (CX + k*(w-1), HEM - 4), (CX + k*7, HEM - 2)], 'A')
+    shell(g, 'A', 10, 9, 13)
     g = model(g)
-    for i in range(6):
-        y = SH_Y + i * 4
-        poly(g, [(CX, y), (CX + 4, y + 2), (CX, y + 4), (CX - 4, y + 2)], 'C')
+    for i in range(7):
+        y = SH_Y + i * 3.4
+        poly(g, [(CX, y), (CX + 4, y + 1.6), (CX, y + 3.4), (CX - 4, y + 1.6)], 'C')
+        line_on(g, CX - 3, y + 1.6, CX + 3, y + 1.6, 'Z', 'C', 0.9)
+    for k in (-1, 1):
+        for i in range(4):
+            y = SH_Y + 4 + i * 5
+            line_on(g, CX + k*7, y, CX + k*15, y + 2, 'q', 'A', 1.0)
+            line_on(g, CX + k*7, y - 1.1, CX + k*15, y + 0.9, 'W', 'A', 0.8)
     return fin(g)
 
 # ----------------------------------------------------------------- feet
