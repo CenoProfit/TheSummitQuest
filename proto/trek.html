@@ -926,11 +926,13 @@ const HAND_R=[0.695,0.655], HAND_L=[0.300,0.655];
 /* A shield is not held in front of the fist, it hangs off the forearm
    outboard of the body. Anchored on the hand it disappeared behind his
    own torso, because his hands sit inside the silhouette. */
-/* Far enough inboard that both pieces cross his silhouette. Out at the
-   edges they read as floating beside him; overlapping him, with the
-   body taking a bite out of the inner edge, they read as carried. */
-const SHIELD_A=[0.300,0.565];
-const WEAPON_A=[0.635,0.600];
+/* Pushed inboard these ended up with the grip buried inside his own
+   silhouette, so only the far half of the blade showed and the thing
+   read as stuck on behind him. The grip belongs AT the hand, just
+   outside the body, with the mass of the piece clear of him and only
+   its inner edge crossing his arm. */
+const SHIELD_A=[0.215,0.615];
+const WEAPON_A=[0.730,0.650];
 const GRIPC=new Map();
 /* and where an item is held, measured off the item: the centroid of its
    grip material, which is the wood or the leather you wrap your hand
