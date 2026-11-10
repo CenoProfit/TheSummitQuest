@@ -123,6 +123,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .cell.locked{opacity:.34}
 .cell.locked canvas{filter:grayscale(1) brightness(.30)}
 .cell.eq{box-shadow:inset 0 0 0 2px var(--gold),0 0 12px rgba(245,198,81,.18)}
+.cell.burning{--au:255,120,30;
+ background:radial-gradient(60% 60% at 50% 55%,rgba(var(--au),.30),rgba(12,19,29,0) 72%),
+ linear-gradient(180deg,#141f2d,#0c131d);
+ animation:ember 1.8s ease-in-out infinite}
+@keyframes ember{0%,100%{box-shadow:0 0 12px rgba(var(--au),.22),inset 0 0 8px rgba(var(--au),.12)}
+ 50%{box-shadow:0 0 22px rgba(var(--au),.44),inset 0 0 15px rgba(var(--au),.24)}}
 .cell.sel{outline:2px solid #8fb6e8;outline-offset:1px}
 .cell .dup{position:absolute;right:2px;bottom:1px;font-family:var(--pix);font-size:6px;
  color:var(--ink);text-shadow:1px 1px 0 #000;z-index:2}
@@ -920,7 +926,11 @@ const HAND_R=[0.695,0.655], HAND_L=[0.300,0.655];
 /* A shield is not held in front of the fist, it hangs off the forearm
    outboard of the body. Anchored on the hand it disappeared behind his
    own torso, because his hands sit inside the silhouette. */
-const SHIELD_A=[0.215,0.590];
+/* Far enough inboard that both pieces cross his silhouette. Out at the
+   edges they read as floating beside him; overlapping him, with the
+   body taking a bite out of the inner edge, they read as carried. */
+const SHIELD_A=[0.300,0.565];
+const WEAPON_A=[0.635,0.600];
 const GRIPC=new Map();
 /* and where an item is held, measured off the item: the centroid of its
    grip material, which is the wood or the leather you wrap your hand
@@ -942,6 +952,97 @@ function gripPoint(item){
  }
  GRIPC.set(k,p); return p;
 }
+/* The far tip of a weapon: the lit pixel furthest up and to the right,
+   which for everything in this set is the point of the blade or the top
+   of the staff. */
+const TIPC=new Map();
+function tipPoint(item){
+ const k=item[1]+'#'+item[3];
+ const hit=TIPC.get(k); if(hit) return hit;
+ const sp=spriteRows(item,false), n=sp.length;
+ let bx=0,by=0,best=-1e9;
+ for(let y=0;y<n;y++){const row=sp[y];
+  for(let x=0;x<n;x++){
+   if(row[x]==='.') continue;
+   const v=x-y; if(v>best){best=v;bx=x;by=y;}}}
+ const p=[bx/n,by/n]; TIPC.set(k,p); return p;
+}
+/* Anything mythic or legendary that you carry in a hand burns, or does
+   whatever its material does instead of burning. The kind is read off
+   the palette, so a piece added later gets the right one for free.
+
+   c runs core, mid, outer, deep. rise is how far a tongue reaches as a
+   fraction of the blade, speed how fast it flickers, sway how much it
+   wanders, sparks how many motes come off the point. */
+const AURA={
+ flame :{c:[[255,252,228],[255,206,110],[255,146,38],[224, 66, 14]],rise:0.46,speed:0.0068,sway:0.055,n:20,sparks:7, glow:0.52},
+ void  :{c:[[234,218,255],[184,134,245],[122, 63,208],[ 46, 18, 80]],rise:0.54,speed:0.0031,sway:0.095,n:16,sparks:10,glow:0.46},
+ frost :{c:[[242,255,255],[185,236,255],[ 95,196,240],[ 31,111,168]],rise:0.34,speed:0.0026,sway:0.115,n:14,sparks:12,glow:0.44},
+ arcane:{c:[[236,255,236],[152,240,172],[ 56,200,124],[ 14, 90, 60]],rise:0.42,speed:0.0048,sway:0.075,n:16,sparks:9, glow:0.46}};
+const AURAPAL={sun:'flame',ember:'flame',crimson:'flame',blood:'flame',
+ void:'void',obsid:'void',amethyst:'void',dusk:'void',
+ frost:'frost',mithril:'frost',sea:'frost',storm:'frost',silver:'frost',cobalt:'frost'};
+function auraOf(item){
+ if(item[2]<3) return null;
+ if(item[1]!=='sword'&&item[1]!=='staff'&&item[1]!=='shield') return null;
+ return AURAPAL[item[4]]||'arcane';
+}
+const _rgba=(c,a)=>'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';
+
+function drawAura(ctx,item,anchor,x,y,span,size,t){
+ const A=AURA[auraOf(item)||'arcane'], C=A.c;
+ const gp=gripPoint(item), s=span*size;
+ /* A shield has no point to run a flame along, so it burns up its face
+    instead: bottom edge to top edge. */
+ const shield=(item[1]==='shield');
+ const tp=shield?[0.5,0.12]:tipPoint(item);
+ const bp=shield?[0.5,0.88]:gp;
+ const ax=x+span*anchor[0]-s*gp[0], ay=y+span*anchor[1]-s*gp[1];
+ const gx=ax+bp[0]*s, gy=ay+bp[1]*s;
+ const tx=ax+tp[0]*s, ty=ay+tp[1]*s;
+ const L=Math.hypot(tx-gx,ty-gy);
+ ctx.save();
+ ctx.globalCompositeOperation='lighter';
+ const mx=(gx+tx)/2, my=(gy+ty)/2;
+ const rg=ctx.createRadialGradient(mx,my,0,mx,my,L*0.85);
+ rg.addColorStop(0,   _rgba(C[1],A.glow));
+ rg.addColorStop(0.40,_rgba(C[2],(A.glow*0.5).toFixed(2)));
+ rg.addColorStop(1,   _rgba(C[3],0));
+ ctx.fillStyle=rg; ctx.fillRect(mx-L,my-L,L*2,L*2);
+ /* tongues licking off the edge, in blocks rather than gradients so
+    they belong to the same world as everything else here */
+ const N=A.n, unit=Math.max(2,Math.round(s*0.085));
+ for(let i=0;i<N;i++){
+  const u=(i+0.5)/N;
+  const bx=gx+(tx-gx)*u, by=gy+(ty-gy)*u;
+  const ph=t*A.speed+i*1.73;
+  const h=(0.40+0.60*Math.abs(Math.sin(ph)))*L*A.rise+L*0.10;
+  const sway=Math.sin(ph*1.27+i)*L*A.sway;
+  const steps=6;
+  for(let k=0;k<steps;k++){
+   const q=(k+0.5)/steps;
+   const w=Math.max(1,Math.round(unit*(1.25-q*0.95)));
+   const px=Math.round(bx+sway*q*q-w/2);
+   const py=Math.round(by-h*q-w/2);
+   ctx.fillStyle = q<0.26 ? _rgba(C[0],0.95)
+                 : q<0.52 ? _rgba(C[1],0.86)
+                 : q<0.78 ? _rgba(C[2],0.66)
+                          : _rgba(C[3],0.42);
+   ctx.fillRect(px,py,w,w);
+  }
+ }
+ /* motes coming off the point */
+ for(let i=0;i<A.sparks;i++){
+  const ph=t*0.0011+i*0.91, dec=(ph%1);
+  const w=Math.max(1,Math.round(unit*0.5));
+  const ex=tx+Math.sin(ph*9+i)*L*(0.14+A.sway), ey=ty-dec*L*0.60;
+  const cc=dec<0.5?C[0]:C[1];
+  ctx.fillStyle=_rgba(cc,(0.75*(1-dec)).toFixed(2));
+  ctx.fillRect(Math.round(ex),Math.round(ey),w,w);
+ }
+ ctx.restore();
+}
+
 /* put the item's grip exactly on the given hand */
 function wield(g,item,hand,x,y,span,size){
  const gp=gripPoint(item), s=span*size;
@@ -962,7 +1063,7 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  const oc=T.Z||T.C, ocs=(oc[0]|0)+','+(oc[1]|0)+','+(oc[2]|0);
  let ox=x+dw*0.78, oy=y+pxH*0.33;
  if(hand){const gp=gripPoint(hand), s=pxH*0.78;
-  ox=x+dw*HAND_R[0]+s*(0.56-gp[0]); oy=y+pxH*HAND_R[1]-s*gp[1];}
+  ox=x+dw*WEAPON_A[0]+s*(0.56-gp[0]); oy=y+pxH*WEAPON_A[1]-s*gp[1];}
  const glow=lamp?0.55:0.22, rr=Math.max(4,pxH*0.26);
  const rg=g.createRadialGradient(ox,oy,0,ox,oy,rr);
  rg.addColorStop(0,'rgba('+ocs+','+glow.toFixed(2)+')');
@@ -976,8 +1077,14 @@ function climberAt(g,cx,footY,pxH,f,lamp){
     disappeared into his own silhouette; in front, with the anchors set
     outboard, his arm still crosses the inner edge of each one, which is
     all the overlap needed to read as carried rather than pasted on. */
- if(off)  wield(g,off, SHIELD_A,x,y,pxH,0.52);
- if(hand) wield(g,hand,HAND_R,  x,y,pxH,0.78);
+ if(off){
+  if(auraOf(off)) drawAura(g,off,SHIELD_A,x,y,pxH,0.52,performance.now());
+  wield(g,off,SHIELD_A,x,y,pxH,0.52);
+ }
+ if(hand){
+  if(auraOf(hand)) drawAura(g,hand,WEAPON_A,x,y,pxH,0.78,performance.now());
+  wield(g,hand,WEAPON_A,x,y,pxH,0.78);
+ }
 }
 /* ---------- wildlife ---------- */
 /* One species. The hawk was big enough that its silhouette had to hold up
@@ -2066,8 +2173,14 @@ function drawDoll(){
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
  const SP=n*0.74, X0=Math.round(n*0.11), Y0=Math.round(n*0.14);
  q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
- if(off)  wield(q,off, SHIELD_A,X0,Y0,SP,0.52);
- if(hand) wield(q,hand,HAND_R,  X0,Y0,SP,0.78);
+ if(off){
+  if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,0.52,performance.now());
+  wield(q,off,SHIELD_A,X0,Y0,SP,0.52);
+ }
+ if(hand){
+  if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,0.78,performance.now());
+  wield(q,hand,WEAPON_A,X0,Y0,SP,0.78);
+ }
 }
 function drawTabs(){
  const T=document.getElementById('ptabs'); T.innerHTML='';
@@ -2087,6 +2200,10 @@ function drawGrid(){
   const d=document.createElement('div');
   d.className='cell'+(has?'':' locked')+((S.eq&&S.eq[CAT2SLOT[g[1]]]===g.id)?' eq':'');
   if(has) d.style.borderColor=RAR[g[2]][1];
+  const au=has?auraOf(g):null;
+  if(au){ d.classList.add('burning');
+   const C=AURA[au].c[2];
+   d.style.setProperty('--au',C[0]+','+C[1]+','+C[2]); }
   d.appendChild(iconCell(g,CELL()));
   if(n>1){const s=document.createElement('span'); s.className='dup'; s.textContent='x'+n; d.appendChild(s);}
   if(psel&&psel.id===g.id) d.classList.add('sel');
@@ -2094,6 +2211,17 @@ function drawGrid(){
   d.ondblclick=()=>{if(has) equip(g);};
   G.appendChild(d);
  }
+}
+let DART=null;
+function paintDart(){
+ if(!DART) return;
+ const q=DART.c.getContext('2d'), px=DART.px, g=DART.g;
+ q.clearRect(0,0,px,px);
+ const A=auraOf(g);
+ /* the showcase holds the piece a little smaller so the flame has room */
+ const s=A?0.80:1.0, o=Math.round(px*(1-s)/2);
+ if(A) drawAura(q,g,[0.5,0.5],o,o,px*s,1.0,performance.now());
+ blitGear(q,g,false,o,o,Math.round(px*s));
 }
 const MATNAME={metal:'forged',wood:'turned wood',leather:'oiled leather',
  cloth:'woven cloth',stone:'cut stone',bone:'bone',arcane:'something else',
@@ -2110,9 +2238,9 @@ function drawDetail(){
   const c=document.createElement('canvas');
   c.width=px; c.height=px; c.style.width='128px'; c.style.height='128px';
   c.style.imageRendering='pixelated';
-  blitGear(c.getContext('2d'),g,false,0,0,px);
+  DART={c:c,g:g,px:px}; paintDart();
   art.appendChild(c);
- }else art.innerHTML='<span class="dq">?</span>';
+ }else{ DART=null; art.innerHTML='<span class="dq">?</span>'; }
  art.style.borderColor=has?R[1]:'#2b3a50';
  const txt=document.createElement('div'); txt.className='dtxt';
  txt.innerHTML='<b style="color:'+R[1]+'">'+(has?g[0]:'? ? ?')+'</b>'
@@ -2132,11 +2260,24 @@ function drawDetail(){
  D.appendChild(art); D.appendChild(txt);
 }
 function drawPack(){
+ packStart();
  const tot=GEAR.length, got=GEAR.filter(g=>owned(g.id)).length;
  document.getElementById('pcount').textContent=got+' / '+tot;
  drawSlots(); drawTabs(); drawGrid(); drawDetail();
 }
-document.getElementById('packopen').onclick=()=>{pack.classList.add('open'); drawPack();};
+let packTick=null;
+function packAnimate(){
+ if(!pack.classList.contains('open')){packTick=null;return;}
+ const eh=S.eq&&S.eq.hand?BYID[S.eq.hand]:null;
+ const eo=S.eq&&S.eq.off?BYID[S.eq.off]:null;
+ const live=(eh&&auraOf(eh))||(eo&&auraOf(eo))||(DART&&auraOf(DART.g));
+ if(!live){packTick=null;return;}
+ if((eh&&auraOf(eh))||(eo&&auraOf(eo))) drawDoll();
+ if(DART&&auraOf(DART.g)) paintDart();
+ packTick=requestAnimationFrame(packAnimate);
+}
+function packStart(){ if(!packTick) packTick=requestAnimationFrame(packAnimate); }
+document.getElementById('packopen').onclick=()=>{pack.classList.add('open'); drawPack(); packStart();};
 document.getElementById('pclose').onclick=()=>pack.classList.remove('open');
 
 prune(); wizApply(); drawPack();
