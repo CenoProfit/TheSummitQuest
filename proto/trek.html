@@ -931,8 +931,15 @@ const HAND_R=[0.695,0.655], HAND_L=[0.300,0.655];
    read as stuck on behind him. The grip belongs AT the hand, just
    outside the body, with the mass of the piece clear of him and only
    its inner edge crossing his arm. */
-const SHIELD_A=[0.235,0.625];
-const WEAPON_A=[0.700,0.655];
+/* He is walking AWAY, so a thing held in front of him is a thing on
+   the far side of his body. Both are drawn behind the torso and
+   centred on it, and what you see is the part that sticks out past his
+   silhouette: the rim of the shield at his left and below his hip, the
+   blade of the sword past his right shoulder, the head and heel of a
+   staff above and below him. The body covering most of each one is the
+   whole point. */
+const SHIELD_A=[0.390,0.630];
+const WEAPON_A=[0.600,0.650];
 const GRIPC=new Map();
 /* and where an item is held, measured off the item: the centroid of its
    grip material, which is the wood or the leather you wrap your hand
@@ -1064,7 +1071,7 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  const T=hand?tones(hand):tones(HERO_PAL);
  const oc=T.Z||T.C, ocs=(oc[0]|0)+','+(oc[1]|0)+','+(oc[2]|0);
  let ox=x+dw*0.78, oy=y+pxH*0.33;
- if(hand){const gp=gripPoint(hand), s=pxH*0.78;
+ if(hand){const gp=gripPoint(hand), s=pxH*0.82;
   ox=x+dw*WEAPON_A[0]+s*(0.56-gp[0]); oy=y+pxH*WEAPON_A[1]-s*gp[1];}
  const glow=lamp?0.55:0.22, rr=Math.max(4,pxH*0.26);
  const rg=g.createRadialGradient(ox,oy,0,ox,oy,rr);
@@ -1072,27 +1079,20 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  rg.addColorStop(0.45,'rgba('+ocs+','+(glow*0.30).toFixed(2)+')');
  rg.addColorStop(1,'rgba('+ocs+',0)');
  g.fillStyle=rg; g.fillRect(ox-rr,oy-rr,rr*2,rr*2);
+ /* carried first, because they are on the far side of him */
+ if(off){
+  if(auraOf(off)) drawAura(g,off,SHIELD_A,x,y,pxH,0.62,performance.now());
+  wield(g,off,SHIELD_A,x,y,pxH,0.62);
+ }
+ if(hand){
+  if(auraOf(hand)) drawAura(g,hand,WEAPON_A,x,y,pxH,0.82,performance.now());
+  wield(g,hand,WEAPON_A,x,y,pxH,0.82);
+ }
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
  g.imageSmoothingEnabled=false;
- /* Both carried pieces go in FRONT of him. Behind the body the shield
-    disappeared into his own silhouette; in front, with the anchors set
-    outboard, his arm still crosses the inner edge of each one, and then
-    his hands are redrawn on top so his fingers close round the grip,
-    which is the thing that makes him look like he is holding it rather
-    than standing next to it. */
- if(off){
-  if(auraOf(off)) drawAura(g,off,SHIELD_A,x,y,pxH,0.52,performance.now());
-  wield(g,off,SHIELD_A,x,y,pxH,0.52);
- }
- if(hand){
-  if(auraOf(hand)) drawAura(g,hand,WEAPON_A,x,y,pxH,0.78,performance.now());
-  wield(g,hand,WEAPON_A,x,y,pxH,0.78);
- }
- g.imageSmoothingEnabled = pxH<64;
- g.drawImage(heroLayer(21,HERO_PAL),Math.round(x),Math.round(y),
-             Math.round(dw),Math.round(pxH));
- g.imageSmoothingEnabled=false;
+ /* An earlier pass drew these on top with the anchors set
+    outboard, it still read as a sword parked beside a man. */
 }
 /* ---------- wildlife ---------- */
 /* One species. The hawk was big enough that its silhouette had to hold up
@@ -2181,16 +2181,15 @@ function drawDoll(){
  const off=eq.off&&BYID[eq.off]?BYID[eq.off]:null;
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
  const SP=n*0.74, X0=Math.round(n*0.11), Y0=Math.round(n*0.14);
- q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
  if(off){
-  if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,0.52,performance.now());
-  wield(q,off,SHIELD_A,X0,Y0,SP,0.52);
+  if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,0.62,performance.now());
+  wield(q,off,SHIELD_A,X0,Y0,SP,0.62);
  }
  if(hand){
-  if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,0.78,performance.now());
-  wield(q,hand,WEAPON_A,X0,Y0,SP,0.78);
+  if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,0.82,performance.now());
+  wield(q,hand,WEAPON_A,X0,Y0,SP,0.82);
  }
- q.drawImage(heroLayer(21,HERO_PAL),X0,Y0,SP,SP);
+ q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
 }
 function drawTabs(){
  const T=document.getElementById('ptabs'); T.innerHTML='';
