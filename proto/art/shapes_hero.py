@@ -10,6 +10,7 @@
      20      a plain walking stick, carried when the hand is empty
      21      his hands, drawn over the gear so he grips it
      22      the legendary crown, which has a shape of its own
+     23      his right arm, reaching out and gripping what he carries
 
    Proportions: he stands 58 of the 64 rows and is 30 wide at the
    shoulder. The first attempt made him as wide as he was tall and he
@@ -99,6 +100,23 @@ def fin(g):
     g = ao(g); g = rim(g); g = dither(g); g = despeckle(g)
     return dump(softline(outline(g)))
 
+def gripArm():
+    """His right forearm, reaching out and closing on whatever he is
+       carrying. The body layer hangs both arms straight down, which is
+       right when his hands are empty and wrong the moment he picks
+       something up: the staff stood beside an arm that was not holding
+       it. Drawn over the carried piece, in the chest piece's own
+       palette so the sleeve matches whatever he has on."""
+    g = blank()
+    taper(g, CX + 10, SH_Y + 1, CX + 16, WAIST - 1, 8, 7, 'A')
+    g = model(g)
+    disc(g, CX + 16.5, WAIST + 1.5, 4.0, 'm')
+    poly(g, [(CX + 15.0, WAIST - 2.0), (CX + 19.0, WAIST - 0.6),
+             (CX + 18.6, WAIST + 2.2), (CX + 14.6, WAIST + 1.0)], 'm')
+    line_on(g, CX + 13.2, WAIST + 0.4, CX + 19.6, WAIST + 0.4, 'u', 'm', 0.9)
+    line_on(g, CX + 13.4, WAIST + 2.8, CX + 19.4, WAIST + 2.8, 'u', 'm', 0.9)
+    return fin(g)
+
 def hands():
     """Just his hands, drawn OVER whatever he is carrying so his fingers
        close around the grip. Skin only, never the sleeve, because the
@@ -118,9 +136,20 @@ def hands():
     return fin(g)
 
 def stick():
+    """His own walking staff, carried when the hand slot is empty. It
+       used to start at his shoulder and end at his ear, which read as a
+       pole stuck to his side; it stands the full height of him now, the
+       way an equipped staff does, so the two swap cleanly."""
     g = blank()
-    haft(g, 47, SH_Y - 7, 45, GROUND, 3.6)
-    disc(g, 47.5, SH_Y - 10, 4.4, 'C'); disc(g, 46.5, SH_Y - 11, 2.0, 'Z')
+    haft(g, 50, 7, 47, GROUND + 1, 3.8)
+    cordwrap(g, 49.4, 20, 48.6, 30, 3.8, 4)
+    poly(g, [(45.6, 36), (50.4, 36), (50.2, 40), (45.4, 40)], 'C')   # ferrule
+    poly(g, [(45.0, GROUND - 3), (49.8, GROUND - 3),
+             (49.6, GROUND + 1), (44.8, GROUND + 1)], 'C')           # shod heel
+    disc(g, 50.4, 5.4, 4.6, 'c'); disc(g, 50.4, 5.4, 3.6, 'C')
+    disc(g, 49.6, 4.4, 1.6, 'Z')
+    for k in (-1, 1):                                                 # the claw
+        poly(g, [(50.4 + k*1.4, 11), (50.4 + k*5.2, 3), (50.4 + k*3.0, 10)], 'C')
     return fin(model(g))
 
 def hat():
@@ -133,58 +162,116 @@ def hat():
     return fin(g)
 
 # ---------------------------------------------------------------- heads
+# Every one of these is seen from BEHIND, so none of them has a face
+# opening, a visor or a nose guard to show. What a helmet gives you from
+# the back is its crown, its banding, its rivets, whatever rises off the
+# top of it, and how it finishes at the neck. That is what these are
+# built out of, matching the same features on their icons.
+
 def dome(g, r=None, drop=0, ch='A'):
     r = r or (HEAD_R + 1.6)
     ellipse(g, CX, HEAD_Y + drop - 1, r, r * 0.86, ch)
     poly(g, [(CX - r * 0.96, HEAD_Y + drop - 1), (CX + r * 0.96, HEAD_Y + drop - 1),
              (CX + r * 0.82, HEAD_Y + drop + r * 0.86), (CX - r * 0.82, HEAD_Y + drop + r * 0.86)], ch)
 
+def band(g, y, h=3.0, w=12.0, studs=3):
+    poly(g, [(CX - w, y), (CX + w, y), (CX + w, y + h), (CX - w, y + h)], 'C')
+    line_on(g, CX - w, y + 0.7, CX + w, y + 0.7, 'Z', 'C', 0.9)
+    line_on(g, CX - w, y + h - 0.7, CX + w, y + h - 0.7, 'x', 'C', 0.9)
+    if studs:
+        for i in range(studs):
+            sx = CX - w * 0.72 + (w * 1.44) * i / float(studs - 1)
+            stud(g, sx, y + h * 0.5, 1.3, 'A', 'W')
+
+def comb(g, y0, y1, w=2.6):
+    """A raised ridge down the crown. It used to be drawn standing above
+       the helm, which on a head this near the top of the sprite meant it
+       was cut off at y=0 and the helm read as a plain box."""
+    poly(g, [(CX - w, y0 + 2), (CX, y0), (CX + w, y0 + 2),
+             (CX + w * 0.7, y1), (CX - w * 0.7, y1)], 'C')
+    line_on(g, CX - 0.6, y0 + 1, CX - 0.6, y1, 'Z', 'C', 0.9)
+    line_on(g, CX + w * 0.5, y0 + 2, CX + w * 0.45, y1, 'x', 'C', 0.9)
+
+def neckguard(g, y, w=11.0, drop=5.0, ch='A'):
+    """the lames at the back of a helm that cover the nape"""
+    poly(g, [(CX - w, y), (CX + w, y), (CX + w * 0.86, y + drop), (CX - w * 0.86, y + drop)], ch)
+    for i in range(2):
+        yy = y + drop * (i + 1) / 3.0
+        line_on(g, CX - w, yy, CX + w, yy, 'q', ch, 1.0)
+        line_on(g, CX - w, yy - 1, CX + w, yy - 1, 'W', ch, 0.9)
+
 def H_hood():
-    g = blank(); dome(g, HEAD_R + 2.6)
-    poly(g, [(CX - 12, HEAD_Y), (CX + 12, HEAD_Y), (CX + 14, SH_Y + 3), (CX - 14, SH_Y + 3)], 'A')
+    g = blank(); dome(g, HEAD_R + 2.8)
+    poly(g, [(CX - 12, HEAD_Y), (CX + 12, HEAD_Y),
+             (CX + 15, SH_Y + 4), (CX - 15, SH_Y + 4)], 'A')
     g = model(g)
-    poly(g, [(CX - 12, SH_Y), (CX + 12, SH_Y), (CX + 12, SH_Y + 3), (CX - 12, SH_Y + 3)], 'C')
+    folds(g, CX - 12, CX + 12, HEAD_Y - 7, SH_Y + 3, n=4)
+    poly(g, [(CX - 14, SH_Y), (CX + 14, SH_Y),
+             (CX + 14, SH_Y + 4), (CX - 14, SH_Y + 4)], 'C')
+    line_on(g, CX - 14, SH_Y + 0.8, CX + 14, SH_Y + 0.8, 'Z', 'C', 0.9)
+    for sx in (-9, 0, 9): stud(g, CX + sx, SH_Y + 2, 1.3, 'A', 'W')
     return fin(g)
 
 def H_horned():
     g = blank()
-    for k in (-1, 1):
-        poly(g, [(CX + k*8, HEAD_Y - 3), (CX + k*22, HEAD_Y - 12), (CX + k*18, HEAD_Y - 4),
-                 (CX + k*24, HEAD_Y - 6), (CX + k*12, HEAD_Y + 4)], 'C')
+    for k in (-1, 1):                                   # horns, behind the dome
+        poly(g, [(CX + k*8, HEAD_Y - 3), (CX + k*23, HEAD_Y - 13),
+                 (CX + k*19, HEAD_Y - 4), (CX + k*25, HEAD_Y - 7),
+                 (CX + k*12, HEAD_Y + 4)], 'C')
+        hornridge(g, CX + k*10, HEAD_Y, CX + k*22, HEAD_Y - 11, 4)
     dome(g)
+    neckguard(g, HEAD_Y + 8, 10.0, 5.0)
     g = model(g)
-    poly(g, [(CX - 10, HEAD_Y - 1), (CX + 10, HEAD_Y - 1), (CX + 10, HEAD_Y + 3), (CX - 10, HEAD_Y + 3)], 'C')
-    for sx in (-6, 0, 6): stud(g, CX + sx, HEAD_Y + 1, 1.7)
+    comb(g, HEAD_Y - 9, HEAD_Y - 1, 2.2)
+    band(g, HEAD_Y - 1.5, 3.2, 11.0, 3)
     return fin(g)
 
 def H_great():
     g = blank()
-    poly(g, [(CX - 10, HEAD_Y - 11), (CX + 10, HEAD_Y - 11), (CX + 12, HEAD_Y - 5),
-             (CX + 12, HEAD_Y + 8), (CX + 9, HEAD_Y + 12), (CX - 9, HEAD_Y + 12),
-             (CX - 12, HEAD_Y + 8), (CX - 12, HEAD_Y - 5)], 'A')
+    poly(g, [(CX - 7, HEAD_Y - 13), (CX + 7, HEAD_Y - 13), (CX + 11, HEAD_Y - 7),
+             (CX + 12, HEAD_Y + 6), (CX + 14, HEAD_Y + 12), (CX - 14, HEAD_Y + 12),
+             (CX - 12, HEAD_Y + 6), (CX - 11, HEAD_Y - 7)], 'A')
+    ellipse(g, CX, HEAD_Y - 10, 8.0, 3.4, 'A')
     g = model(g)
-    rect(g, CX - 10, HEAD_Y - 1, CX + 10, HEAD_Y + 1, 'q')
-    for y in (-7, 5): rect(g, CX - 11, HEAD_Y + y, CX + 11, HEAD_Y + y + 1, 'C')
-    for sx in (-7, 0, 7): stud(g, CX + sx, HEAD_Y - 6, 1.4); stud(g, CX + sx, HEAD_Y + 6, 1.4)
+    comb(g, HEAD_Y - 10, HEAD_Y - 7, 2.8)
+    band(g, HEAD_Y - 7, 2.8, 12.0, 4)
+    band(g, HEAD_Y + 5, 2.8, 12.0, 4)
+    for bx in (-6, -2, 2, 6):                           # breath holes round the back
+        disc(g, CX + bx, HEAD_Y + 10, 1.0, 'q')
+    for sx in (-10, 10):
+        for sy in (-2, 1, 4): stud(g, CX + sx, HEAD_Y + sy, 1.2)
     return fin(g)
 
 def H_crown():
     g = blank()
     pts = [(CX - 11, HEAD_Y + 4), (CX - 10, HEAD_Y - 8), (CX - 5, HEAD_Y - 2),
            (CX, HEAD_Y - 11), (CX + 5, HEAD_Y - 2), (CX + 10, HEAD_Y - 8), (CX + 11, HEAD_Y + 4)]
-    poly(g, pts, 'C')
-    rect(g, CX - 11, HEAD_Y + 1, CX + 11, HEAD_Y + 4, 'C')
+    poly(g, pts + [(CX + 11, HEAD_Y + 7), (CX - 11, HEAD_Y + 7)], 'C')
+    poly(g, [(CX - 11, HEAD_Y + 1), (CX + 11, HEAD_Y + 1),
+             (CX + 11, HEAD_Y + 7), (CX - 11, HEAD_Y + 7)], 'C')
     g = model(g)
-    for (px, py) in ((-9, -7), (0, -10), (9, -7)): stud(g, CX + px, HEAD_Y + py, 1.6, 'A', 'W')
-    stud(g, CX, HEAD_Y + 1.5, 2.4, 'A', 'W')
+    for (px, top) in ((CX - 10, HEAD_Y - 8), (CX, HEAD_Y - 11), (CX + 10, HEAD_Y - 8)):
+        line_on(g, px - 0.8, top + 1, px - 0.8, HEAD_Y + 2, 'Z', 'C', 1.0)
+        line_on(g, px + 1.2, top + 2, px + 1.2, HEAD_Y + 2, 'x', 'C', 1.0)
+        stud(g, px, top + 0.6, 1.5, 'A', 'W')
+    line_on(g, CX - 11, HEAD_Y + 2, CX + 11, HEAD_Y + 2, 'Z', 'C', 1.0)
+    line_on(g, CX - 11, HEAD_Y + 6, CX + 11, HEAD_Y + 6, 'x', 'C', 1.0)
+    for gx in (-6, 0, 6): gem(g, CX + gx, HEAD_Y + 4, 2.0, 'A', 5)
     return fin(g)
 
 def H_brim():
     g = blank()
-    poly(g, [(CX, HEAD_Y - 13), (CX + 9, HEAD_Y), (CX - 9, HEAD_Y)], 'A')
-    ellipse(g, CX, HEAD_Y + 2, 17, 4.2, 'A')
+    poly(g, [(CX, HEAD_Y - 14), (CX + 9, HEAD_Y), (CX - 9, HEAD_Y)], 'A')
+    ellipse(g, CX, HEAD_Y + 2, 17, 4.4, 'A')
     g = model(g)
-    poly(g, [(CX - 8, HEAD_Y - 4), (CX + 8, HEAD_Y - 4), (CX + 9, HEAD_Y), (CX - 9, HEAD_Y)], 'C')
+    folds(g, CX - 7, CX + 7, HEAD_Y - 12, HEAD_Y - 1, n=3)
+    poly(g, [(CX - 9, HEAD_Y - 4), (CX + 9, HEAD_Y - 4),
+             (CX + 10, HEAD_Y), (CX - 10, HEAD_Y)], 'C')
+    line_on(g, CX - 9, HEAD_Y - 3.2, CX + 9, HEAD_Y - 3.2, 'Z', 'C', 0.9)
+    poly(g, [(CX + 4, HEAD_Y - 5), (CX + 8, HEAD_Y - 5),
+             (CX + 8, HEAD_Y + 1), (CX + 4, HEAD_Y + 1)], 'G')
+    put(g, CX + 6, HEAD_Y - 2, 'x')
+    ellipse(g, CX, HEAD_Y + 4, 14, 2.4, 'd')            # under the brim
     return fin(g)
 
 def H_barbute():
@@ -193,19 +280,24 @@ def H_barbute():
              (CX + 12, HEAD_Y + 9), (CX + 7, HEAD_Y + 13), (CX - 7, HEAD_Y + 13),
              (CX - 12, HEAD_Y + 9), (CX - 13, HEAD_Y - 4)], 'A')
     g = model(g)
-    poly(g, [(CX - 2, HEAD_Y - 13), (CX + 2, HEAD_Y - 13), (CX + 1, HEAD_Y - 3), (CX - 1, HEAD_Y - 3)], 'C')
-    rect(g, CX - 12, HEAD_Y - 7, CX + 12, HEAD_Y - 6, 'C')
-    for sx in (-8, 0, 8): stud(g, CX + sx, HEAD_Y - 6.5, 1.4)
+    comb(g, HEAD_Y - 11, HEAD_Y - 3, 3.0)
+    band(g, HEAD_Y - 7, 2.6, 12.5, 4)
+    for sx in (-9, -3, 3, 9): stud(g, CX + sx, HEAD_Y + 11, 1.2)
+    line_on(g, CX - 12, HEAD_Y + 4, CX + 12, HEAD_Y + 4, 'q', 'A', 1.0)
+    line_on(g, CX - 12, HEAD_Y + 3, CX + 12, HEAD_Y + 3, 'W', 'A', 0.9)
     return fin(g)
 
 def H_cap():
     g = blank(); dome(g, HEAD_R + 0.8, -1)
     g = model(g)
-    rect(g, CX - 9, HEAD_Y + 1, CX + 9, HEAD_Y + 4, 'C')
-    for k in (-1, 1):
-        poly(g, [(CX + k*8, HEAD_Y + 4), (CX + k*12, HEAD_Y + 4),
-                 (CX + k*11, HEAD_Y + 13), (CX + k*7, HEAD_Y + 11)], 'G')
-    for sx in (-6, 0, 6): stud(g, CX + sx, HEAD_Y + 2.5, 1.4)
+    comb(g, HEAD_Y - 9, HEAD_Y, 2.0)
+    band(g, HEAD_Y + 1, 3.2, 10.0, 3)
+    for k in (-1, 1):                                   # cheek flaps, laced
+        poly(g, [(CX + k*9, HEAD_Y + 4), (CX + k*13, HEAD_Y + 4),
+                 (CX + k*12, HEAD_Y + 13), (CX + k*8, HEAD_Y + 11)], 'G')
+        line_on(g, CX + k*9, HEAD_Y + 6, CX + k*12, HEAD_Y + 6, 'K', 'G', 0.9)
+        line_on(g, CX + k*9, HEAD_Y + 10, CX + k*12, HEAD_Y + 10, 'j', 'G', 0.9)
+        stud(g, CX + k*11, HEAD_Y + 8, 1.2)
     return fin(g)
 
 # --------------------------------------------------------------- bodies
@@ -373,5 +465,5 @@ SHAPES = [body(0), body(1), body(2), hat()]
 SHAPES += [f() for f in (H_hood, H_horned, H_great, H_crown, H_brim, H_barbute, H_cap)]
 SHAPES += [f() for f in (B_cuirass, B_scale, B_robe, B_banded, B_carapace)]
 SHAPES += [F_trail(), F_greaves(), F_sandals(), F_cuffed()]
-SHAPES += [stick(), hands(), H_crown_grand()]
+SHAPES += [stick(), hands(), H_crown_grand(), gripArm()]
 P.setsize(96)

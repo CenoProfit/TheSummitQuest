@@ -907,8 +907,11 @@ function heroCanvas(f){
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
  const eq=S.eq||{}, get=k=>eq[k]&&BYID[eq[k]]?BYID[eq[k]]:null;
  q.drawImage(heroLayer(f%3,HERO_PAL),0,0);
- const bd=get('body'); if(bd) q.drawImage(heroLayer(11+bd[3],bd),0,0);
+ /* Boots first, then the body piece. A fauld hangs OVER the top of the
+    leg armour; drawn the other way round the greaves rode up over the
+    skirt of the cuirass and the armour looked tucked into his trousers. */
  const ft=get('feet'); if(ft) q.drawImage(heroLayer(16+ft[3],ft),0,0);
+ const bd=get('body'); if(bd) q.drawImage(heroLayer(11+bd[3],bd),0,0);
  if(!eq.hand) q.drawImage(heroLayer(20,HERO_PAL),0,0);
  const hd=get('head');
  /* helm shapes 0-6 are layers 4-10; the legendary crown is its own
@@ -941,6 +944,8 @@ const HAND_R=[0.695,0.655], HAND_L=[0.300,0.655];
    staff above and below him. The body covering most of each one is the
    whole point. */
 const SHIELD_A=[0.390,0.630];
+/* where his gripping hand sits, as a fraction of the 64 pixel sprite */
+const HAND=[0.760,0.648];
 const WEAPON_A=[0.600,0.650];
 const GRIPC=new Map();
 /* and where an item is held, measured off the item: the centroid of its
@@ -1132,10 +1137,17 @@ function carryOf(item){
    if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }}
  const bw=(x1-x0+1)/n, bh=(y1-y0+1)/n;
  let s,tx,ty;
- if(item[1]==='staff'){      s=0.96/bh;                 tx=0.790-bw*s*0.5; ty=0.020; }
- else if(item[1]==='shield'){s=0.62/Math.max(bw,bh);    tx=0.300-bw*s*0.5; ty=0.620-bh*s*0.5; }
- else {                      s=0.86/Math.max(bw,bh);    tx=0.995-bw*s;     ty=0.045; }
- const p=[tx-(x0/n)*s, ty-(y0/n)*s, s];
+ /* A hand piece hangs from his hand, so its GRIP goes there and the
+    rest follows; a shield rides his forearm, so its middle does. */
+ let p;
+ if(item[1]==='shield'){
+  s=0.44/Math.max(bw,bh);
+  p=[0.205-bw*s*0.5-(x0/n)*s, 0.615-bh*s*0.5-(y0/n)*s, s];
+ }else{
+  s=(item[1]==='staff') ? 0.98/bh : 0.80/Math.max(bw,bh);
+  const gp=gripPoint(item);
+  p=[HAND[0]-gp[0]*s, HAND[1]-gp[1]*s, s];
+ }
  CARRY.set(k,p); return p;
 }
 function wield(g,item,unused,x,y,span,size){
@@ -1208,6 +1220,11 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  if(hand){
   if(auraOf(hand)) drawAura(g,hand,WEAPON_A,x,y,pxH,1,performance.now());
   wield(g,hand,WEAPON_A,x,y,pxH,1);
+  const sleeve=eq.body&&BYID[eq.body]?BYID[eq.body]:HERO_PAL;
+  g.imageSmoothingEnabled = pxH<64;
+  g.drawImage(heroLayer(23,sleeve),Math.round(x),Math.round(y),
+              Math.round(dw),Math.round(pxH));
+  g.imageSmoothingEnabled=false;
  }
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
@@ -1616,22 +1633,27 @@ const SLOTS=['hand','off','head','body','feet','pet'];
 const SLOTNAME={hand:'HAND',off:'OFF HAND',head:'HEAD',body:'BODY',
                 feet:'FEET',pet:'COMPANION'};
 
-/* [primary, highlight, accent] — the accent is the gem, trim or glow */
+/* [primary, highlight, accent]. The accent is the brass, the gem or
+   the glow, and it has to CONTRAST with the primary: the first version
+   gave every plain metal a darker shade of itself as its accent, so on
+   a worn layer, where the trim is two pixels wide, a steel helm's bands
+   and rivets were steel on steel and simply disappeared. Anything that
+   is not already a colour in its own right now trims in brass. */
 const PAL={
- iron:['#6f7682','#a9b2c0','#474d58'], steel:['#8e96a4','#d4dbe6','#5b616e'],
- copper:['#b4713a','#e0a060','#6e4220'], bronze:['#9a6a30','#d09a52','#5c3d18'],
- silver:['#a8b0bd','#eef2f8','#6d7482'], gold:['#d2a233','#f5d775','#85601a'],
- obsid:['#2e2a3a','#4d4760','#9a74e0'], bone:['#cdc4ab','#f0ead6','#8d856e'],
- wood:['#7b5a33','#a67f4c','#4b351c'], leather:['#8a5f3a','#b5855a','#543720'],
- frost:['#6fa8d6','#bfe4f7','#3f6e97'], ember:['#d2512f','#f59356','#ffd27a'],
+ iron:['#6f7682','#a9b2c0','#b08432'], steel:['#8e96a4','#d4dbe6','#c3a24a'],
+ copper:['#b4713a','#e0a060','#f0cf7a'], bronze:['#9a6a30','#d09a52','#f2d489'],
+ silver:['#a8b0bd','#eef2f8','#d8c46a'], gold:['#d2a233','#f5d775','#fff2c0'],
+ obsid:['#2e2a3a','#4d4760','#9a74e0'], bone:['#cdc4ab','#f0ead6','#b9953f'],
+ wood:['#7b5a33','#a67f4c','#c9922f'], leather:['#8a5f3a','#b5855a','#c9a04a'],
+ frost:['#6fa8d6','#bfe4f7','#dff4ff'], ember:['#d2512f','#f59356','#ffd27a'],
  venom:['#5f9e3f','#93d46a','#d4f06a'], storm:['#6c7fd2','#a9b8f5','#e8f0ff'],
- rose:['#c25a7a','#ef9ab2','#7d3147'], amethyst:['#8a5fd0','#c3a1f5','#55357f'],
- jade:['#3f9e86','#7fd6bd','#236053'], crimson:['#a83232','#d96a62','#6a1a1c'],
- ash:['#5c5c62','#8e8e96','#35353a'], ivory:['#e4ddcb','#fffaf0','#a9a08c'],
- cobalt:['#3f6fb8','#7aa6e8','#244678'], moss:['#5d7a3c','#8fae63','#37491f'],
+ rose:['#c25a7a','#ef9ab2','#ffd9e4'], amethyst:['#8a5fd0','#c3a1f5','#e8d8ff'],
+ jade:['#3f9e86','#7fd6bd','#d8f5e8'], crimson:['#a83232','#d96a62','#e8b45a'],
+ ash:['#5c5c62','#8e8e96','#a8863c'], ivory:['#e4ddcb','#fffaf0','#b9953f'],
+ cobalt:['#3f6fb8','#7aa6e8','#d4e4ff'], moss:['#5d7a3c','#8fae63','#c9b34a'],
  sun:['#e8a13a','#ffd98a','#fff3c4'], void:['#3b2a52','#6a4f91','#b89cf0'],
- mithril:['#7fb6b0','#c3e8e3','#4a7a75'], blood:['#7c1f28','#b9434a','#4a0e15'],
- sea:['#357b8f','#6fc0cf','#1d4d5c'], dusk:['#6a5a7c','#9a89b2','#413553']};
+ mithril:['#7fb6b0','#c3e8e3','#e8f7f4'], blood:['#7c1f28','#b9434a','#c98a3a'],
+ sea:['#357b8f','#6fc0cf','#cdeef5'], dusk:['#6a5a7c','#9a89b2','#c9a04a']};
 
 /* Ten tones, not four. o outline, d shade, A body, B light, W highlight,
    C accent, c accent shade, and G/H/g for the grip, which is a second
@@ -1699,13 +1721,13 @@ const HERO=[".285o7.50o7j6Go6.44oG4g2G7g6o.43oGHG16go.43ogG9g7Ggo.43ogG3g14jo.43
   ".285o7.50o7j6Go6.44oG4g2G7g6o.43oGHG16go.43ogG9g7Ggo.43ogG3g14jo.43ogG2j13g2jo.43ogj3u11j2gjo.43oj3m12j4o.43oj2m14j3o.43o2um15uo2.45oum13uo.47oum13uo.47ou2m11u2o.47o3um9uo3.50oum7uo.53oum7uo.53oum6u2o.53oum4u4o.53oum2u6o.53oumu7o.47o6u11o5.39o3A2BA2eAeAeAeAeAeBA4eo3.36oB21A3e3o.35oAB18A7eo.35oAB16A9eo.35oAB13A10eAdo.35oABA2B7A12e3do.34oeA4BA18e3do.34oeA22e5do.33oeA19e8qo.33oeA17e7d3qo.33ode2dA10e3de6d4qo.33odq4d6q17o.33oqeq2cxcxcxcxcCcxcxcxcxcxcx2qdqo.32oq4CcCcCcCcCYZcCcCcCcCcCx2q3o.32oqu3x23u3o2.32oum2q5dqdqx4q9m2uo.33oum4uqedededq4d7qum3uo2.31ou6q19u6o.31oux3cxcxcxcxcxcxcxcxcxcxcxcx3uo.32oxc4CcCcCcCxcxc2CcCcCcCc3x2o.34o5x7o4x8o5.40og2Ggjo.4ogGg3jo.45oGH3Ggo.3oGH2G2go.45oGHG3go.3oGHG3go.45oG5go.3ogG4go.45ogG4go.3ogG4go.45ogG4go.3ogG4jo.45ogG4jo.3ogG3gjo.45ogG3gjo.3ogGg3jo.45ogGg3jo.3ojg4jo.45og5jo.3ojg4jo.45ojg4jo.3oj6o.45ojg4jo.3o8.45oj6o.56o8.225",
   ".285o7.50o7j6Go6.44oG4g2G7g6o.43oGHG16go.43ogG9g7Ggo.43ogG3g14jo.43ogG2j13g2jo.43ogj3u11j2gjo.43oj3m12j4o.43oj2m14j3o.43o2um15uo2.45oum13uo.47oum13uo.47ou2m11u2o.47o3um9uo3.50oum7uo.53oum7uo.53oum6u2o.53oum4u4o.53oum2u6o.53oumu7o.47o6u11o5.39o3A2BA2eAeAeAeAeAeBA4eo3.36oB21A3e3o.35oAB18A7eo.35oAB16A9eo.35oAB13A10eAdo.35oABA2B7A12e3do.34oeA4BA18e3do.34oeA22e5do.33oeA19e8qo.33oeA17e7d3qo.33ode2dA10e3de6d4qo.33odq4d6q17o.33oqeq2cxcxcxcxcCcxcxcxcxcxcx2qdqo.32oq4CcCcCcCcCYZcCcCcCcCcCx2q3o.32oqu3x23u3o2.32oum2q5dqdqx4q9m2uo.33oum4uqedededq4d7qum3uo2.31ou6q19u6o.31oux3cxcxcxcxcxcxcxcxcxcxcxcx3uo.32oxc4CcCcCcCxcxc2CcCcCcCc3x2o.34o5x7o4x8o5.40og4jo.4ogGg3jo.45oGH2G2go.3oGH3Ggo.45oGHG3go.3oGHG3go.45ogG4go.3oG5go.45ogG4go.3ogG4go.45ogG4jo.3ogG4go.45ogG3gjo.3ogG4jo.45ogGg3jo.3ogG3gjo.45ojg4jo.3ogGg3jo.45ojg4jo.3og5jo.45oj6o.3ojg4jo.45o8.3ojg4jo.56oj6o.56o8.214",
   ".32o.62oAo.60oABAo.58oAB3Ao.56oAB2A2eo.55oAB2A4eo.54ode2d5qo.49o4xcxcxcxcxcCo3.46oc3C9ZYCc2o.44oxC12YZcC2xo.42ox20o.39o3de4d5qdqdqd6eo3.35oA3BA5e16de2o.33odA7e21do.33ode2A2e9d6ede4q3o.34o3qd4e4d9q5o3.38o5d2q11o5.46o13.2969",
-  ".93o7.54o3A7o3.50oB2AB7A3o.47o2AB12A2o.45oB14A3eo.44oBWB9A6eo.43oB10A9eo2.41oAB7A12eo.41oAB6A13eo.40oAB5A16eo.39oAB4A17eo.39oAB3A18eo.39oABA12e9o.39oA12e10do.39oA10e12do.39oeA7e14do.38oeA6e16do.38oeA4e19do.37oeA3e17d2edo.37oeAe15d8o.37oe14d10qo.37oe12d12qo.37oqe8d15qo.36oq26o.36oqcxcxcxcxcxcxcxcxcxcxcxcx2o.36oqc24xqo.35o29.2321",
-  ".10o.63o3.39o2.21o2.16o7.15o2.23o4.10o3A7o2.11o2xo.23oc3o.8oA3B7A2o.9oc3o.23oxC2co2.5oAB8A4eo2.5o2cCcxo.24ocC2c2o.3oAB7A7e2o.3oC3co2.21o3.2ocC3co3AB6A11eo3C3co.3o2.19o4cC5x2AB6A13qxCYC3co5.21oxc2C3x3eB4AeA12d2xcC4cx2o.24oxc4x2e4d19cC2c3xo.26oxc4x2cxcxcxcxcxcxcxcxcxcxq2C2c3xo.28ox2c2xcCYZYC4ZYC4ZYC4q2cCcx2o.30o2xc4CYZcC3YZcC3YZcC3c4xo2.33ox27o.36o3d5qdqdqdqdq8o3.40ode12d5qo.43ode9d8qo.43ode7d10qo.43ode5d12qo.44od2q15o.45o19.2710",
-  ".86o21.43oB3A15o.43oB2AB14Ae2o.42ode14d5qo.41ox21o.40ox3Cx13Cx5o.39odAexe6xedededxdededo.39oAB2ABA12dA4eo.39oAB2A17e2do.39oA2eA14ede3do.39oq22do.39oeq20edo.39oq21edo.39oeA6e15qo.39oeA3ede14d2qo.39oq23o.39ox23o.39ox3Cx13Cx5o.39oq3xqdq17o.39ode2qe4d14qo.40ode4d15qo.42odq18o.43o21.2581",
-  ".95o2.62o2.62o2.53o2.6ox2o.6o2.44o2.6oc2o.6o2.44o2.5oC3co2.4o2.44o2.5ocC2co.5o2.44oco2.2oC5co2.2oc2o.43oc3o.ocC4co.2ocCco.43ocCYCocC3c4o2cCco.43ocC4cCx6Cc2C2cxo.42ocC5x3ed2x2C3c3xo.41ocC6xdAd3xc6xo.41oxc3C2cxd2x3c7xo.41ox9qx11o.41o23.3028",
-  ".31o2.62o2.61oA2o2.58oAB2eo.58oABAeo.57oABA3eo.55oABA5eo.53ode2d6qo.50o2xcxcxcxcxcx2o2.48ocC12c2o.47ocC13co.44o3x17o3.38o3e2ded5qdqdqdqd4qe2o2.34o2A8e15A2e3o3.30odeA7e21dqo.31o2d3eAe8d9e3dq3o2.33o3qd5e2d9q6o3.38o6q11o6.47o11.2906",
-  ".22o20.44oB4A2dc3x2eA5o.43oBWB4e2C4xB4A2eo2.41oeB5e2C3x2B2AeA2eo.41ode8C3cd8qo.40ox2Cx5CYZcCx5Cx4o.39ox23o.38oe2Ae6dcCx2ededededeqo.38oAB4A5x4A8e2o.38oABA9deA8e4o.37oA18e6do.37oeA14e9do.37oeA12e11qo.37oeA9e14do.37odA7e16qo.38oeA4e15d2qo.39oe19d3qo.39ode16d5qo.39ode13d8qo.39ode11d10qo.39ode8d13qo.39ode6d15qo.40od2e2d15q2o.42o2q17o2.45o17.2519",
-  ".156o9.53o2A9o2.50oA2B8Ae2o.48oAB8A5eo.46oB7A9eo.45oAB4A10eo.45oAB3A13eo2.43oAB2A14eo.44oABA9e8o.43oeA7ede8qo.43oqd5q13o.43oxcxcxcxcxcxcxcxcx3o.44oY2C4ZYC4ZYCcxo.45ox3C3cx2C3cx4o.42o3j2x15j2o2.40og2j2q15jGg2o.39ogG2jq15G3go.39ogGj2o14qG3go.39ogGgo.14ogG2jo.40ogGgo.13ogGgo.41ogGgo.13ogGgo.41ogjo2.13o2jgo.41o3.17o3.2516",
+  ".92o9.53o2A9o2.49o2B11A2o.47oB15Ao.45oBWB12A3eo.44oB11AB2A3eo.43oB10A4BA4eo.42oAB8A4B2A4do.41oB7AeABA4BA4e2o.40oAB5A2eABA3B2A4eA2o.39oAB4A3eABA4BA4eAeo.39oAB3A4eABA3eA5eAdo.39oABABA4e2BA2e9do.39oAeABA6BA2e9do.38oA2eABA5e13do.38oA2eABA4e15do.37oeAeABA3e16do.37oeA5e18do.37oeAe22do.37oeAe18d3edo.36oeA2e14d8qo.36oeAe13d12o.35ode11d14qo.35oq27o.35oxcx5cxcxcxcxcxcxcx6o.36oC4YZYZYZcCeCYZYZYC3YZY2o.35oxc2qexc5xdex2c5qexc3xo.34o30.2257",
+  ".9o2.43o.19o3.39o3.19ox2o2.14o7.14o2x2o.20oc2o.11o3d6Bo2.11oCc2o.21oxCxo.9oB2de2cx2e2A2o.9oxC2xo.22oxc2o2.6oAB3eYCx3B2Aeo.6o2x4o.19o2.2oxC2c2o3.2oAB3e2Zcx3A4eo2.2o2CcC2x2o.2o2.16o3.ocC2x3co2AB5eYCx3A5e2o2CxcC3xo.o2.20o2cC2xcCcx2AB5e2Zcx3A7qxYcx2c3xo.23oxc2xc2x3eB5d2YCx3A6d2x2C2x2c2xo.24oxcxc2x2e5d4C2x2d10C3cxcxo.26oxc4xC3cC7YZC6dCcx2c4xo.28ox2cxcCxAxcC4xAx2C4xdx2Cx3cx2o.30o2x2cx18dx4cx2o2.33ox3d2A2ded4qdqdqde2q3x3o.36o3qA6e12q2o3.40oeA3e14do.43oeA2e15qo.43oe14d4qo.43ode10d7qo.43ode10d7qo.43oB2WBWBWBWBWBWBWBWeo.45oq17o.45oq17o.45o19.2518",
+  ".24o16.48oB3A3d2A6o.47oAB5e3AB4Aeo.45oAB3e4Cx2e4A2eo.44ode5xZcx4d5qo.41o2x4cx4Ccx5cx4o2.39oxAdCYCeAdCYCeAdCYCedYZco.39ox23o.40ode3dedededededed4qo.41odeA15d3qo.41oxeA12e4x2o.42odA11e7q2o.40oxdeA8e8q3o.40ocxdA5e10q2Cxo.40oqxdA3e13q2xo.40oqxdqede12q3xo.40oCx2q17x2o.40ox5cx5cx5cx4o.40oxAdCYCeAdCYCeAdCYCedY2o.40ox7dx5dx9o.38oqdqdq4dq5dq9o.38ode4q2d3qd3qd3qd5qo.37od2q22o.37o28.2578",
+  ".95o2.62oxo.61oxo.51o2.7oCxo.7o2.42oxo.6oCxo.7o3.42o2.5oCcx2o2.4o2.44o2.5oCYc2o.5o2.44oxo2.2oCYcxCco2.2oYxo.43oc3o.oCYCcCco.2ocYxo.43ocCYCocCZc2C2co2cCYo.43ocC3YC4c3C2c2C3xo2.41oxC8c4C5c2xo.41oxC7c6C3c3xo.41oxYZcZYc14xo.41oxc2Yx2c3Yx2c3Yx2c2xo.41oxcxc2x2cxc2x2cxc2x2cxo.41ox21o.41o23.2900",
+  ".31o3.60oA3o.58oAB3Ao.57oAB2Ao.57oAB2e2Ao2.55oABA3Bqo.54oABA2eAdqo.53oded4ed2jo3.47o3xcxcxcxcxgGjg2o2.45oC2YZYZYZYZcj6o.44oxCcCcCcCcCcx2j5o.42o2x14j5xo3.36o3A2e4d4qdqdqj6e4o3.32oA3BA5e9dq5A2e2d2o.31odA7d16e7do.31odeqd25q3o.32o3q5d15q5o3.36o5q15o5.44o15.2904",
+  ".22o20.44oB4A2d6A6o.43oBWB4e2Ccx3AB3A2eo2.41oeB4e2CYCx4e3A2eo.41ode7cZcx4d6qo.40oxe2cxcxexYCcx3cxcxex2o.40ocAcZYCeAcZYCeAcZYCeAcYo.39ox24o2.37odA2e3dedcCx4ededed5o.37oABA7dededA7e3qo.37oA18e6do.37oeA14e9do.37oeA12e11qo.37oeA9e14do.37oeA7e16qo.38oB2WBe16d2qo.39ode18d3qo.39ode16d5qo.39ode13d8qo.39ode11d10qo.39ode8d13qo.39oq4e2q4d3q3d3q4o.40oq4dq5dq5dq3o2.42oxq4x2q4x2q4xo.45o18.2519",
+  ".156o9.53o2ed6A2o2.50oA2e3cx2e2Ae2o.48oAB3eYCx3eA3eo.46oB4e2Zcx3A5eo.45oAB4dYCx3A4eo.45oAB3Ad2Zcx3A5eo2.43oAB2A3dYCx3A5eo.44oABA3d2Ccx3e7o.43oeA4edcx3qe6qo.43oqd5q13o.43ox5cx7cx4o.44od2YZYZcd3YZYC3dCco.43oqx3Ccx2dxCcCx6o.40o3jx18gGo2.38og2Gqdq16G2g2o.37ogG2deq16gG2jo.37oxj3qo15qj4o.37ocxj2o.15ojCxjo.38oj3o.15oj3o.39oj3o.15oj3o.39ogjo2.15o2j2o.39o3.19o3.2515",
   ".1493o2.o17.38o6eo.oC14co.o.32o4x6BAoex15Aoeo7.25ox3A6B2A3eAeAeAeAeAeAeBAeAex4c2o2.23odeB17VB8A3e2dedxdo.25oAB7A2B16A4e2A3eqo.25oeA10B7VB2A3B2A3e7qo.25o2dA5d3AB4A3eB2A2dB2A3eq2e3qo2.27od2eAeqg3e2d6edeAeB2A2eqo2q3o.30o2qe2qjg6d2x5d2A3edo.2o4.32odqo2j3g4x6d2q5o.38o3.2oqj6x5g5q2o.43oeAd5x5j2gG2gjo.43oeA2d4x5j8o.42odA3Bd3qdqdqdqdqj2o2.43oeAe14qo.45oe14d2qo.42o3de12d5qo2.43ode9d6qo.43o2de8d9qo.41ox2e7d11qxo.40ode5d15qo.40oq23o.38o26.1107",
   ".1495o19.43o2cC15xco.37o6e2Ax17eo.34o2x5de2Ae11Ae4A2qo5.29oxA4eAj2g3de2ABABWA2B2AWA3x5o5.24oe2B4j4g2jd3AeAeA10dedex4o.25odA3qdqj3G3gdq7A2d2A8d2qo.25o2dA3ded3j3g2x5dABABWA6e3dqo.27odq2oqeqedj4x5deqeqA4e6qo.28o4.oqBA3ej2x2Cx2eAedBA2e6dqo2.33oeA5d2x5g2d2AeAd3e2q2o.34o2qeA2d4x5jg2qdq5dqo3.36oeBABWededA2j3g2jq2o3qo.39oeAeA8d2j2G2go.3o2.39oqed3A5d5j3o.43oABABWeABABABWeAedj2do.42o2eAqed4qdqed4qd2o.44oe2A3BWA2eAeWBWAeo.45oe2A7e2AeA3eo.44odqeA2d3Aqed5A2eo.42odABABABWeABABWBWeAdqo.41od5qeqed4qeqeded3o2.39oeAWBWA4BWBWA4BWe2q2o.38o4d2e4dedede3ded3o3.42o19.1046",
   ".1502o5.59ox2o.51o9C3xo9.42oB4A2dxC4xA6eo.40o2AB7xcC2x2B4A3eo2.37oB11x4dAB2A3BAe2o2.33o2AB10d2q3dAB2A2B2A3e2o.30o2B13d5A3BA3BA5eo.29oAB10A2e2d5AeABAB2A5eo.29oAB6A3BA2eAd4A2eABA2BA6qo.28oAB3ABA3B2A2eAd3A3eABAe4Ae2Aeo.28oAB2A7BA2eA2d3A2eAe10qo.28oA8eABA4d4e14do.28oeA6e3BA2e2d5e13qo.28odAd9q21do.30oeAdx4cxcxcxcxcxcxcxcxcxcx4q2o.30oeqx3C22x3q2o.30odeqcC23x2qdqo.30ode2x18C4x4qdqo.30od3q4dqdq11C3x2q6o.30o5de7d8qC2x3q3o4.35ode5d9qx4q3o.38oqd2q21o.37o28.1106",
@@ -1715,9 +1737,10 @@ const HERO=[".285o7.50o7j6Go6.44oG4g2G7g6o.43oGHG16go.43ogG9g7Ggo.43ogG3g14jo.43
   ".2646o9.2o10.43od2x4qo.2od2x4qo.44odx2d2x2qo.odx2d2x2qo.43ox2d4x2o.ox2d4x2o.43oxd2x2d2xo.oxdx3d2xo.43oxdx4dxo.oxdx4dxo.43oxd2x2d2xo.oxd2x2d2xo.43ox2d4x2o.ox2d4x2o.43ox3d2x2qo.ox3d2x2qo.43odx6qo.oex6qo.43oqdqdqdqo.2oq2dqdedqo.43oqe6qo.ode6qo.43oq2e4q2o.oqe4dq2o.43oqe4dq2o.oqe4dq2o.43ode3d3qo.ode3d3qo.43od7qo.oded5qo.43oq8o.oq8o.42oxcxcxcxcxcox2cxcxcxc2o.41oCYCYCYCYCYCYCYCYCYCYco.41o23.212",
   ".3030o9.2o9.44og3jxj3o.og4jxjo.45o2H2Ggo2.3o2GKHo2.48oHgo.7oHo.50oG2o.7oHo.48o7.4o7.45o2.5o2.2o2.5o2.44oeo5j2o.odo5j2o.43oe7qo.ode5Aqo.43oeA2e4qo.odA3edeqo.43oq8o.oq8o.42oxcxcxcxcxcox2cxcxcxc2o.41oCYCYCYCYCYCYCYCYCYCYco.41o23.212",
   ".2777o3.8o3.47o3Gg2o4.o3G3o4.42oG2H4G2HGoG2H4G2HGo.41oGH9GH8Go.42ogG5HGgjogGH2G4go.43oj3G2j3o.oj2G2j4o.43oe2j4dqo.odej4eqo.43oded3Aeqo.oeAd4Aqo.43oqd5q2o.oqd5q2o.43oj2gjx4goj2gjgxcx2o.43oH2Kgx4KGKHKHGcC2co.43oj5x3joj6xCco.43oqdq3x3o.oq2dqx4o.43oded3q3o.od2edq4o.43oq8o.oq8o.42oxcxcxcxcxcox2cxcxcxc2o.41oCYCYCYCYCYCYCYCYCYCYco.41o23.212",
-  ".750o4.59ocCc2o.57oYZ3Cco.56oYZ2Cco.57oYZ2C2xo.56ocCc3xo.56oxc4xo.57oxc2xo.58ox3o.59ojgo.60ojGo.60oGHjo.59oGHGo.59oGHjo.59oGgo.60oGgo.60oGgo.60oGgo.60og2o.60og2o.60og2o.60og2o.60og2o.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojgjo.59oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60oj2o.60ojgo.59ojGo.60ojgjo.59ojHjo.59ojgjo.59ojHjo.59o2jgo.61o3.144",
+  ".114o.61o2co2.58oCYZc2o2.55oCYZ3Cco.55ocCZ2C3xo.54ocC2c2Ccxo.54oxC2c3xo.56oxc4xo.56ox6o.56ox2gxo2.58oG2o.60oG2o.60oGHgo.59oG2go.59oGgo.60og2o.60og2o.59ojGgo.59ojGgo.59ogG2o.59ojKHo.59ogGHo.59ogHo.60oH2o.60og2o.60oHGo.60ojKHo.59oHKHo.59oH2o.60oj2o.60ojHjo.59ojgjo.59oj2o.60oj2o.60ojo.60oxcxo.59oc2o.60oc2xo.58ox4o.59og2jo.59oGHjo.59ojHGo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ogGgo.59ogGjo.59ogGgo.59ogGjo.59og2jo.59oj2o.60oj2o.60oj2o.59ojgjo.59ojgjo.59oj2o.60oxcxo.59ocCco.59ocCcxo.58o2x2o2.60o2.79",
   ".2577o5.21o5.32ou5o.19ou5o.30ou6o.19ou5o.30oum5uo.17oum5uo.29ou7o.17ou7o.30oum3uo.19oum3uo.31ou5o.19ou5o.32o5.21o5.1040",
-  ".26o2.3o2.4o.52o.4oCo.3o.52o.4oco.3o.52o2.3oco.3o2.45o2.4o2.3oxo.3o2.3o2.40oqo.2oco.3oxo.2oCo.3oqo.39oqo.2oCco.2oxo.2ox2o.2oqo.39oxo.2ox2o.oCxo.2oCxo.2oxo.39oxo.2oCxo.ox3o.ox2o.2oxo.38ox2o.2ox2o.ocx2o.oCxo.ox2o.38oCcCo2C2cYoYc2xYoc3xoc2xo.38ox2YC2Yc2YcCc3CcCc4Cc2xo.37oc2CcCYc3C2c3C2c5Cc2xo.37ox2cx4cYC2x2cCc3x3c3xo.37oYcC3x3Zx4cZc2x5c2xo.38ox3ed2x4Ad2x4ed2x3o.39ox2eAd3x2d5x2eAd3x2o.39ox3q3x4q3x4q3x3o.39o25.2899"];
+  ".26o2.3o2.4o.52o.4oCo.3o.52o.4oco.3o.52o2.3oco.3o2.45o2.4o2.3oxo.3o2.3o2.40oqo.2oco.3oxo.2oCo.3oqo.39oqo.2oCco.2oxo.2ox2o.2oqo.39oxo.2ox2o.oCxo.2oCxo.2oxo.39oxo.2oCxo.ox3o.ox2o.2oxo.38ox2o.2ox2o.ocx2o.oCxo.ox2o.38oCcCo2C2cYoYc2xYoc3xoc2xo.38ox2YC2Yc2YcCc3CcCc4Cc2xo.37oc2CcCYc3C2c3C2c5Cc2xo.37ox2cx4cYC2x2cCc3x3c3xo.37oYcC3x3Zx4cZc2x5c2xo.38ox3ed2x4Ad2x4ed2x3o.39ox2eAd3x2d5x2eAd3x2o.39ox3q3x4q3x4q3x3o.39o25.2899",
+  ".1644o2.60o2Ao.58o2A2BAo2.55oA2B2A2eo.55oeA5eo.55odA6eo.55odA4eo.56oeA5eo2.55odA3e3o.55ode5do.56ode4do.56ode5do.56ode5do.55odeq5o.56oq2u3o.57oqum3uo.57ou5o.57oum4uo.56oum4uo.56ou6o.57ou4o.59o4.1101"];
 
 /* [name, category, rarity, silhouette, palette, grip, material, accent material] */
 const GEAR=[
@@ -2303,7 +2326,7 @@ function drawDoll(){
  const eq=S.eq||{};
  const off=eq.off&&BYID[eq.off]?BYID[eq.off]:null;
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
- const SP=n*0.74, X0=Math.round(n*0.11), Y0=Math.round(n*0.14);
+ const SP=n*0.62, X0=Math.round(n*0.08), Y0=Math.round(n*0.20);
  const hdq=S.eq&&S.eq.head&&BYID[S.eq.head]?BYID[S.eq.head]:null;
  if(hdq&&auraOf(hdq))
   drawHalo(q,hdq,X0+SP*HEAD_A[0],Y0+SP*HEAD_A[1],SP*0.30,performance.now());
@@ -2314,6 +2337,8 @@ function drawDoll(){
  if(hand){
   if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,1,performance.now());
   wield(q,hand,WEAPON_A,X0,Y0,SP,1);
+  const sl=S.eq.body&&BYID[S.eq.body]?BYID[S.eq.body]:HERO_PAL;
+  q.drawImage(heroLayer(23,sl),X0,Y0,SP,SP);
  }
  q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
 }
