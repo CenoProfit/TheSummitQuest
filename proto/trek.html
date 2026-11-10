@@ -215,10 +215,15 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .vtrack{height:7px;margin-top:4px;border-color:var(--edge)}
 .vfill{height:100%;width:100%;background:linear-gradient(#9fd8ff,#3f86c8);
  transition:width .4s ease-out}
-#bbanner{position:fixed;left:0;right:0;top:0;z-index:28;pointer-events:none;
- padding:16px 14px calc(16px + env(safe-area-inset-top));text-align:center;
- background:linear-gradient(rgba(60,14,10,.94),rgba(60,14,10,.0));
- opacity:0;transform:translateY(-14px);transition:opacity .35s,transform .35s}
+/* A full width gradient off the top of the screen landed straight on
+   the HUD frame and made both unreadable. It is a plate under the frame
+   instead, in the empty sky where there is nothing to collide with. */
+#bbanner{position:fixed;left:14px;right:14px;top:27%;z-index:28;pointer-events:none;
+ padding:13px 12px;text-align:center;
+ background:rgba(38,9,7,.90);border:2px solid #7a2a1e;
+ box-shadow:0 0 0 2px rgba(3,6,11,.9),4px 4px 0 2px rgba(0,0,0,.45);
+ opacity:0;transform:translateY(-10px) scale(.96);
+ transition:opacity .3s,transform .3s cubic-bezier(.2,1.5,.5,1)}
 #bbanner.on{opacity:1;transform:none}
 .bbname{display:block;font-family:var(--pix);font-size:11px;letter-spacing:3px;
  color:#ffb49a;text-shadow:2px 2px 0 rgba(0,0,0,.8);line-height:1.7}
@@ -2267,28 +2272,28 @@ const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
    vigour and the thing gets away. Losing costs you nothing you had,
    which is the whole point, because the steps were real. */
 const BOSS=[
- {n:'THE BLOOD MOUNTAIN WARDEN', p:0, m:'ash',  gm:'moss',   from:18, tier:2,
+ {n:'THE BLOOD MOUNTAIN WARDEN', p:0, m:'ash',  gm:'moss',   from:2, tier:2,
   air:0, hp:180, atk:9, sz:1.00,
   w:'The stone shelter on the summit got up. Every block the CCC set, walking.'},
  {n:'THE LAUREL HELL',           p:1, m:'moss', gm:'wood',   from:0,  tier:1,
   air:0, hp:100, atk:6, sz:0.94,
   w:'A rhododendron thicket closed over the trail and never opened again.'},
- {n:'THE BLY GAP OAK',           p:2, m:'moss', gm:'wood',   from:74, tier:6,
+ {n:'THE BLY GAP OAK',           p:2, m:'moss', gm:'wood',   from:24, tier:6,
   air:0, hp:540, atk:27, sz:1.10,
   w:'The most photographed tree on the trail has had enough of being looked at.'},
- {n:'THE NANTAHALA HOARFROST',   p:3, m:'frost',gm:'silver', from:88, tier:7,
+ {n:'THE NANTAHALA HOARFROST',   p:3, m:'frost',gm:'silver', from:40, tier:7,
   air:0, hp:630,atk:33, sz:1.04,
   w:'Rime kept accreting on the high balsams until one of them stood up.'},
- {n:'THE GORGE LEVIATHAN',       p:4, m:'sea',  gm:'jade',   from:62, tier:5,
+ {n:'THE GORGE LEVIATHAN',       p:4, m:'sea',  gm:'jade',   from:15, tier:5,
   air:0, hp:440, atk:22, sz:1.06,
   w:'What is under the water at Three Forks when the water is high.'},
- {n:'THE STORM OVER TRAY',       p:5, m:'storm',gm:'ash',    from:50, tier:4,
+ {n:'THE STORM OVER TRAY',       p:5, m:'storm',gm:'ash',    from:10, tier:4,
   air:1, hp:350, atk:18, sz:1.16,
   w:'An afternoon thunderhead that has been following the ridge since Unicoi.'},
- {n:'THE RIDGE WYRM',            p:6, m:'obsid',gm:'blood',  from:98, tier:8,
+ {n:'THE RIDGE WYRM',            p:6, m:'obsid',gm:'blood',  from:60, tier:8,
   air:1, hp:750,atk:39, sz:1.02,
   w:'It keeps to the thermals over the Nantahalas and comes down for a reason.'},
- {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   from:32, tier:3,
+ {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   from:6, tier:3,
   air:1, hp:260, atk:13, sz:0.98,
   w:'A vulture that has been on this ridge long enough to feel it is owed.'}];
 
@@ -2301,13 +2306,26 @@ function _seedrnd(seed){ let x=seed>>>0;
    prototype can reach, and nudged clear of a landmark so a boss and a
    chest never land on the same step. */
 const BSCHED=(()=>{
- const r=_seedrnd(0x5EED17), out=[]; let m=1.1;
+ const r=_seedrnd(0x5EED17), out=[]; let m=1.1, last=-1;
  while(m<260){
-  const elig=[]; for(let i=0;i<BOSS.length;i++) if(BOSS[i].from<=m) elig.push(i);
+  let elig=[]; for(let i=0;i<BOSS.length;i++) if(BOSS[i].from<=m) elig.push(i);
   elig.sort((a,b)=>BOSS[a].tier-BOSS[b].tier);
+  /* never the same thing twice running, as long as there is a choice */
+  if(elig.length>1) elig=elig.filter(i=>i!==last);
+  /* About one in six is something from further up the trail that has
+     come down. Without this the tier gate and the gear curve rise
+     together and nothing ever gets away from you: 73 fights in the
+     first 110 miles, 73 wins. This is where the losses live. */
+  if(r()<0.16){
+   const ceil=Math.max.apply(null,elig.map(i=>BOSS[i].tier));
+   const over=BOSS.map((b,i)=>i).filter(i=>BOSS[i].tier>ceil)
+                  .sort((a,b)=>BOSS[a].tier-BOSS[b].tier).slice(0,2);
+   if(over.length) elig=over;
+  }
   /* weighted to the strongest thing that lives this far up the trail */
   const k=Math.min(elig.length-1,
                    Math.floor(elig.length*(0.42+r()*0.70)));
+  last=elig[k];
   let mm=m, guard=0;
   while(guard++<6 && TRAIL.some(L=>Math.abs(L.m-mm)<0.30)) mm+=0.40;
   out.push({m:Math.round(mm*100)/100, b:elig[k]});
@@ -2321,8 +2339,20 @@ function nextBoss(mi){ for(const B of BSCHED) if(B.m>mi) return B; return null; 
    Damage is quoted per hundred steps because that is the unit a walker
    thinks in, and divided down at the point of use. */
 function myDPS(t){ return (t.atk*0.55+t.mag*0.45)*(1+t.spd/100); }
-function bossDPS(B,t){ return B.atk*100/(40+t.def); }
 function myVigour(t){ return 80+t.def*6; }
+/* Eight creatures have to cover 2,197 miles, so the same creature is
+   bigger the further north you meet it. Without this the roster tops
+   out around mile 25 and nothing ever gets away again: 79 fights in the
+   first 110 miles, one loss. Both curves flatten, because a full set of
+   legendaries is only about twice a starting walker and an uncapped
+   ramp would mean losing every fight in Virginia. */
+/* Tuned by sweeping both divisors and averaging eight runs each, because
+   a single run is noisy: one early loss changes the gear curve and every
+   fight after it. These give about 11 percent of fights getting away,
+   12/7/19 percent across the first, second and third hundred miles. */
+function bossHP(B,mi){ return B.hp*(1+Math.min(2.6,mi/280)); }
+function bossATK(B,mi){ return B.atk*(1+Math.min(1.8,mi/320)); }
+function bossDPS(B,t,mi){ return bossATK(B,mi)*100/(40+t.def); }
 /* which body slot each category fills */
 /* ---------- the cairn ----------
    A piece you already own is left at the cairn and you take a stone for
@@ -3015,7 +3045,7 @@ function hud(){
    resolving all of it against the mile you happened to land on. */
 function addSteps(n){
  n=Math.max(0,n|0);
- while(n>0){ const take=Math.min(n,400); advance(take); n-=take; }
+ while(n>0){ const take=Math.min(n,120); advance(take); n-=take; }
  if(chestQ.length && !anim) setTimeout(startChest,1100);
  if(fightQ.length && !anim) setTimeout(showFightEnd,900);
 }
@@ -3040,21 +3070,25 @@ function advance(n){
 /* ---- the fight ---- */
 let fightQ=[], banner=null;
 function startFight(sch){
- const B=BOSS[sch.b], v=myVigour(loadout());
- S.fight={b:sch.b,m:sch.m,hp:B.hp,hp0:B.hp,vig:v,vig0:v,steps:0,close:1};
+ const B=BOSS[sch.b], v=myVigour(loadout()), hp=bossHP(B,sch.m);
+ S.fight={b:sch.b,m:sch.m,hp:hp,hp0:hp,vig:v,vig0:v,steps:0,close:1};
  banner={b:sch.b,t0:performance.now()};
  save();
 }
 function fightTick(n){
  const F=S.fight, B=BOSS[F.b], t=loadout();
- F.hp -= myDPS(t)*n/100;
- F.vig-= bossDPS(B,t)*n/100;
- F.steps+=n;
+ const my=myDPS(t)/100, th=bossDPS(B,t,F.m)/100;
+ /* Both sides are linear in steps, so the exact step it ends on can be
+    solved for. Stepping the chunk and then testing reported every fight
+    as a round multiple of the chunk size. */
+ const toKill=my>0?F.hp/my:Infinity, toDrop=th>0?F.vig/th:Infinity;
+ const end=Math.min(toKill,toDrop);
+ const take=Math.min(n,end);
+ F.hp-=my*take; F.vig-=th*take; F.steps+=take;
  /* it closes with you as it goes, which is what puts it on the screen
     at a size worth looking at by the end */
  F.close=Math.max(0.30,1-F.steps/2200);
- if(F.hp<=0) endFight(true);
- else if(F.vig<=0) endFight(false);
+ if(end<=n) endFight(toKill<=toDrop);
 }
 function endFight(won){
  const F=S.fight, B=BOSS[F.b];
@@ -3062,10 +3096,17 @@ function endFight(won){
  let gain=0, got=null;
  if(won){
   S.beat=S.beat||{}; S.beat[B.n]=(S.beat[B.n]|0)+1;
-  gain=14+B.tier*11; S.stones=stones()+gain;
-  /* a boss is the other way to a good piece, and the only way that does
-     not go through the cairn */
-  if(Math.random()<0.55){ got=roll(Math.min(4,1+Math.round(B.tier*0.55))); grant(got); }
+  /* A boss pays in gear, not in stones. There are about 1,450 of them
+     over the whole trail, so any flat stone reward dwarfs the duplicate
+     economy the cairn was tuned against: a flat 14+tier*11 paid out
+     3,700 stones in the first 110 miles alone, against the 1,458 a
+     FULL thru hike of duplicates is worth. A repeat piece converts at
+     the cairn on its own, so bosses still feed it, at the rate
+     everything else does. */
+  if(Math.random()<0.40){
+   got=roll(Math.min(4,1+Math.round(B.tier*0.55)));
+   const before=stones(); grant(got); gain=stones()-before;
+  }
  }
  S.log=S.log||[];
  S.log.push({f:1,b:F.b,day:S.day,m:F.m,won:won?1:0,st:gain,
@@ -3087,9 +3128,12 @@ document.getElementById('brst').onclick=()=>{
 function bannerTick(now){
  const el=document.getElementById('bbanner');
  if(!banner){ el.classList.remove('on'); return; }
+ /* a chest can land on the same stretch of trail; the banner waits
+    rather than showing under the dimmed overlay nobody can read it on */
+ if(anim||bend.classList.contains('open')){ banner.t0=now; el.classList.remove('on'); return; }
  const t=now-banner.t0;
- if(t<60){ document.getElementById('bbname').textContent=BOSS[banner.b].n;
-           el.classList.add('on'); }
+ if(t<160){ document.getElementById('bbname').textContent=BOSS[banner.b].n;
+            el.classList.add('on'); }
  if(t>3600){ el.classList.remove('on'); if(t>4200) banner=null; }
 }
 const bend=document.getElementById('bend');
@@ -3109,9 +3153,9 @@ function showFightEnd(){
         +'count; they always do.';
  const g=r.i?BYID[r.i]:null;
  document.getElementById('bgain').innerHTML=
-  (r.won?('\u25b2 '+r.st+' STONES<br>'
-          +(g?'TOOK \u00b7 <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()
-               +'</b><br>':'')):'')
+  (r.won?((g?'TOOK \u00b7 <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()
+               +'</b><br>':'IT CARRIED NOTHING<br>')
+          +(r.st?'\u25b2 '+r.st+' STONES AT THE CAIRN<br>':'')):'')
   +Math.round(r.steps).toLocaleString()+' STEPS';
  bend.classList.add('open');
 }
@@ -3322,9 +3366,10 @@ function drawJournal(){
      +Math.round(en.steps||0).toLocaleString()+' STEPS</div>';
    h+='<div class="jw">'+(en.won?B.w:'It outlasted you. The miles still counted.')
      +'</div>';
-   if(en.won) h+='<div class="jg">\u25b2 '+en.st+' STONES'
-     +(g?' &middot; TOOK &middot; <b style="color:'+RAR[g[2]][1]+'">'
-          +g[0].toUpperCase()+'</b>':'')+'</div>';
+   if(en.won) h+='<div class="jg">'
+     +(g?'TOOK &middot; <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()+'</b>'
+        :'CARRIED NOTHING')
+     +(en.st?' &middot; \u25b2 '+en.st+' STONES':'')+'</div>';
    d.innerHTML=h; G.appendChild(d); continue;
   }
   const L=TRAIL.find(t=>t.m===en.m); if(!L) continue;
