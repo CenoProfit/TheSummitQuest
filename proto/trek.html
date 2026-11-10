@@ -515,6 +515,63 @@ function terrainH(wx,wy){
  return h;
 }
 
+/* ---- tarns ----
+   Water sits in the hollows off the trail. A lake is a flat surface, so
+   the terrain under one is raised to the waterline and flagged, which
+   is cheaper and steadier than trying to shade a sloping bed as if it
+   were liquid: the flatness is what makes the eye read water.
+
+   Candidates are gathered once per tile rather than tested per pixel,
+   because working out a lake's level means sampling the terrain at its
+   centre and that is far too expensive to do four thousand times. */
+const TARN=2100;
+function tarnsNear(ox,oy){
+ const out=[];
+ const j0=Math.floor((oy-320)/TARN), j1=Math.floor((oy+TILE+320)/TARN);
+ for(let k=j0;k<=j1;k++){
+  if(hash(k*31337)>0.34) continue;                 // not every hollow has one
+  const cy=k*TARN+(hash(k*5003)-0.5)*1500;
+  const side=hash(k*7717)<0.5?-1:1;
+  const cx=trailX(cy)+side*(110+hash(k*911)*130);
+  const R=52+hash(k*1223)*44;
+  if(cx+R<ox-2||cx-R>ox+TILE+2) continue;
+  /* The surface has to sit ABOVE most of the basin or nothing floods.
+     Taking the lowest ground nearby and adding a few units, as a first
+     attempt did, drowns a sliver at the bottom of the bowl and leaves
+     the rest dry. The level comes off the centre instead, and a tarn is
+     refused outright where the ground is not flat enough to hold one. */
+  const hc=terrainH(cx,cy);
+  let lo=1e9, hi=-1e9;
+  for(let a=0;a<8;a++){
+   const th=a*0.785;
+   const hv=terrainH(cx+Math.cos(th)*R*0.62,cy+Math.sin(th)*R*0.62);
+   if(hv<lo)lo=hv; if(hv>hi)hi=hv;
+  }
+  if(hi-lo>30) continue;                 // a hillside, not a hollow
+  out.push({cx,cy,R,lev:hc+1.5,k});
+ }
+ return out;
+}
+/* Returns how much of the water surface applies here, 0 outside and 1
+   well inside, feathered over the last stretch so the shore meets the
+   bank instead of cutting a step into it. Waiting for the terrain to
+   dip below a level of its own accord does not work: at this noise
+   amplitude a seventy unit basin is never flat enough and all that
+   floods is a sliver. The tarn imposes its surface instead. */
+function tarnAt(TN,wx,wy,grow){
+ for(const t of TN){
+  const dx=wx-t.cx, dy=wy-t.cy;
+  const a=Math.atan2(dy,dx);
+  /* a wobbly edge, so it is a tarn and not a coin */
+  const rr=t.R*(grow||1)*(1+0.17*Math.sin(a*3+t.k)+0.09*Math.sin(a*5-t.k*2));
+  const d2=dx*dx+dy*dy;
+  if(d2>=rr*rr) continue;
+  const u=Math.sqrt(d2)/rr;
+  return {t, f:u<0.82?1:(1-u)/0.18, d:1-u};
+ }
+ return null;
+}
+
 /* ===================================================================
    TILES — height, colour and scenery, baked once per patch of world
    =================================================================== */
@@ -534,8 +591,21 @@ function buildTile(tx,ty){
   return (G[o]*(1-tu)+G[o+1]*tu)*(1-tv)+(G[o+GN]*(1-tu)+G[o+GN+1]*tu)*tv;
  };
  const Hh=new Float32Array(TILE*TILE);
- for(let j=0;j<TILE;j++)for(let i=0;i<TILE;i++)
-  Hh[j*TILE+i]=gAt(i,j)+(hash(((ox+i)*73856+(oy+j)*19349)|0)-0.5)*0.55;
+ const TN=tarnsNear(ox,oy);
+ const WET=TN.length?new Uint8Array(TILE*TILE):null;
+ const WDP=TN.length?new Float32Array(TILE*TILE):null;
+ for(let j=0;j<TILE;j++)for(let i=0;i<TILE;i++){
+  const k=j*TILE+i;
+  let h=gAt(i,j)+(hash(((ox+i)*73856+(oy+j)*19349)|0)-0.5)*0.55;
+  if(TN.length){
+   const w=tarnAt(TN,ox+i,oy+j);
+   /* 1 is water, 2 is the bank: still dry, but nothing grows on it,
+      so the forest stops short of the edge instead of standing in it */
+   if(w){ h=h*(1-w.f)+w.t.lev*w.f; if(w.f>0.55){ WET[k]=1; WDP[k]=w.d; } else WET[k]=2; }
+   else if(tarnAt(TN,ox+i,oy+j,1.16)) WET[k]=2;
+  }
+  Hh[k]=h;
+ }
 
  /* cast shadow: one scan per row, carrying the highest horizon seen so
     far and decaying it by the sun's slope. A ridge that throws no shadow
@@ -572,7 +642,32 @@ function buildTile(tx,ty){
    const fine =fbm(wx*0.075,wy*0.075);
    const dpx=Math.abs(wx-cx);
    let col;
-   if(dpx<TRAILW*(0.9+grain*0.4)){
+   let wet=0;
+   if(WET&&WET[k]===1){
+    /* Water: a still surface, not a slope. It is banded across the
+       wind rather than shaded by the terrain normal, because a lake
+       lit by the same lambert as the hillside comes out flat grey.
+       The lighting passes below are damped for these pixels. */
+    wet=1;
+    const rip=Math.sin(wy*0.42+Math.sin(wx*0.17)*2.4)*0.5+0.5;
+    const rip2=Math.sin(wy*1.31-wx*0.29)*0.5+0.5;
+    /* depth: dark in the middle, shallow and warm at the bank */
+    const dep=Math.max(0,Math.min(1,(WDP[k]-0.10)/0.60));
+    let deep=_mix(_rgb('#3f87a6'),_rgb('#10293f'),dep*0.88);
+    deep=_mix(deep,_rgb('#8fc4d8'),rip*0.16+fine*0.10);
+    col=sh(deep,-0.05+rip*0.13+rip2*0.07);
+    const edge=(i>0&&WET[k-1]!==1)||(i<TILE-1&&WET[k+1]!==1)
+             ||(j>0&&WET[k-TILE]!==1)||(j<TILE-1&&WET[k+TILE]!==1);
+    if(edge) col=sh(_mix(deep,_rgb('#d8ecf4'),0.52),0.10);
+    else if(dep<0.22&&hash((wx*17+wy*53)|0)<0.11) col=sh(col,0.30);
+    else if(rip>0.86&&hash((wx*31+wy*17)|0)<0.30) col=sh(col,0.52);
+    else if(hash((wx*131+wy*7)|0)<0.012) col=sh(col,0.80);
+   }else if(WET&&WET[k]===2){
+    /* the bank: wet gravel and grass, darker right at the line */
+    const g4=_mix(_rgb('#8a8372'),_rgb('#b6ae97'),fine*0.8);
+    col=sh(_mix(g4,B.gnd,0.20+grain*0.26),-0.10+(fine-0.5)*0.40);
+    if(hash((wx*53+wy*29)|0)<0.16) col=sh(col,-0.26);
+   }else if(dpx<TRAILW*(0.9+grain*0.4)){
     const e=dpx/(TRAILW*(0.9+grain*0.4));
     col=sh(_mix(_mix(B.pth,_rgb('#6b5a46'),alp*0.55),rock,0.18),
            -0.06-e*0.50+(fine-0.5)*0.30);
@@ -597,11 +692,14 @@ function buildTile(tx,ty){
     col=sh(_mix(B.cnp,B.fst,grain*0.6),-0.24+(fine-0.5)*0.30);
    }else col=sh(_mix(B.gnd,B.gn2,grain),(fine-0.5)*0.34);
 
-   /* altitude, light, then the shadow of whatever is uphill */
-   col=_mix(sh(col,-0.26),col,Math.pow(0.25+open*0.75,0.55));
-   col=sh(col,Math.max(-0.50,Math.min(0.60,(lam-0.56)*1.95)));
+   /* altitude, light, then the shadow of whatever is uphill. Water
+      takes only a sliver of each: it is its own surface, and running
+      the hillside lambert over it washes it out to grey. */
+   const lw=wet?0.16:1;
+   col=_mix(sh(col,-0.26*lw),col,Math.pow(0.25+open*0.75,0.55));
+   col=sh(col,Math.max(-0.50,Math.min(0.60,(lam-0.56)*1.95))*lw);
    const s2=SHD[k];
-   if(s2>0.01) col=_mix(col,sh(col,-0.46),Math.min(0.66,s2*0.80));
+   if(s2>0.01) col=_mix(col,sh(col,-0.46),Math.min(0.66,s2*0.80)*(wet?0.35:1));
    C[k]=0xff000000|((col[2]|0)<<16)|((col[1]|0)<<8)|(col[0]|0);
   }
  }
@@ -612,6 +710,7 @@ function buildTile(tx,ty){
   const wx=ox+i, wy=oy+j;
   const r=hash((wx*1709+wy*7919)|0); if(r>0.26) continue;
   const cxx=trailX(wy); if(Math.abs(wx-cxx)<TRAILW*2.1) continue;
+  if(WET&&WET[j*TILE+i]) continue;
   const k=j*TILE+i, h=Hh[k];
   const open=Math.max(0,Math.min(1,(h-52)/145));
   const mi=Math.max(0,mileOfRow(wy)), alp=alpineAt(mi);
