@@ -67,20 +67,32 @@ def body(step):
     return dump(softline(outline(g)))
 
 def H_crown_grand():
-    """the legendary crown, worn: the classic circlet, five points"""
+    """The legendary crown, worn. The first attempt put five short points
+       close together and the modelling pass merged them into one lump;
+       at this size a crown is its gaps, so the points are taller, wider
+       apart, and each one carries a lit edge to hold it off its
+       neighbour."""
     g = blank()
-    pts = [(CX-12, HEAD_Y+2), (CX-9, HEAD_Y-6), (CX-6, HEAD_Y-1),
-           (CX-3, HEAD_Y-10), (CX, HEAD_Y-4), (CX+3, HEAD_Y-10),
-           (CX+6, HEAD_Y-1), (CX+9, HEAD_Y-6), (CX+12, HEAD_Y+2)]
-    poly(g, pts + [(CX+12, HEAD_Y+7), (CX-12, HEAD_Y+7)], 'C')
-    poly(g, [(CX-12, HEAD_Y+1), (CX+12, HEAD_Y+1),
-             (CX+12, HEAD_Y+7), (CX-12, HEAD_Y+7)], 'C')
+    TOPS = ((-11, -8), (-5.5, -13), (0, -16), (5.5, -13), (11, -8))
+    VAL = HEAD_Y - 2
+    pts = [(CX - 12.5, HEAD_Y + 3)]
+    for (dx, dy) in TOPS:
+        pts += [(CX + dx - 2.0, VAL), (CX + dx, HEAD_Y + dy), (CX + dx + 2.0, VAL)]
+    pts.append((CX + 12.5, HEAD_Y + 3))
+    poly(g, pts, 'C')
+    poly(g, [(CX - 12.5, HEAD_Y + 1), (CX + 12.5, HEAD_Y + 1),
+             (CX + 12.5, HEAD_Y + 7), (CX - 12.5, HEAD_Y + 7)], 'C')
     g = model(g)
-    for (px, top) in ((CX-9, HEAD_Y-6), (CX-3, HEAD_Y-10), (CX+3, HEAD_Y-10), (CX+9, HEAD_Y-6)):
-        stud(g, px, top + 0.8, 1.6, 'A', 'W')
-    line_on(g, CX-12, HEAD_Y+2, CX+12, HEAD_Y+2, 'Z', 'C', 0.9)
-    line_on(g, CX-12, HEAD_Y+6, CX+12, HEAD_Y+6, 'x', 'C', 0.9)
-    for gx in (-7, 0, 7): gem(g, CX + gx, HEAD_Y + 4, 2.4, 'A', 5)
+    for (dx, dy) in TOPS:
+        line_on(g, CX + dx - 0.9, HEAD_Y + dy + 1, CX + dx - 0.9, HEAD_Y + 2, 'Z', 'C', 1.0)
+        line_on(g, CX + dx + 1.1, HEAD_Y + dy + 2, CX + dx + 1.1, HEAD_Y + 2, 'x', 'C', 1.0)
+        disc(g, CX + dx, HEAD_Y + dy + 0.6, 1.5, 'A')
+        put(g, CX + dx, HEAD_Y + dy, 'W')
+    line_on(g, CX - 12.5, HEAD_Y + 2, CX + 12.5, HEAD_Y + 2, 'Z', 'C', 1.1)
+    line_on(g, CX - 12.5, HEAD_Y + 6, CX + 12.5, HEAD_Y + 6, 'x', 'C', 1.1)
+    for gx in (-7, 0, 7):
+        disc(g, CX + gx, HEAD_Y + 4, 2.0, 'A')
+        put(g, CX + gx - 1, HEAD_Y + 3, 'W')
     return fin(g)
 
 def fin(g):
