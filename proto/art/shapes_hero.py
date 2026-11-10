@@ -47,15 +47,15 @@ def body(step):
     g = legs(step)
     shell(g)
     arms(g)
-    # Neck: short, and thick enough to carry the head. Six pixels of
-    # neck under a seventeen pixel head read as a stalk.
-    poly(g, [(CX - 5.8, HEAD_Y + 4), (CX + 5.8, HEAD_Y + 4),
-             (CX + 6.2, SH_Y + 1), (CX - 6.2, SH_Y + 1)], 'm')
+    # Neck: about half the width of the skull, and mostly hidden under
+    # the jaw. Six pixels was a stalk; twelve was a tree trunk.
+    poly(g, [(CX - 4.6, HEAD_Y + 4), (CX + 4.6, HEAD_Y + 4),
+             (CX + 5.0, SH_Y + 1), (CX - 5.0, SH_Y + 1)], 'm')
     # Skull, then a squared jaw under it. A plain disc narrows to a point
     # where it meets the neck, which is what made the head look pinched.
     ellipse(g, CX, HEAD_Y - 1, HEAD_R, HEAD_R * 0.80, 'm')
     poly(g, [(CX - HEAD_R * 0.94, HEAD_Y - 3), (CX + HEAD_R * 0.94, HEAD_Y - 3),
-             (CX + HEAD_R * 0.80, HEAD_Y + 5), (CX - HEAD_R * 0.80, HEAD_Y + 5)], 'm')
+             (CX + HEAD_R * 0.78, HEAD_Y + 7), (CX - HEAD_R * 0.78, HEAD_Y + 7)], 'm')
     poly(g, [(CX - 10, HEAD_Y - 7), (CX + 10, HEAD_Y - 7), (CX + 10.4, HEAD_Y + 3),
              (CX + 6, HEAD_Y - 1), (CX - 6, HEAD_Y - 1), (CX - 10.4, HEAD_Y + 3)], 'G')
     g = model(g)
