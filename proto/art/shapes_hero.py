@@ -19,7 +19,7 @@ from pixlib import *
 
 P.setsize(64)
 CX = 32
-HEAD_Y = 13; HEAD_R = 8.5
+HEAD_Y = 12; HEAD_R = 9.6
 SH_Y   = 25                 # shoulder line
 WAIST  = 41
 HEM    = 47
@@ -47,10 +47,17 @@ def body(step):
     g = legs(step)
     shell(g)
     arms(g)
-    poly(g, [(CX - 3, SH_Y - 4), (CX + 3, SH_Y - 4), (CX + 3, SH_Y + 1), (CX - 3, SH_Y + 1)], 'm')
-    disc(g, CX, HEAD_Y, HEAD_R, 'm')
-    poly(g, [(CX - 8, HEAD_Y - 6), (CX + 8, HEAD_Y - 6), (CX + 9, HEAD_Y + 3),
-             (CX + 5, HEAD_Y - 1), (CX - 5, HEAD_Y - 1), (CX - 9, HEAD_Y + 3)], 'G')
+    # Neck: short, and thick enough to carry the head. Six pixels of
+    # neck under a seventeen pixel head read as a stalk.
+    poly(g, [(CX - 5.8, HEAD_Y + 4), (CX + 5.8, HEAD_Y + 4),
+             (CX + 6.2, SH_Y + 1), (CX - 6.2, SH_Y + 1)], 'm')
+    # Skull, then a squared jaw under it. A plain disc narrows to a point
+    # where it meets the neck, which is what made the head look pinched.
+    ellipse(g, CX, HEAD_Y - 1, HEAD_R, HEAD_R * 0.80, 'm')
+    poly(g, [(CX - HEAD_R * 0.94, HEAD_Y - 3), (CX + HEAD_R * 0.94, HEAD_Y - 3),
+             (CX + HEAD_R * 0.80, HEAD_Y + 5), (CX - HEAD_R * 0.80, HEAD_Y + 5)], 'm')
+    poly(g, [(CX - 10, HEAD_Y - 7), (CX + 10, HEAD_Y - 7), (CX + 10.4, HEAD_Y + 3),
+             (CX + 6, HEAD_Y - 1), (CX - 6, HEAD_Y - 1), (CX - 10.4, HEAD_Y + 3)], 'G')
     g = model(g)
     poly(g, [(CX - 11, WAIST - 3), (CX + 11, WAIST - 3), (CX + 11, WAIST), (CX - 11, WAIST)], 'C')
     stud(g, CX, WAIST - 1.5, 2.2)
@@ -88,20 +95,23 @@ def stick():
 
 def hat():
     g = blank()
-    poly(g, [(CX, 0), (CX + 9, HEAD_Y - 2), (CX - 9, HEAD_Y - 2)], 'A')
-    ellipse(g, CX, HEAD_Y, 15, 4.2, 'A')
+    poly(g, [(CX, 0), (CX + 10, HEAD_Y - 1), (CX - 10, HEAD_Y - 1)], 'A')
+    ellipse(g, CX, HEAD_Y + 1, 16, 4.4, 'A')
     g = model(g)
     poly(g, [(CX - 9, HEAD_Y - 5), (CX + 9, HEAD_Y - 5), (CX + 10, HEAD_Y - 1), (CX - 10, HEAD_Y - 1)], 'C')
     stud(g, CX + 6, HEAD_Y - 3, 1.9)
     return fin(g)
 
 # ---------------------------------------------------------------- heads
-def dome(g, r=None, drop=0):
-    disc(g, CX, HEAD_Y + drop, r or (HEAD_R + 1.6), 'A')
+def dome(g, r=None, drop=0, ch='A'):
+    r = r or (HEAD_R + 1.6)
+    ellipse(g, CX, HEAD_Y + drop - 1, r, r * 0.86, ch)
+    poly(g, [(CX - r * 0.96, HEAD_Y + drop - 1), (CX + r * 0.96, HEAD_Y + drop - 1),
+             (CX + r * 0.82, HEAD_Y + drop + r * 0.86), (CX - r * 0.82, HEAD_Y + drop + r * 0.86)], ch)
 
 def H_hood():
     g = blank(); dome(g, HEAD_R + 2.6)
-    poly(g, [(CX - 11, HEAD_Y), (CX + 11, HEAD_Y), (CX + 13, SH_Y + 3), (CX - 13, SH_Y + 3)], 'A')
+    poly(g, [(CX - 12, HEAD_Y), (CX + 12, HEAD_Y), (CX + 14, SH_Y + 3), (CX - 14, SH_Y + 3)], 'A')
     g = model(g)
     poly(g, [(CX - 12, SH_Y), (CX + 12, SH_Y), (CX + 12, SH_Y + 3), (CX - 12, SH_Y + 3)], 'C')
     return fin(g)
@@ -119,9 +129,9 @@ def H_horned():
 
 def H_great():
     g = blank()
-    poly(g, [(CX - 9, HEAD_Y - 11), (CX + 9, HEAD_Y - 11), (CX + 11, HEAD_Y - 5),
-             (CX + 11, HEAD_Y + 7), (CX + 8, HEAD_Y + 11), (CX - 8, HEAD_Y + 11),
-             (CX - 11, HEAD_Y + 7), (CX - 11, HEAD_Y - 5)], 'A')
+    poly(g, [(CX - 10, HEAD_Y - 11), (CX + 10, HEAD_Y - 11), (CX + 12, HEAD_Y - 5),
+             (CX + 12, HEAD_Y + 8), (CX + 9, HEAD_Y + 12), (CX - 9, HEAD_Y + 12),
+             (CX - 12, HEAD_Y + 8), (CX - 12, HEAD_Y - 5)], 'A')
     g = model(g)
     rect(g, CX - 10, HEAD_Y - 1, CX + 10, HEAD_Y + 1, 'q')
     for y in (-7, 5): rect(g, CX - 11, HEAD_Y + y, CX + 11, HEAD_Y + y + 1, 'C')
@@ -130,10 +140,10 @@ def H_great():
 
 def H_crown():
     g = blank()
-    pts = [(CX - 10, HEAD_Y + 3), (CX - 9, HEAD_Y - 8), (CX - 5, HEAD_Y - 2),
-           (CX, HEAD_Y - 11), (CX + 5, HEAD_Y - 2), (CX + 9, HEAD_Y - 8), (CX + 10, HEAD_Y + 3)]
+    pts = [(CX - 11, HEAD_Y + 4), (CX - 10, HEAD_Y - 8), (CX - 5, HEAD_Y - 2),
+           (CX, HEAD_Y - 11), (CX + 5, HEAD_Y - 2), (CX + 10, HEAD_Y - 8), (CX + 11, HEAD_Y + 4)]
     poly(g, pts, 'C')
-    rect(g, CX - 10, HEAD_Y, CX + 10, HEAD_Y + 3, 'C')
+    rect(g, CX - 11, HEAD_Y + 1, CX + 11, HEAD_Y + 4, 'C')
     g = model(g)
     for (px, py) in ((-9, -7), (0, -10), (9, -7)): stud(g, CX + px, HEAD_Y + py, 1.6, 'A', 'W')
     stud(g, CX, HEAD_Y + 1.5, 2.4, 'A', 'W')
@@ -141,17 +151,17 @@ def H_crown():
 
 def H_brim():
     g = blank()
-    poly(g, [(CX, HEAD_Y - 13), (CX + 8, HEAD_Y - 1), (CX - 8, HEAD_Y - 1)], 'A')
-    ellipse(g, CX, HEAD_Y + 1, 16, 4.0, 'A')
+    poly(g, [(CX, HEAD_Y - 13), (CX + 9, HEAD_Y), (CX - 9, HEAD_Y)], 'A')
+    ellipse(g, CX, HEAD_Y + 2, 17, 4.2, 'A')
     g = model(g)
     poly(g, [(CX - 8, HEAD_Y - 4), (CX + 8, HEAD_Y - 4), (CX + 9, HEAD_Y), (CX - 9, HEAD_Y)], 'C')
     return fin(g)
 
 def H_barbute():
     g = blank()
-    poly(g, [(CX - 9, HEAD_Y - 12), (CX + 9, HEAD_Y - 12), (CX + 12, HEAD_Y - 4),
-             (CX + 11, HEAD_Y + 8), (CX + 6, HEAD_Y + 12), (CX - 6, HEAD_Y + 12),
-             (CX - 11, HEAD_Y + 8), (CX - 12, HEAD_Y - 4)], 'A')
+    poly(g, [(CX - 10, HEAD_Y - 12), (CX + 10, HEAD_Y - 12), (CX + 13, HEAD_Y - 4),
+             (CX + 12, HEAD_Y + 9), (CX + 7, HEAD_Y + 13), (CX - 7, HEAD_Y + 13),
+             (CX - 12, HEAD_Y + 9), (CX - 13, HEAD_Y - 4)], 'A')
     g = model(g)
     poly(g, [(CX - 2, HEAD_Y - 13), (CX + 2, HEAD_Y - 13), (CX + 1, HEAD_Y - 3), (CX - 1, HEAD_Y - 3)], 'C')
     rect(g, CX - 12, HEAD_Y - 7, CX + 12, HEAD_Y - 6, 'C')
