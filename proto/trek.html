@@ -920,7 +920,7 @@ const HAND_R=[0.695,0.655], HAND_L=[0.300,0.655];
 /* A shield is not held in front of the fist, it hangs off the forearm
    outboard of the body. Anchored on the hand it disappeared behind his
    own torso, because his hands sit inside the silhouette. */
-const SHIELD_A=[0.155,0.600];
+const SHIELD_A=[0.215,0.590];
 const GRIPC=new Map();
 /* and where an item is held, measured off the item: the centroid of its
    grip material, which is the wood or the leather you wrap your hand
@@ -961,7 +961,7 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  const T=hand?tones(hand):tones(HERO_PAL);
  const oc=T.Z||T.C, ocs=(oc[0]|0)+','+(oc[1]|0)+','+(oc[2]|0);
  let ox=x+dw*0.78, oy=y+pxH*0.33;
- if(hand){const gp=gripPoint(hand), s=pxH*0.54;
+ if(hand){const gp=gripPoint(hand), s=pxH*0.78;
   ox=x+dw*HAND_R[0]+s*(0.56-gp[0]); oy=y+pxH*HAND_R[1]-s*gp[1];}
  const glow=lamp?0.55:0.22, rr=Math.max(4,pxH*0.26);
  const rg=g.createRadialGradient(ox,oy,0,ox,oy,rr);
@@ -969,13 +969,15 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  rg.addColorStop(0.45,'rgba('+ocs+','+(glow*0.30).toFixed(2)+')');
  rg.addColorStop(1,'rgba('+ocs+',0)');
  g.fillStyle=rg; g.fillRect(ox-rr,oy-rr,rr*2,rr*2);
- /* the off hand first, because it hangs behind his arm */
- if(off) wield(g,off,SHIELD_A,x,y,pxH,0.46);
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
  g.imageSmoothingEnabled=false;
- /* and the weapon in his hand, which is the icon itself */
- if(hand) wield(g,hand,HAND_R,x,y,pxH,0.54);
+ /* Both carried pieces go in FRONT of him. Behind the body the shield
+    disappeared into his own silhouette; in front, with the anchors set
+    outboard, his arm still crosses the inner edge of each one, which is
+    all the overlap needed to read as carried rather than pasted on. */
+ if(off)  wield(g,off, SHIELD_A,x,y,pxH,0.52);
+ if(hand) wield(g,hand,HAND_R,  x,y,pxH,0.78);
 }
 /* ---------- wildlife ---------- */
 /* One species. The hawk was big enough that its silhouette had to hold up
@@ -1288,7 +1290,7 @@ function paint(now,dt){
   g.fillRect(Math.round(sx-pxH*0.19),Math.round(sy-pxH*0.025),
              Math.round(pxH*0.38),Math.max(1,Math.round(pxH*0.05)));
   climberAt(g,sx,sy+bob,pxH,[0,1,0,2][(walkPhase|0)%4],S2.dark>.45);
- /* the companion keeps pace a stride off his left shoulder */
+ /* the companion */
  const pid=S.eq&&S.eq.pet, pg=pid?BYID[pid]:null;
  if(pg){
   /* 4 songbird, 5 raptor, 6 eagle, 9 drake. Everything else has feet.
@@ -1306,8 +1308,20 @@ function paint(now,dt){
    const rise=Math.sin(now*0.00117)*ps*0.13;
    blitGear(g,pg,pf,Math.round(sx-ps*0.5+sway),Math.round(top+rise-ps*0.5),Math.round(ps));
   }else{
-   const pb=Math.sin(walkPhase*Math.PI*0.5+1.2)*ps*0.07;
-   blitGear(g,pg,pf,Math.round(sx-pxH*1.38),Math.round(sy+bob+pb-ps),Math.round(ps));}}
+   /* Anything with feet follows him down the trail rather than floating
+      beside him. It gets its own depth, nearer the camera than he is,
+      and is projected the same way he is, so it stands on the path at
+      the size that depth deserves and tracks the trail's bends. */
+   const pdd=dd*0.74, psc=FOC/pdd;
+   const pwy=camY-pdd, pcx=trailX(pwy)+Math.sin(now*0.00052)*3.0;
+   const psx=W*0.5+(pcx-camX)*psc;
+   const psy=hzY+(camZ-hAt(pcx,pwy))*psc;
+   const pz=Math.max(10,11*psc*CHAR*0.52);
+   const pb=Math.sin(walkPhase*Math.PI*0.5+1.2)*pz*0.05;
+   g.fillStyle='rgba(10,16,30,.30)';
+   g.fillRect(Math.round(psx-pz*0.22),Math.round(psy-pz*0.02),
+              Math.round(pz*0.44),Math.max(1,Math.round(pz*0.05)));
+   blitGear(g,pg,pf,Math.round(psx-pz*0.5),Math.round(psy+pb-pz),Math.round(pz));}}
  }
 
  /* ---- the hour, and the air ---- */
@@ -2050,9 +2064,10 @@ function drawDoll(){
  const eq=S.eq||{};
  const off=eq.off&&BYID[eq.off]?BYID[eq.off]:null;
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
- if(off) wield(q,off,SHIELD_A,0,0,n,0.46);
- q.drawImage(heroCanvas(0),0,0,n,n);
- if(hand) wield(q,hand,HAND_R,0,0,n,0.54);
+ const SP=n*0.74, X0=Math.round(n*0.11), Y0=Math.round(n*0.14);
+ q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
+ if(off)  wield(q,off, SHIELD_A,X0,Y0,SP,0.52);
+ if(hand) wield(q,hand,HAND_R,  X0,Y0,SP,0.78);
 }
 function drawTabs(){
  const T=document.getElementById('ptabs'); T.innerHTML='';
