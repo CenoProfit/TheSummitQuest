@@ -202,9 +202,21 @@ def body(step):
     poly(g, [(CX - 10, HEAD_Y - 7), (CX + 10, HEAD_Y - 7), (CX + 10.4, HEAD_Y + 3),
              (CX + 6, HEAD_Y - 1), (CX - 6, HEAD_Y - 1), (CX - 10.4, HEAD_Y + 3)], 'G')
     g = model(g)
-    poly(g, [(CX - 11, WAIST - 3), (CX + 11, WAIST - 3), (CX + 11, WAIST), (CX - 11, WAIST)], 'C')
-    stud(g, CX, WAIST - 1.5, 2.2)
-    poly(g, [(CX - 14, HEM - 3), (CX + 14, HEM - 3), (CX + 14, HEM), (CX - 14, HEM)], 'C')
+    # His own clothes: a plain tunic. What was here before was two solid
+    # slabs of accent colour wider than the torso they sat on, one at
+    # the hips and one at the hem, and they read as planks nailed across
+    # him rather than as a belt and a hem.
+    for i in range(4):                   # cloth, so it hangs in folds
+        x = CX - 6.6 + i * 4.4
+        cut(g, x, SH_Y + 3, x + (1.1 if i % 2 else -1.1), WAIST - 4, 1.0, 2, -2, 1.1)
+    belt(g, WAIST - 3.2, 3.0, 8.4, 'G', 'C')
+    # and the hem, which follows the body instead of squaring it off
+    for i in range(5):
+        x = CX - 8.0 + i * 4.0
+        cut(g, x, WAIST + 1, x + (1.3 if i % 2 else -1.3), HEM - 2, 1.0, 2, -2, 1.1)
+    shift_line(g, CX - 9.8, HEM - 2.6, CX + 9.8, HEM - 2.6, 2, 1.0)
+    line_on(g, CX - 9.8, HEM - 1.6, CX + 9.8, HEM - 1.6, 'C', 'A', 1.0)
+    shift_line(g, CX - 9.9, HEM - 0.5, CX + 9.9, HEM - 0.5, -2, 1.1)
     g = ao(g); g = rim(g); g = dither(g); g = despeckle(g)
     return dump(softline(outline(g)))
 
