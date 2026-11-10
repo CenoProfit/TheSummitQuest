@@ -913,6 +913,43 @@ function heroCanvas(f){
 /* the equipment changed, so every composite built from it is stale */
 function wizApply(){ HCOMP.clear(); }
 
+/* Where his hands are, as a fraction of the 64 pixel sprite. Measured
+   off the sprite rather than guessed, which is how they ended up
+   floating at his shoulder the first time. */
+const HAND_R=[0.695,0.655], HAND_L=[0.300,0.655];
+/* A shield is not held in front of the fist, it hangs off the forearm
+   outboard of the body. Anchored on the hand it disappeared behind his
+   own torso, because his hands sit inside the silhouette. */
+const SHIELD_A=[0.155,0.600];
+const GRIPC=new Map();
+/* and where an item is held, measured off the item: the centroid of its
+   grip material, which is the wood or the leather you wrap your hand
+   around. A shield has no grip to speak of, so it rides its centre. */
+function gripPoint(item){
+ const k=item[1]+'#'+item[3];
+ const hit=GRIPC.get(k); if(hit) return hit;
+ let p;
+ if(item[1]==='shield') p=[0.5,0.5];
+ else{
+  const sp=spriteRows(item,false), n=sp.length;
+  let sx=0,sy=0,c=0,ax=0,ay=0,ac=0;
+  for(let y=0;y<n;y++){const row=sp[y];
+   for(let x=0;x<n;x++){const ch=row[x];
+    if(ch==='.') continue;
+    ax+=x; ay+=y; ac++;
+    if(ch==='j'||ch==='g'||ch==='G'||ch==='H'||ch==='K'){sx+=x;sy+=y;c++;}}}
+  p = c>40 ? [sx/c/n, sy/c/n] : [ax/ac/n, ay/ac/n];
+ }
+ GRIPC.set(k,p); return p;
+}
+/* put the item's grip exactly on the given hand */
+function wield(g,item,hand,x,y,span,size){
+ const gp=gripPoint(item), s=span*size;
+ blitGear(g,item,false,
+  Math.round(x+span*hand[0]-s*gp[0]),
+  Math.round(y+span*hand[1]-s*gp[1]), Math.round(s));
+}
+
 /* pxH is the height he should stand, in screen pixels */
 function climberAt(g,cx,footY,pxH,f,lamp){
  const c=heroCanvas(f), sc=pxH/64, dw=64*sc;
@@ -923,19 +960,22 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  /* the light at the top of whatever he is carrying */
  const T=hand?tones(hand):tones(HERO_PAL);
  const oc=T.Z||T.C, ocs=(oc[0]|0)+','+(oc[1]|0)+','+(oc[2]|0);
- const ox=x+dw*0.735, oy=y+pxH*0.27, glow=lamp?0.55:0.22, rr=Math.max(4,pxH*0.30);
+ let ox=x+dw*0.78, oy=y+pxH*0.33;
+ if(hand){const gp=gripPoint(hand), s=pxH*0.54;
+  ox=x+dw*HAND_R[0]+s*(0.56-gp[0]); oy=y+pxH*HAND_R[1]-s*gp[1];}
+ const glow=lamp?0.55:0.22, rr=Math.max(4,pxH*0.26);
  const rg=g.createRadialGradient(ox,oy,0,ox,oy,rr);
  rg.addColorStop(0,'rgba('+ocs+','+glow.toFixed(2)+')');
  rg.addColorStop(0.45,'rgba('+ocs+','+(glow*0.30).toFixed(2)+')');
  rg.addColorStop(1,'rgba('+ocs+',0)');
  g.fillStyle=rg; g.fillRect(ox-rr,oy-rr,rr*2,rr*2);
  /* the off hand first, because it hangs behind his arm */
- if(off) blitGear(g,off,false,Math.round(x-dw*0.04),Math.round(y+pxH*0.40),Math.round(pxH*0.36));
+ if(off) wield(g,off,SHIELD_A,x,y,pxH,0.46);
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
  g.imageSmoothingEnabled=false;
  /* and the weapon in his hand, which is the icon itself */
- if(hand) blitGear(g,hand,false,Math.round(x+dw*0.46),Math.round(y+pxH*0.12),Math.round(pxH*0.48));
+ if(hand) wield(g,hand,HAND_R,x,y,pxH,0.54);
 }
 /* ---------- wildlife ---------- */
 /* One species. The hawk was big enough that its silhouette had to hold up
@@ -2010,9 +2050,9 @@ function drawDoll(){
  const eq=S.eq||{};
  const off=eq.off&&BYID[eq.off]?BYID[eq.off]:null;
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
- if(off) blitGear(q,off,false,Math.round(-n*0.08),Math.round(n*0.40),Math.round(n*0.40));
+ if(off) wield(q,off,SHIELD_A,0,0,n,0.46);
  q.drawImage(heroCanvas(0),0,0,n,n);
- if(hand) blitGear(q,hand,false,Math.round(n*0.50),Math.round(n*0.10),Math.round(n*0.50));
+ if(hand) wield(q,hand,HAND_R,0,0,n,0.54);
 }
 function drawTabs(){
  const T=document.getElementById('ptabs'); T.innerHTML='';
