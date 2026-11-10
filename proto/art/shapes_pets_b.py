@@ -31,7 +31,7 @@ def raptor(step):
     g = shadeform(g)
     talon(g, 29, 44, 56); talon(g, 40, 44, 56)
     eye(g, 51, 16, 3.4)
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # -------------------------------------------------------------- 6 eagle
 def eagle(step):
@@ -54,7 +54,7 @@ def eagle(step):
     g = shadeform(g)
     talon(g, 26, 42, 52, 4); talon(g, 38, 42, 52, 4)
     eye(g, 28, 12, 2.4); eye(g, 36, 12, 2.4)
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # -------------------------------------------------------- 7 small golem
 def golem_small(step):
@@ -74,7 +74,7 @@ def golem_small(step):
         line_on(g, ax, ay, bx, by, 'o', 'A')                                    # cracks
     for ex in (26, 38): disc(g, ex, 16, 3.2, 'C'); put(g, ex - 1, 15, 'W')       # eyes
     poly(g, [(27, 30), (37, 30), (35, 42), (29, 42)], 'C')                      # seam
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # -------------------------------------------------------- 8 titan golem
 def golem_large(step):
@@ -98,7 +98,7 @@ def golem_large(step):
     for ex in (27, 37): disc(g, ex, 11, 2.6, 'C'); put(g, ex - 1, 10, 'W')
     for (ax, ay, bx, by) in ((10, 22, 24, 26), (42, 22, 54, 26), (20, 50, 28, 58)):
         line_on(g, ax, ay, bx, by, 'o', 'A')
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # -------------------------------------------------------------- 9 drake
 def wing(g, S, T, arc, bites):
@@ -134,7 +134,7 @@ def drake(step):
     for (sx, sy, h) in [(42, 25, 5), (37, 30, 6), (30, 29, 6), (24, 33, 5), (17, 44, 4), (10, 50, 3)]:
         poly(g, [(sx, sy), (sx - h, sy - 1), (sx - 1, sy + h)], 'C')
     g = shadeform(g)
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 SHAPES = []
 for fn in (raptor, eagle, golem_small, golem_large, drake):

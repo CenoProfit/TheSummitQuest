@@ -63,5 +63,5 @@ def sh_cuffed():
         sole(g, cx, 9)
     return g
 
-SHAPES = [dump(outline(despeckle(f()))) for f in
+SHAPES = [dump(paint(f())) for f in
           (sh_trail, sh_greaves, sh_sandals, sh_cuffed)]

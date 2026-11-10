@@ -85,5 +85,5 @@ def sh_spiked():
     disc(g, CX, 32, 8, 'C'); disc(g, CX, 31, 5, 'W')
     return g
 
-SHAPES = [dump(outline(despeckle(f()))) for f in
+SHAPES = [dump(paint(f())) for f in
           (sh_round, sh_kite, sh_tower, sh_buckler, sh_heater, sh_spiked)]

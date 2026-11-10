@@ -91,5 +91,5 @@ def hm_cap():
     for sx in (18, 26, 38, 46): stud(g, sx, 35, 1.7)
     return g
 
-SHAPES = [dump(outline(despeckle(f()))) for f in
+SHAPES = [dump(paint(f())) for f in
           (hm_hood, hm_horned, hm_great, hm_crown, hm_brim, hm_barbute, hm_cap)]

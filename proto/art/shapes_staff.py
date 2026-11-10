@@ -90,5 +90,5 @@ def st_totem():
     poly(g, [(27, 5), (33, 0), (39, 5), (33, 8)], 'C')          # crest
     return g
 
-SHAPES = [dump(outline(despeckle(f()))) for f in
+SHAPES = [dump(paint(f())) for f in
           (st_orb, st_crystal, st_crescent, st_lantern, st_branch, st_totem)]

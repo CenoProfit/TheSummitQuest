@@ -11,7 +11,7 @@ HERE=os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0,HERE)
 ROOT=os.path.dirname(os.path.dirname(HERE))
 HTML=os.path.join(ROOT,'proto','trek.html')
-ALLOWED=set('.odABWCcgGH')
+ALLOWED=set(".on"+"qdeABWV"+"xcCYZ"+"jgGHK"+"umM")
 
 CATS=[('sword','shapes_sword',8),('staff','shapes_staff',6),
       ('shield','shapes_shield',6),('helm','shapes_helm',7),
@@ -20,7 +20,7 @@ PETS=[('shapes_pets_a',5),('shapes_pets_b',5)]
 
 def rle(sp):
     flat=''.join(sp)
-    assert len(flat)==64*64, len(flat)
+    assert len(flat)==96*96, len(flat)
     out=[]; i=0
     while i<len(flat):
         c=flat[i]; j=i
@@ -43,9 +43,9 @@ def load(mod,want):
     S=m.SHAPES
     assert len(S)==want,'%s: expected %d sprites, got %d'%(mod,want,len(S))
     for i,sp in enumerate(S):
-        assert len(sp)==64,'%s[%d] has %d rows'%(mod,i,len(sp))
+        assert len(sp)==96,'%s[%d] has %d rows'%(mod,i,len(sp))
         for y,r in enumerate(sp):
-            assert len(r)==64,'%s[%d] row %d is %d wide'%(mod,i,y,len(r))
+            assert len(r)==96,'%s[%d] row %d is %d wide'%(mod,i,y,len(r))
             assert not (set(r)-ALLOWED),'%s[%d] row %d: %r'%(mod,i,y,set(r)-ALLOWED)
     return S
 
@@ -57,7 +57,7 @@ def main():
         rows=[]
         for sp in S:
             e=rle(sp); assert unrle(e)==''.join(sp)
-            raw+=4096; enc+=len(e); rows.append('"%s"'%e)
+            raw+=9216; enc+=len(e); rows.append('"%s"'%e)
         shape_js.append(" %s:[%s],"%(cat,",\n  ".join(rows)))
     petA=[]; petB=[]
     for mod,n in PETS:
@@ -65,9 +65,23 @@ def main():
         for i in range(n):
             for src,dst in ((S[i*2],petA),(S[i*2+1],petB)):
                 e=rle(src); assert unrle(e)==''.join(src)
-                raw+=4096; enc+=len(e); dst.append('"%s"'%e)
+                raw+=9216; enc+=len(e); dst.append('"%s"'%e)
     shape_js.append(" pet:[%s]};"%",\n  ".join(petA))
-    out="\n".join(shape_js)+"\nconst PETALT=[%s];\n"%",\n  ".join(petB)
+    import importlib
+    H=importlib.import_module('shapes_hero').SHAPES
+    assert len(H)==21, len(H)
+    hero=[]
+    for sp in H:
+        assert len(sp)==64 and all(len(r)==64 for r in sp), 'hero layer is not 64x64'
+        flat=''.join(sp); o=[]; i=0
+        while i<len(flat):
+            c=flat[i]; j=i
+            while j<len(flat) and flat[j]==c: j+=1
+            o.append(c if j-i==1 else c+str(j-i)); i=j
+        e=''.join(o); assert unrle(e)==flat
+        raw+=4096; enc+=len(e); hero.append('"%s"'%e)
+    out="\n".join(shape_js)+"\nconst PETALT=[%s];\nconst HERO=[%s];\n"%(
+        ",\n  ".join(petB), ",\n  ".join(hero))
     s=open(HTML).read()
     a=s.index("const SHAPE={"); b=s.index("/* [name, category",a)
     s=s[:a]+out+"\n"+s[b:]

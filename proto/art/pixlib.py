@@ -21,47 +21,67 @@ HOUSE STYLE, taken from the reference art:
   * Fill the frame. A 64x64 sprite with a 30px object in the middle has
     thrown away three quarters of its resolution.
 """
-N = 64
+N = 96
+K = N / 64.0          # builders are written in a 64 unit space and scaled up
+
+def setsize(n):
+    global N, K
+    N = n; K = n / 64.0
 
 # ---------------------------------------------------------------- canvas
 def blank():
     return [['.' for _ in range(N)] for _ in range(N)]
 
-def put(g, x, y, ch):
+def put(g, x, y, ch, raw=False):
+    if not raw:
+        x *= K; y *= K
     x = int(round(x)); y = int(round(y))
     if 0 <= x < N and 0 <= y < N:
         g[y][x] = ch
 
-def get(g, x, y):
+def get(g, x, y, raw=True):
+    if not raw:
+        x *= K; y *= K
     x = int(round(x)); y = int(round(y))
     return g[y][x] if 0 <= x < N and 0 <= y < N else '.'
 
 # ------------------------------------------------------------ primitives
+# Builders are written in a 64 unit space. Every primitive converts its
+# arguments to canvas pixels on the way in and then works in whole
+# pixels, so raising N raises the detail instead of punching holes.
+
+def _s(v): return v * K
+
 def rect(g, x0, y0, x1, y1, ch):
-    for y in range(int(min(y0,y1)), int(max(y0,y1)) + 1):
-        for x in range(int(min(x0,x1)), int(max(x0,x1)) + 1):
-            put(g, x, y, ch)
+    x0, y0, x1, y1 = _s(x0), _s(y0), _s(x1), _s(y1)
+    for y in range(int(round(min(y0, y1))), int(round(max(y0, y1))) + 1):
+        for x in range(int(round(min(x0, x1))), int(round(max(x0, x1))) + 1):
+            put(g, x, y, ch, True)
 
 def disc(g, cx, cy, r, ch):
+    cx, cy, r = _s(cx), _s(cy), _s(r)
     for y in range(int(cy - r) - 1, int(cy + r) + 2):
         for x in range(int(cx - r) - 1, int(cx + r) + 2):
             if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
-                put(g, x, y, ch)
+                put(g, x, y, ch, True)
 
 def ring(g, cx, cy, r, t, ch):
+    cx, cy, r, t = _s(cx), _s(cy), _s(r), _s(t)
     for y in range(int(cy - r) - 1, int(cy + r) + 2):
         for x in range(int(cx - r) - 1, int(cx + r) + 2):
             dd = (x - cx) ** 2 + (y - cy) ** 2
             if (r - t) ** 2 <= dd <= r * r:
-                put(g, x, y, ch)
+                put(g, x, y, ch, True)
 
 def ellipse(g, cx, cy, rx, ry, ch):
+    cx, cy, rx, ry = _s(cx), _s(cy), _s(rx), _s(ry)
     for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
         for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
             if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0:
-                put(g, x, y, ch)
+                put(g, x, y, ch, True)
 
 def poly(g, pts, ch):
+    pts = [(_s(p[0]), _s(p[1])) for p in pts]
     ys = [p[1] for p in pts]
     for y in range(int(min(ys)) - 1, int(max(ys)) + 2):
         xs = []
@@ -72,9 +92,10 @@ def poly(g, pts, ch):
         xs.sort()
         for i in range(0, len(xs) - 1, 2):
             for x in range(int(round(xs[i])), int(round(xs[i + 1])) + 1):
-                put(g, x, y, ch)
+                put(g, x, y, ch, True)
 
 def line(g, x0, y0, x1, y1, ch, w=1):
+    x0, y0, x1, y1, w = _s(x0), _s(y0), _s(x1), _s(y1), max(1.0, _s(w))
     steps = int(max(abs(x1 - x0), abs(y1 - y0)) * 3) + 1
     h = (w - 1) / 2.0
     for i in range(steps + 1):
@@ -82,16 +103,21 @@ def line(g, x0, y0, x1, y1, ch, w=1):
         x = x0 + (x1 - x0) * t; y = y0 + (y1 - y0) * t
         for dy in range(int(-h), int(h) + 1):
             for dx in range(int(-h), int(h) + 1):
-                put(g, x + dx, y + dy, ch)
+                put(g, x + dx, y + dy, ch, True)
 
-def line_on(g, x0, y0, x1, y1, ch, only):
+def line_on(g, x0, y0, x1, y1, ch, only, w=1):
     """rule a line but only over pixels already holding `only`"""
+    x0, y0, x1, y1, w = _s(x0), _s(y0), _s(x1), _s(y1), max(1.0, _s(w))
     steps = int(max(abs(x1 - x0), abs(y1 - y0)) * 3) + 1
+    h = (w - 1) / 2.0
     for i in range(steps + 1):
         t = i / steps
-        x = int(round(x0 + (x1 - x0) * t)); y = int(round(y0 + (y1 - y0) * t))
-        if 0 <= x < N and 0 <= y < N and g[y][x] == only:
-            g[y][x] = ch
+        for dy in range(int(-h), int(h) + 1):
+            for dx in range(int(-h), int(h) + 1):
+                x = int(round(x0 + (x1 - x0) * t)) + dx
+                y = int(round(y0 + (y1 - y0) * t)) + dy
+                if 0 <= x < N and 0 <= y < N and g[y][x] == only:
+                    g[y][x] = ch
 
 def erase(g, pts): poly(g, pts, '.')
 
@@ -102,14 +128,12 @@ def _perp(x0, y0, x1, y1):
     return -dy / L, dx / L
 
 def taper(g, x0, y0, x1, y1, w0, w1, ch):
-    """a quad from (x0,y0) width w0 to (x1,y1) width w1"""
     px, py = _perp(x0, y0, x1, y1)
     poly(g, [(x0 + px * w0 / 2, y0 + py * w0 / 2), (x1 + px * w1 / 2, y1 + py * w1 / 2),
              (x1 - px * w1 / 2, y1 - py * w1 / 2), (x0 - px * w0 / 2, y0 - py * w0 / 2)], ch)
 
 def blade(g, x0, y0, x1, y1, wbase, wtip=1.5, point=6, edge='W', body='A', back='d'):
-    """A tapered blade from base to tip, lit on its upper-left edge.
-       `point` is how many pixels of the tip are brought to a spike."""
+    """A tapered blade from base to tip, lit on its upper-left edge."""
     L = max(1e-6, ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5)
     ux, uy = (x1 - x0) / L, (y1 - y0) / L
     sx, sy = x1 - ux * point, y1 - uy * point
@@ -117,98 +141,216 @@ def blade(g, x0, y0, x1, y1, wbase, wtip=1.5, point=6, edge='W', body='A', back=
     px, py = _perp(x0, y0, x1, y1)
     poly(g, [(sx + px * wtip / 2, sy + py * wtip / 2), (x1, y1),
              (sx - px * wtip / 2, sy - py * wtip / 2)], body)
-    # the two long edges: light on the side the lamp is on, shadow opposite
     lit = 1 if (px - py) > 0 else -1
-    for k, ch in ((lit, edge), (-lit, back)):
+    for k, ch, w in ((lit, edge, 1.4), (lit, 'V', 0.7), (-lit, back, 1.6), (-lit, 'q', 0.8)):
         line_on(g, x0 + px * k * wbase * 0.42, y0 + py * k * wbase * 0.42,
-                   x1 + px * k * wtip * 0.30, y1 + py * k * wtip * 0.30, ch, body)
+                   x1 + px * k * wtip * 0.30, y1 + py * k * wtip * 0.30, ch, body, w)
 
 def fuller(g, x0, y0, x1, y1, ch='d', inset=0.16):
-    """the blood groove down the middle of a blade"""
     L = max(1e-6, ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5)
     ux, uy = (x1 - x0) / L, (y1 - y0) / L
     line_on(g, x0 + ux * L * inset, y0 + uy * L * inset,
-               x1 - ux * L * inset, y1 - uy * L * inset, ch, 'A')
+               x1 - ux * L * inset, y1 - uy * L * inset, ch, 'A', 1.6)
+    px, py = _perp(x0, y0, x1, y1)
+    line_on(g, x0 + ux * L * inset + px, y0 + uy * L * inset + py,
+               x1 - ux * L * inset + px, y1 - uy * L * inset + py, 'e', 'A', 0.9)
 
 def haft(g, x0, y0, x1, y1, w, mid='G', lite='H', dark='g'):
-    """a wooden or leather shaft, lit along its upper-left side"""
     taper(g, x0, y0, x1, y1, w, w, mid)
     px, py = _perp(x0, y0, x1, y1)
     lit = 1 if (px - py) > 0 else -1
     line_on(g, x0 + px * lit * w * 0.34, y0 + py * lit * w * 0.34,
-               x1 + px * lit * w * 0.34, y1 + py * lit * w * 0.34, lite, mid)
+               x1 + px * lit * w * 0.34, y1 + py * lit * w * 0.34, lite, mid, 1.3)
     line_on(g, x0 - px * lit * w * 0.36, y0 - py * lit * w * 0.36,
-               x1 - px * lit * w * 0.36, y1 - py * lit * w * 0.36, dark, mid)
+               x1 - px * lit * w * 0.36, y1 - py * lit * w * 0.36, dark, mid, 1.3)
+    line_on(g, x0 - px * lit * w * 0.50, y0 - py * lit * w * 0.50,
+               x1 - px * lit * w * 0.50, y1 - py * lit * w * 0.50, 'j', mid, 0.9)
 
-def wrap(g, x0, y0, x1, y1, w, n=5, ch='g'):
-    """binding bands across a grip"""
+def wrap(g, x0, y0, x1, y1, w, n=5, ch='j'):
     px, py = _perp(x0, y0, x1, y1)
     for i in range(n):
         t = (i + 0.5) / n
         cx = x0 + (x1 - x0) * t; cy = y0 + (y1 - y0) * t
-        line_on(g, cx + px * w * 0.6, cy + py * w * 0.6,
-                   cx - px * w * 0.6, cy - py * w * 0.6, ch, 'G')
-        line_on(g, cx + px * w * 0.6, cy + py * w * 0.6,
-                   cx - px * w * 0.6, cy - py * w * 0.6, ch, 'H')
+        for src in ('G', 'H', 'g'):
+            line_on(g, cx + px * w * 0.6, cy + py * w * 0.6,
+                       cx - px * w * 0.6, cy - py * w * 0.6, ch, src, 1.1)
 
-def stud(g, cx, cy, r=1.6, ch='C', hi='W'):
+def stud(g, cx, cy, r=1.6, ch='C', hi='Z'):
     disc(g, cx, cy, r, ch)
-    put(g, cx - r * 0.4, cy - r * 0.4, hi)
+    disc(g, cx - r * 0.28, cy - r * 0.28, r * 0.45, hi)
+    line_on(g, cx - r*0.2, cy + r*0.55, cx + r*0.7, cy + r*0.1, 'x', ch, 1.0)
 
 # ----------------------------------------------------------------- finish
+# Three families, each a ramp from dark to light. A builder places the
+# MID tone of a family ('A', 'C', 'G') to mean "this is made of that",
+# and anything else it places is an explicit artist override that the
+# modelling pass leaves alone.
+BODY = 'qdeABWV'
+ACC  = 'xcCYZ'
+GRIP = 'jgGHK'
+SKIN = 'umM'        # only the character uses this one
+FAM  = {}
+for _f in (BODY, ACC, GRIP, SKIN):
+    for _i, _c in enumerate(_f):
+        FAM[_c] = (_f, _i)
+MID = {BODY: 3, ACC: 2, GRIP: 2, SKIN: 1}
+ALLOWED = set('.on' + BODY + ACC + GRIP + SKIN)
+
+def shift(ch, k):
+    f = FAM.get(ch)
+    if not f: return ch
+    fam, i = f
+    return fam[max(0, min(len(fam) - 1, i + k))]
+
+def _run(g, x, y, dx, dy, fam):
+    n = 0
+    while True:
+        x += dx; y += dy; n += 1
+        if not (0 <= x < N and 0 <= y < N): return n
+        c = g[y][x]
+        if c not in FAM or FAM[c][0] is not fam: return n
+        if n > N: return n
+
+def model(g):
+    """Light the form. Every pixel a builder left at its family's mid
+       tone gets a tone chosen from where it sits inside its own mass:
+       top-left faces catch the lamp, the underside falls away. This is
+       what separates a painted object from a flat fill."""
+    out = [row[:] for row in g]
+    for y in range(N):
+        for x in range(N):
+            c = g[y][x]
+            f = FAM.get(c)
+            if not f or f[1] != MID[f[0]]: continue
+            fam = f[0]
+            up = _run(g, x, y, 0, -1, fam); dn = _run(g, x, y, 0, 1, fam)
+            lf = _run(g, x, y, -1, 0, fam); rt = _run(g, x, y, 1, 0, fam)
+            tv = up / float(up + dn); th = lf / float(lf + rt)
+            lvl = (len(fam) - 1) * 0.86 - (len(fam) - 1) * 0.62 * tv - (len(fam) - 1) * 0.26 * th
+            out[y][x] = fam[max(0, min(len(fam) - 1, int(round(lvl))))]
+    return out
+
+def ao(g, depth=2):
+    """Contact shadow. A pixel sitting against the outline, or against a
+       DIFFERENT material, loses a step or two. Without this every joint
+       in the sprite reads as a sticker laid on top of another sticker."""
+    out = [row[:] for row in g]
+    for y in range(N):
+        for x in range(N):
+            c = g[y][x]
+            f = FAM.get(c)
+            if not f: continue
+            k = 0
+            for dx, dy in ((1, 0), (0, 1), (1, 1), (-1, 1)):
+                n = get(g, x + dx, y + dy)
+                if n == '.' or n == 'o': k = max(k, 1)
+                elif n in FAM and FAM[n][0] is not f[0]: k = max(k, depth)
+            for dx, dy in ((-1, 0), (0, -1)):
+                n = get(g, x + dx, y + dy)
+                if n in FAM and FAM[n][0] is not f[0]: k = max(k, depth)
+            if k: out[y][x] = shift(c, -k)
+    return out
+
+def rim(g):
+    """and the opposite: the top-left lip of every mass takes the light"""
+    out = [row[:] for row in g]
+    for y in range(N):
+        for x in range(N):
+            c = g[y][x]
+            if c not in FAM: continue
+            if get(g, x, y - 1) in ('.', 'o') or get(g, x - 1, y) in ('.', 'o'):
+                out[y][x] = shift(c, 1)
+    return out
+
+def dither(g):
+    """Break the banding where two tones meet, on a checker, so the
+       gradient reads as a surface rather than as contour lines."""
+    out = [row[:] for row in g]
+    for y in range(N):
+        for x in range(N):
+            if (x + y) % 2: continue
+            c = g[y][x]
+            f = FAM.get(c)
+            if not f: continue
+            for dx, dy in ((1, 0), (0, 1)):
+                n = get(g, x + dx, y + dy)
+                nf = FAM.get(n)
+                if nf and nf[0] is f[0] and abs(nf[1] - f[1]) >= 2:
+                    out[y][x] = shift(c, 1 if nf[1] > f[1] else -1)
+                    break
+    return out
+
+def _h(a, b):
+    v = (a * 374761393 + b * 668265263) & 0xFFFFFFFF
+    v = (v ^ (v >> 13)) * 1274126177 & 0xFFFFFFFF
+    return ((v ^ (v >> 16)) & 0xFFFF) / 65535.0
+
+def wear(g, amount=0.16):
+    """Nicks and scuffs, deterministic so a rebuild is identical. Only
+       near an edge, because that is where a real object wears."""
+    out = [row[:] for row in g]
+    for y in range(N):
+        for x in range(N):
+            c = g[y][x]
+            if c not in FAM: continue
+            edge = any(get(g, x + dx, y + dy) in ('.', 'o')
+                       for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+            if not edge: continue
+            r = _h(x, y)
+            if r < amount * 0.55:   out[y][x] = shift(c, -1)
+            elif r > 1 - amount * 0.45: out[y][x] = shift(c, 1)
+    return out
+
 def outline(g, ch='o'):
     """1px ink line, eaten inward so the sprite does not grow"""
     out = [row[:] for row in g]
     for y in range(N):
         for x in range(N):
-            if g[y][x] == '.':
-                continue
-            for dx, dy in ((1,0), (-1,0), (0,1), (0,-1)):
+            if g[y][x] == '.': continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 nx, ny = x + dx, y + dy
                 if nx < 0 or ny < 0 or nx >= N or ny >= N or g[ny][nx] == '.':
-                    out[y][x] = ch
-                    break
+                    out[y][x] = ch; break
     return out
 
-def rimlight(g, body='A', ch='B'):
-    """lift the upper-left inside edge of every mass by one pixel"""
-    out = [row[:] for row in g]
-    for y in range(N):
-        for x in range(N):
-            if g[y][x] != body:
-                continue
-            if get(g, x - 1, y) in ('.', 'o') or get(g, x, y - 1) in ('.', 'o'):
-                out[y][x] = ch
-    return out
-
-def shadeform(g, body='A', lo='d', hi='B'):
-    """3 step ramp across each mass: upper-left lights, lower-right shades"""
-    out = [row[:] for row in g]
-    for y in range(N):
-        for x in range(N):
-            if g[y][x] != body:
-                continue
-            up = get(g, x, y - 1) in ('.', 'o') or get(g, x, y - 2) in ('.', 'o')
-            lf = get(g, x - 1, y) in ('.', 'o')
-            dn = get(g, x, y + 1) in ('.', 'o') or get(g, x, y + 2) in ('.', 'o')
-            rt = get(g, x + 1, y) in ('.', 'o')
-            if up or lf:   out[y][x] = hi
-            elif dn or rt: out[y][x] = lo
-    return out
-
-def despeckle(g):
-    """remove lone pixels with no orthogonal neighbour of their own kind"""
+def softline(g):
+    """one ring in from the ink, a softer dark, so the edge has weight"""
     out = [row[:] for row in g]
     for y in range(N):
         for x in range(N):
             c = g[y][x]
-            if c == '.':
-                continue
-            if all(get(g, x+dx, y+dy) != c for dx, dy in ((1,0),(-1,0),(0,1),(0,-1))):
-                out[y][x] = get(g, x+1, y) if get(g, x+1, y) != '.' else '.'
+            if c not in FAM: continue
+            if any(get(g, x + dx, y + dy) == 'o'
+                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                out[y][x] = shift(c, -1)
     return out
 
-ALLOWED = set('.odABWCcgGH')
+def despeckle(g):
+    out = [row[:] for row in g]
+    for y in range(N):
+        for x in range(N):
+            c = g[y][x]
+            if c == '.': continue
+            if all(get(g, x + dx, y + dy) != c for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                out[y][x] = get(g, x + 1, y) if get(g, x + 1, y) != '.' else '.'
+    return out
+
+# kept so the existing builders keep working; model() supersedes it
+def shadeform(g, body='A', lo='d', hi='B'): return g
+def rimlight(g, body='A', ch='B'): return g
+
+def paint(g, worn=0.16):
+    """the whole finishing run, in the order that matters"""
+    g = model(g)
+    g = ao(g)
+    g = rim(g)
+    g = dither(g)
+    if worn: g = wear(g, worn)
+    g = despeckle(g)
+    g = outline(g)
+    g = softline(g)
+    return g
+
 def dump(g):
     rows = [''.join(r) for r in g]
     assert len(rows) == N, len(rows)

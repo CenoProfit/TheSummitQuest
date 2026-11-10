@@ -37,7 +37,7 @@ def dog_small(step):
     disc(g, 63, 26, 3.0, 'C')                                  # nose
     eye(g, 51, 22)
     poly(g, [(54, 29), (63, 29), (63, 31), (54, 32)], 'c')     # mouth line
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # -------------------------------------------------------------- 1 hound
 def dog_large(step):
@@ -60,7 +60,7 @@ def dog_large(step):
     g = shadeform(g)
     disc(g, 63, 19, 2.6, 'C')
     eye(g, 57, 15, 2.2)
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # --------------------------------------------------------------- 2 frog
 def frog(step):
@@ -85,7 +85,7 @@ def frog(step):
         if step: disc(g, 32 + s*12, 18, 4.5, 'o')              # blink
         else: eye(g, 32 + s*12, 17, 4.5)
     poly(g, [(14, 30), (50, 30), (50, 33), (14, 33)], 'c')     # wide mouth
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # --------------------------------------------------------------- 3 toad
 def toad(step):
@@ -112,7 +112,7 @@ def toad(step):
         if step: disc(g, 32 + s*13, 20, 5.0, 'o')
         else: eye(g, 32 + s*13, 19, 5.0)
     poly(g, [(10, 34), (54, 34), (54, 38), (10, 38)], 'c')
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 # ----------------------------------------------------------- 4 songbird
 def songbird(step):
@@ -135,7 +135,7 @@ def songbird(step):
         taper(g, lx, 46, lx + 2, 56, 4, 3, 'C')
         for i in range(3): taper(g, lx + 2, 56, lx + 6 - i*5, 61, 3, 1.5, 'C')
     eye(g, 50, 18, 3.0)
-    return dump(outline(despeckle(g)))
+    return dump(paint(g, 0.10))
 
 SHAPES = []
 for fn in (dog_small, dog_large, frog, toad, songbird):

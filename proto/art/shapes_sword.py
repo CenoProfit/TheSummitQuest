@@ -141,5 +141,5 @@ def s_broken():
     quillons(g, B, 8, 4.0, 0)
     return g
 
-SHAPES = [dump(outline(despeckle(f()))) for f in
+SHAPES = [dump(paint(f())) for f in
           (s_arming, s_falchion, s_great, s_flamberge, s_rapier, s_cleaver, s_katana, s_broken)]

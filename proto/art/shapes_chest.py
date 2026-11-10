@@ -81,5 +81,5 @@ def ch_carapace():
             line_on(g, CX + k*11, 22 + i*9, CX + k*27, 26 + i*9, 'd', 'A')
     return g
 
-SHAPES = [dump(outline(despeckle(f()))) for f in
+SHAPES = [dump(paint(f())) for f in
           (ch_cuirass, ch_scale, ch_robe, ch_banded, ch_carapace)]
