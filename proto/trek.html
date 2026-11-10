@@ -907,7 +907,21 @@ function buildTile(tx,ty){
   const dOff=Math.abs(wx-cxx);
   const towerOK=open>0.20&&steep<0.85&&dOff>45&&dOff<240
                &&hash((wx*2654+wy*4099)|0)<0.00010;
-  const kind=towerOK?'tower'
+  /* One in a few thousand trees is one of the old ones, with the vines
+     hanging off it. Rare enough to be worth looking up at. */
+  const giantOK=treeOK&&open<0.42&&hash((wx*3571+wy*6113)|0)<0.00055;
+  /* A fall wants a steep face well off the path, and somewhere for the
+     water to have come from, so it is gated on height as well as slope.
+     The threshold is the 99th percentile of this terrain's gradient,
+     measured: the first cut asked for steep>1.9 when the steepest
+     ground anywhere in 13,000 samples was 1.88, so none ever placed. */
+  /* The lateral band matters as much as the slope. The view covers
+     about a quarter of the distance ahead to either side, so a fall
+     more than about 130 units off the trail is only ever in frame from
+     far enough away that it is too small to draw. */
+  const fallOK=!treeOK&&steep>1.15&&h>58&&dOff>58&&dOff<132
+              &&hash((wx*5281+wy*2207)|0)<0.013;
+  const kind=towerOK?'tower':giantOK?'giant':fallOK?'fall'
             :treeOK?'tree':(alp>0.45?'rock':hash((wy*53+i*17)|0)<0.55?'rock':'bush');
   objs.push({wx,wy,h,kind,alp,mi,s:(hash((wx*31+wy*17)|0)*1000)|0});
  }
@@ -1855,6 +1869,127 @@ function towerArt(v){
  return pixOf('TWR'+v, c);
 }
 
+/* ---------- the two big pieces of scenery ----------
+   Both are drawn once per (variant, biome) and cached, the same way the
+   lookout is: they are rare enough that a cache miss costs nothing and
+   common enough that redrawing every frame would. */
+const BIGC=new Map();
+function _bigkey(t,v,B){ return t+v+'|'+B.cnp.join()+'|'+B.trk.join(); }
+
+function giantArt(v,B){
+ const key=_bigkey('G',v,B); const hit=BIGC.get(key); if(hit) return hit;
+ const W2=56, H2=104, c=document.createElement('canvas');
+ c.width=W2; c.height=H2;
+ const q=c.getContext('2d');
+ const hx=a=>'#'+a.map(n=>Math.max(0,Math.min(255,n|0)).toString(16).padStart(2,'0')).join('');
+ const TRK=hx(B.trk), TRL=hx(_lite(B.trk,.34)), TRD=hx(sh(B.trk,-0.40));
+ const CNP=hx(B.cnp), CNL=hx(_lite(B.cnp,.30)), CND=hx(sh(B.cnp,-0.34));
+ const VIN=hx(sh(B.fer,-0.18)), VIL=hx(_lite(B.fer,.26));
+ const R=(x,y,w,h,col)=>{q.fillStyle=col;q.fillRect(Math.round(x),Math.round(y),Math.max(1,w|0),Math.max(1,h|0));};
+ const CX=28, rnd=(n)=>{let x=(v*9301+n*49297)%233280;return x/233280;};
+ /* buttressed base: the trunk flares into four roots */
+ for(let y=H2-1;y>=46;y--){
+  const t=(H2-1-y)/(H2-1-46);
+  const w=18-12*Math.pow(t,0.55);
+  R(CX-w/2,y,w,1,TRK);
+  R(CX-w/2,y,Math.max(1,w*0.34),1,TRL);
+  R(CX+w/2-Math.max(1,w*0.22),y,Math.max(1,w*0.22),1,TRD);
+ }
+ for(const k of [-1,1]) for(let i=0;i<2;i++){
+  const x0=CX+k*(3+i*3);
+  for(let y=H2-1;y>H2-16-i*5;y--){
+   const t=(H2-1-y)/(16+i*5);
+   R(x0+k*(7-7*t)-1,y,3,1,i?TRD:TRK);
+  }
+ }
+ /* bark */
+ for(let i=0;i<9;i++){
+  const x=CX-7+i*1.7;
+  for(let y=48;y<H2-3;y+=2) R(x+rnd(i*13+y)*1.4,y,1,2, i%2?TRD:TRL);
+ }
+ /* limbs, then the canopy hung on them */
+ for(const [ax,ay,bx,by] of [[CX,52,6,34],[CX,50,50,32],[CX,44,14,22],[CX,42,44,20]]){
+  for(let t=0;t<=12;t++){
+   const f=t/12;
+   R(ax+(bx-ax)*f-1, ay+(by-ay)*f, 3-f*1.4, 2, TRK);
+  }
+ }
+ const blob=(cx,cy,r,col)=>{
+  for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)
+   if(x*x+y*y*1.5<=r*r) R(cx+x,cy+y,1,1,col);
+ };
+ for(let i=0;i<22;i++){
+  const a=i*0.9, rr=4+((i*7)%6);
+  const cx=CX+Math.cos(a)*(10+(i%7)*2.6), cy=24+Math.sin(a)*(8+(i%5)*1.6);
+  blob(cx,cy,rr,CND);
+ }
+ for(let i=0;i<20;i++){
+  const a=0.4+i*0.86, rr=3+((i*5)%5);
+  const cx=CX+Math.cos(a)*(9+(i%6)*2.4), cy=22+Math.sin(a)*(7+(i%4)*1.5);
+  blob(cx,cy,rr,CNP);
+ }
+ for(let i=0;i<12;i++){
+  const a=2.2+i*0.52, rr=2+((i*3)%3);
+  blob(CX+Math.cos(a)*(8+(i%5)*2.2)-3, 19+Math.sin(a)*(6+(i%3)*1.4)-3, rr, CNL);
+ }
+ /* the vines, which is the whole reason for this thing */
+ for(let i=0;i<7;i++){
+  const sx=6+i*7+rnd(i)*3, sy=28+rnd(i*3)*10;
+  const len=16+rnd(i*5)*30;
+  let x=sx;
+  for(let y=sy;y<sy+len;y++){
+   x+=Math.sin((y+i*9)*0.28)*0.42;
+   R(x,y,1,1, (y-sy)<len*0.3?VIL:VIN);
+   if((y-sy)%7===3) R(x+(i%2?1:-2),y,2,2,VIL);
+  }
+ }
+ const P=pixOf(key,c); BIGC.set(key,P); return P;
+}
+
+function fallArt(v,B){
+ const key=_bigkey('F',v,B); const hit=BIGC.get(key); if(hit) return hit;
+ const W2=44, H2=78, c=document.createElement('canvas');
+ c.width=W2; c.height=H2;
+ const q=c.getContext('2d');
+ const hx=a=>'#'+a.map(n=>Math.max(0,Math.min(255,n|0)).toString(16).padStart(2,'0')).join('');
+ const RK=hx(B.rck), RKD=hx(sh(B.rck,-0.42)), RKL=hx(_lite(B.rck,.22));
+ const R=(x,y,w,h,col)=>{q.fillStyle=col;q.fillRect(Math.round(x),Math.round(y),Math.max(1,w|0),Math.max(1,h|0));};
+ const rnd=n=>{let x=(v*7919+n*104729)%233280;return x/233280;};
+ /* The cliff first, and plenty of it. The first cut was a white ribbon
+    with two thin strips of rock beside it, and seen small from a trail
+    it read as a white box standing on a hillside. The water is a slot
+    in a wide dark face now, which is what reads at forty pixels. */
+ const CX=22;
+ for(let y=0;y<H2-9;y++){
+  const t=y/(H2-9), w=5.5+t*7.5, jag=(rnd(y*3)-0.5)*3;
+  R(0,y,CX-w+jag,1,RKD);
+  R(CX+w+jag,y,W2-(CX+w+jag),1,RK);
+  R(CX-w+jag-2,y,2,1,'#000000');
+  R(CX+w+jag,y,2,1,'#000000');
+  if(y%6===((rnd(y)*6)|0)) R(2+rnd(y*7)*8,y,4,1,RKL);
+  if(y%7===3) R(CX+w+jag+3+rnd(y*5)*6,y,4,1,RKL);
+ }
+ /* the water: three bands, the middle one brightest */
+ for(let y=4;y<H2-8;y++){
+  const t=(y-4)/(H2-12), w=4.2+t*7.0, jag=(rnd(y*3)-0.5)*3;
+  R(CX-w+jag,y,w*2,1,'rgba(168,208,234,0.94)');
+  R(CX-w*0.52+jag,y,w*1.04,1,'rgba(228,244,253,0.97)');
+  if((y+((rnd(y)*4)|0))%5===0) R(CX-w*0.9+jag,y,w*0.5,1,'#ffffff');
+ }
+ /* the lip at the top, and the stream feeding it */
+ R(CX-6,2,12,3,'#dff1fb'); R(CX-8,0,16,2,RKL);
+ R(CX-3,0,6,2,'#eef8ff');
+ /* the plunge pool and the mist standing over it */
+ for(let i=0;i<34;i++){
+  const a=rnd(i*3)*6.28, rr=rnd(i*5);
+  const x=CX+Math.cos(a)*rr*17, y=H2-8+Math.sin(a)*rr*6;
+  R(x,y,2+((i*3)%3),1+((i*5)%2),'rgba(236,248,255,'+(0.22+rnd(i)*0.42).toFixed(2)+')');
+ }
+ R(5,H2-6,34,5,'rgba(184,220,242,0.82)');
+ R(8,H2-5,28,2,'rgba(232,246,254,0.93)');
+ const P=pixOf(key,c); BIGC.set(key,P); return P;
+}
+
 function underPix(kind,s,B,alpLv,vb){
  return pixOf('U'+kind+s+alpLv+vb, undergrowth(kind,s,B,[0,0,0],0,alpLv,vb));
 }
@@ -2046,7 +2181,9 @@ function paint(now,dt){
   const T=tileAt(tx,ty);
   for(const o of T.objs){
    const dd=camY-o.wy;
-   if(dd<36||dd>(o.kind==='tower'?DTOWER:DOBJ)) continue;
+   const reach=o.kind==='tower'?DTOWER
+              :(o.kind==='giant'||o.kind==='fall')?DTOWER*0.78:DOBJ;
+   if(dd<36||dd>reach) continue;
    const sc=FOC/dd, sx=W*0.5+(o.wx-camX)*sc;
    if(sx<-60||sx>W+60) continue;
    vis.push({o,dd,sc,sx});
@@ -2060,7 +2197,7 @@ function paint(now,dt){
      is the pop you see as the world comes toward you. Over the last
      fifth of that range it is taken the rest of the way into the haze,
      so it arrives as a shape in the mist and resolves out of it. */
-  if(o.kind!=='tower'){
+  if(o.kind!=='tower'&&o.kind!=='giant'&&o.kind!=='fall'){
    const edge=(v.dd-DOBJ*0.80)/(DOBJ*0.20);
    if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.92;
   }
@@ -2072,8 +2209,25 @@ function paint(now,dt){
    const worldH=64+(o.s%11), pxH=Math.min(H*0.92,worldH*v.sc);
    if(pxH<16) continue;
    drawBill(towerArt(o.s&3),v.sx,sy,pxH/52,v.dd,fog*0.80,HZC,Math.max(4,v.dd*0.035));
+  }else if(o.kind==='giant'){
+   const worldH=46+(o.s%14), pxH=Math.min(H*1.5,worldH*v.sc);
+   if(pxH<14) continue;
+   const S3=giantArt(o.s&3,Bb);
+   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog*0.92,HZC,Math.max(3,v.dd*0.030));
+  }else if(o.kind==='fall'){
+   /* Below about two dozen pixels a fall is a white vertical line on a
+      hillside, which reads as a scratch on the screen rather than as
+      water. Better absent until you are close enough for it to be a
+      waterfall. */
+   const worldH=50+(o.s%22), pxH=Math.min(H*1.1,worldH*v.sc);
+   if(pxH<22) continue;
+   const S3=fallArt(o.s&3,Bb);
+   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog*0.70,HZC,Math.max(3,v.dd*0.030));
   }else if(o.kind==='tree'){
-   const worldH=7+(o.s%10); const pxH=Math.min(H*0.55,worldH*v.sc);
+   /* one tree in twenty three is an old one that got above the rest,
+      which is most of what stops a canopy reading as a green carpet */
+   const worldH=(7+(o.s%10))*((o.s%23)===0?1.85:1);
+   const pxH=Math.min(H*0.70,worldH*v.sc);
    if(pxH<2) continue;
    const vr=o.s&3;
    const spc=o.alp>0.42?'fir':Bb.tree==='fir'?(vr<3?'fir':'hard')
@@ -2105,8 +2259,12 @@ function paint(now,dt){
   else if(enc){ B=ENC[enc.k]; isEnc=1; side=enc.side;
                 dd=camY-(-enc.m*RPM); }
   else{
+   /* Only while it is still far off. A fight picks it up at 330 and
+      closes from there, so drawing the approach any nearer than that
+      put the thing in your face for the mile and a half before it and
+      then jumped it backwards when the fight began. */
    const nb=nextBoss(miles());
-   if(nb){ B=BOSS[nb.b]; dd=camY-(-nb.m*RPM); }
+   if(nb){ const d2=camY-(-nb.m*RPM); if(d2>330){ B=BOSS[nb.b]; dd=d2; } }
   }
   /* Its own range, not the scenery's. Computing the haze against DOBJ
      while drawing out to half again as far faded every approaching boss
