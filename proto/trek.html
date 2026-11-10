@@ -71,13 +71,16 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 #pack.open{display:flex}
 #pack::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
  background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
-.pbar{display:flex;align-items:center;gap:10px;padding-bottom:10px;margin-bottom:12px;
+.pbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;
+ padding-bottom:10px;margin-bottom:12px;
  border-bottom:2px solid var(--edge);position:relative}
 .pbar::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:2px;
  background:linear-gradient(90deg,var(--gold),transparent 60%);opacity:.35}
 .ptitle{font-family:var(--pix);font-size:11px;letter-spacing:3px;color:var(--gold);flex:1;
  text-shadow:2px 2px 0 rgba(0,0,0,.8)}
 .pcount{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:1px}
+.pstones{font-family:var(--pix);font-size:8px;color:var(--gold);letter-spacing:1px;
+ white-space:nowrap;flex:none}
 .pclose{flex:0 0 auto;width:auto;padding:7px 11px}
 .pbody{flex:1;display:flex;gap:14px;min-height:0}
 
@@ -108,7 +111,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  overflow:hidden;text-overflow:ellipsis}
 
 /* the right column: tabs, grid, and the piece you are looking at */
-.pright{flex:1;display:flex;flex-direction:column;min-width:0}
+.pright{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 .ptabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
 .ptab{font-family:var(--pix);font-size:6px;letter-spacing:1px;padding:7px 7px;
  background:linear-gradient(180deg,#1b2736,#121a26);border:2px solid #243246;
@@ -156,6 +159,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  padding:8px 12px;background:var(--solid2);color:var(--ink);
  border:2px solid var(--edge2);cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
 .wearbtn.on{border-color:var(--gold);color:var(--gold)}
+.wearbtn.buy{border-color:var(--gold);color:var(--gold);background:rgba(60,46,12,.55)}
+.wearbtn.poor{border-color:var(--edge);color:var(--dim);cursor:default;opacity:.75}
+.wearbtn.poor:active{transform:none;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
 .wearbtn:active{transform:translate(2px,2px);box-shadow:none}
 @media(max-width:560px){
  .pbody{flex-direction:column;gap:10px}
@@ -256,6 +262,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   <div class="pbar">
     <span class="ptitle">★ THE PACK</span>
     <span class="pcount" id="pcount">0 / 115</span>
+    <span class="pstones" id="pstones">&#9650; 0</span>
     <button class="btn pclose" id="pclose">✕</button>
   </div>
   <div class="pbody">
@@ -464,7 +471,7 @@ function ridged(x,y){
 
 /* ---------- state ---------- */
 const KEY='sq_trek_proto4';
-let S={steps:0,today:0,day:1,opened:[],own:{},eq:{}};
+let S={steps:0,today:0,day:1,opened:[],log:[],stones:0,own:{},eq:{}};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 /* the outfit slot was retired; a save made before that still names its
@@ -2128,6 +2135,24 @@ function step(dt,now){
 const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
            ['MYTHIC','#b978f0'],['LEGENDARY','#f5c651']];
 /* which body slot each category fills */
+/* ---------- the cairn ----------
+   A piece you already own is left at the cairn and you take a stone for
+   it. Stones claim a specific piece you have never found.
+
+   The roll cannot produce a legendary. r is Math.random()+tier*0.085, so
+   the best a tier 4 landmark can reach is 1.34 and legendary needs more
+   than that. That is deliberate now rather than accidental: the eight
+   legendaries are what the cairn is for, and the only pieces in the game
+   you get by choosing them instead of by luck.
+
+   Rates are set against a full trail, not the prototype's 21 landmarks:
+   about 420 chests, roughly 300 of them duplicates, which comes to about
+   1,450 stones, or three or four legendaries over a thru hike. */
+const STONE_Y=[1,3,8,20,50];      /* taken for a duplicate, by rarity */
+const STONE_C=[10,25,70,180,400]; /* paid to claim one, by rarity */
+const stones=()=>S.stones|0;
+
+/* which body slot each category fills */
 const CAT2SLOT={sword:'hand',staff:'hand',shield:'off',helm:'head',
                 chest:'body',shoes:'feet',pet:'pet'};
 const SLOTS=['hand','off','head','body','feet','pet'];
@@ -2506,7 +2531,8 @@ function startChest(){
  document.getElementById('citem').textContent=d[0];
  document.getElementById('citem').style.color=R[1];
  document.getElementById('ckind').textContent=
-  (isNew?'NEW · ':'ALREADY YOURS · ')+SLOTNAME[CAT2SLOT[d[1]]];
+  (isNew?'NEW · ':'ALREADY YOURS · +'+STONE_Y[d[2]]+' STONES · ')
+  +SLOTNAME[CAT2SLOT[d[1]]];
  for(const id of ['clm','clore','cdiv','crar','citem','ckind','cok'])
   document.getElementById(id).classList.remove('show');
  /* The place lands first and gets a beat to itself. The chest is still
@@ -2748,8 +2774,12 @@ function hud(){
 }
 function addSteps(n){
  const before=miles(); S.steps+=n; S.today+=n; const after=miles();
+ /* Springer sits at mile 0, so `L.m>before` never caught it on the first
+    steps of a save and the southern terminus was the one place you could
+    never reach. From a standing start the mile you are on counts. */
  for(const L of TRAIL)
-  if(L.m>before && L.m<=after && S.opened.indexOf(L.m)<0){S.opened.push(L.m);chestQ.push(L);}
+  if(L.m<=after && (L.m>before || (before===0 && L.m===0))
+     && S.opened.indexOf(L.m)<0){S.opened.push(L.m);chestQ.push(L);}
  surge=Math.min(.55,surge+n/22000);
  save(); hud();
  if(chestQ.length && !anim) setTimeout(startChest,1100);
@@ -2759,7 +2789,7 @@ document.getElementById('b5k').onclick=()=>addSteps(5000);
 document.getElementById('bday').onclick=()=>{
  S.day++; S.today=0; save(); addSteps(3000+((Math.random()*6000)|0));};
 document.getElementById('brst').onclick=()=>{
- S={steps:0,today:0,day:1,opened:[],log:[],own:{},eq:{}}; chestQ=[]; anim=null;
+ S={steps:0,today:0,day:1,opened:[],log:[],stones:0,own:{},eq:{}}; chestQ=[]; anim=null;
  shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();};
 
 /* ---------- loop ---------- */
@@ -2792,6 +2822,9 @@ function owned(id){return (S.own&&S.own[id])|0;}
 function grant(g){
  if(!S.own) S.own={};
  const was=owned(g.id); S.own[g.id]=was+1;
+ /* the duplicate is left at the cairn on the spot, so a repeat find is
+    never nothing and never a chore in a menu afterwards */
+ if(was) S.stones=stones()+STONE_Y[g[2]];
  /* A new piece goes straight on if the slot is empty or if it outranks
     what is already there, so the reward shows up without a trip through
     a menu. It never quietly takes a legendary off you. */
@@ -2801,6 +2834,17 @@ function grant(g){
   if(!cur||g[2]>cur[2]){S.eq[sl]=g.id; wizApply();}
  }
  save(); return !was;
+}
+/* Claiming is the one place in the game where you choose what you get. */
+function claim(g){
+ const cost=STONE_C[g[2]];
+ if(owned(g.id)||stones()<cost) return;
+ S.stones=stones()-cost;
+ if(!S.own) S.own={}; S.own[g.id]=1;
+ if(!S.eq) S.eq={};
+ const sl=CAT2SLOT[g[1]], cur=S.eq[sl]?BYID[S.eq[sl]]:null;
+ if(!cur||g[2]>cur[2]){S.eq[sl]=g.id; wizApply();}
+ save(); psel=g; drawPack();
 }
 function equip(g){
  if(!owned(g.id)) return;
@@ -2984,7 +3028,9 @@ function drawDetail(){
   return;
  }
  if(!psel){D.innerHTML='<div class="dtxt">Every piece is cosmetic. '
-  +'Nothing here walks for you.</div>'; return;}
+  +'Nothing here walks for you.<span style="display:block;margin-top:7px;color:#5c6a7c">'
+  +'A piece you already own is left at the cairn for stones. Stones claim '
+  +'something you have never found.</span></div>'; return;}
  const g=psel, has=owned(g.id), R=RAR[g[2]], n=owned(g.id);
  const art=document.createElement('div'); art.className='dart';
  if(has){
@@ -2997,18 +3043,28 @@ function drawDetail(){
  }else{ DART=null; art.innerHTML='<span class="dq">?</span>'; }
  art.style.borderColor=has?R[1]:'#2b3a50';
  const txt=document.createElement('div'); txt.className='dtxt';
- txt.innerHTML='<b style="color:'+R[1]+'">'+(has?g[0]:'? ? ?')+'</b>'
+ txt.innerHTML='<b style="color:'+R[1]+'">'+g[0]+'</b>'
   +'<span class="rr" style="color:'+R[1]+'">'+R[0]+'</span> &nbsp;·&nbsp; '
   +SLOTNAME[CAT2SLOT[g[1]]]
   +(has?'<br><span style="color:#5c6a7c">'+(MATNAME[g[6]]||'')
         +(n>1?(MATNAME[g[6]]?' &nbsp;·&nbsp; ':'')+n+' found':'')+'</span>'
-      :'<br><span style="color:#5c6a7c">Not found yet. Keep walking.</span>');
+      :'<br><span style="color:#5c6a7c">Not found yet.'
+        +(g[2]===4?' The trail will not give this up. The cairn is the only way.'
+                  :' Keep walking, or claim it.')+'</span>');
  if(has){
   const sl=CAT2SLOT[g[1]], worn=(S.eq&&S.eq[sl]===g.id);
   const b=document.createElement('button');
   b.className='wearbtn'+(worn?' on':'');
   b.textContent=worn?'\u2713 WORN \u00b7 TAKE OFF':'WEAR IT \u25b6';
   b.onclick=()=>equip(g);
+  txt.appendChild(b);
+ }else{
+  const cost=STONE_C[g[2]], have=stones(), can=have>=cost;
+  const b=document.createElement('button');
+  b.className='wearbtn '+(can?'buy':'poor');
+  b.textContent=can?('CLAIM \u00b7 '+cost+' STONES')
+                   :(cost+' STONES \u00b7 YOU HAVE '+have);
+  if(can) b.onclick=()=>claim(g);
   txt.appendChild(b);
  }
  D.appendChild(art); D.appendChild(txt);
@@ -3017,6 +3073,7 @@ function drawPack(){
  packStart();
  const tot=GEAR.length, got=GEAR.filter(g=>owned(g.id)).length;
  document.getElementById('pcount').textContent=got+' / '+tot;
+ document.getElementById('pstones').textContent='\u25b2 '+stones();
  drawSlots(); drawTabs(); drawGrid(); drawDetail();
 }
 let packTick=null;
