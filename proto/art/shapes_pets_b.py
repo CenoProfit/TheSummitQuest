@@ -73,6 +73,9 @@ def golem_small(step):
     k = 1 if step else -1
     poly(g, [(14, 24), (50, 24), (54, 34), (50, 48), (14, 48), (10, 34)], 'A')  # torso
     poly(g, [(22, 10), (42, 10), (44, 22), (20, 22)], 'A')                      # head
+    poly(g, [(26, 18), (38, 18), (38, 27), (26, 27)], 'A')                      # neck
+    # Without the neck the head stopped two rows above the shoulders and
+    # the golem's head simply floated over its body.
     for s in (-1, 1):                                                           # arms
         poly(g, [(32 + s*18, 26), (32 + s*28, 28 + k*2), (32 + s*27, 42 + k*2),
                  (32 + s*17, 40)], 'A')

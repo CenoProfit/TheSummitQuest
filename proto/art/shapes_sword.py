@@ -14,7 +14,10 @@ def hilt(g, B, grip=12, pom=3.4, bands=4, pomshape='disc', stone=True):
     """Grip, ferrule and pommel. The binding is a criss-cross, which is
        what a wrapped hilt actually looks like, and the pommel carries a
        cut stone, which is where the eye lands on a weapon icon."""
-    a = along(B, -2); b = along(B, -grip)
+    # The grip starts almost at B. Starting it two units down the axis
+    # left room for a guard that sits forward of B (a curved quillon,
+    # say) to lift clear of it, and the hilt came apart.
+    a = along(B, -1.0); b = along(B, -grip)
     haft(g, a[0], a[1], b[0], b[1], 5)
     cordwrap(g, a[0], a[1], b[0], b[1], 5, bands + 3)
     f = along(B, -3)
@@ -103,7 +106,7 @@ def s_flamberge():
     glint(g, B[0], B[1], T[0], T[1], 0.62, 2.4)
     g = shadeform(g)
     line_on(g, B[0]+2, B[1]-4, T[0]-3, T[1]+3, 'W', 'A')
-    quillons(g, B, 9, 4.0, 2.2, curve=2.5)
+    quillons(g, B, 9, 4.0, 2.2, curve=1.0)
     return g
 
 def s_rapier():
@@ -121,14 +124,18 @@ def s_rapier():
     return g
 
 def s_cleaver():
+    """The blade used to start seven units up the axis from the hilt,
+       which left a clear gap between the ferrule and the bolster and
+       the cleaver read as a blade floating above a handle. It is
+       translated back onto the hilt, and its front edge extended by the
+       same amount so the tip still reaches the corner."""
     g = blank(); B = (18, 48)
     hilt(g, B, 13, 3.0, 3)
-    poly(g, [(21, 45), (31, 55), (56, 30), (46, 20), (30, 36)], 'A')
+    poly(g, [(16, 50), (26, 60), (56, 30), (46, 20), (25, 41)], 'A')
     g = shadeform(g)
     line_on(g, 46, 19, 56, 29, 'W', 'A')                        # the edge
-    line_on(g, 24, 44, 34, 54, 'd', 'A')
-    rect(g, 0, 0, 0, 0, '.')
-    taper(g, 21, 45, 31, 55, 4.0, 4.0, 'C')                     # bolster
+    line_on(g, 19, 49, 29, 59, 'd', 'A')
+    taper(g, 16, 50, 26, 60, 4.0, 4.0, 'C')                     # bolster
     return g
 
 def s_katana():

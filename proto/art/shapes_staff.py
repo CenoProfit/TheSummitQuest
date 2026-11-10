@@ -49,15 +49,20 @@ def st_crescent():
     g = blank(); shaft(g); ferrule(g, 0.84)
     ring(g, 36, 20, 16, 5.5, 'C')
     rect(g, 0, 21, 63, 63, '.')                          # keep only the top arc
-    shaft(g); ferrule(g, 0.84)
+    # up INTO the gem, not to the hollow inside the arc, where the shaft
+    # ended a row short of anything and the crescent floated
+    shaft(g, (36, 13)); ferrule(g, 0.84)
     for k in (-1, 1):                                    # horns tipping up
         poly(g, [(36 + k*16, 20), (36 + k*22, 8), (36 + k*12, 14)], 'C')
         hornridge(g, 36 + k*14, 18, 36 + k*21, 9, 4)
-    gem(g, 36, 15, 4.2, 'A', 6)
+    # The gem is the mount: it has to reach from the shaft top to the
+    # inner edge of the arc, or the crescent hangs in the air above a
+    # staff that threads up through its hollow touching nothing.
+    gem(g, 36, 10, 5.2, 'A', 6)
     return g
 
 def st_lantern():
-    g = blank(); shaft(g, (34, 26)); ferrule(g, 0.72)
+    g = blank(); shaft(g, (34, 22)); ferrule(g, 0.72)
     poly(g, [(23, 24), (47, 24), (44, 20), (26, 20)], 'C')      # cap
     rect(g, 24, 4, 46, 22, 'C')
     rect(g, 28, 8, 42, 20, 'A')
@@ -85,7 +90,7 @@ def st_branch():
     return g
 
 def st_totem():
-    g = blank(); shaft(g, (34, 24)); ferrule(g, 0.74)
+    g = blank(); shaft(g, (34, 20)); ferrule(g, 0.74)
     ellipse(g, 33, 14, 10, 10, 'A')
     poly(g, [(25, 18), (41, 18), (39, 26), (27, 26)], 'A')      # jaw
     g = shadeform(g, 'A', 'd', 'B')
@@ -94,9 +99,11 @@ def st_totem():
     for jx in (28, 31, 34, 37): line_on(g, jx, 19, jx, 26, 'q', 'A', 1.1)
     poly(g, [(31, 16), (35, 16), (34, 19), (32, 19)], 'q')      # nose hollow
     for k in (-1, 1):                                           # hanging charms
+        # the hanger has to REACH the ring, and the ring the pendant;
+        # ending inside the ring's hole left all three floating apart
         ring(g, 33 + k*13, 30, 4.5, 1.8, 'C')
-        line(g, 33 + k*9, 24, 33 + k*13, 27, 'C', 1)
-        poly(g, [(33 + k*13, 34), (33 + k*16, 44), (33 + k*11, 42)], 'G')
+        line(g, 33 + k*6, 22, 33 + k*13, 26, 'C', 2)
+        poly(g, [(33 + k*13, 32.5), (33 + k*16, 44), (33 + k*11, 42)], 'G')
     gem(g, 33, 4, 4.0, 'C', 5)                                  # crest stone
     poly(g, [(27, 6), (33, 0), (39, 6), (33, 9)], 'C')
     return g

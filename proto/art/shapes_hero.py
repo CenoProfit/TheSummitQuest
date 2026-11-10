@@ -221,32 +221,35 @@ def body(step):
     return dump(softline(outline(g)))
 
 def H_crown_grand():
-    """The legendary crown, worn. The first attempt put five short points
-       close together and the modelling pass merged them into one lump;
-       at this size a crown is its gaps, so the points are taller, wider
-       apart, and each one carries a lit edge to hold it off its
-       neighbour."""
+    """The legendary crown, worn. Its points are taller, wider apart and
+       each carries a lit edge to hold it off its neighbour, because at
+       this size a crown is its gaps and five short points close
+       together just merge into a lump under the modelling pass.
+
+       Like the plain circlet it used to sit six rows too low, with its
+       band down at the ears."""
     g = blank()
-    TOPS = ((-11, -8), (-5.5, -13), (0, -16), (5.5, -13), (11, -8))
-    VAL = HEAD_Y - 2
-    pts = [(CX - 12.5, HEAD_Y + 3)]
+    BT, BB = HEAD_Y - 5, HEAD_Y + 1
+    TOPS = ((-11, -7), (-5.5, -10), (0, -12), (5.5, -10), (11, -7))
+    VAL = BT + 1
+    pts = [(CX - 12.5, BT)]
     for (dx, dy) in TOPS:
         pts += [(CX + dx - 2.0, VAL), (CX + dx, HEAD_Y + dy), (CX + dx + 2.0, VAL)]
-    pts.append((CX + 12.5, HEAD_Y + 3))
+    pts.append((CX + 12.5, BT))
     poly(g, pts, 'C')
-    poly(g, [(CX - 12.5, HEAD_Y + 1), (CX + 12.5, HEAD_Y + 1),
-             (CX + 12.5, HEAD_Y + 7), (CX - 12.5, HEAD_Y + 7)], 'C')
+    poly(g, [(CX - 12.5, BT), (CX + 12.5, BT),
+             (CX + 12.5, BB), (CX - 12.5, BB)], 'C')
     g = model(g)
     for (dx, dy) in TOPS:
-        line_on(g, CX + dx - 0.9, HEAD_Y + dy + 1, CX + dx - 0.9, HEAD_Y + 2, 'Z', 'C', 1.0)
-        line_on(g, CX + dx + 1.1, HEAD_Y + dy + 2, CX + dx + 1.1, HEAD_Y + 2, 'x', 'C', 1.0)
+        line_on(g, CX + dx - 0.9, HEAD_Y + dy + 1, CX + dx - 0.9, BT + 1.5, 'Z', 'C', 1.0)
+        line_on(g, CX + dx + 1.1, HEAD_Y + dy + 2, CX + dx + 1.1, BT + 1.5, 'x', 'C', 1.0)
         disc(g, CX + dx, HEAD_Y + dy + 0.6, 1.5, 'A')
         put(g, CX + dx, HEAD_Y + dy, 'W')
-    line_on(g, CX - 12.5, HEAD_Y + 2, CX + 12.5, HEAD_Y + 2, 'Z', 'C', 1.1)
-    line_on(g, CX - 12.5, HEAD_Y + 6, CX + 12.5, HEAD_Y + 6, 'x', 'C', 1.1)
+    line_on(g, CX - 12.5, BT + 1, CX + 12.5, BT + 1, 'Z', 'C', 1.1)
+    line_on(g, CX - 12.5, BB - 1, CX + 12.5, BB - 1, 'x', 'C', 1.1)
     for gx in (-7, 0, 7):
-        disc(g, CX + gx, HEAD_Y + 4, 2.0, 'A')
-        put(g, CX + gx - 1, HEAD_Y + 3, 'W')
+        disc(g, CX + gx, (BT + BB) * 0.5, 2.0, 'A')
+        put(g, CX + gx - 1, (BT + BB) * 0.5 - 1, 'W')
     return fin(g)
 
 def fin(g):
@@ -447,20 +450,25 @@ def H_great():
     return fin(g)
 
 def H_crown():
+    """A circlet sits on the upper half of the skull. This one had its
+       band down at the ears, six rows lower, which read as a crown that
+       had slipped. Raising it leaves less room above for the points, so
+       they are shorter as well as higher."""
     g = blank()
-    pts = [(CX - 11, HEAD_Y + 4), (CX - 10, HEAD_Y - 8), (CX - 5, HEAD_Y - 2),
-           (CX, HEAD_Y - 11), (CX + 5, HEAD_Y - 2), (CX + 10, HEAD_Y - 8), (CX + 11, HEAD_Y + 4)]
-    poly(g, pts + [(CX + 11, HEAD_Y + 7), (CX - 11, HEAD_Y + 7)], 'C')
-    poly(g, [(CX - 11, HEAD_Y + 1), (CX + 11, HEAD_Y + 1),
-             (CX + 11, HEAD_Y + 7), (CX - 11, HEAD_Y + 7)], 'C')
+    BT, BB = HEAD_Y - 5, HEAD_Y + 1          # band top and bottom
+    pts = [(CX - 11, BT), (CX - 10, HEAD_Y - 8), (CX - 5, HEAD_Y - 3),
+           (CX, HEAD_Y - 11), (CX + 5, HEAD_Y - 3), (CX + 10, HEAD_Y - 8),
+           (CX + 11, BT)]
+    poly(g, pts + [(CX + 11, BB), (CX - 11, BB)], 'C')
+    poly(g, [(CX - 11, BT), (CX + 11, BT), (CX + 11, BB), (CX - 11, BB)], 'C')
     g = model(g)
     for (px, top) in ((CX - 10, HEAD_Y - 8), (CX, HEAD_Y - 11), (CX + 10, HEAD_Y - 8)):
-        line_on(g, px - 0.8, top + 1, px - 0.8, HEAD_Y + 2, 'Z', 'C', 1.0)
-        line_on(g, px + 1.2, top + 2, px + 1.2, HEAD_Y + 2, 'x', 'C', 1.0)
+        line_on(g, px - 0.8, top + 1, px - 0.8, BT + 1.5, 'Z', 'C', 1.0)
+        line_on(g, px + 1.2, top + 2, px + 1.2, BT + 1.5, 'x', 'C', 1.0)
         stud(g, px, top + 0.6, 1.5, 'A', 'W')
-    line_on(g, CX - 11, HEAD_Y + 2, CX + 11, HEAD_Y + 2, 'Z', 'C', 1.0)
-    line_on(g, CX - 11, HEAD_Y + 6, CX + 11, HEAD_Y + 6, 'x', 'C', 1.0)
-    for gx in (-6, 0, 6): gem(g, CX + gx, HEAD_Y + 4, 2.0, 'A', 5)
+    line_on(g, CX - 11, BT + 1, CX + 11, BT + 1, 'Z', 'C', 1.0)
+    line_on(g, CX - 11, BB - 1, CX + 11, BB - 1, 'x', 'C', 1.0)
+    for gx in (-6, 0, 6): gem(g, CX + gx, (BT + BB) * 0.5, 2.0, 'A', 5)
     return fin(g)
 
 def H_brim():
