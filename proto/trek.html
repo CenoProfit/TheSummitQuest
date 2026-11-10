@@ -1424,7 +1424,7 @@ const AURAPAL={sun:'flame',ember:'flame',crimson:'flame',blood:'flame',
 function auraOf(item){
  if(item[2]<3) return null;
  if(item[1]!=='sword'&&item[1]!=='staff'&&item[1]!=='shield'
-  &&item[1]!=='helm'&&item[1]!=='shoes') return null;
+  &&item[1]!=='helm'&&item[1]!=='shoes'&&item[1]!=='chest') return null;
  /* a blade that happens to be gold still burns; only a crown shines */
  if(item[1]!=='helm'&&item[4]==='sun') return 'flame';
  return AURAPAL[item[4]]||'arcane';
@@ -1450,32 +1450,84 @@ function glowSil(item){
  q.fillRect(0,0,n,n);
  GLOWSIL.set(item.id,c); return c;
 }
-function drawGlow(ctx,item,x,y,span,t){
+/* `carry` overrides where the piece is being held. In the world that is
+   carryOf(item), because the sprite is drawn offset into the hand. In
+   the pack's showcase the piece fills its box, so the caller passes
+   [0,0,1] and the light lands on the thing instead of beside it. */
+/* Worn armour glows as the shape it is ON HIM, which means a silhouette
+   taken from the hero layer he is actually wearing rather than from the
+   item's own icon. The icon is a flat front-on chestplate; the layer is
+   the one with his shoulders in it. */
+/* The paper doll is a 140 pixel box and a full legendary set puts five
+   of these on it at once: a flame, a shield's glow, a halo, a torso and
+   two boots, all compositing with 'lighter'. At full strength the man
+   disappears into a ball of gold. The world view is far enough from the
+   camera that they never pile up like that, so the doll turns them
+   down rather than every caller doing it. */
+let AURAK=1;
+const BODY_A=[0.500,0.560];
+const BODYSIL=new Map();
+function bodySil(bd){
+ const key=bd.id+'|'+auraOf(bd);
+ const hit=BODYSIL.get(key); if(hit) return hit;
+ const src=heroLayer(11+bd[3],bd), n=src.width;
+ const c=document.createElement('canvas'); c.width=n; c.height=n;
+ const q=c.getContext('2d');
+ q.drawImage(src,0,0);
+ q.globalCompositeOperation='source-in';
+ const C=AURA[auraOf(bd)||'arcane'].c[1];
+ q.fillStyle='rgb('+C[0]+','+C[1]+','+C[2]+')';
+ q.fillRect(0,0,n,n);
+ if(BODYSIL.size>40) BODYSIL.clear();
+ BODYSIL.set(key,c); return c;
+}
+function bodyGlow(ctx,bd,x,y,span,t){
+ const A=AURA[auraOf(bd)||'arcane'], C=A.c;
+ const pulse=0.70+0.30*Math.sin(t*0.0015);
+ const cx=x+span*BODY_A[0], cy=y+span*BODY_A[1], r=span*0.42;
+ ctx.save(); ctx.globalCompositeOperation='lighter';
+ const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+ rg.addColorStop(0,   _rgba(C[1],(0.24*pulse*AURAK).toFixed(3)));
+ rg.addColorStop(0.46,_rgba(C[2],(0.12*pulse*AURAK).toFixed(3)));
+ rg.addColorStop(1,   _rgba(C[3],0));
+ ctx.fillStyle=rg; ctx.fillRect(cx-r,cy-r,r*2,r*2);
+ const sil=bodySil(bd);
+ ctx.imageSmoothingEnabled=true;
+ for(const [k,a] of [[1.09,0.14],[1.045,0.19],[1.00,0.23]]){
+  const d=span*(k-1)/2; ctx.globalAlpha=a*pulse*AURAK;
+  ctx.drawImage(sil,x-d,y-d,span*k,span*k);
+ }
+ ctx.globalAlpha=1; ctx.imageSmoothingEnabled=false; ctx.restore();
+}
+function drawGlow(ctx,item,x,y,span,t,carry){
  const A=AURA[auraOf(item)||'arcane'], C=A.c;
- const p=carryOf(item), s=span*p[2];
+ const p=carry||carryOf(item), s=span*p[2];
  const bx=x+span*p[0], by=y+span*p[1];
  const pulse=0.70+0.30*Math.sin(t*0.0015);
  const cx=bx+s*0.5, cy=by+s*0.5;
  ctx.save(); ctx.globalCompositeOperation='lighter';
  const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,s*0.60);
- rg.addColorStop(0,   _rgba(C[1],(0.30*pulse).toFixed(3)));
- rg.addColorStop(0.46,_rgba(C[2],(0.15*pulse).toFixed(3)));
+ rg.addColorStop(0,   _rgba(C[1],(0.30*pulse*AURAK).toFixed(3)));
+ rg.addColorStop(0.46,_rgba(C[2],(0.15*pulse*AURAK).toFixed(3)));
  rg.addColorStop(1,   _rgba(C[3],0));
  ctx.fillStyle=rg; ctx.fillRect(cx-s*0.72,cy-s*0.72,s*1.44,s*1.44);
  const sil=glowSil(item);
  ctx.imageSmoothingEnabled=true;
  for(const [k,a] of [[1.14,0.16],[1.07,0.22],[1.00,0.26]]){
   const d=s*(k-1)/2;
-  ctx.globalAlpha=a*pulse;
+  ctx.globalAlpha=a*pulse*AURAK;
   ctx.drawImage(sil,bx-d,by-d,s*k,s*k);
  }
  ctx.globalAlpha=1; ctx.imageSmoothingEnabled=false;
  ctx.restore();
 }
-function drawAura(ctx,item,anchor,x,y,span,size,t){
- if(item[1]==='staff'||item[1]==='shield'){ drawGlow(ctx,item,x,y,span,t); return; }
+function drawAura(ctx,item,anchor,x,y,span,size,t,carry){
+ /* Armour and a shield have no edge to run a flame along, so they glow
+    as the shape they are. A blade gets the flame. */
+ if(item[1]==='staff'||item[1]==='shield'||item[1]==='chest'
+  ||item[1]==='shoes'){ drawGlow(ctx,item,x,y,span,t,carry); return; }
  const A=AURA[auraOf(item)||'arcane'], C=A.c;
- const cp=carryOf(item), s=span*cp[2];
+ const cp=carry||carryOf(item), s=span*cp[2];
  /* A shield has no point to run a flame along, so it burns up its face
     instead: bottom edge to top edge. */
  const shield=(item[1]==='shield');
@@ -1489,8 +1541,8 @@ function drawAura(ctx,item,anchor,x,y,span,size,t){
  ctx.globalCompositeOperation='lighter';
  const mx=(gx+tx)/2, my=(gy+ty)/2;
  const rg=ctx.createRadialGradient(mx,my,0,mx,my,L*0.85);
- rg.addColorStop(0,   _rgba(C[1],A.glow));
- rg.addColorStop(0.40,_rgba(C[2],(A.glow*0.5).toFixed(2)));
+ rg.addColorStop(0,   _rgba(C[1],(A.glow*AURAK).toFixed(3)));
+ rg.addColorStop(0.40,_rgba(C[2],(A.glow*0.5*AURAK).toFixed(3)));
  rg.addColorStop(1,   _rgba(C[3],0));
  ctx.fillStyle=rg; ctx.fillRect(mx-L,my-L,L*2,L*2);
  /* tongues licking off the edge, in blocks rather than gradients so
@@ -1563,8 +1615,13 @@ function carryOf(item){
     rest follows; a shield rides his forearm, so its middle does. */
  let p;
  if(item[1]==='shield'){
-  s=0.44/Math.max(bw,bh);
-  p=[0.285-bw*s*0.5-(x0/n)*s, 0.615-bh*s*0.5-(y0/n)*s, s];
+  /* Centred at 0.285 the shield sat half inside the torso, which is
+     exactly the strip of frame the grip arm has to show in, so he read
+     as a man with a shield strapped to his hip and no arm on it. Out
+     to 0.235 and a touch smaller leaves the forearm crossing its face
+     with the shield standing clear of him on the far side. */
+  s=0.42/Math.max(bw,bh);
+  p=[0.235-bw*s*0.5-(x0/n)*s, 0.618-bh*s*0.5-(y0/n)*s, s];
  }else{
   s=(item[1]==='staff') ? 0.98/bh : 0.80/Math.max(bw,bh);
   const gp=gripPoint(item);
@@ -1584,8 +1641,8 @@ function drawHalo(ctx,item,cx,cy,r,t){
  const A=AURA[auraOf(item)||'halo'], C=A.c;
  ctx.save(); ctx.globalCompositeOperation='lighter';
  const rg=ctx.createRadialGradient(cx,cy,0,cx,cy,r*1.9);
- rg.addColorStop(0,   _rgba(C[1],A.glow*0.85));
- rg.addColorStop(0.42,_rgba(C[2],(A.glow*0.42).toFixed(2)));
+ rg.addColorStop(0,   _rgba(C[1],(A.glow*0.85*AURAK).toFixed(3)));
+ rg.addColorStop(0.42,_rgba(C[2],(A.glow*0.42*AURAK).toFixed(3)));
  rg.addColorStop(1,   _rgba(C[3],0));
  ctx.fillStyle=rg; ctx.fillRect(cx-r*2,cy-r*2,r*4,r*4);
  const unit=Math.max(1,Math.round(r*0.17));
@@ -1716,6 +1773,8 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
  g.imageSmoothingEnabled=false;
+ const bdg=eq.body&&BYID[eq.body]?BYID[eq.body]:null;
+ if(bdg&&auraOf(bdg)) bodyGlow(g,bdg,x,y,pxH,performance.now());
  if(ftg&&auraOf(ftg)) bootFX(g,ftg,x,y,pxH,performance.now(),f,lamp,1);
  /* An earlier pass drew these on top with the anchors set
     outboard, it still read as a sword parked beside a man. */
@@ -3539,6 +3598,10 @@ function drawSlots(){
    you see here is literally what is out there */
 function drawDoll(){
  const c=document.getElementById('doll'); if(!c) return;
+ AURAK=0.52;
+ try{ _drawDoll(c); } finally { AURAK=1; }
+}
+function _drawDoll(c){
  const box=c.parentElement.getBoundingClientRect();
  const H=Math.max(96,Math.min(144,Math.round((box.height||150)-26)));
  const d=DPR(), n=Math.round(H*d);
@@ -3551,17 +3614,28 @@ function drawDoll(){
  const hdq=S.eq&&S.eq.head&&BYID[S.eq.head]?BYID[S.eq.head]:null;
  if(hdq&&auraOf(hdq))
   drawHalo(q,hdq,X0+SP*HEAD_A[0],Y0+SP*HEAD_A[1],SP*0.30,performance.now());
+ /* heroCanvas leaves the off arm out whenever something is in that
+    hand, because the hand has to close ON the strap and that is a
+    separate layer. The doll wielded the shield and then never drew
+    layer 24, so the shield floated with no arm behind it. */
+ const sleeve=eq.body&&BYID[eq.body]?BYID[eq.body]:HERO_PAL;
+ const gripOn=i=>q.drawImage(heroLayer(i,sleeve),X0,Y0,SP,SP);
  if(off){
   if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,1,performance.now());
   wield(q,off,SHIELD_A,X0,Y0,SP,1);
+  gripOn(24);
  }
  if(hand){
   if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,1,performance.now());
   wield(q,hand,WEAPON_A,X0,Y0,SP,1);
-  const sl=S.eq.body&&BYID[S.eq.body]?BYID[S.eq.body]:HERO_PAL;
-  q.drawImage(heroLayer(23,sl),X0,Y0,SP,SP);
+  gripOn(23);
  }
+ const ftq=eq.feet&&BYID[eq.feet]?BYID[eq.feet]:null;
+ if(ftq&&auraOf(ftq)) bootFX(q,ftq,X0,Y0,SP,performance.now(),0,1,0);
  q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
+ const bdq=eq.body&&BYID[eq.body]?BYID[eq.body]:null;
+ if(bdq&&auraOf(bdq)) bodyGlow(q,bdq,X0,Y0,SP,performance.now());
+ if(ftq&&auraOf(ftq)) bootFX(q,ftq,X0,Y0,SP,performance.now(),0,1,1);
 }
 function drawTabs(){
  const T=document.getElementById('ptabs'); T.innerHTML='';
@@ -3672,23 +3746,12 @@ function paintDart(){
  const A=auraOf(g);
  /* the showcase holds the piece a little smaller so the flame has room */
  const s=A?0.80:1.0, o=Math.round(px*(1-s)/2);
+ /* The piece fills its box here rather than sitting in a hand, so the
+    carry offset is null. Passing carryOf's offset (which is what the
+    old code did by leaving it to default) put a sword's flame up and
+    to the right of the sword. */
  if(A&&g[1]==='helm') drawHalo(q,g,px*0.5,px*0.44,px*0.38,performance.now());
- else if(A&&(g[1]==='staff'||g[1]==='shield')){
-  const C=AURA[A].c, cx=px*0.5, cy=px*0.5, pulse=0.70+0.30*Math.sin(performance.now()*0.0015);
-  q.save(); q.globalCompositeOperation='lighter';
-  const rg=q.createRadialGradient(cx,cy,0,cx,cy,px*0.52);
-  rg.addColorStop(0,_rgba(C[1],(0.34*pulse).toFixed(3)));
-  rg.addColorStop(0.46,_rgba(C[2],(0.17*pulse).toFixed(3)));
-  rg.addColorStop(1,_rgba(C[3],0));
-  q.fillStyle=rg; q.fillRect(0,0,px,px);
-  const sil=glowSil(g); q.imageSmoothingEnabled=true;
-  for(const [k,a] of [[1.12,0.18],[1.06,0.24],[1.00,0.28]]){
-   const d=px*s*(k-1)/2; q.globalAlpha=a*pulse;
-   q.drawImage(sil,o-d,o-d,px*s*k,px*s*k);
-  }
-  q.globalAlpha=1; q.restore();
- }
- else if(A) drawAura(q,g,[0.5,0.5],o,o,px*s,1.0,performance.now());
+ else if(A) drawAura(q,g,[0.5,0.5],o,o,px*s,1.0,performance.now(),[0,0,1]);
  blitGear(q,g,false,o,o,Math.round(px*s));
 }
 /* ---------- what a piece is worth ----------
@@ -3835,9 +3898,12 @@ function packAnimate(){
  const eh=S.eq&&S.eq.hand?BYID[S.eq.hand]:null;
  const eo=S.eq&&S.eq.off ?BYID[S.eq.off ]:null;
  const ed=S.eq&&S.eq.head?BYID[S.eq.head]:null;
- const live=(eh&&auraOf(eh))||(eo&&auraOf(eo))||(ed&&auraOf(ed))||(DART&&auraOf(DART.g));
- if(!live){packTick=null;return;}
- if((eh&&auraOf(eh))||(eo&&auraOf(eo))||(ed&&auraOf(ed))) drawDoll();
+ const eb=S.eq&&S.eq.body?BYID[S.eq.body]:null;
+ const ef=S.eq&&S.eq.feet?BYID[S.eq.feet]:null;
+ const onDoll=(eh&&auraOf(eh))||(eo&&auraOf(eo))||(ed&&auraOf(ed))
+            ||(eb&&auraOf(eb))||(ef&&auraOf(ef));
+ if(!onDoll&&!(DART&&auraOf(DART.g))){packTick=null;return;}
+ if(onDoll) drawDoll();
  if(DART&&auraOf(DART.g)) paintDart();
  packTick=requestAnimationFrame(packAnimate);
 }
