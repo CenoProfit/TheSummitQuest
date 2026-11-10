@@ -27,14 +27,14 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  background-image:
   repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
-.top{padding:8px 92px 8px 11px}
+.top{padding:8px 162px 8px 11px}
 .trailname{font-family:var(--pix);font-size:8px;letter-spacing:2px;color:var(--gold);
  text-shadow:2px 2px 0 rgba(0,0,0,.7);
  /* the button is anchored to the bottom of the frame, so the top line
     can have the width back that the padding reserves for it */
- margin-right:-81px}
+ margin-right:-151px}
 .mile{font-family:var(--pix);font-size:17px;margin:7px 0 3px;letter-spacing:1px;
- text-shadow:2px 2px 0 rgba(0,0,0,.75)}
+ white-space:nowrap;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
 .mile small{font-size:8px;color:var(--dim);letter-spacing:2px}
 .biome{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
  gap:4px 10px;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
@@ -60,9 +60,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .devnote{font-size:9px;color:#5c6a7c;letter-spacing:1px;margin-top:7px;text-align:center}
 
 /* ---- pack ---- */
-.packbtn{position:absolute;right:9px;bottom:9px;flex:0 0 auto;width:auto;
- padding:8px 10px;color:var(--gold);border-color:var(--gold);
- background:rgba(60,46,12,.70)}
+.topbtns{position:absolute;right:9px;bottom:9px;display:flex;gap:6px}
+.topbtns .btn{flex:0 0 auto;width:auto;padding:8px 9px}
+.packbtn{color:var(--gold);border-color:var(--gold);background:rgba(60,46,12,.70)}
+.jrnbtn{color:var(--ink);border-color:var(--edge2);background:rgba(26,38,54,.78)}
 #pack{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
  background:
   radial-gradient(130% 80% at 50% 0%,rgba(46,62,88,.55),transparent 70%),
@@ -201,7 +202,17 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .show{opacity:1 !important;transform:none !important}
 
 /* ---- journal ---- */
-.pgrid.jlist{display:block;grid-template-columns:none}
+#journal{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
+ background:
+  radial-gradient(130% 80% at 50% 0%,rgba(46,62,88,.55),transparent 70%),
+  linear-gradient(180deg,#0a111b 0%,#070c14 60%,#05080e 100%);
+ padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+#journal.open{display:flex}
+#journal::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+ background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
+.jsum{font-size:11px;line-height:1.75;color:#9fb0c2;border:2px solid var(--edge);
+ background:rgba(0,0,0,.22);padding:9px 12px;margin-bottom:10px;flex:none}
+.jlist{flex:1;overflow-y:auto;min-height:0}
 .jrow{border:2px solid var(--edge);background:rgba(0,0,0,.26);padding:11px 13px;margin-bottom:7px}
 .jhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .jn{font-family:var(--pix);font-size:9px;letter-spacing:2px;color:var(--gold);line-height:1.75}
@@ -220,9 +231,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 <div class="wrap">
   <div class="frame top">
     <div class="trailname">★ APPALACHIAN TRAIL · NOBO</div>
-    <div class="mile"><span id="mile">0.0</span> <small>MI OF 2197</small></div>
+    <div class="mile"><span id="mile">0.0</span> <small>MI</small></div>
     <div class="biome"><span id="biome">Georgia hardwood</span><span class="bpct"><span id="pct">0.0</span>% TO KATAHDIN</span></div>
-    <button class="btn packbtn" id="packopen">★ PACK</button>
+    <div class="topbtns">
+      <button class="btn jrnbtn" id="jopen">JOURNAL</button>
+      <button class="btn packbtn" id="packopen">PACK</button>
+    </div>
   </div>
   <div class="frame btm">
     <div class="nextrow">
@@ -256,6 +270,16 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="ckind" id="ckind"></div>
     <button class="btn" id="cok">KEEP WALKING ▶</button>
   </div>
+</div>
+
+<div id="journal">
+  <div class="pbar">
+    <span class="ptitle">★ THE JOURNAL</span>
+    <span class="pcount" id="jcount">0 / 21</span>
+    <button class="btn pclose" id="jclose">✕</button>
+  </div>
+  <div class="jsum" id="jsum"></div>
+  <div class="jlist" id="jlist"></div>
 </div>
 
 <div id="pack">
@@ -2812,8 +2836,7 @@ function frame(now){
    still missing, and the five slots that decide who walks the trail.
    =================================================================== */
 const CATS=[['all','ALL'],['sword','SWORDS'],['staff','STAFFS'],['shield','SHIELDS'],
-            ['helm','HELMS'],['chest','ARMOR'],['shoes','BOOTS'],['pet','PETS'],
-            ['journal','JOURNAL']];
+            ['helm','HELMS'],['chest','ARMOR'],['shoes','BOOTS'],['pet','PETS']];
 let pcat='all', psel=null;
 const CELL=()=>innerWidth<430?46:64;
 const pack=document.getElementById('pack');
@@ -2936,8 +2959,6 @@ function drawTabs(){
 }
 function drawGrid(){
  const G=document.getElementById('pgrid'); G.innerHTML='';
- if(pcat==='journal'){ G.className='pgrid jlist'; drawJournal(G); return; }
- G.className='pgrid';
  const list=GEAR.filter(g=>pcat==='all'||g[1]===pcat)
    .sort((a,b)=>CATS.findIndex(c=>c[0]===a[1])-CATS.findIndex(c=>c[0]===b[1])||a[2]-b[2]);
  for(const g of list){
@@ -2960,8 +2981,20 @@ function drawGrid(){
 /* The journal. Every place you have reached, what it was, and what came
    out of the ground there. Newest at the top, because the thing you want
    when you open this is the place you were standing an hour ago. */
-function drawJournal(G){
+function drawJournal(){
+ const G=document.getElementById('jlist'); G.innerHTML='';
  const log=(S.log||[]).slice().sort((a,b)=>a.m-b.m);
+ document.getElementById('jcount').textContent=log.length+' / '+TRAIL.length;
+ const far=log.length?Math.max.apply(null,log.map(e=>e.m)):0;
+ const hi=log.map(e=>TRAIL.find(t=>t.m===e.m))
+             .filter(L=>L&&L.e).sort((a,b)=>b.e-a.e)[0];
+ document.getElementById('jsum').innerHTML=
+  log.length
+   ? ('Furthest point mile '+far.toFixed(1)+', '+pctAT(far)
+      +' percent of the way to Katahdin.'
+      +(hi?' Highest ground so far is '+hi.n+' at '+hi.e.toLocaleString()+' feet.':''))
+   : 'Every place you reach is written down here, with the day you got there '
+     +'and what came out of the ground.';
  if(!log.length){
   const e=document.createElement('div'); e.className='jempty';
   e.textContent='Nothing written here yet. The journal fills itself in as you reach places.';
@@ -3015,18 +3048,6 @@ const MATNAME={metal:'forged',wood:'turned wood',leather:'oiled leather',
 function drawDetail(){
  const D=document.getElementById('pdetail');
  D.innerHTML='';
- if(pcat==='journal'){
-  DART=null;
-  const log=S.log||[];
-  const far=log.length?Math.max.apply(null,log.map(e=>e.m)):0;
-  const hi=log.map(e=>TRAIL.find(t=>t.m===e.m))
-              .filter(L=>L&&L.e).sort((a,b)=>b.e-a.e)[0];
-  D.innerHTML='<div class="dtxt">'+log.length+' of '+TRAIL.length+' places reached. '
-   +'Furthest point mile '+far.toFixed(1)+', '+pctAT(far)+' percent of the way to Katahdin.'
-   +(hi?' Highest ground so far is '+hi.n+' at '+hi.e.toLocaleString()+' feet.':'')
-   +'</div>';
-  return;
- }
  if(!psel){D.innerHTML='<div class="dtxt">Every piece is cosmetic. '
   +'Nothing here walks for you.<span style="display:block;margin-top:7px;color:#5c6a7c">'
   +'A piece you already own is left at the cairn for stones. Stones claim '
@@ -3091,6 +3112,9 @@ function packAnimate(){
 function packStart(){ if(!packTick) packTick=requestAnimationFrame(packAnimate); }
 document.getElementById('packopen').onclick=()=>{pack.classList.add('open'); drawPack(); packStart();};
 document.getElementById('pclose').onclick=()=>pack.classList.remove('open');
+const jrn=document.getElementById('journal');
+document.getElementById('jopen').onclick=()=>{drawJournal(); jrn.classList.add('open');};
+document.getElementById('jclose').onclick=()=>jrn.classList.remove('open');
 
 prune(); wizApply(); drawPack();
 resize(); hud(); addEventListener('resize',resize);
