@@ -40,7 +40,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  gap:4px 10px;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
 .bpct{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--gold);
  white-space:nowrap;flex:none}
-.btm{margin-top:auto;padding:10px 11px 11px}
+.btm{margin-top:auto;padding:8px 11px 9px}
 .nextrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
 .nextname{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--gold);
  text-shadow:1px 1px 0 rgba(0,0,0,.7);line-height:1.5}
@@ -48,10 +48,34 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .track{height:13px;background:#0a121c;border:2px solid var(--edge2);overflow:hidden;
  background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px)}
 .fill{height:100%;background:linear-gradient(#9bf07a,#48b82e);width:0%;transition:width .5s ease-out}
-.steprow{display:flex;justify-content:space-between;margin-top:8px;font-size:11px;
- letter-spacing:1px;color:var(--dim)}
-.steprow b{color:var(--xp);font-family:var(--pix);font-size:9px}
-.steprow i{color:var(--gold);font-family:var(--pix);font-size:9px;font-style:normal}
+/* Two lines, always: the count and the kit on one, the four numbers
+   spread across the next. Letting them share a row put the stats on
+   top of the step count at 375 wide and cut MAG off at the edge. */
+.botrow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:7px}
+.steps{display:flex;align-items:baseline;gap:6px;flex:1 1 auto;min-width:0}
+.steps b{font-family:var(--pix);font-size:13px;color:var(--xp);
+ text-shadow:1px 1px 0 rgba(0,0,0,.7);white-space:nowrap}
+.steps span{font-size:9px;letter-spacing:1px;color:var(--dim);white-space:nowrap}
+.steps i{color:var(--gold);font-family:var(--pix);font-size:8px;font-style:normal}
+.statstrip{display:flex;gap:6px;flex:1 0 100%;order:3;
+ justify-content:space-between;min-width:0}
+.sc{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim);
+ white-space:nowrap}
+.sc b{font-weight:normal;font-size:9px}
+/* the kit, six slots, tap to open the pack */
+.kitstrip{display:flex;gap:2px;flex:0 0 auto;order:2;align-items:center;width:auto;
+ padding:3px;background:rgba(0,0,0,.26);border:2px solid var(--edge);
+ cursor:pointer;font:inherit;color:inherit}
+.kitstrip:active{transform:translate(1px,1px)}
+.kitstrip canvas{width:20px;height:20px;image-rendering:pixelated;display:block}
+.kitstrip .ke{width:20px;height:20px;display:block;position:relative}
+.kitstrip .ke::after{content:'';position:absolute;left:9px;top:9px;width:4px;height:4px;
+ background:var(--edge2);opacity:.55}
+/* shown only until the phone is actually counting */
+.stepask{display:none;width:100%;margin-top:7px;padding:8px;font-family:var(--pix);
+ font-size:8px;letter-spacing:2px;background:var(--solid2);color:var(--gold);
+ border:2px solid var(--gold);cursor:pointer}
+.stepask.on{display:block}
 .dev{margin-top:8px;display:flex;gap:6px}
 .btn{font-family:var(--pix);font-size:7px;letter-spacing:1px;padding:8px 7px;flex:1;
  background:var(--solid2);color:var(--ink);border:2px solid var(--edge2);cursor:pointer;
@@ -312,17 +336,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     </div>
     <div class="track"><div class="fill" id="fill"></div></div>
     <div class="track vtrack" id="vtrack"><div class="vfill" id="vfill"></div></div>
-    <div class="steprow">
-      <span>TODAY <b id="today">0</b> STEPS</span>
-      <span>DAY <i id="day">1</i></span>
+    <div class="botrow">
+      <div class="steps"><b id="today">0</b><span>STEPS &middot; DAY <i id="day">1</i></span></div>
+      <div class="statstrip" id="statstrip"></div>
+      <button class="kitstrip" id="kitstrip" title="open the pack"></button>
     </div>
-    <div class="dev">
-      <button class="btn" id="b1k">+1,000</button>
-      <button class="btn" id="b5k">+5,000</button>
-      <button class="btn" id="bday">NEXT DAY</button>
-      <button class="btn" id="brst">RESET</button>
-    </div>
-    <div class="devnote">prototype controls — real build reads HealthKit</div>
+    <button class="stepask" id="stepask">TAP TO COUNT YOUR STEPS</button>
   </div>
 </div>
 
@@ -1946,6 +1965,15 @@ function sprite(g,rows,pal,x,y,s,flip){
 /* ===================================================================
    THE FRAME
    =================================================================== */
+/* How tall the bottom frame is, in canvas rows. Measured rather than
+   assumed: it changes when the step prompt goes away and when the
+   fight bar appears, and the walker has to stay above it either way. */
+let BTMH=0;
+function measureBtm(){
+ const el=document.querySelector('.btm');
+ if(!el||!cv.clientHeight||!H) return;
+ BTMH=el.getBoundingClientRect().height*(H/cv.clientHeight);
+}
 let ZB=null;
 function ensureBufs(){ if(!ZB||ZB.length!==W*H) ZB=new Float32Array(W*H); }
 
@@ -2481,7 +2509,13 @@ function paint(now,dt){
      be a long way below the camera on a descent and a long way above
      it on a climb, so the band is clamped: coming off a summit he was
      being drawn underneath the bottom frame. */
-  const lo=hzY+0.46*(H-hzY), hi=hzY+0.64*(H-hzY);
+  /* The band has to clear the bottom frame, and the companion lands
+     about 0.62 of his own height below his feet, so the floor is set
+     from the frame's measured height rather than from a fraction that
+     stops being true the moment the bar changes size. */
+  const floor=H-BTMH-Math.max(6,H*0.012);
+  const hi=Math.min(hzY+0.64*(H-hzY), floor-11*sc*CHAR*0.62);
+  const lo=Math.min(hzY+0.42*(H-hzY), hi-1);
   const rawSy=hzY+(camZ-hAt(cx,wy))*sc;
   const sy=Math.max(lo,Math.min(hi,rawSy));
   /* How far the clamp moved him. Anything that walks with him moves
@@ -3391,8 +3425,46 @@ document.getElementById('cok').onclick=()=>{
  if(chestQ.length) setTimeout(startChest,260);
 };
 
+/* ---------- the kit and the totals, on the walk itself ----------
+   Six slots across the bottom right, in equip order, so you can see
+   what you are wearing without opening anything; tapping them opens
+   the pack. Redrawn only when the signature changes, because this runs
+   from hud() and hud() runs on every batch of steps. */
+let kitSig='';
+function drawKit(){
+ const eq=S.eq||{};
+ const sig=SLOTS.map(k=>eq[k]||'-').join(',');
+ if(sig===kitSig) return;
+ kitSig=sig;
+ const K=document.getElementById('kitstrip'); if(!K) return;
+ K.innerHTML='';
+ const d=Math.min(2,window.devicePixelRatio||1), px=Math.round(20*d);
+ for(const sl of SLOTS){
+  const g=eq[sl]&&BYID[eq[sl]]?BYID[eq[sl]]:null;
+  if(!g){ const e=document.createElement('span'); e.className='ke'; K.appendChild(e); continue; }
+  const c=document.createElement('canvas');
+  c.width=px; c.height=px; c.title=g[0];
+  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
+  blitGear(q,g,false,0,0,px);
+  c.style.borderBottom='2px solid '+RAR[g[2]][1];
+  K.appendChild(c);
+ }
+}
+let statSig='';
+function drawStatStrip(){
+ const t=loadout();
+ const sig=STATS.map(k=>t[k]).join(',');
+ if(sig===statSig) return;
+ statSig=sig;
+ const S4=document.getElementById('statstrip'); if(!S4) return;
+ S4.innerHTML=STATS.map(k=>'<span class="sc">'+STATNAME[k]
+   +' <b style="color:'+STATCOL[k]+'">'+t[k]+'</b></span>').join('');
+}
+
 /* ---------- hud ---------- */
 function hud(){
+ rollDay();
+ drawKit(); drawStatStrip(); measureBtm();
  const mi=miles();
  document.getElementById('mile').textContent=mi.toFixed(1);
  document.getElementById('pct').textContent=pctAT(mi);
@@ -3531,15 +3603,91 @@ function endFight(won){
  fightQ.push({b:F.b,won:won,st:gain,i:got?got.id:null,steps:Math.round(F.steps)});
  save();
 }
-document.getElementById('b1k').onclick=()=>addSteps(1000);
-document.getElementById('b5k').onclick=()=>addSteps(5000);
-document.getElementById('bday').onclick=()=>{
- S.day++; S.today=0; save(); addSteps(3000+((Math.random()*6000)|0));};
-document.getElementById('brst').onclick=()=>{
- S={steps:0,today:0,day:1,opened:[],log:[],stones:0,bm:0,beat:{},fight:null,
+/* ---------- where the steps come from ----------
+   There are no buttons any more. Steps are real.
+
+   Two sources, in order of preference. If the page is hosted by a
+   native shell that knows about HealthKit or the Android step counter,
+   it sets window.trekSteps to a function returning the day's total and
+   Trek polls it: that is the one that keeps counting while the phone
+   is in a pocket, and it is what the shipped build should use.
+
+   Failing that, and that is the case in any browser today, the device
+   motion stream is used as a pedometer. It is a real step count and it
+   is honest about what it is: it only runs while this screen is open
+   and awake, because a web page gets no accelerometer in the
+   background. The bar says so until it is counting.
+
+   iOS needs DeviceMotionEvent.requestPermission() from a tap, which is
+   what the prompt in the bottom bar is for. */
+const PED={lo:0,armed:false,last:0,live:false};
+function pedTick(e){
+ const a=e.accelerationIncludingGravity||e.acceleration;
+ if(!a||a.x==null) return;
+ if(!PED.live) stepsLive(true);      /* events arriving, so it is counting */
+ const m=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+ /* a slow average is gravity; what is left is the walker */
+ PED.lo=PED.lo?PED.lo*0.90+m*0.10:m;
+ const d=m-PED.lo, now=performance.now();
+ if(!PED.armed&&d>1.05) PED.armed=true;
+ else if(PED.armed&&d<-0.42){
+  PED.armed=false;
+  /* a refractory gap, or one footfall rings as three */
+  if(now-PED.last>270){ PED.last=now; addSteps(1); }
+ }
+}
+function stepsLive(on){
+ PED.live=on;
+ document.getElementById('stepask').classList.toggle('on',!on);
+ measureBtm();                    /* the prompt changes the frame height */
+}
+function startMotion(){
+ const D=window.DeviceMotionEvent;
+ if(!D){ stepsLive(false); return false; }
+ /* Attaching a listener is not the same as receiving anything. A
+    desktop browser has DeviceMotionEvent and never fires it, and
+    saying "counting" there would be a lie; the prompt stays up until
+    a real reading lands. */
+ const go=()=>{ addEventListener('devicemotion',pedTick); };
+ if(typeof D.requestPermission==='function'){
+  D.requestPermission().then(r=>{ if(r==='granted') go(); else stepsLive(false); })
+                       .catch(()=>stepsLive(false));
+ }else go();
+ return true;
+}
+document.getElementById('stepask').onclick=startMotion;
+
+/* a native shell can hand us the real daily total instead */
+let hostLast=null;
+function hostPoll(){
+ if(typeof window.trekSteps!=='function') return;
+ const t=window.trekSteps();
+ if(typeof t!=='number'||!isFinite(t)) return;
+ if(hostLast===null){ hostLast=t; stepsLive(true); return; }
+ if(t>hostLast){ addSteps(t-hostLast); }
+ hostLast=t;                       /* a lower number means a new day */
+ stepsLive(true);
+}
+
+/* the day rolls over on the calendar, not on a button */
+function dayKey(){ const d=new Date();
+ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function rollDay(){
+ const k=dayKey();
+ if(!S.dk){ S.dk=k; save(); return; }
+ if(S.dk!==k){ S.dk=k; S.day=(S.day|0)+1; S.today=0; save(); hud(); }
+}
+
+/* a way in for the console and for the host, deliberately not a button */
+window.trekPush=n=>addSteps(Math.max(0,n|0));
+
+function resetTrek(){
+ S={steps:0,today:0,day:1,dk:dayKey(),opened:[],log:[],stones:0,bm:0,beat:{},fight:null,
     own:{},eq:{}}; chestQ=[]; fightQ=[]; banner=null; anim=null;
  bend.classList.remove('open'); enc=null; encWalk=0;
- shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();};
+ shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();
+}
+window.trekReset=resetTrek;
 
 /* ---------- a small moment, not a modal ----------
    Encounters happen often enough that a full screen card for each one
@@ -4021,13 +4169,26 @@ function packAnimate(){
 }
 function packStart(){ if(!packTick) packTick=requestAnimationFrame(packAnimate); }
 document.getElementById('packopen').onclick=()=>{pack.classList.add('open'); drawPack(); packStart();};
+document.getElementById('kitstrip').onclick=()=>{pack.classList.add('open'); drawPack(); packStart();};
 document.getElementById('pclose').onclick=()=>pack.classList.remove('open');
 const jrn=document.getElementById('journal');
 document.getElementById('jopen').onclick=()=>{drawJournal(); jrn.classList.add('open');};
 document.getElementById('jclose').onclick=()=>jrn.classList.remove('open');
 
-prune(); wizApply(); drawPack();
-resize(); hud(); addEventListener('resize',resize);
+/* the strips are keyed on a signature, so a forced redraw needs it cleared */
+const _eq0=equip;
+equip=function(g){ _eq0(g); kitSig=''; statSig=''; hud(); };
+
+prune();
+if(!S.dk) S.dk=dayKey();
+wizApply(); drawPack();
+/* a native shell may already be handing us steps; otherwise ask */
+stepsLive(false);
+hostPoll();
+if(typeof window.trekSteps!=='function') startMotion();
+setInterval(hostPoll,1500);
+resize(); hud(); measureBtm();
+addEventListener('resize',()=>{resize(); measureBtm();});
 requestAnimationFrame(frame);
 </script>
 </body>
