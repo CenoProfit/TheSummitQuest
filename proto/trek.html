@@ -1006,13 +1006,13 @@ const _rgba=(c,a)=>'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';
 
 function drawAura(ctx,item,anchor,x,y,span,size,t){
  const A=AURA[auraOf(item)||'arcane'], C=A.c;
- const gp=gripPoint(item), s=span*size;
+ const cp=carryOf(item), s=span*cp[2];
  /* A shield has no point to run a flame along, so it burns up its face
     instead: bottom edge to top edge. */
  const shield=(item[1]==='shield');
  const tp=shield?[0.5,0.12]:tipPoint(item);
- const bp=shield?[0.5,0.88]:gp;
- const ax=x+span*anchor[0]-s*gp[0], ay=y+span*anchor[1]-s*gp[1];
+ const bp=shield?[0.5,0.88]:gripPoint(item);
+ const ax=x+span*cp[0], ay=y+span*cp[1];
  const gx=ax+bp[0]*s, gy=ay+bp[1]*s;
  const tx=ax+tp[0]*s, ty=ay+tp[1]*s;
  const L=Math.hypot(tx-gx,ty-gy);
@@ -1058,12 +1058,48 @@ function drawAura(ctx,item,anchor,x,y,span,size,t){
  ctx.restore();
 }
 
-/* put the item's grip exactly on the given hand */
-function wield(g,item,hand,x,y,span,size){
- const gp=gripPoint(item), s=span*size;
- blitGear(g,item,false,
-  Math.round(x+span*hand[0]-s*gp[0]),
-  Math.round(y+span*hand[1]-s*gp[1]), Math.round(s));
+/* HOW EACH PIECE IS CARRIED
+
+   Anchoring everything on the centroid of its grip material put every
+   shape somewhere different. A katana, whose grip sits in the corner of
+   its icon, flew off the right of the frame; a cleaver with a stubby
+   handle ended up above his head; a falchion whose grip had been erased
+   by its own knuckle bow fell back to the sprite centroid and vanished
+   into his hip. Nothing was wrong with the grip finder. The problem is
+   that where a weapon is HELD tells you nothing about where it should
+   SIT on a sixty four pixel man.
+
+   So placement is worked out per shape from what the sprite actually
+   occupies: measure the content box, scale it to suit the category, and
+   put it where that category belongs on him.
+
+     sword   blade into the top right corner, hilt trailing down behind
+             him, so the blade always clears his shoulder
+     staff   upright at his right side, head above him and heel below
+     shield  square on his left, between shoulder and hip
+
+   Computed once per shape, so editing a builder moves it. */
+const CARRY=new Map();
+function carryOf(item){
+ const k=item[1]+'#'+item[3];
+ const hit=CARRY.get(k); if(hit) return hit;
+ const sp=spriteRows(item,false), n=sp.length;
+ let x0=n,x1=-1,y0=n,y1=-1;
+ for(let y=0;y<n;y++){const row=sp[y];
+  for(let x=0;x<n;x++){ if(row[x]==='.') continue;
+   if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }}
+ const bw=(x1-x0+1)/n, bh=(y1-y0+1)/n;
+ let s,tx,ty;
+ if(item[1]==='staff'){      s=0.96/bh;                 tx=0.790-bw*s*0.5; ty=0.020; }
+ else if(item[1]==='shield'){s=0.62/Math.max(bw,bh);    tx=0.300-bw*s*0.5; ty=0.620-bh*s*0.5; }
+ else {                      s=0.86/Math.max(bw,bh);    tx=0.995-bw*s;     ty=0.045; }
+ const p=[tx-(x0/n)*s, ty-(y0/n)*s, s];
+ CARRY.set(k,p); return p;
+}
+function wield(g,item,unused,x,y,span,size){
+ const p=carryOf(item);
+ blitGear(g,item,false,Math.round(x+span*p[0]),Math.round(y+span*p[1]),
+          Math.round(span*p[2]));
 }
 
 /* A head piece gets a ring of light around it rather than tongues off
@@ -1111,8 +1147,8 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  const T=hand?tones(hand):tones(HERO_PAL);
  const oc=T.Z||T.C, ocs=(oc[0]|0)+','+(oc[1]|0)+','+(oc[2]|0);
  let ox=x+dw*0.78, oy=y+pxH*0.33;
- if(hand){const gp=gripPoint(hand), s=pxH*0.82;
-  ox=x+dw*WEAPON_A[0]+s*(0.56-gp[0]); oy=y+pxH*WEAPON_A[1]-s*gp[1];}
+ if(hand){const cp=carryOf(hand), tp=tipPoint(hand), s=pxH*cp[2];
+  ox=x+dw*cp[0]+s*tp[0]; oy=y+pxH*cp[1]+s*tp[1];}
  const glow=lamp?0.55:0.22, rr=Math.max(4,pxH*0.26);
  const rg=g.createRadialGradient(ox,oy,0,ox,oy,rr);
  rg.addColorStop(0,'rgba('+ocs+','+glow.toFixed(2)+')');
@@ -1124,12 +1160,12 @@ function climberAt(g,cx,footY,pxH,f,lamp){
   drawHalo(g,hdg,x+dw*HEAD_A[0],y+pxH*HEAD_A[1],pxH*0.30,performance.now());
  /* carried first, because they are on the far side of him */
  if(off){
-  if(auraOf(off)) drawAura(g,off,SHIELD_A,x,y,pxH,0.62,performance.now());
-  wield(g,off,SHIELD_A,x,y,pxH,0.62);
+  if(auraOf(off)) drawAura(g,off,SHIELD_A,x,y,pxH,1,performance.now());
+  wield(g,off,SHIELD_A,x,y,pxH,1);
  }
  if(hand){
-  if(auraOf(hand)) drawAura(g,hand,WEAPON_A,x,y,pxH,0.82,performance.now());
-  wield(g,hand,WEAPON_A,x,y,pxH,0.82);
+  if(auraOf(hand)) drawAura(g,hand,WEAPON_A,x,y,pxH,1,performance.now());
+  wield(g,hand,WEAPON_A,x,y,pxH,1);
  }
  g.imageSmoothingEnabled = pxH<64;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
@@ -1561,7 +1597,7 @@ const PAL={
    so is most of the difference between a shape and a thing. */
 const SHAPE={
  sword:[".1520o.94o3.92o2.92o3.92odqo.90o2Aqo2.89oA2do.89o2ededo.88oAedeq2o.87oA2dedqo.87oA2dedq2o.86oqAdedq2o.86oeAdedq2o.85o2A3qdq2o.85oB2AdeABqo.85oBW2de2dqo.85oBWV2e3qo.85oBW2V2e2q2o.84oBdqeVedq2o.83o2BWV2qAdq2o.83oB2WV3AWq2o.83oBW2V3e2do2.83oBWB2V2e2do.84oBWeAe4do.84oAB2qde4qo.83oAB2A2qe3q2o.81o2AB2A2e4q2o.81oB4A2e4q2o.81oBWB2A2e4q2o.81oBWB2A2e4q2o.81oBWB2A2e4dqo.81oAB3A2e4dqo.80o2AB3A2e4d2qo.79oB5A2e4d2qo.79oBWB3A2e4d2qo.79oBWB3A2e4d2qo.79oBWB3A2e4d2qo.79oAB3A3e4d2qo.67o.11oA3BA3e4d2qo.66o2co2.7o2eA6e4d2qo.67oYZYo.6oB2A6e4d3qo.66oCZ2xCo.4oBWA2e3Ae4d3qo.68ocx2ZCo.2oBWA2e4Ae4d2qo.69ox2CYZCo2eAe2q4e5d2qo.71ox2CYZx2q5x3d2e3dqo.73ox2CYZcxq3Ccx3de2dqo.75ox2CYZCc3Cx3e3dqo.77oc2CYZYCcx3eAed2qo.78oxcCYZYCx2e2Ad2qo.78ocCxcCYZcx2q2d2qo.78ocC3xcCYZCxq4o.78oxCc2C2c4Zcxqo2.80oxc3Cc5Zxo.81ox3c9ZCo.79oHKx3c5x2c2ZCo.77oHK3x3c3xox2c2ZYo2.74ogHK4x5o.ox2cZ2Yco.72ogHGHK4jo3.3ox2Z2Cco.71ogGK2gK3jo.7ox2Zcxo.70ojGK5HGo.9ox4o.70ogG2K3Ho2.11o5.65o5xG3K2Ho.82oc5C2G2KHGo.81ocC2x3c2x2go2.82ox10o.84ocxCc2xcCco.85ox3c2x3co.85oxcx7o.85oxc2x2c3xo.85oxc2x2Ccxo2.86oxcxcx2o.89o7.941",
-  ".1330o3.90o3eqo.87o3A3eqo.83o4A3B2Ado.81o3A4B4A2do.78o3A3B7A2dqo.78oB10A3edqo.77oBWB6A5e2qo.77oAB8A5e2qo.76oB10A4e2qo.76oBWB8A3e3dqo.75oBWB6WBA3e4qo.75oBWB4A2WBA3e5qo.74oBWB4A2WBA3e5dqo.73oBWB4A2WBA3e5dqo.73oBWB4A2WBAe7d2qo.72oBWB4A2WBAe7d2qo.72oBWB5AWBAe7d3qo.71oBWB6WBe8d4qo.71oB7WBAe7d5qo.70oB7WBAe7d5qo.70oB7WBAe7d5qo.70oBWB5WBAe7d5qo.70oBWB5WBAe6d6qo.70oBWB5WBAe6d6qo.70oBWB5WBAe6d6qo.70oBWB5WBAe6d5q2o.70oBWB5WA3e5d5qo2.70oBWB5WA3e5d5qo.71oAB6WA3e5d5q2o.70oB7WA3e5d5qo2.71oB6WA3e5d5qo.72oAB5WA3e5d5qo.72oAB5WA3e5d5qo.72oAB4W3A2e5d5qo.72oAB4W3A2e4d6qo.72oAB4W3A2e4d5q2o.72oAB4W3A2e4d5qo2.72oB6W2A2e4d5qo.74oAB4W2A2e5d5qo.73oAB4W2A2e5d4q2o.73oAB4W2A2e5d4qo2.73oABABW3A2e4d5qo.74oABA3W2A2e4d5qo.74oABA3W2A2e4d5qo.65o4.5oABA3W2A2e4d4q2o.65oY2cxo2.2oABA2W3A2e4d4qo2.66oYCYxc2o.odA2BW2A2e4d4qo.68ocx3C2coqe3q4e4d4qo2.69ox2CYC2xq5x2qde3d3qo.71ox3CYCcxq3Cx3de3d2qo.73ox3CYC3c2Cx2e4d2qo.75oxcxCYC4x2Be2d3qo.77ox3CYC4xe3d2qo.74o3.oxcx2CYC2x2q5o.75ocxo2xc2x2CYCc2q2o3.75ox3o.oxc2x2CYc2xo.77oCcxo.3oxc2x2c2Cxo.77ocxo.5oxc2x2c2Cco2.74ocCxo.6ox5cC2c2o.72ocCxo.8o3x3CZco.73ocxo.12ox3Z2xo.71oxcxo.13oxZ2c2xo.71ox2o.14ox5o.71ox3o2.9o.3o5.69o3jGxc3o2.5o2xo.74o2cxc2xGxcCc2o.2o2xo2.75oC2x2Ccx4cCco2xo2.76ocCx4Cco4xcxo2.78ocY3x3o.4o3.80ox8o.86ox8o.86oxc2x3cxo.87oxc4x2o.88ox4o2.90o4.751",
+  ".1330o3.90o3eqo.87o3A3eqo.83o4A3B2Ado.81o3A4B4A2do.78o3A3B7A2dqo.78oB10A3edqo.77oBWB6A5e2qo.77oAB8A5e2qo.76oB10A4e2qo.76oBWB8A3e3dqo.75oBWB6WBA3e4qo.75oBWB4A2WBA3e5qo.74oBWB4A2WBA3e5dqo.73oBWB4A2WBA3e5dqo.73oBWB4A2WBAe7d2qo.72oBWB4A2WBAe7d2qo.72oBWB5AWBAe7d3qo.71oBWB6WBe8d4qo.71oB7WBAe7d5qo.70oB7WBAe7d5qo.70oB7WBAe7d5qo.70oBWB5WBAe7d5qo.70oBWB5WBAe6d6qo.70oBWB5WBAe6d6qo.70oBWB5WBAe6d6qo.70oBWB5WBAe6d5q2o.70oBWB5WA3e5d5qo2.70oBWB5WA3e5d5qo.71oAB6WA3e5d5q2o.70oB7WA3e5d5qo2.71oB6WA3e5d5qo.72oAB5WA3e5d5qo.72oAB5WA3e5d5qo.72oAB4W3A2e5d5qo.72oAB4W3A2e4d6qo.72oAB4W3A2e4d5q2o.72oAB4W3A2e4d5qo2.72oB6W2A2e4d5qo.74oAB4W2A2e5d5qo.73oAB4W2A2e5d4q2o.73oAB4W2A2e5d4qo2.73oABABW3A2e4d5qo.74oABA3W2A2e4d5qo.74oABA3W2A2e4d5qo.65o4.5oABA3W2A2e4d4q2o.65oY2cxo2.2oABA2W3A2e4d4qo2.66oYCYxc2o.odA2BW2A2e4d4qo.68ocx3C2coqe3q4e4d4qo2.69ox2CYC2xq5x2qde3d3qo.71ox3CYCcxq3Cx3de3d2qo.73ox3CYC3c2Cx2e4d2qo.75oxc2CYC4x2Be2d3qo.77ocxcCYC4xe3d2qo.74o3.ocCx2CYC2x2q5o.75ocCoxc2x3CYCc2q2o3.75ox4c5x2c4xo.77ox6c5x2c2Cxo.77ox2H3x2c5x2c2Cco2.74ox2gH2gx3c4x3cC2c2o.72ox2g2KHKgx3c2xox3CZco.73oxH3KGHK2x4o.ox3Z2xo.71ojgG2K3GK3xo2.3oxZ2c2xo.71ojK7HGo.6ox5o.71ojHK5Ho2.4o.3o5.69o3jG3K3Ho.4o2xo.74o2cxc2xG3K2go.2o2xo2.75oC2x2Ccx2gjgCco2xo2.76ocCx4Cco4c2xo2.78ocY3x3o.4o3.80ox8o.86ox8o.86oxc2x3cxo.87oxc4x2o.88ox4o2.90o4.751",
   ".1140o2.93o3.92o2.93oqo.91o2qo.91oAqo.89o3Ado.89od2e2do.88odAd3o.88oA2d2qo.87o2A2deABo.86oq2Ad2AWeo.85oqd5Weo.85oqdqd3edo.85oqdAd3edo.85oqdAd3edo.85oAB2d3edo.84o2A4d2e2Ao.83odABAd3e2Ao.83odB3Ad2e2do.83odB3d3e2Ao.83odW4d2e2do.83odW3d3e2do.82o2dW3d3e4o.81oqBW2V2d2e2WBo.81oqdW2V2d2e2WBo.81oqdW2V2d2e2WBo.81oqdBW2Vd2e2W2Ao.80oqdB3d3e2W2Bo2.79oqdB3d3e2W2Bo.79o2qdB2A2d2e2W2Bo.79oBAB3A2d2e2W2Ao.79odB4A2d2e4Ao.79odB4qd3e4Wqo.78odB4A2d3e3Weo2.77odB4A2d2e2deWeo.77o2dB4A2de4dWeo.77oqdB4A2de4d2qo.77oqB5q3de3d2qo.77oqB5A2d3e3d2Ao.76oqdB4A2de5d2Ao2.75oqdB4A2de5d2Ao.76oqdB4A2de5d2Ao.57o2.16o2qdB4A2de5d2Bo.56o2c2o2.13oAqdB4A2de5d2WBo.55oY2C2co.12oAd2B4A2de5d2Wq2o.55oYZ2C2xo.10odB4A4d2e4d2Weo2.56oYZCx3co.8odA8d3e3d2Weo.58ox5C2co.6oqeA7d3e3d2Weo.60ox3CYC2co.3o2qde4A2e2d2e3d2Weo.62ox3CYC2co.oeq5e11d3qo.63ox3CYC2coq4jq3e10d2Aqo.64ox3CYC2xq3Gg2jq2e8d2Ao2.66ox3CYCcxj3g2j2q2e6d2Ao.69ox3CYCcxj5x2q2e4d2Ao.71ox3CYCcxj2C2x3q2e3dBo.73ox3CYC6x2jq3d2WBo.74oxc2CYC4x3gj2q2W2qo.75ocxcCYC4xjGj3Wq2o.76ocCxcCYC2x2j4Wq2o.76oxC3x2CYCc2j3A2qo.76oxc3C2x2c5eA2qo.77ox2c3Ccx2c2Ccxeq2o.76oHx3c5x2c2Ccxqo.76oHK2Gx2c4x3cYCxo.76oHK2G2x3c2xox3CYCco2.73oHK3HG3x3o.ox3CYCc2o.71oHK5HG2jo2.3ox3CYC2co.69oHK2GK3g2jo.6ox3CYCco.68oGH2KHK2g2jo.8ox3CYCco2.65oH3GHKg3jo.10ox3Z2Cc2o.63oHGHKHgHg2jo.12oxZ4C2co.61oHK2GHKHgj2o.14oxZ3c2o.61oHK3HgHgj2o.16ox6o.59oGKHGHKHgj2o.18ox5o.54o5xGgGHKHgj2o.19o2x2o2.54oc2C2cC2xgGHgj2o.22o2.55ocC3cC2c2xj4o.80ocx6c2Cj2o2.81ocxCcdx4Cco.83ox2ZCx3cC2xo.83ocYCYx2qx2Cxo.83ox9cxo.83ox2q2xqx5o.83o12.84",
   ".1617o.94o.93o2.93oeo.92oBo.90o3Bo.90oAB2qo.89oAWBeqo.87o2AWBeq2o.86oB2We3qo.86oBW2e3qo.86oBW2e3qo.86oBW3e2q2o.85oBW3e2q2o.84o2AW3e2q2o.84oB2V3Weq2o.84oBWV5dqo.84oBWV5dqo.84oBWV5dq2o.82o2BWV5dq2o.82oB4V4dq2o.82oBWB3V3dq2o.82oBWB3WV2q2o2.83oB4e3q2o.85oAB2Ae2dqo.85oB3A2e2qo.85oB2A3e2dqo.81o4B2Ae4dq2o.80oB2A2BAe5qo2.80oBWB3Ae4dqo.80o2BWB3Ae4d2qo.79oB6Ae4d2qo.79oBWB4Ae4d3qo.78oBWB4A2e2d4qo.79oB4A4edq4o.63o3.14oAB2A4dq2o4.63oY3o2.12oABA3e2q2o.67oYZ2xo.12oA5edqo.68oYCx3o.10oBWA3e2qo.69ox4ZCo.3o.3o2BWA2e4qo.70ox2CYZCo3Ao3B2WA2e4dqo.71ox2CYZx2d3eBW2Ae5d2qo.72ox2CYZcxqdBW2A2e5d2qo.73ox2CYZcxA6e4d2qo.75ox2CYZcxcqde5d2qo.75o2x3CYC4xqe4d2qo.77ox3CYC2x2q2e2d2qo.78o2x3CYZcxq3d2qo.81ox3CYZcxq4o.78o2.2o2x3c2Zcxqo2.78oc2o.3ox3cYZxo.79ocC2co.2o2x3CYZCo.78oxC3co.3ox3CYZCo.76ox3C3co.2o2x3CYZYo.74oGHx3C2co.4ox3CZ2Yo.72oGHKjx3C2xo.3o3x2Z3Yo2.69oGK4Gx5o.6ox2Z2Cco.68oGKHK4Ggx2o.8oxZc2xo.67oGHKGK4Ho3.10ox4o.66oGHK6Ho.14ox2o2.65oGKHK5Ho.16o2.65o2jG3HK3Ho.82o2cx2cG3K2Ho.82oc2C5G2KHo.82oC3x3c2x2G2o.82oxcC3x5o2.83ocdC2x2c2xo.85ocCx5cxo.85oxcx5cxo.85oxc2x3c2xo.86ox2c3x2o.88o2x3o2.91o3.751",
   ".1332o.94o.94o.94o.94o2.93oAo.91o4.91odo.92odo.92oqeo.91oqAo.91oeA2o.89o2e2o2.89oe3o.90oeAeAo.89oeAeo2.89oeAeo.90oeAeo.90oeA2eo.89oeA2eo.89oeA2eo.89oeA2eo.89oeWe2o.89oeWeAo2.88odWeAo.89odV2Wo.89odWV2Ao.88odAWVAo.88odA2BAo.88odA2BAo.88odA2WAo.88odA4o.88odA4o.88odA4o.88odA4o.88odA4o.88odA4o2.87odA4o.88odA3BAo.87odAeABAo.87odAeABAo.87odAeA3o.87odAeA2o2.65o5.17odA2eBo.67oY3Co.15odA3e2o.67oYZ2co.14odA3deo.68ocxcYo.13odA3deo.69oxcCY2o2.10odA3deo.70oCxcCY2o.8o2dA2e2BAo.70oC2xcCY2o4.3oq2e4A2o.70oC4xcCY2C2co3q6Ao2.71oC5x2CYZYCx3q2c2q2o.73oC4x2oxCYZYC5x2BAo.73ocC2cxo.oxCYZYC4x2eo.73oC3cxo.3oxCYZYC3co2.73oCYCc2xo.2ocxcCYZYCco.75oC3c2xo.oC3xcCYZYCco2.72oCYC2cxo.ocC4xc3ZYCco.72oCYC2cxo.oxCc2C2c4ZYCco.71oC4xo.2ox2c9ZCo.72ocC2cxo.ogx3c6xc2Yo.71ocC3cx2oHK2x3c4xoxc2Yo.70ocC3cxgHK3Hx3c2xo.oxcY2o.70ocC2cxgK6x4o.3oxCY2o.69ocC2x2gKGK4Go3.3oc3CZYo3.66ocCcxGK5HGo.3o3Cc3YZ2Y2co.65oxCcxGK4Ggo.2o2C4c4YZ2cxo.66oc2xjHG4cYo2C6c5Ycx2o.66oc3G4c3YC7c4x6o.63o3xC2cCc3C8c3x4o7.61o2C2xc4C10c4xo4.68ocx4c3x2cCc2Cc5x2o.71ocCc2x3cxo2x4c2x4o2.72ocYCx5o.2o4x2o4.74ox8o.6o2.78ox4qx2o2.87ox5o.89o2x4o2.90o4.465",
@@ -2230,12 +2266,12 @@ function drawDoll(){
  if(hdq&&auraOf(hdq))
   drawHalo(q,hdq,X0+SP*HEAD_A[0],Y0+SP*HEAD_A[1],SP*0.30,performance.now());
  if(off){
-  if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,0.62,performance.now());
-  wield(q,off,SHIELD_A,X0,Y0,SP,0.62);
+  if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,1,performance.now());
+  wield(q,off,SHIELD_A,X0,Y0,SP,1);
  }
  if(hand){
-  if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,0.82,performance.now());
-  wield(q,hand,WEAPON_A,X0,Y0,SP,0.82);
+  if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,1,performance.now());
+  wield(q,hand,WEAPON_A,X0,Y0,SP,1);
  }
  q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
 }

@@ -67,6 +67,11 @@ def s_arming():
 
 def s_falchion():
     g = blank(); B = (20, 45)
+    # the knuckle bow is cut out BEFORE the grip is laid in; cutting it
+    # afterwards took the grip with it, and with no grip material left
+    # the engine could not work out where the thing is held
+    poly(g, [(14, 44), (10, 50), (16, 55), (22, 52)], 'C')
+    poly(g, [(16, 46), (13, 50), (17, 53), (21, 51)], '.')
     hilt(g, B, 11, 3.0, 3)
     # a belly that widens toward the point, built from three segments
     taper(g, B[0], B[1], 36, 29, 8, 11, 'A')
@@ -76,8 +81,6 @@ def s_falchion():
     line_on(g, B[0]+3, B[1]-5, 55, 9, 'W', 'A')
     line_on(g, B[0]+6, B[1]-1, 50, 20, 'd', 'A')
     quillons(g, B, 7, 4.0, 2.0)
-    poly(g, [(14, 44), (10, 50), (16, 55), (22, 52)], 'C')      # knuckle bow
-    poly(g, [(16, 46), (13, 50), (17, 53), (21, 51)], '.')
     return g
 
 def s_great():
