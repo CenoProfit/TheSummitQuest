@@ -463,6 +463,41 @@ function spineH(wy){
   + 7*Math.sin(wy*0.00760+3.1);
 }
 const TRAILW=3.2;
+
+/* ---- the massifs ----
+   Every few thousand units of trail there is a mountain off to one side
+   that is not part of the ridge you are on: it comes up out of the haze,
+   stands over you for a mile or two, and goes behind. It is what tells
+   you the range is bigger than the path through it.
+
+   Pure function of position like everything else out here, so it needs
+   no state and no spawning; three candidates are tested because at any
+   point you can be on the shoulder of one while the next is rising. */
+/* Spacing has to be read against how far you can actually see, which
+   is DFAR, about a third of a mile. At one massif every three and a
+   half miles you would meet one about a tenth of the time; at roughly
+   one a mile there is nearly always something standing off to one side.
+   Each one's radius is clamped so it cannot reach the path: whatever
+   its size, it stops a hundred and thirty units short of the trail. */
+const MASSIF=1700;
+function massifH(wx,wy){
+ const i=Math.floor(wy/MASSIF+0.5);
+ let v=0;
+ for(let k=i-1;k<=i+1;k++){
+  const cy=k*MASSIF+(hash(k*7919)-0.5)*700;
+  const side=hash(k*104729)<0.5?-1:1;
+  const off=340+hash(k*15486)*230;
+  const cx=trailX(cy)+side*off;
+  const R=Math.min(360, off-120);
+  const dx=wx-cx, dy=wy-cy, d=Math.sqrt(dx*dx+dy*dy)/R;
+  if(d>=1) continue;
+  /* cos falloff so it meets the ground without a seam, squared up a
+     little so the summit is a peak rather than a dome */
+  const f=Math.pow(Math.cos(d*Math.PI*0.5),2.1);
+  v+=f*(140+hash(k*40503)*110);
+ }
+ return v;
+}
 function terrainH(wx,wy){
  const cx=trailX(wy), dx=wx-cx;
  const wd=78+28*Math.sin(wy*0.00105);
@@ -471,6 +506,7 @@ function terrainH(wx,wy){
  /* the range either side, strongest off the crest */
  h+=ridged(wx*0.00108,wy*0.00108)*96*(0.22+0.78*(1-fall));
  h+=ridged(wx*0.00330+7,wy*0.00330)*30;
+ h+=massifH(wx,wy)*(1-fall*0.85);
  h+=fbm(wx*0.0155,wy*0.0155)*5;
  return h;
 }
