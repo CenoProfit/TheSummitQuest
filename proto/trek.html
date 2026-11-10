@@ -1142,7 +1142,7 @@ function carryOf(item){
  let p;
  if(item[1]==='shield'){
   s=0.44/Math.max(bw,bh);
-  p=[0.205-bw*s*0.5-(x0/n)*s, 0.615-bh*s*0.5-(y0/n)*s, s];
+  p=[0.285-bw*s*0.5-(x0/n)*s, 0.615-bh*s*0.5-(y0/n)*s, s];
  }else{
   s=(item[1]==='staff') ? 0.98/bh : 0.80/Math.max(bw,bh);
   const gp=gripPoint(item);
