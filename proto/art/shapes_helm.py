@@ -157,6 +157,62 @@ def hm_crown_grand():
     for nx in (14, 22, 28, 36, 42, 50): stud(g, nx, 51, 1.3)
     return g
 
+def hm_wolf():
+    """A wolf's head worn as a hood. The skull caps the crown, the ears
+       stand up off it, the snout hangs forward with the fangs showing
+       under it, and the wearer's face sits in shadow below the jaw. The
+       pelt falls down either side.
+
+       It shared the plain hood's shape before, so the one item in the
+       game called a wolf pelt was a cowl like any other."""
+    g = blank()
+    # the pelt, hanging down from the head
+    poly(g, [(12, 30), (52, 30), (56, 46), (48, 60), (16, 60), (8, 46)], 'A')
+    # ears first, so the skull's outline cuts across their base
+    for k in (-1, 1):
+        poly(g, [(CX + k*7, 18), (CX + k*12, 2), (CX + k*20, 13), (CX + k*17, 22)], 'A')
+    ellipse(g, CX, 20, 16, 11, 'A')                     # skull
+    poly(g, [(21, 27), (43, 27), (39, 45), (25, 45)], 'A')   # snout
+    g = model(g)
+    for k in (-1, 1):                                   # the inside of each ear
+        poly(g, [(CX + k*10, 17), (CX + k*12.6, 6), (CX + k*17.6, 13.6)], 'd')
+        poly(g, [(CX + k*11.4, 15.6), (CX + k*13, 9), (CX + k*16, 13.4)], 'q')
+    # the snout reads by its planes: a lit bridge and two shaded cheeks
+    line_on(g, CX, 27, CX, 43, 'W', 'A', 2.2)
+    line_on(g, 23, 29, 26.5, 44, 'q', 'A', 1.3)
+    line_on(g, 41, 29, 37.5, 44, 'q', 'A', 1.3)
+    line_on(g, 21.6, 28, 25.4, 44, 'd', 'A', 1.1)
+    line_on(g, 42.4, 28, 38.6, 44, 'd', 'A', 1.1)
+    poly(g, [(27.6, 37), (36.4, 37), (34.8, 44), (29.2, 44)], 'n')   # nose
+    poly(g, [(29.2, 38), (34.8, 38), (33.8, 42), (30.2, 42)], 'o')
+    line_on(g, 29.6, 38.6, 31.4, 38.6, 'd', 'o', 0.9)
+    for k in (-1, 1):                                   # eyes, deep set
+        disc(g, CX + k*9, 19, 3.4, 'q')
+        gem(g, CX + k*9, 19, 2.1, 'C', 5)
+    # the wearer's face, in shadow under the jaw. It has to go most of
+    # the way to black: a brown shadow inside brown fur is not a hole,
+    # and the fangs were hanging over nothing.
+    ellipse(g, CX, 52, 11.5, 8.5, 'q')
+    ellipse(g, CX, 52.5, 9.5, 7, 'n')
+    ellipse(g, CX, 53.5, 7, 5, 'o')
+    # fangs hanging out of the upper jaw over it
+    for (fx, fw, fh) in ((25.5, 2.3, 8), (29.5, 1.5, 5), (34.5, 1.5, 5), (38.5, 2.3, 8)):
+        poly(g, [(fx - fw, 43), (fx + fw, 43), (fx, 43 + fh)], 'H')
+        line_on(g, fx - fw*0.45, 44, fx - fw*0.2, 43 + fh*0.7, 'K', 'H', 0.9)
+    line_on(g, 23, 44, 41, 44, 'g', 'H', 1.0)
+    line_on(g, 23.5, 43.4, 40.5, 43.4, 'n', 'A', 1.1)     # the line of the lip
+    # fur, so the pelt is shaggy rather than a cowl
+    for i in range(8):
+        x = 10.5 + i * 6
+        line_on(g, x, 32, x + (2.2 if i % 2 else -2.2), 59, 'q', 'A', 1.2)
+        line_on(g, x - 1.6, 32, x - 1.6 + (2.2 if i % 2 else -2.2), 59, 'B', 'A', 0.9)
+    furtrim(g, [(9, 42), (8, 48), (12, 55), (18, 60)], 3.0, 'A', 'B')
+    furtrim(g, [(55, 42), (56, 48), (52, 55), (46, 60)], 3.0, 'A', 'B')
+    # a thong at the throat with a claw strung on it
+    strap(g, 19, 57, 45, 57, 2.4)
+    poly(g, [(30.6, 58), (33.4, 58), (32.6, 63), (31.4, 63)], 'H')
+    return g
+
 SHAPES = [dump(paint(f())) for f in
           (hm_hood, hm_horned, hm_great, hm_crown, hm_brim, hm_barbute, hm_cap,
-           hm_crown_grand)]
+           hm_crown_grand, hm_wolf)]

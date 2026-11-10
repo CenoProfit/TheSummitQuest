@@ -512,6 +512,47 @@ def H_barbute():
     for sx in (-7.6, -2.6, 2.6, 7.6): stud(g, CX + sx, HEAD_Y + 10.4, 1.1)
     return fin(g)
 
+def H_wolf():
+    """The wolf pelt hood, worn. From behind what tells you it is a wolf
+       and not a cowl is the ears, so they stand clear of the dome, and
+       the pelt below is shaggy rather than smooth, with the scruff of
+       the neck across his shoulders."""
+    g = blank()
+    # the pelt falling over his shoulders
+    poly(g, [(CX - 10.5, HEAD_Y - 2), (CX + 10.5, HEAD_Y - 2),
+             (CX + 13.5, SH_Y - 1), (CX + 12.0, SH_Y + 2.5),
+             (CX - 12.0, SH_Y + 2.5), (CX - 13.5, SH_Y - 1)], 'A')
+    # The ears have to clear the dome SIDEWAYS. There is no room above
+    # it inside the sprite, so an ear drawn straight up sat inside the
+    # hood's own silhouette and all you saw was a brown box.
+    for k in (-1, 1):
+        poly(g, [(CX + k*6.5, HEAD_Y - 3.5), (CX + k*11.5, HEAD_Y - 12),
+                 (CX + k*15.5, HEAD_Y - 5.0), (CX + k*11.0, HEAD_Y + 1.5)], 'A')
+    dome(g, HEAD_R + 1.6)
+    g = model(g)
+    for k in (-1, 1):                     # the inside of each ear
+        poly(g, [(CX + k*8.6, HEAD_Y - 2.6), (CX + k*11.4, HEAD_Y - 10.2),
+                 (CX + k*14.0, HEAD_Y - 4.6)], 'd')
+        poly(g, [(CX + k*9.8, HEAD_Y - 2.8), (CX + k*11.4, HEAD_Y - 8.4),
+                 (CX + k*12.8, HEAD_Y - 4.6)], 'q')
+    # fur, falling in uneven hanks. Shallow marks vanished into the
+    # pelt and left a smooth brown dome, which is the thing a wolf skin
+    # is not.
+    for i in range(8):
+        x = CX - 9.8 + i * 2.8
+        cut(g, x, HEAD_Y - 7, x + (1.7 if i % 2 else -1.7), SH_Y + 1.5, 1.2, 2, -3, 1.3)
+    for i in range(4):
+        x = CX - 7.5 + i * 5.0
+        cut(g, x, HEAD_Y - 9.5, x - 1.2, HEAD_Y - 2, 1.0, 1, -2, 1.1)
+    # the scruff of the neck, across the shoulders
+    furtrim(g, [(CX - 13.4, SH_Y - 1), (CX - 9, SH_Y + 2), (CX - 3, SH_Y + 3)], 2.6, 'A', 'B')
+    furtrim(g, [(CX + 13.4, SH_Y - 1), (CX + 9, SH_Y + 2), (CX + 3, SH_Y + 3)], 2.6, 'A', 'B')
+    # the thong that holds it on, and a claw strung on it
+    strap(g, CX - 11, SH_Y - 1, CX + 11, SH_Y - 1, 2.4)
+    poly(g, [(CX - 1.3, SH_Y + 0.5), (CX + 1.3, SH_Y + 0.5),
+             (CX + 0.8, SH_Y + 5), (CX - 0.8, SH_Y + 5)], 'H')
+    return fin(g)
+
 def H_cap():
     g = blank(); dome(g, HEAD_R + 0.8, -1)
     g = model(g)
@@ -761,4 +802,5 @@ SHAPES += [stick(), hands(), H_crown_grand(), gripArm(), gripArmL()]
 SHAPES += [arm(1), arm(-1)]
 SHAPES += [sleeve(1), sleeve(-1)]
 SHAPES += [sleeve(1, 'A', HEM - 6, 8.4, 7.2, None), sleeve(-1, 'A', HEM - 6, 8.4, 7.2, None)]
+SHAPES += [H_wolf()]                                  # 31, the wolf pelt hood
 P.setsize(96)

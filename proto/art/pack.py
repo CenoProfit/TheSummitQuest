@@ -14,7 +14,7 @@ HTML=os.path.join(ROOT,'proto','trek.html')
 ALLOWED=set(".on"+"qdeABWV"+"xcCYZ"+"jgGHK"+"umM")
 
 CATS=[('sword','shapes_sword',8),('staff','shapes_staff',6),
-      ('shield','shapes_shield',6),('helm','shapes_helm',8),
+      ('shield','shapes_shield',6),('helm','shapes_helm',9),
       ('chest','shapes_chest',5),('shoes','shapes_shoes',4)]
 PETS=[('shapes_pets_a',5),('shapes_pets_b',5)]
 
@@ -69,7 +69,7 @@ def main():
     shape_js.append(" pet:[%s]};"%",\n  ".join(petA))
     import importlib
     H=importlib.import_module('shapes_hero').SHAPES
-    assert len(H)==31, len(H)
+    assert len(H)==32, len(H)
     hero=[]
     for sp in H:
         assert len(sp)==64 and all(len(r)==64 for r in sp), 'hero layer is not 64x64'
