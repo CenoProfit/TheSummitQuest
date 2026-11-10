@@ -69,7 +69,7 @@ def main():
     shape_js.append(" pet:[%s]};"%",\n  ".join(petA))
     import importlib
     H=importlib.import_module('shapes_hero').SHAPES
-    assert len(H)==24, len(H)
+    assert len(H)==31, len(H)
     hero=[]
     for sp in H:
         assert len(sp)==64 and all(len(r)==64 for r in sp), 'hero layer is not 64x64'

@@ -712,9 +712,12 @@ function buildTile(tx,ty){
 
  /* scenery, placed on a coarse lattice and thinned hard */
  const objs=[];
- for(let j=0;j<TILE;j+=3)for(let i=0;i<TILE;i+=3){
+ /* A four unit lattice, not three. At three they stood close enough to
+    overlap heavily, and a hillside of overlapping billboards is a
+    hillside of sprites taking turns to be in front. */
+ for(let j=0;j<TILE;j+=4)for(let i=0;i<TILE;i+=4){
   const wx=ox+i, wy=oy+j;
-  const r=hash((wx*1709+wy*7919)|0); if(r>0.26) continue;
+  const r=hash((wx*1709+wy*7919)|0); if(r>0.32) continue;
   const cxx=trailX(wy); if(Math.abs(wx-cxx)<TRAILW*2.1) continue;
   if(WET&&WET[j*TILE+i]) continue;
   const k=j*TILE+i, h=Hh[k];
@@ -1111,12 +1114,29 @@ function heroCanvas(f){
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
  const eq=S.eq||{}, get=k=>eq[k]&&BYID[eq[k]]?BYID[eq[k]]:null;
  q.drawImage(heroLayer(f%3,HERO_PAL),0,0);
+ /* The arms are layers of their own so the side that is holding
+    something can be left off. The right one always is: it is either
+    closed on a weapon, which climberAt draws, or on his own walking
+    staff just below. Drawn as part of the body, the moment he
+    picked a sword up the body went on hanging that arm straight down
+    while the gripping arm reached out over the top of it and he had
+    two right arms. Sleeved in the chest piece's material when he has
+    one on, bare in his own colours when he does not. */
+ const bd0=get('body');
+ const armPal=bd0||HERO_PAL;
+ const armL=bd0?(bd0[3]===2?30:28):26;
+ if(!eq.off)  q.drawImage(heroLayer(armL,armPal),0,0);
  /* Boots first, then the body piece. A fauld hangs OVER the top of the
     leg armour; drawn the other way round the greaves rode up over the
     skirt of the cuirass and the armour looked tucked into his trousers. */
  const ft=get('feet'); if(ft) q.drawImage(heroLayer(16+ft[3],ft),0,0);
- const bd=get('body'); if(bd) q.drawImage(heroLayer(11+bd[3],bd),0,0);
- if(!eq.hand) q.drawImage(heroLayer(20,HERO_PAL),0,0);
+ const bd=bd0; if(bd) q.drawImage(heroLayer(11+bd[3],bd),0,0);
+ /* His own walking staff, and the same gripping arm an equipped
+    weapon gets, so that an empty hand is a hand holding a stick rather
+    than an arm hanging beside one. The staff already passes through
+    where the fist closes. */
+ if(!eq.hand){ q.drawImage(heroLayer(20,HERO_PAL),0,0);
+               q.drawImage(heroLayer(23,armPal),0,0); }
  const hd=get('head');
  /* helm shapes 0-6 are layers 4-10; the legendary crown is its own
     shape and sits at the end of the table */
@@ -1477,18 +1497,20 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  if(hdg&&auraOf(hdg))
   drawHalo(g,hdg,x+dw*HEAD_A[0],y+pxH*HEAD_A[1],pxH*0.30,performance.now());
  /* carried first, because they are on the far side of him */
+ const sleeve=eq.body&&BYID[eq.body]?BYID[eq.body]:HERO_PAL;
+ const gripOn=i=>{ g.imageSmoothingEnabled = pxH<64;
+  g.drawImage(heroLayer(i,sleeve),Math.round(x),Math.round(y),
+              Math.round(dw),Math.round(pxH));
+  g.imageSmoothingEnabled=false; };
  if(off){
   if(auraOf(off)) drawAura(g,off,SHIELD_A,x,y,pxH,1,performance.now());
   wield(g,off,SHIELD_A,x,y,pxH,1);
+  gripOn(24);                      /* his left hand closed on the strap */
  }
  if(hand){
   if(auraOf(hand)) drawAura(g,hand,WEAPON_A,x,y,pxH,1,performance.now());
   wield(g,hand,WEAPON_A,x,y,pxH,1);
-  const sleeve=eq.body&&BYID[eq.body]?BYID[eq.body]:HERO_PAL;
-  g.imageSmoothingEnabled = pxH<64;
-  g.drawImage(heroLayer(23,sleeve),Math.round(x),Math.round(y),
-              Math.round(dw),Math.round(pxH));
-  g.imageSmoothingEnabled=false;
+  gripOn(23);
  }
  const ftg=eq.feet&&BYID[eq.feet]?BYID[eq.feet]:null;
  /* under the boots, so the light reads as coming off them and pooling
@@ -1547,6 +1569,12 @@ function pixOf(key,cnv){
    never changes, only its scale, and filtering the smaller ones stops
    the canopy fizzing between frames. */
 const CANON=54;
+/* Finer than the generic bucket, because a tree is drawn at exactly
+   the size of the level it picks: no resampling, so no crawling
+   pixels, and the price of that is a size that steps instead of
+   sliding. Small steps keep the stepping invisible. */
+const tbucket=h=> h<16?Math.max(1,Math.round(h))
+                : h<40?Math.round(h/2)*2 : Math.round(h/4)*4;
 function _shrink(S,h2){
  const w2=Math.max(1,Math.round(S.w*h2/S.h));
  const out=new Uint32Array(w2*h2);
@@ -1574,7 +1602,7 @@ function treePix(spc,hgt,B,tint,blaze,vr){
  const key='T'+spc+tint+(blaze?1:0)+vr;
  let M=MIP.get(key);
  if(!M){ if(MIP.size>220) MIP.clear(); M=new Map(); MIP.set(key,M); }
- const hb=Math.min(CANON,hbucket(hgt));
+ const hb=Math.min(CANON,tbucket(hgt));
  let S=M.get(hb); if(S) return S;
  let base=M.get(CANON);
  if(!base){ base=pixOf(key+'|b',treeSprite(spc,CANON,B,[0,0,0],0,tint,blaze,vr));
@@ -1648,19 +1676,26 @@ function underPix(kind,s,B,alpLv,vb){
  return pixOf('U'+kind+s+alpLv+vb, undergrowth(kind,s,B,[0,0,0],0,alpLv,vb));
 }
 
-function drawBill(S,sx,sy,scale,d,fog,hz3){
+function drawBill(S,sx,sy,scale,d,fog,hz3,bias){
+ /* `bias` is how far in front of a billboard the terrain has to be
+    before it hides it. Without one a tree is occluded by the very
+    ground it stands on: the march writes one depth for every row a
+    step fills, so the ZB value under a tree jumps between step depths
+    as the camera moves, and a tree whose own depth sits near that
+    boundary blinks in and out every frame. */
  const dw=Math.max(1,Math.round(S.w*scale)), dh=Math.max(1,Math.round(S.h*scale));
  if(dw>W*2||dh>H*2) return;
  const x0=Math.round(sx-dw/2), y0=Math.round(sy-dh);
  if(x0>W||x0+dw<0||y0>H) return;
  const nf=1-fog, r0=hz3[0]*fog, g0=hz3[1]*fog, b0=hz3[2]*fog;
+ const dz2=d-(bias||0);
  const sxr=S.w/dw, syr=S.h/dh;
  for(let yy=0;yy<dh;yy++){
   const py=y0+yy; if(py<0||py>=H) continue;
   const row=((yy*syr)|0)*S.w, base=py*W;
   for(let xx=0;xx<dw;xx++){
    const px2=x0+xx; if(px2<0||px2>=W) continue;
-   const i=base+px2; if(d>=ZB[i]) continue;
+   const i=base+px2; if(dz2>=ZB[i]) continue;
    const s=S.px[row+((xx*sxr)|0)];
    if((s>>>24)<128) continue;
    const r=((s&255)*nf+r0)|0, g2=(((s>>>8)&255)*nf+g0)|0, b=(((s>>>16)&255)*nf+b0)|0;
@@ -1853,7 +1888,7 @@ function paint(now,dt){
       a smear of white on a hillside. */
    const worldH=64+(o.s%11), pxH=Math.min(H*0.92,worldH*v.sc);
    if(pxH<16) continue;
-   drawBill(towerArt(o.s&3),v.sx,sy,pxH/52,v.dd,fog*0.80,HZC);
+   drawBill(towerArt(o.s&3),v.sx,sy,pxH/52,v.dd,fog*0.80,HZC,Math.max(4,v.dd*0.035));
   }else if(o.kind==='tree'){
    const worldH=7+(o.s%10); const pxH=Math.min(H*0.55,worldH*v.sc);
    if(pxH<2) continue;
@@ -1861,14 +1896,18 @@ function paint(now,dt){
    const spc=o.alp>0.42?'fir':Bb.tree==='fir'?(vr<3?'fir':'hard')
                               :(vr===0?'birch':vr===1?'fir':'hard');
    const S3=treePix(spc,Math.min(60,pxH),Bb,Math.round(o.mi/7),(o.s%37)<6,vr);
-   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog,HZC);
+   /* Blitted one for one at the level's own size. Scaling the level to
+      the exact height resampled it with nearest neighbour, so the rows
+      that got doubled moved from frame to frame and the whole canopy
+      crawled. */
+   drawBill(S3,v.sx,sy,1,v.dd,fog,HZC,Math.max(3,v.dd*0.035));
   }else{
    const worldH=(o.alp>0.5?2.6:1.5)+(o.s%4)*(o.alp>0.5?0.9:0.5);
    const pxH=Math.min(H*0.25,worldH*v.sc);
    if(pxH<2) continue;
    const S3=underPix(o.kind,Math.max(1,Math.min(5,Math.round(pxH/4))),Bb,
                      Math.round(o.alp*4),(o.s>>2)&3);
-   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog,HZC);
+   drawBill(S3,v.sx,sy,pxH/S3.h,v.dd,fog,HZC,Math.max(2,v.dd*0.030));
   }
  }
 
@@ -2110,22 +2149,22 @@ const PETALT=[".565o2.94o2.93oeo.75o2.16odo.74oAo.15oAeo.74oe2o.14oAeo.74oe2o.o2
   ".1473o30.66oA4e5A9e5d2e4o.65oA11B7A2dede5do.64oeA2q6eA2B6A2dq6e4o.63oeq4cxq3A2B2A5q4cxq3e3o.63oeq2x2Y2x3dB2A6q2x2Y2x3dAeo.63oq2x2Y2C2x3qA6q2x2Y2C2x3qdo.63oq2xYZ2x5qA5eq2xYZ2x5q2o.63oqC2YZYx2C2cxA4e2qC2YZYx2C2cxo.64oqC2Y4C2c2xA3e2q2C2Y4C2c2xo.63oex4cx7eAe4x4cx7do2.61odedxc3xc3xe8dxc3xc3xe2do.61odedx2c2xc2x2e7d2x2c2xc2x2e2do.61ode2x8A2e5d2ex8A2edo.61odeAdex4e2A2e3d4e3x4deA2dqo.60oe3A4e3A3ed7e3d2q2de2d2qo.60od5e2d7q9dq5dq5o.59o37.338o55.41oB17A14e4A16eo.41oBW14B4A17B13A4eo2.39oBW7deW3B6A17B12A5eo.38o2BW3B6d2B8A9e7AB12A6eo3.33o2B2WB10d2B6e18B12A7e3o2.29o2B2W2B6dAB2d4B6e10d2e4B11A12e2o.25o3B2W2B9d6B6e4d9q2d3B8A16eo3.19o3B3W2B12d4B6Aeq10d2q4dB6A19eAeo4.13o2B3W2B8A2qdAeAed4A6ec4CcCcCc5x3B8A3B3A11B3A4o2.11oBW3B10A3qdqeAeqdA8c2Y9C3x2qAB8d2A15BA4eo.12oBW3B7A6B2Aq4B3A5d2cY7C6xAqdB8d2A20qo.11oB9A12q3dAeA6dY5C8x2ABqdB2deB2d4A19eo.11oB8A10qdB4qdqeA4d2CY3x5cC4xAB2qdBAd6A20qo.11oAB7A9q2B3A2B3qdqeAexcCcxcx2C2x2C2x2B6qd5A12eA8eo.11oAB7A6qdq2B3A5B3dqdAdx3CYCxC3x4WB7qAd2A11e4A7do.11oAB7A5qdAB3A9B3qdqx3Y2Z2YCx5AB8qA12e5A7do.12oAB6A4q2B3A2e2A9B2A2x2C2YZY2x2c2x2AB9qdA7e8A6eo.13oAB6Ae2q2B2A2e4A10e2Ax3C3Yx2c3x2AB7A3qdA4e4qde4A6eo.13oAB5A2e3B2e7A9e3AdxC2x7cx2AB6A4B2dqde4qde5A3e3do.13oAB2A4e13A7e6dx5cxc3x3AB4A7B3qde2q2BAd3e7do.13oABA5e13A6e6Ax5c2xc3x3AB2A12dqdq2BAd5e6do.13oeA6e13A5e7A2dxcx2cx4cxAB2A13BdeB3e2d4e6do.13oeA6e13A3e9Ad2xc2x5c2xAB2A12qdBAB2e2d5e6do.13oeA6e2de10Ae12d2xc8x2AB2A11qABAe5d5e5do.14oeA6dq2de23dxc7x3B3A10q2B2e6d2q2de6do.13oeA5q2o2qe23x12AB2A9q2B2e6d2qo2qe6do.8o5de6qo.2ode8Aedqdqe7Adqdqe4AeA5e6qdeAB2d8qo.2odA2e4Bo4.4oA3de6do.4ode7A6qdqdqdqd2B3d2BAB4A3e5q2BAe3d7qo.4oeAe5A2eo.4oAB3e6qo.4ode7A2B7A4d2B2d5eAeA4e4q2BAe4d7qo.4oe7A3eo.3oAB2Ae5dqo.4ode7A8B2AB6d3A2qdqdA2e4q2B2e5d7qo.4ode6A3eo.3oAB2Ae4d2qo.5ode6A10e2Ad8A2eAeA2e5B2e6d4q3o.5ode6A3eo.3oA4e4d2qo.5ode6A7e5A2ed5e4BA3e12q8o.5ode6A3do.3oeA3e3d3qo.5ode6A5e7A2e2d3e22q7o.5ode6Ae2do.3oeA3e2d4qo.5oq2dq4A2e10A2edq10e14q8o.5ode5de3do.3oeA3ed5qo.6o7de13qo11de9d4qo7.6ode4d2e3do.3oeAe2d6qo.13ode9dedo.11oeAe8d2qo.13ode3d3e3qo.3ode3d6qo.13ode9deqo.11oeAe8d2qo.13ode2d4ed2qo.3ode3d6qo.13ode8d3qo.11oe9d3qo.12oded9qo.3ode3d6qo.13ode7d4qo.11oe8d4qo.12od11qo.3odq11o.12ode7d4qo.11ode7d4qo.12oq12o.3o14.11ode6d5qo.13ode6d4qo.12o14.28ode5d6qo.13ode5d6qo.53ode5d6qo.13ode5d6qo.53ode4d7qo.13ode4d7qo.53ode3d8qo.13ode3d8qo.53ode2d9qo.13ode2d9qo.52oe3d10qo.13ode2d9qo.52oe2d11qo.13oded12o.51oe2d10q2o.13oded10q2o.51od12q2o.13od12q2o.51od11q3o.13od11q3o.51odq13o.13oq14o.51o16.13o16.601",
   ".900o24.72oA2e8qxeA3e7o.71oeAededeA3dxAB2e4de2do.70oA2q6A2d2xB3q6edo.70oAq2xcx2q2A2dxB2q3cx3dAeo.69oq2Y3Cx2e3dxeAdqY3x2qd2o.69oqYZY2Cx3ed2xeAdY5Cx2do.69oqxY4Cx2e2dxe2dY4C2x2qo.69oqx2Y2x4ed2xed2xY2x5qo.68oex5c2x2eq2xeqx5c2x2Aeo.67oeA2x3cx2A3qxA3x4cx2A2eo.67oeABx5BA2q2xA4x5BA2eo.67oeAB2eAeBA2e2qxA3BeAeABA2edo.67oeAB6A2edqxA3B6A2do.67oeA2B4A4edqxA3B6A2edo2.44o21eAe2A7ed2qxdAeA2B3A3e2deo20.24oBA12exq3AeA2e2A6e2d2qxde2A8e3Aeq3AB4A10o.25oAB10A3xqdeA2e3A5e3d2qxe3A7ed2e2q3BWB2WB8A2eo.25oAB9A5xqde6A3e4d2qxe3A6e2d4q2BWB10A4eo.24oAB8A8xq3e10d3qxe11d3q2BWB9A7eo.20o3AB5A13xq3e8d4qxe11d2q2BWB8A10eo3.14o3B5A18xq3e6d4q2xqd3e6d2q2BWB9A14o3.8o3B3W3BA20xq3e4d3q4xq4d3ed3q2BWB6AB3A11B3A3o3.4oB3W4B3A13eA7xq3e2q5x7q4d3q2BWAB5A2B3A11B6A2o.4oBW5B3A3qdA6e6A6xq6x13q2dq2B2dqAB2A4B3A8e2AB8eo.3oBW5B3A4qdqdede9A5xq4x15q3AB4qdqeA2B3A5e6AB5ABAeo.3oBW4B4A5eAedqdqe9A3dcx21B7eqdqeAe13B2ABA4eo.3oBW2B6Ae5BAB4d4e8q2x8Y2C2x9eB3A2B4Aqdqde10B2A7eo.3oBW2B6Ae9B3d4qde4q3x5Y2C6x8deA7BAB2Aqdqde8A8eo.3oB9e9B3d4edq7x5Y5C3x2C2x6dA6e3B2A2edqdqde5A8eo.3oAB7e11B2d3BABAd3qx6CY7xcC4x6A5e5deBABAe3q2d2eA8do.3oAB8e5ded13BAe2x4C2YZ3Y4C6x5qA2e6B2d3ABABAd4eA8eo.3oAB7e4d19qex5CYZ4Y2xC6x5q2e7B3d6BAd4A8qo.3oAB8ed4qd16qx5Y3Z3Y5C3x8e7dB2d7qd4A9eo.3oAB7d5qoqd13q3x4C2Y3ZY6xcx2C2cx4qe4d11qoqd4A8qo.3oAB4A2dq5o.oq16x3C4Y8xcC4c2x4q10dq5o.oq3dA8eo.3oAB2A5x5o.ox20C3Y7C5c4x13d3x4o.ox4AB3A4do.3oAB8A4eo2qeAeAeAeAeAe3d2x3C4Y6x4c6x4A10e5qo2dAeA10eo.3oAB3A5B4eo.oAB11Ad2x4C2xcxY3xcxc2x3c3x4AB8e3A2eo.oBW3BA8qo.3oAB2A6B4eo.oeB9A4x7cC4x2cxc4x8AB7e3A2eo.2oAW2B2A8eo.3oAB2A6B4eo.2oeB7A6dx3C4c3xc2x2c5x5B10e3Aqo.2oAWB3A8do.3oABA8B2Aeo.2odA2B4A6edx5c5xc3xc5x5eB6A2e2d2eqo.2oAB4A8do.3oA8qdA3eo.3oeA3BA6e2dx5c4x2c3x2c4x5eA7qd5o.3oAB4A7eqo.3oA10dA2qo.3odA9e5x5c3xc5xc3x5A10qd3qo.3oAB4A7do.4oeA8B2dq2o.3oeA8e5dx9c5xcx6BA9B2q4o.3oeB4A5e3qo.3oeA9B2Ao.5odA6e6q2x8c5x8eA2e2A8q2o.4oeB4A5e3do.3oeA11BAo.4odA5e5d2q2x21q2e12qo.4oeB4A4e4qo.4oeA6eA4do.5odA3e5d2q2AeAx16eAxq3e9dqo.5oAB4A2e5do.5oeA6eA4do.5oqeAe5d2q2B5x14B4xq3e8dqo.4oqAB3A2e6do.5oeA6eA4qo.6ode5d2q2BW2B4e3x7A3B5xq3e7qo.5oq2A5e6do.5oeA5e2A3d2qo.5oqde3d2q2BW3B6Ad3xeAB10xq3e6qo.5oA2qdA2e7do.5oeA4e3A4dqo.5oeqe2d2q2BW3B7A2edxB13xq3e4dqo.5odBAqde8do.5oeA4e3A3edqo.6oed3q2BW3B7Ae3qxB2A2B10xq3d3qo.6odeAB2Ae7do.5oeA3e4A3eq2o.6oAd2q2BW3B8Ae2dqxA4B11xq3d2qo.6odeA4e7do.5oeA2e5A2eqo3.7oq3BW3B9d2edqxA3B13xq4o.7o3eA3e7do.5oeAe8do.9oq3BW3B6A5q4xqd2AB5A8xq3o.10oeA2e7qo.4oeA2e9Ao5.4oq2BW3B6A5qo9AB3A9Bxq2o.4o6eA3e7qo.4oeAe11A3e2o.3oqBW3B5A6qo.9oAB5A6B2xq2o.3oB3A6e7dqo.3oe12B2A3eo.3oAW3B5A7eo.9oAB3A10exqo.3oB5A2e7d3qo.3ode12A4eo.3oBW2B5A8qo.9oAB2A12eo.4oAB4Ae8d3qo.3ode12A4eo.3oBWB5A9eo.9oABA14eo.3oAB4e8d4qo.3ode12A4eo.3oB6A8e2do.9oABA14eo.3oAB3e8d5qo.3ode12A3eo.4oAB5A7e3do.9oA15eo.4oAB4e6d6qo.3ode12A4do.3oAB4A7e4do.9oeA14eo.3oAB2A3e4d8qo.3ode12A2e3do.oAB4A7e5do.9oeA3B3d2A7eo2.oeA5e4d8qo.3ode17do.oAB3eA6e6qo.9oeA4Bd2A9eo.oeA5e4d8qo.3ode7de3de4do.2oAB2AqeA4e7qo.9oeA2d6A8eo.oeA5e4d8qo.3ode6d2ed3e5do.oABA3qeA3e5B2qo.9oeA3d4A9eo.oeA5e4d8qo.3ode5d7e5do.oABA4qe8B3qo2.7oeA2d6e8do.oeA4e4d9qo.3ode4d8e4dqo.oA7qde5dB2d2qo.7oeA3e2de10do.oeA2e5d10qo.3ode3d9ed4qo.oeA7qde4d5qo.7oeA2e14do.ode6d11qo.3ode2d15qo.oeA5eBAqde4d3qo.8oeAe15do.ode5d11q2o.3oded16qo.oeA4e3BAqde2d3qo.9oe17do.ode5d10q3o.3od18qo.oeA3e5BAqd5qo.9ode16do.ode5d9q4o.3oqd17qo.oeA2e7Beqd3qo.11ode15do.ode4d10q4o.3oq19Bode5d6Beqd2qo.11ode16Boq20o.3o21de5d8Beqdqo.11ode17do21.24ode8d5Beq2o.11ode7d9qo.45ode6d8Bdo.12ode5d11qo.45ode5d10Beo.11ode3d13qo.45ode4d11qeo.11ode2d14qo.45ode2d12q3o.11oded15qo.45odq17o.11oq17o.46o20.11o20.310",
   ".246o2.95o.12o2.20o.11o2.48o2.11o.19o2.11oxo.48o.30oxo.11oco.48o4.27oco.10oc2o.49oxo.26ocCco.9ocC2o.49oco2.23ocCco.10ocCYxo.48oxc2o.9o2.10ocC2cxo.9oxcY2co.48oc2o.10o.9ocC3x2o.10oxY2co.49ox2o3.8o2.7ocC2co2.12oCY2co2.48oxc3o.8o.6ocC2co.15oCY2Cco.47oxC2co.14oxC3xo.15oCYCY2xo.47oxCx2o10.3ox2c3xo.15oC3Y3xo.47ox2Ccx2A6xo3q2x3cxo.15ocC2Y2Cco.48oxcx2WB7q3cq3xcxo.15ocC3YCco.48ox3B6A2q2c4q2x3o.14ocC7co.46oA4B3A4q2ZYCcCx5o.13oC10xo.44oBW2B4A6qYZx5eAx2o.10o2CYC9co.43oAW2B5A5q2Cx6B3edo3.6oC2Y2C10co.42oAW2B5A2e4x8B3A2edo.6oCY3C11co.41oeW2B4A2e6qx5Aeq2A3eo.6ocY2C13co2.39oBW2B4A2e5q3x2dqd2q5Aeo.5oxYC15cxo.38oBW2B5Ae6A2qdAe2d2q5do.5oxYC16co.38odW2B4A2e6Ae2Ae3de3q2edo.6ocxC15co.39oBWB4A2e7q7d3q4o.6ocCxcYC13co.36o2.oAB3A3e2d4eqx2A2x2A3x2Aeo.6ocC2c3C13xo.35oWoAB2A4ed7qx2A2x2A3x2Aeo.6oxC2c3x2C12xo.33oABAB2A4e2d7qx2A2xcA2c2xAeo.7ocCc6YC10co.32oAB5A4e2d5q3x4c7xo2.7ocCc4CxcYC10co.31oA4B2A3e2q7c4Cc2C4cxo.9oxc5C4xC10co2.28oeA4B2Ae3q2x2c3Cxc2Y3C5cxo.10oxc4C5xcYC8cxo.26oeA3eAB2Ae4d3cY2x2YC5c2Ccxo.11oxc4C6xcYC8co.25oeA2e4BAe4d2q2Y2x2Y2C5c4xo.11oxc4C9xC7co.25od2e5A2e4d2q2cY5C4c5xo.12ox3cC10xcYC5co.23oxq5d2A2e3d3qcY4C6c2x3o.14o3xc3C8c2YC5co.21ox3cxq3dA2e3d2q2YC8c3xo3.18oxCc10C2x2C4xo.20oeCYZYCcx2Be4d2qc11x2o.22ocC9c6YC3xo.18oeA2x2Ccx3A2e3d2qC9c2xo.23ocC3c4CcC5xcYC2xo.17oA2e2x3Cx2ABAe2d2q2YC7c3xo.23ocCc9C7x2cxo2.14oA2e3Ax3cxABAe2d2qY2C7c3xo.23oxc10C8x5o.13oeAe3A2excxA3ed2q2Y2C5c4xo.24oxc18x2e2cxo6.3o4d6A2ex3eA2ed2qY2C4c6xo.24oxc18xeA2xYCYC2c2o3x3q7A4x2eA2edq2Y2C4c7xo.23oxc17x2eA3xcC5cxdeYZC5x2B4eA3d3qY2C3c9xo.22oxc18xq2A2eAxcC4x2e2x2C4x2AB6A3d2qY2C3c9xo.21oc22qde2B2x2C2x2ABAx3C4xA2B5A2edq2Y2C2c11xo2.19oc12x5c3Y2x2qB2dx3Cx2ABA2eC4cxeA4BA2e2dqx3cx4Yc6xcxo.19o2x9Yc9C2x2q2eA2x3cxeA3ex2C2cxeA7eq3xcC3c3x9o.22o2x3o4x2c7ZYZYx3eA3x2cxe2A3x6eA7e2qcCc5x2o4x3o2.25o3.4o2xc11x2AdA2x4e2qA3x4A8e2q2cC3c2xo2.4o3.36oxc5x3c2x2BA4x3A7dx2eAe7q2C3c3xo.46oxc4xexc2xAWA4Be7Ad2x2eAe8qC3c2xo.47oxc3x2ex2cxA6B2A2e11d4edeq2C2c3xo.47o2x5qx4dA2eA3d3e2d2e2A3e2d6e2qx5o2.49o4xAex3A3eAeA3e8Aed10qo5.55oBWABWA3We5d4e4Ad3Wd6qo.59oB2W4Adede4d20qo.58oBWB3WBAdq27o.57oAB7edqYcCcx2YcCc8CcxcxC2qdo.56oAB7Aeq2Z2Y2x2Y4CYC5YC6edo.55oAB4A5dqcZ2Y6C3ZC3xYZC3xC2edo.54oeAB2ABA4d2qc2ZYCxY2C3xYC5YC6edo.53oeA2BA8dqcYC5YC4ZC3xYZC3cC2qdo.50o3q4A8dq2cZC3xYZC3xYC6c5Cq2do.49oC3x3A7d2c3YC5YC4Zc4xCc5xdedo.50ocC2xA3eA5dc3ZC3cxZc4Yc4xYc5Ce2do.49oxC2x2A3eA5e2x3C2c2xYc9xZc4C2e2do.48oAx5A2e2A5e2x2Zc4xZc4Yc4xYc5Ce2qo.40o2.3o3A3dx2A2e3Ae6x3c4x10cxZx5Be2qo.39oA2o3BA2BABA2BWd4e6Ax2Cx5o9x7B2AdAeo.38oeAeA2B3eBA4ed3qe6A2e4dqo.9odA4B3Ad3o.37o2eA2B5qA6dq2ode5A7qo.10oAB5Ad4o.39oq2B2A4eAe2Aeqo2.oeA3eA2B2A2do.11oeB5A2d3o.39ocCB2A4eAe3do.2ode5A5edo.12oAB3A2edqo.30o.9oxA5We2Ae5o2Be8A2e2qo.12oABA4ed3o.29o3.6ox2A5e4d2e2Ad2e3de2de5qo.13oeA5ed3o.29oc2o.4oAB2A3e2d2q2o2q3o2ded5e4dqo.14oeA4ed3o.29ocCco.2oeA3e2dedo4.2o3.2ode9qo.15oeA3e2d2qo.29ocC2co2eA4e2d2o.3o3.2o3e3ded2e4qo.15oeA2e3d2edo2.27ocC2xq2dA4e3dqo3Ae2o.oA3ed7eqo.16oe6d3e3o.26ocC3xq3deAed2e2qdqdA3oeA2ed9qo.16ode5d4edo.26ocC4xo3q3o2q2o3q4oqe3d8qo.17ode4d5edo.26ocC3co.3o3.2o2.3o4.oqded8qo.17ode3d7qo.25oxc5xo.17oq3dq3d2q3o.17oq3d2q3dq3o.25oxc5xo.17oq10cqo.17oq12o.25oxc5x2o.16ocCq2Ccxcxc2qo.17ocCc3C2q2C2xo.25ox6o3.16ocC2cC7xo.17ocC7cC2co.25o7.19oc2xoxCx6o.17ox2c3x3ox3o.51o4.oxo6.19o8.o4.57o.447"];
-const HERO=[".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go.43oG18go.43ogG17jo.43ogG3g2G2gGg2G2g2Ggjo.43ogG4gGg2G2gGg3Ggjo.43ogGgGg2G2gGg5Hg2jo.43og3G2gGg5Hg5jo.44og2Gg5Hg5Hgjo.45ojg4Hg5Hg4jo.45og2Hg5Hg5Hgjo.45o2jGg4j2g2Hj3Hjo.47oj2gj2uj6ujo2.47o2j4u3j4o2.51ou3m3u3o.53oum7uo.48o5u11o4.41o3A2BA2eAeAeAeAeABA3eo3.38oB21Ae3o.37oAB17A6eo.37oAB17A6eo.37oAB14A9eo.37oABAB9A10e2do.36oeA4B5A12e3do.36oeA4BA16e4do.35oeA21e4do.35oeA18e5d2qo.35ode4A13e5d3qo.35ode5A9ede4d5qo.34oeq5d7q15o.34odq2cxcxcxcxcCcxcxcxcxcxcx2q3o.33oq3CcCcCcCcCYZcCcCcCcCcCx2q3o.33oqu2x23u2o2.34oumu2oq2dqdqx4q7ou3o.35oum2uo.ode4qdqed5qo.oumuo2.33oum3uode8d7qoum3uo.33oum3uqe6d11qum3uo.34ou4q19u4o.35ox2cxcxcxcxcxcxcxcxcxcxcxcx2o.35oc4CcCcCcCxcxc2CcCcCcCc4o.35o5x7o4x8o5.40og2Ggjo.4ogGg3jo.45oGH3Ggo.3oGH3Ggo.45oGHG3go.3oGHG3go.45oG5go.3oG5go.45ogG4go.3ogG4go.45ogG4go.3ogG4jo.45ogG4jo.3ogG4jo.45ogG2g2jo.3ogG2g2jo.45og5jo.3og5jo.45ojg4jo.3ojg4jo.45ojg4jo.3ojg4jo.45oj6o.3oj6o.45o8.3o8.150",
-  ".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go.43oG18go.43ogG17jo.43ogG3g2G2gGg2G2g2Ggjo.43ogG4gGg2G2gGg3Ggjo.43ogGgGg2G2gGg5Hg2jo.43og3G2gGg5Hg5jo.44og2Gg5Hg5Hgjo.45ojg4Hg5Hg4jo.45og2Hg5Hg5Hgjo.45o2jGg4j2g2Hj3Hjo.47oj2gj2uj6ujo2.47o2j4u3j4o2.51ou3m3u3o.53oum7uo.48o5u11o4.41o3A2BA2eAeAeAeAeABA3eo3.38oB21Ae3o.37oAB17A6eo.37oAB17A6eo.37oAB14A9eo.37oABAB9A10e2do.36oeA4B5A12e3do.36oeA4BA16e4do.35oeA21e4do.35oeA18e5d2qo.35ode4A13e5d3qo.35ode5A9ede4d5qo.34oeq5d7q15o.34odq2cxcxcxcxcCcxcxcxcxcxcx2q3o.33oq3CcCcCcCcCYZcCcCcCcCcCx2q3o.33oqu2x23u2o2.34oumu2oq2dqdqx4q7ou3o.35oum2uo.ode4qdqed5qo.oumuo2.33oum3uode8d7qoum3uo.33oum3uqe6d11qum3uo.34ou4q19u4o.35ox2cxcxcxcxcxcxcxcxcxcxcxcx2o.35oc4CcCcCcCxcxc2CcCcCcCc4o.35o5x7o4x8o5.40og2Ggjo.4ogGg3jo.45oGH3Ggo.3oGH2G2go.45oGHG3go.3oG5go.45oG5go.3ogG4go.45ogG4go.3ogG4go.45ogG4go.3ogG4jo.45ogG4jo.3ogG2g2jo.45ogG2g2jo.3og5jo.45og5jo.3ojg4jo.45ojg4jo.3oj6o.45ojg4jo.3o8.45oj6o.56o8.161",
-  ".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go.43oG18go.43ogG17jo.43ogG3g2G2gGg2G2g2Ggjo.43ogG4gGg2G2gGg3Ggjo.43ogGgGg2G2gGg5Hg2jo.43og3G2gGg5Hg5jo.44og2Gg5Hg5Hgjo.45ojg4Hg5Hg4jo.45og2Hg5Hg5Hgjo.45o2jGg4j2g2Hj3Hjo.47oj2gj2uj6ujo2.47o2j4u3j4o2.51ou3m3u3o.53oum7uo.48o5u11o4.41o3A2BA2eAeAeAeAeABA3eo3.38oB21Ae3o.37oAB17A6eo.37oAB17A6eo.37oAB14A9eo.37oABAB9A10e2do.36oeA4B5A12e3do.36oeA4BA16e4do.35oeA21e4do.35oeA18e5d2qo.35ode4A13e5d3qo.35ode5A9ede4d5qo.34oeq5d7q15o.34odq2cxcxcxcxcCcxcxcxcxcxcx2q3o.33oq3CcCcCcCcCYZcCcCcCcCcCx2q3o.33oqu2x23u2o2.34oumu2oq2dqdqx4q7ou3o.35oum2uo.ode4qdqed5qo.oumuo2.33oum3uode8d7qoum3uo.33oum3uqe6d11qum3uo.34ou4q19u4o.35ox2cxcxcxcxcxcxcxcxcxcxcxcx2o.35oc4CcCcCcCxcxc2CcCcCcCc4o.35o5x7o4x8o5.40og4jo.4ogGg3jo.45oGH2G2go.3oGH3Ggo.45oG5go.3oGHG3go.45ogG4go.3oG5go.45ogG4jo.3ogG4go.45ogG4jo.3ogG4jo.45ogG2g2jo.3ogG4jo.45og5jo.3ogG2g2jo.45ojg4jo.3og5jo.45oj6o.3ojg4jo.45o8.3ojg4jo.56oj6o.56o8.150",
-  ".32o.62oAo.60oA2o.60oA2o.59oABAeo.57oAB2A2eo.55oABA5eo.53ode2d6qo.49o3xcxcxcxcxcx2o3.46oc2C11ZYco.45oxC12Z2x2co.43ox20o.39o3Ae4d4qdqdqdqdqd4o3.35oA3BA5e16de2o2.32odA7e21qo.33od3eAe8d7ed2e2dq3o.34o3qd4e4d9q5o3.38o5q13o5.46o13.2905",
+const HERO=[".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go.43oG18go.43ogG17jo.43ogG3g2G2gGg2G2g2Ggjo.43ogG4gGg2G2gGg3Ggjo.43ogGgGg2G2gGg5Hg2jo.43og3G2gGg5Hg5jo.44og2Gg5Hg5Hgjo.45ojg4Hg5Hg4jo.45og2Hg5Hg5Hgjo.45o2jGg4j2g2Hj3Hjo.47oj2gj2uj6ujo2.47o2j4u3j4o2.51ou3m3u3o.53oum7uo.48o5u11o4.44oAB3A4eAeAeABA3o.44oAWB14A2eo.43oAB14A3do.43oAB13A4do.43oAB10A7qo.43odB8A8dqo.44oAB5A10eo.45oAB4A11qo.45oA14e2do.45oeA13e2qo.45oeA11e4do.45odA9ede4qo.46oqd6q8o.44o3xcxcxcCcxcxcxcxcCo2.42oc3CcCcCYZcCcCcCcCc2xo.41o3x17o3.44oqdqdqx4q6o.47ode4qdqed5qo.47ode7d6qo.46ode5d9qo.46oq17o.40o5x2cxcxcxcxcxcxcxcxCo4.36oc4CcCcCcCxcxc2CcCcCcCc4o.35o5x7o4x8o5.40og2Ggjo.4ogGg3jo.45oGH3Ggo.3oGH3Ggo.45oGHG3go.3oGHG3go.45oG5go.3oG5go.45ogG4go.3ogG4go.45ogG4go.3ogG4jo.45ogG4jo.3ogG4jo.45ogG2g2jo.3ogG2g2jo.45og5jo.3og5jo.45ojg4jo.3ojg4jo.45ojg4jo.3ojg4jo.45oj6o.3oj6o.45o8.3o8.150",
+  ".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go.43oG18go.43ogG17jo.43ogG3g2G2gGg2G2g2Ggjo.43ogG4gGg2G2gGg3Ggjo.43ogGgGg2G2gGg5Hg2jo.43og3G2gGg5Hg5jo.44og2Gg5Hg5Hgjo.45ojg4Hg5Hg4jo.45og2Hg5Hg5Hgjo.45o2jGg4j2g2Hj3Hjo.47oj2gj2uj6ujo2.47o2j4u3j4o2.51ou3m3u3o.53oum7uo.48o5u11o4.44oAB3A4eAeAeABA3o.44oAWB14A2eo.43oAB14A3do.43oAB13A4do.43oAB10A7qo.43odB8A8dqo.44oAB5A10eo.45oAB4A11qo.45oA14e2do.45oeA13e2qo.45oeA11e4do.45odA9ede4qo.46oqd6q8o.44o3xcxcxcCcxcxcxcxcCo2.42oc3CcCcCYZcCcCcCcCc2xo.41o3x17o3.44oqdqdqx4q6o.47ode4qdqed5qo.47ode7d6qo.46ode5d9qo.46oq17o.40o5x2cxcxcxcxcxcxcxcxCo4.36oc4CcCcCcCxcxc2CcCcCcCc4o.35o5x7o4x8o5.40og2Ggjo.4ogGg3jo.45oGH3Ggo.3oGH2G2go.45oGHG3go.3oG5go.45oG5go.3ogG4go.45ogG4go.3ogG4go.45ogG4go.3ogG4jo.45ogG4jo.3ogG2g2jo.45ogG2g2jo.3og5jo.45og5jo.3ojg4jo.45ojg4jo.3oj6o.45ojg4jo.3o8.45oj6o.56o8.161",
+  ".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go.43oG18go.43ogG17jo.43ogG3g2G2gGg2G2g2Ggjo.43ogG4gGg2G2gGg3Ggjo.43ogGgGg2G2gGg5Hg2jo.43og3G2gGg5Hg5jo.44og2Gg5Hg5Hgjo.45ojg4Hg5Hg4jo.45og2Hg5Hg5Hgjo.45o2jGg4j2g2Hj3Hjo.47oj2gj2uj6ujo2.47o2j4u3j4o2.51ou3m3u3o.53oum7uo.48o5u11o4.44oAB3A4eAeAeABA3o.44oAWB14A2eo.43oAB14A3do.43oAB13A4do.43oAB10A7qo.43odB8A8dqo.44oAB5A10eo.45oAB4A11qo.45oA14e2do.45oeA13e2qo.45oeA11e4do.45odA9ede4qo.46oqd6q8o.44o3xcxcxcCcxcxcxcxcCo2.42oc3CcCcCYZcCcCcCcCc2xo.41o3x17o3.44oqdqdqx4q6o.47ode4qdqed5qo.47ode7d6qo.46ode5d9qo.46oq17o.40o5x2cxcxcxcxcxcxcxcxCo4.36oc4CcCcCcCxcxc2CcCcCcCc4o.35o5x7o4x8o5.40og4jo.4ogGg3jo.45oGH2G2go.3oGH3Ggo.45oG5go.3oGHG3go.45ogG4go.3oG5go.45ogG4jo.3ogG4go.45ogG4jo.3ogG4jo.45ogG2g2jo.3ogG4jo.45og5jo.3ogG2g2jo.45ojg4jo.3og5jo.45oj6o.3ojg4jo.45o8.3ojg4jo.56oj6o.56o8.150",
+  ".31o3.60oA3o.58oAB3Ao.55o2AB5Wo.53oAWB3A4eo2.50oAB4A6e2o.48oAB3A7WA2eo.46oAB2VA7dA4eo.45oABA9eA4do.44ode3d6q2d3Adqo.44ocC12xcxC2co.43ocC13ZcCco.44ocC13x3Cco.41o2x21o2.37o2BeA2e13de4WAWo.36oeA2e9ded10e2qo.35o2d3e6d13q3o2.37o3qdq17o3.42o19.2902",
   ".219o11.52oB2A9o.49o2AB10A2o2.46oB4VB5VA4eAo.44oB11A6eo.44oAB8A8eo.43oAB6A12eo2.41oAB4A15eo.41oAB3A16eo.41oAB2A17eo.41oABA11e7do.41oA11e9do.41oeA7e12do.41oeA5e14do.40oeA4e16do.40oeA2e19do.39oeAe14d6qo.39oeAe11d9qo.39od2e8d10qdqo.39oq23o.38ox2cxcxcxcxcxcxcxcxcxcxcxo.38oYcCeCYZYZcCeCYZYZcCeCYZcqo.37ox2dex2c3xdex2c3xdex4qo.38o25.2387",
   ".73o2.43o.19o2.40o3.19oxo3.14o7.14o2x2o.20oc3o.10o3d4eA2o2.11ocx2o.21oxCco.9oB2de2Cx2ABA2o.9oxcx2o.22ocx2o3.5oAB2e2Zcx3eBAeo.6o2c2Cxo.19o2.2ox2Cc3o2.2oAB4eYCx3eA3eo2.2o2C3x3o.2o.17o3.ocC3x2co2AB4e2Zcx3A5e2o2cxC4xo.o2.20o2cC3x2C2xeB6eYCx3A6dqC3cC2c2xo.23oxc2x2C2x2AB5d2Zcx3dA5d2cC2x3c2xo.24oxcxc3xe5d4cxcx2d9C3cxcxo.26oxc6Ce2cC5eCYC5eC6c3xo.28ox2cx4Ax3C2x2AcCcC2x2AcC2x3cx2o.30o2x2cx18dx4cx2o2.33ox3ededed6qdqdqd3q2x3o.36o3eA6e13qo3.40oeA3e14qo.43oeA2e15do.43oe14d4qo.43ode10d7qo.43ode7de2d7qo.43oAB2WBWBWBWBWBWBWB2Ao.44oq17o.45oq17o.45o19.2454",
   ".91o11.51o2d3Yc3xeA2o.49oB2e2x2C2x3B2Ao.47oB4ecZcx3eA3eo.46oB4AxYCx3e2A2eo.45ode6CYx3d5qo.43oxd3C3eYZcd3C3d2co.42ox3cC2x8C2xcC2xo.41ox21o.41ode3dedededed8qo.41od2eA6WA4e3q2xo.42odxdA7BAe4q2x2qo.41oqd2A7Be6q2xqo.41oqd3A3e9q5o.41oqx2A2e4Be7qx2qo.41oqx2de12q2x2qo.41oqd3e5Be7q4o.41oqx2e11d3qx2qo.41oqx2e6ABe3d4x2qo.42odBABABA3BeAeAeAd2qo.43oqdq17o.43ode3d14qo.43od2q17o.44o19.2518",
   ".159o2.62oxo.61oxo.51o2.7ocxo.7o2.42oxo.6oCxo.7o3.42o2.5oCYc2o2.4o2.44o2.5oCcxco.5o2.44oco2.2oCYCcCco2.2oCxo.43oc3o.oCYcxCco.2oCYxo.43ocCYCocC3c2Cco2cCco.43oxC3YC3Zc3C2c2C3xo2.41oxC8c4C5c2xo.41oxYC6c6C2c4xo.41oxcY3Zc3xc5Cc4xo.41oxcY2x2c2YCx2c2YCx2c2xo.41oxcxc2x2cxc2x2cxc2x2cxo.41ox21o.41o23.2836",
-  ".31o3.60oA3o2.58oAB2Ao.57oAB2eo.58oAB2Aqo.56oB2A3eo.56oABA4eo.54oBA6qo.54oBeA4qdqo.52oAd5q2j2Go.50ocC7j5o.48ocC7x2j4o.48ocC7x2j2gj2o.47ox10G4xo.45o2eA2e7dG5Wo.43oAeA2e5d4q4dedo.42oe3Ae4d10qdqo.42o3q15o3.46o15.2904",
+  ".94o4.60oA2o.57o3WB2Ao3.53oAW2B3Ae3o2.50oAB4A6e2o.48oAB2V2A6WA2eo.46oAB2WVA7eA3eo.45oABW2AeA4d5qo.46ode2d7j6qo.44ocC10j6co.44ocC9x2j5Cco.43ocC9x2j2gj2Cco.43ox12G4x3o.42oe13G5dqo.41oeAe9d3q5d2qo.40oqd2e4d13q3o.40o3q17o3.44o17.2903",
   ".32o.58o5co5.51o2BdxYx5eAo.49oB2e2CYCcCx2eBAo.47oB4xcZcx4eA2eo.46oB5eYCx3A4eo.45oAB4e2Zcx3dA4eo.44oABe5C3x2d4A2qo.42oqedcCcAdC3ed2Ccdedqo.42odx20o.41oeBA2dedededed4ed3qo.41oABA12e6do.41oeA11e8do.41oeA9e10do.41oeA6e13qo.41oeA6e13do.41oB2A2BABABABABABWe2A2do.41oq2dqdqdqdqdqdq8o.41ode13d6qo.42ode9d8qo.43ode7d10qo.43oqe5d12qo.44oq3dq4dq4dq3o.45ox2q3x2q3x2q3x2o.46o17.2519",
   ".220o9.53o2A2d3eA3o.51oA2Be2Cx2e2Aeo2.48oAB2e2Zcx3A3e2o.46oB5eYCx3A5eo.45oAB3AdZcx3A4eo.45oAB3A2dYCx3A5eo2.43oAB2A2d2Zcx3dA4eo.44oABA4xC3x2de5do.43oA6dC2x2ede5do.43oqd5q13o.43ox4cxcx5cxcx3o.44oedCYZYCeAdCYZcCedxo.44oqx18o.40o3j2x17j2o2.38og2j2q17jGg2o.37ogG2q2dq15G3go.37oxj4o15j4o2.38oxgjo.15ox2o.40ojGjo.15ogj2o.39oj2o2.15o2j2o.39o3.19o3.2515",
-  ".1368o17.47oC14co.44o3x17o3.37o4x2q2dqdqdqdqdqdqdq4x2o4.31o2x4AdeABWBWBWBWBWBWBAdq2ex4o.31ox3BWe2cBWVWVWVWVWVWVABcq2WA2x2o.32ox2BAe2x3B11Aex2dA4eo.32oAB5exB10A3ex2dA4qo.32oAW3B2eWB7A7qA6eo.32oeB3ABAVB4A9WABdedA2qo.32odBA4q2W2B2A6WBWBqdqdqd2qo.32o2eA3q3eABWBWV2BWeA2d3e3q2o.35oqdq4A2dedeV2dedA3eBe3do.36oe3q2A14e2Wd4qo.35ode3q2A6VA4e3qBd4qo.34oAe3q2e2A6We6dBed3qo.34oqe3q2oqeA3eAWe4q3oBd3qo.34oq5o.oxdA2e6q2xo.oq5o.33ox5o.oxd2e2Wde3q2xo.ox5o.33o5xo.oq13o.o7.38ojojgjx8gjgGo2.44oG2H3x2Cc4xH4Go.44og2Ggj2C2c3x2jGgGgjo.43oj6x7j6o.44oeA3e3A3e3A3eo.44oA3edo3dedo3dA3eo.43oBW2Bo.3oBo.3oBWBo.43oB4Ao.3oAo.3oB4o.43o6.3o3.3o6.917",
-  ".1432o17.43o4C16co3.37o3x24o3.34ox3A2de4Ae9Ad4x2cxo.33ox2A2d3e2BWe2BABABWBWeABWA2x3o.32oeAdqgHGq4d5eqeqed3BA3xo.33oABej3Hg3deWBWeABABABWBWBA2qo.33oAB2Aej4g2qdqd5A2qA3WBAqo.33oABA3eAj3g2x5BWA5e4qo.34oqdAeAedj4x5AeA3e5dqo.34oeA2d3ed3jx2Cx2qd3ed4q2o.35oeA3deABAex6ged2ABe3do.36oeAeqed6x5g2qd7qo.35ode3ABWBWed3ej4g3dqd3qo.34oAe3q3eAd5qdqj3g2jd4qo.34oqe3q3A4WBWA2edA2j3Wd3qo.34oq6A7eA2eA3jo2q6o.33ox5d3A3qeded3Aeo.2ox5o.33o5xgjgj3cx6j3o9.38oG2HGgcCc4x2GHG2o.46oj5x7j4o2.45oqd4qeqdqd4qo.46oeWBWA2eABA2WBWedAo.45oeA5e2A7e2o.44oeA3d3edeA4d4o.45oc18o.44o21.981",
-  ".1368o17.48od13o.49oqd10qo.43o2.2o3qd12qo4.2o.36oBo2BAd15AqA2o2eo.35oAB2qdBd13Bq3Ae3o.35oAWB2qAd2q10d3qA2qAeo.35oAB7AecCcCcx2A3dA5eo.35oAB3qB3Aexcxcx3A3qA5do.35oAB7AecC4x2A3dA4eqo.35oAB3AB3eq2C3x2deA2qA4eqo.34oeAB2A5e2qC3x2deA2dA2e2q2o.34oeA2BAqA2e2q2YZYcd2eA2qe6do.33oeA8e2qx5deA2de4q2do.33oeA4qeBe2q2xC2x2ded2qe5q2o.33oA6qA2e2qC4xe2d2qde4dqo.33odeA3e2A3q2YC2x2e2dq2d2e2d2qo.33ode2Ad2q6ZYZcq9d3qo.33ode3qj3gjcC6xgjgj3qd3qo.33ode3qGHGHgxC2c4xHGHGgq2d3qo.32oeqdeq2j6C2c3x2j6qd2q2o.32o4qd2qoqd2xcCc2x3q4oqd2qo4.35oq2o.oqe2qcxcx2qd2qo.oq2o.36o3q2edod2edqC4xqd2q2oq3co.36ox2edq2ededqC3x2qd2qdq3C2xo.35ox2qoqe2qd2qC3x2qd2qd2qox3o.35o4.oq6x5q6o.o3.41o19.982",
-  ".1368o17.47oC14co.44o3x17o3.37o4x2q6dqdqdqdq6x2o4.32ox4Aq2j2ge2B6e3gj2qex4o.32ox2BWe2qjg2jB8ejg2jqWA3x2o.31oexBAe2j5WB6dj3xjdBA3edo.31oAB3ABj2xj2VWVWVWVej2x2jA2BA2edo.31oeW3Ax2j3d3ed4qdj2xjxBWBWqo.33oAB2Ax2jgjB3WBWBWBAj2gjxe4do.33odAed3jgjAeAeAeAeAdj2gjq2e2dqo.34oq2d2xjx2dqdqdqdqdqx3jxqdq2o.35oeA3xjx2WBWBWBWBWex3jxe2do.36oeAq3jgjdqdqdqdqdqj2gjq2d2qo.35odeq2j2gjABABA5dj2gjq2d2qo.34oAe3q2jxjBWBWB3A2ej2xje2d2qo.34oqe2q3jx2q3dqdqdq3x2je2d2qo.34oq6j3dAdedededq2j3e2q4o.33ox6j3dq10j3x6o.33o6j2gj3cx6j3gjo7.39oGH2GcCc4x2gH2Go.46og2G2jxc5xg2Ggjo.45oj5x7j5o.45oeA15eo.45oeA3e3A3e3A3eo.45oeA2do3dAdo3dA2eo.44oeA2eo.3oeo.3oeAeo.44ox4o.3oxo.3ox4o.43o6.3o3.3o6.917",
-  ".1114o.63o3.60oc2o.8o.51oc2o.7oco2.47o2C2co.7oCcxo2.45oY2ZY2o7CYZcxo.44oxcCcCc2xcxcxc2Cx3o.41o2.oqx16qo.2o2.37oBoB2AeAe5xe5A3Bo2do.37oB2qV4Ae2CYCce2VWVWqB3do.37oBWBV2d2Be2x5BeqdVBVW2do.37oBeq3dB2e7dAeq4e2do.36ode2Aq2B2e3cCcxd6qAdedo.36oAB2ed2WVe2C7BC3qeABqdo.35oAB2Cd12AdqAdCABed2o.35oBVq5d4xcxcdeAdq4WBeqo.35oqdq4A2d2C2ZcC3BAe2q2dqdqo.35oeA3dA2V2d3cxd3VBe3Aed2qo.35oeAVWAWV2d3C3xd3WBABWAd2qo.34odeVWq4deC8edq4B2dqo.34odqdqdq2d2Adq2xcxqeAedq7o.34ode3do2qAq4xcxq2Wdqo2qdq4o.33oxdedo.2odq2C2ZcC3qBo.2odx4o.33o3Bqo.2oq5cxq6o.od2o4.36oq2o2jgjx3C2cx2gjgGoq2o.40oq2jG2Hgx2Cc4xHGHGjq2o.40oq2j6C2c3x2j6o.42oeAq5C4cx2q4do.44oq2e2dqC2ZYC3qd3q2o.43oqe2d3x6d5qo.45oq17o.44o20.982",
+  ".1368o17.47oC14co.44o3x17o3.37o4x2q2dqdqdqdqdqdqdq4x2o4.31o2x4AdeABWBWBWBWBWBWBAdq2ex4o.31ox3ABe2cBWVWVWVWVWVWVABcq2WA2x2o.32ox2ABe2x3B11Aex2Ae2A2eo.32oeB4dx2B10A3ex2e4Ado.32oAB3A2qWB7A7qd2e4do.32oeA6VB4A9Wd2oq5o.32odAd3q3WB3A6WBWBqo.o6.32o2qo5qeABWBWV2BWeA2q2o.41o.5oeAdedeV2dedA2eqo.47oeA10e3do.47oeA5VA2e5qo.47odeA5We5dqo.48oqA5We4q2o.49oxdA2e6q2xo.49oxd2e2Wde3q2xo.49oq13o.46o3jgjx8gjgGo3.43oG2H3x2Cc4xH4G2o.43og2Ggj2C2c3x2jGgGgjo.43oj6x7j6o.44oeA3e3A3e3A3eo.44oA3edo3dedo3dA3eo.43oBW2Bo.3oBo.3oBWBo.43oB4Ao.3oAo.3oB4o.43o6.3o3.3o6.917",
+  ".1432o17.43o4C16co3.37o3x24o3.34ox3A2de4Ae9Ad4x2cxo.33ox2A2d3e2BWe2BABABWBWeABWA2x3o.32oeAq3HGq4d5eqeqed3BA3xo.33oABdj3Hg3deWBWeABABABWBWA3qo.33oeA2e2j4g2qdqd5A2qA4Beqo.33oded2AeAj3g2x5BWA5d4qo.34o4d2edj4x5AeA3edq5o.38o2e2d3jx2Cx2qd3edqo5.41oeBAex6ged3o2.45oqd5x5g2q2o.47oAWBWed3ej4gjo.47oq2Ad5qdqj3gjo.47oeA3WBWA2edA2j2o.47oeA5eA2eA3jo.47oqdA3qeded3Aeo.48ojgj3cx6j3o2.45oG2HGgcCc4x2GHG2o.46oj5x7j4o2.45oqd4qeqdqd4qo.46oeWBWA2eABA2WBWedAo.45oeA5e2A7e2o.44oeA3d3edeA4d4o.45oc18o.44o21.981",
+  ".1368o17.48od13o.49oqd10qo.47o3qd12qo3.44oAd15eqo.43oAdBd13Aq3o2.41oAqAd2q10d3qAeo.40oB6AecCcCcx2A3dA2eo.40oABqB3Aexcxcx3A3qA3eo.38oAB6AecC4x2A3dA2eo.39oAB2AB3eq2C3x2deA2qA3do.38oAB2A4e2qC3x2deA2de3do.38oeBAqA2e2q2YZYcd2e2Aqe3qo.38oeBA5e2qx5dede5do.39oeAdqBe2q2xC2x2dedeq2e2qo.39oe2o2qAe2qC4xe2d2qoq2o.40oeo.2oeAq2YC2x2e2dqo.oqo.40odqo.oqdq2ZYZcq5o.oqo.40oq2jojgjcC6xgjgGoq2o.41oqjG2HgxC2c4xHGHGjq2o.41oqo2j4C2c3x2j4ojo.42o2.2oqdxcCc2x3q3o.o2.41oq2o.oqe2qcxcx2qd2qo.oqo.37o3qe2dod2edqC4xqd2q2oq3o2.36ox2edq2ededqC3x2qd2qdq3Ccxo.35ox2qoqe2qd2qC3x2qd2qd2qox3o.35o4.oq6x5q6o.o3.41o19.982",
+  ".1368o17.47oC14co.44o3x17o3.37o4x2q6dqdqdqdq6x2o4.32ox4Aq2j2ge2B6e3gj2qex4o.32ox2ABe2qjg2jB8ejg2jqWA3x2o.31oexABe2j5WB6dj3xjdBA3edo.31oeB3A3jxj2VWVWVWVej2x2jAWA2e2do.31oeB2e2x2j3d3ed4qdj2xjxAWBWqo.33oeA2ex2jgjB3WBWBWBAj2gjxd4qo.33od2q4jgjAeAeAeAeAdj2gjq6o.34o5j2x2dqdqdqdqdqx3jxo5.40ojx2WBWBWBWBWex3jo.46oj2dqdqdqdqdqj3o.46ojgjABABA4edj3o.47oxjBWBWB4Aej2xo.47ox2q3dqdqdq3x2o.47oj2dAdedededq2j2o.47oj2dq10j2o.46ojgj3cx6j3Ggo.45oGH2GcCc4x2gH3Go.45og2G2jxc5xg2Ggjo.45oj5x7j5o.45oeA15eo.45oeA3e3A3e3A3eo.45oeA2do3dAdo3dA2eo.44oeA2eo.3oeo.3oeAeo.44ox4o.3oxo.3ox4o.43o6.3o3.3o6.917",
+  ".1114o.63o3.60oc2o.8o.51oc2o.7oco2.47o2C2co.7oCcxo2.45oY2ZY2o7CYZcxo.44oxcCcCc2xcxcxc2Cx3o.44oqx16qAo.42oB4Ae5xe5A4o.42oqV4Ae2CYCce2VWVWqAo.42oAV2d2Be2x5BdqdVBWo.41odq3dB2e7dAeq5o.40oA2q2B2e3cCcxd6qAeo.39oABed2WVe2C7BC3A3eo.38oABCd12AdqA3WAo.38oBVq5d4xcxcdeAdq4WAo.37oed2q3A2d2C2ZcC3BAe2q2dq2o.36oeA3dA2V2d3cxd3WBe3Aeqo.37oeAVWAWV2d3C3xq3WBABWdqo.37oeVWq4deC8edq4Ao.38oqdqdq2d2Aq3xcxqeAedq5o.38oeAeo2qAq4xcxq2Wdqo2q2o.39odeo.2odq2C2ZcC3qBo.2o2.40oBqo.2oq5cxq6o.o2.41oq2o2jgjx3C2cx2gjgGoq2o.40oq2jG2Hgx2Cc4xHGHGjq2o.40oq2j6C2c3x2j6o.42oeAq5C4cx2q4do.44oq2e2dqC2ZYC3qd3q2o.43oqe2d3x6d5qo.45oq17o.44o20.982",
   ".2901o22.42oG21o.41ogG19go.41ogG9gG9jo.41oj10oj10o.42ode4deqo.oe4dedqo.43oeAeA4qo.oAeA4eqo.43oqd2A2q3o.oqdA2dq3o.43ojd3q4o.oqd3q2dqo.43oeg5q2o.odg5eqo.43oq3g2q3o.odq2g2q3o.43oq2g4q2o.oq2g4q2o.43oq8o.oq8o.43oq8o.oq8o.42ox2cxcxcxcCoxcxcxcxcxo.42oYCYCYCYCYC3YCYCYCYC2o.41o23.148",
   ".2774o9.2o10.43od2x4qo.2od2x4qo.44odx2d2x2qo.odx2d2x2qo.43ox2d4x2o.ox2d4x2o.43oxd2x2d2xo.oxdx3d2xo.43oxdx4dxo.oxdx4dxo.43oxd2x2d2xo.oxd2x2d2xo.43ox2d4x2o.ox2d4x2o.43ox3d2x2qo.ox3d2x2qo.43oex6qo.oex6qo.43oqdqdqdq2o.oq2dqdeq2o.43ode6qo.ode5dqo.43oq2e3dq2o.oqe4dq2o.43oqe3d2q2o.oqe3d2q2o.43od7qo.oqd6qo.43oq8o.oq8o.42ox2cxcxcxcCoxcxcxcxcxo.42oYCYCYCYCYC3YCYCYCYC2o.41o23.148",
   ".3094o10.o9.44og4j4o.og3Ggj2o.45o2GKHo3.3o2HKHo2.48oHo.8oHo.50oHo.8oG2o.47o7.4o7.45o2.5o2.2o2.5o2.44odo5j2o.oeo5j2o.43ode5Aqo.oe7qo.43odA3edeqo.oeA2e4qo.43oq8o.oq8o.42ox2cxcxcxcCoxcxcxcxcxo.42oYCYCYCYCYC3YCYCYCYC2o.41o23.148",
@@ -2133,7 +2172,14 @@ const HERO=[".286o4.57o3G3go3.49o5G3H3Gg3o5.44oG4H3G7g5o.43oGH6G11go.43oGH3G14go
   ".114o.61o2co2.58oCYZc2o2.55oCYZ3Cco.55ocCZ2C3xo.54ocC2c2Ccxo.54oxC2c3xo.56oxc4xo.56ox6o.56ox2gxo2.58oG2o.60oG2o.60oGHgo.59oG2go.59oGgo.60og2o.60og2o.60og2o.59ojGgo.59ogG2o.59ojKHo.59ogGHo.59ogHo.60oH2o.60og2o.60oHGo.60ojKHo.59ogKHo.59oGHo.60oj2o.60ojHjo.59ojg2o.59ojg2o.59oj2o.60ojo.60oxcxo.59oc2o.60oc2xo.58ox4o.59og2jo.59oGHjo.59ojHGo.59ojGgo.59ojGjo.59ojGgo.59ojGjo.59ojGgo.59ogGjo.59ogGgo.59ogGjo.59og2jo.59oj2o.60oj2o.60oj2o.60oj2o.59ojgjo.59ojgjo.59oj2o.60oxcxo.59ocCco.59oc3xo.58o2x2o2.60o2.15",
   ".2577o5.21o5.32ou5o.19ou5o.30ou6o.19ou5o.30oum5uo.17oum5uo.29ou7o.17ou7o.30oum3uo.19oum3uo.31ou5o.19ou5o.32o5.21o5.1040",
   ".26o.5o.4o.52o.4o2.4o.52o.4oco.3o.52o.4oco.3o.52o2.3oxo.3o2.45o2.4o2.3oxo.3o2.3o2.40oqo.2oCo.3oxo.2oco.3oqo.39oqo.2ox2o.2oxo.2oCco.2oqo.39oxo.2oCxo.ox2o.2ox2o.2oxo.39oxo.2ox2o.oCx2o.oCxo.2oxo.38oCxo.2oCxo.ox3o.ox2o.ocxo.38ox2Co2Ccx2ocCc3oc3xoCcxo.38oc2YC2YCcYC2c3CcCc2CcCc2xo.37ox2C3c3C3c3C2c4C2c2xo.37oCcC2x3c2Cx4C2c2x3c3xo.37oCYxCex3cx6c2x5c2xo.38ocx2Ad2x4ed2x4Ad2x3o.39ox2d5x2eAd3x2d5x2o.39ox3q3x4q3x4q3x3o.39o25.2835",
-  ".1580o2.60o2Ao.58o2A2BAo.56oA2B2A2eo.55oeA5eo.55odA6eo.55oeA5eo.55odA5eo.56odA3e3o.55ode5do.56ode6o.55ode5do.55ode4do.57ode4do2.55odeq5o.56oq2u3o.57oqum3uo.57ou5o.57oum4uo.56oum4uo.56ou6o.57ou4o.59o4.1101"];
+  ".1580o2.60o2Ao.58o2A2BAo.56oA2B2A2eo.55oeA5eo.55odA6eo.55oeA5eo.55odA5eo.56odA3e3o.55ode5do.56ode6o.55ode5do.55ode4do.57ode4do2.55odeq5o.56oq2u3o.57oqum3uo.57ou5o.57oum4uo.56oum4uo.56ou6o.57ou4o.59o4.1101",
+  ".1554o3.61oA2o2.58oAB2A2o2.56oAB3Aeo.56oABA3eo.55oA6do.55oA5edo.54oA5e2qo.54oA4e2qo.55oeAe3dqo.54oeAe4qo.55oeAe3dqo.54ode3d2qo.55oq5dqo.55ou4q2o.56oum3uqo.55ou6o.56oum4uo.56oum4uo.56ou6o.57ou4o.59o4.1198",
+  ".1580o.57o6do.56oeA4eo.57oAB3eo.57oAB2Aeo.57oeBA2eo.57oeA4eo.56oeA4do.56odA3edo.57oeA2edo.57oeAe2do.57ode3do.57ode3qo.57ode3qo.58oded2qo.57oq5o.57oqu3o2.57oumuo.60oumuo2.57oum3uo.58oum2uo.58ou3o.60o3.1106",
+  ".1555o2.62oAo5.57oA4eo.57oAB3eo.57oAB2Aqo.57oABA2eo.56oeA4qo.56oeA4qo.56oeA3dqo.56oeA2eqo.57ode3do.57ode3qo.57ode3do.56ode3dqo.56oqd3qo.57oq5o.57oqu3qo.58oum2uo.57oum2uo.58oum2uo.58oum2uo.59ou3o.60o3.1130",
+  ".1580o.58o5do.56oA5do.56oeB3qdo.57oAB2d2o.57oABAq2o.57oeA3edo.56oA4edo.56oBA3edo.57oeAe2do.57ode3do.57ode3do.57ode3qo.57oqed3qo.57oq5o.57ox5o.57oxu3o2.58ou2o.60oumuo2.57oum3uo.58oum2uo.58o2u2o.61o2.1106",
+  ".1555o2.62oAo4.58oA4eo.57oAB3Aqo.56oAB2q2o.56oBA3q2o.56oA5qo.56oA5qo.56oeA3dqo.56oA2e2qo.57ode3do.57ode3qo.56oAe3dqo.56oqe2d2qo.56oq5o.57ox5o.57oxu3xo.58oumuo.58oum2uo.58oum2uo.58oum2uo.59ou2o2.60o2.1131",
+  ".1581o.56o7eo.54oeA6eo.55oAB5eo.55oAB3dAeo.55oAB2Aqedo.55oeBA3q2o.55oeA5do.56oeA4do.56oA5edo.55oBA3e2do.55oAe5do.55ode5qo.55ode4dqo.56ode3dqo.56ode3dqo.56oded3qo.56oded3qo.56oq6o2.56ou4o.59oum2uo.57oum3uo.57oum3uo.58ou4o.59o4.977",
+  ".1554o2.62oBo6.56oA5eqo2.54oAB4Aqo.55oAB3q3o.55oAB2Aq2do.55oABA3edo.55oBWA2qdqo.54oBWA4do.55oA5edo.55oA4e2qo.55ode5do.55ode5qo.55ode4dqo.55ode4qo.56ode3dqo.56od5qo.55oqd5qo.55o2q6o.57ou4o.57oum2uo.58oum3uo.57oum3uo.57ou4o.59o4.1002"];
 
 /* [name, category, rarity, silhouette, palette, grip, material, accent material] */
 const GEAR=[

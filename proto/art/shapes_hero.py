@@ -11,6 +11,10 @@
      21      his hands, drawn over the gear so he grips it
      22      the legendary crown, which has a shape of its own
      23      his right arm, reaching out and gripping what he carries
+     24      his left arm, closed on the shield
+     25,26   his bare arms, right then left, hanging
+     27,28   the same arms in a chest piece's material
+     29,30   and in the robe's longer sleeve
 
    Proportions: he stands 58 of the 64 rows and is 30 wide at the
    shoulder. The first attempt made him as wide as he was tall and he
@@ -41,10 +45,22 @@ def legs(step):
         taper(g, lx, HEM - 1, lx, GROUND - lift[i], 8, 7, 'G')
     return g
 
-def arms(g):
-    for k in (-1, 1):
-        taper(g, CX + k * 9.4, SH_Y + 1, CX + k * 12.2, WAIST, 6.6, 5.8, 'A')
-        disc(g, CX + k * 12.2, WAIST + 2, 3.3, 'm')
+def arm(k, ch='A', to=None, w0=6.6, w1=5.8, cuff=None):
+    """ONE hanging arm, as its own layer. It used to be part of the
+       body, which meant that the moment he picked something up the body
+       went on hanging that arm straight down while the gripping arm
+       reached out over the top of it, and he had two right arms. Drawn
+       per side now, and the side that is holding something is simply
+       not drawn."""
+    g = blank()
+    to = WAIST if to is None else to
+    taper(g, CX + k * 9.4, SH_Y + 0.5, CX + k * 12.2, to, w0, w1, ch)
+    g = model(g)
+    if cuff:
+        poly(g, [(CX + k * 12.2 - w1 * 0.55, to - 2.2), (CX + k * 12.2 + w1 * 0.55, to - 2.2),
+                 (CX + k * 12.2 + w1 * 0.50, to), (CX + k * 12.2 - w1 * 0.50, to)], cuff)
+    disc(g, CX + k * 12.2, to + 2, 3.3, 'm')
+    return fin(g)
 
 def shell(g, ch='A', sh=10, wa=8, hm=11):
     """The torso silhouette every chest layer shares. The sides bow in
@@ -104,19 +120,24 @@ def shoulder(g, k, w=6.2, h=11.5, plates=3, ch='A', trim='C'):
                  (ox + k * w, SH_Y - 1.2 + h * 0.30), (ox - k * 4.5, SH_Y - 1.2)], trim)
         stud(g, ox + k * (w - 2.0), SH_Y - 1.4 + h * 0.30, 1.2, trim)
 
-def sleeves(g, ch='A', to=None, w0=7.0, w1=5.8, cuff='C'):
-    """Re-clothe the upper arms in the piece's own material. The body
-       layer hangs two bare arms either side of the torso, and a steel
-       cuirass worn over them left two skin coloured lumps at the
-       shoulders that belonged to no piece of armour at all."""
+def sleeve(k, ch='A', to=None, w0=7.0, w1=5.8, cuff='C'):
+    """ONE arm clothed in the chest piece's own material, as its own
+       layer. The body hangs bare arms either side of the torso, and a
+       steel cuirass worn over them left two skin coloured lumps at the
+       shoulders belonging to no piece of armour at all. Per side,
+       because the side that is holding something is not drawn."""
+    g = blank()
     to = WAIST - 0.5 if to is None else to
-    for k in (-1, 1):
+    if True:
         taper(g, CX + k * 9.4, SH_Y + 0.5, CX + k * 12.2, to, w0, w1, ch)
+        g = model(g)
         line_on(g, CX + k * 9.4 - 2.2, SH_Y + 1.5, CX + k * 12.2 - 2.2, to - 1, 'W', ch, 0.9)
         line_on(g, CX + k * 9.4 + 2.4, SH_Y + 1.5, CX + k * 12.2 + 2.4, to - 1, 'q', ch, 0.9)
         if cuff:
             poly(g, [(CX + k * 12.2 - w1 * 0.55, to - 2.2), (CX + k * 12.2 + w1 * 0.55, to - 2.2),
                      (CX + k * 12.2 + w1 * 0.50, to), (CX + k * 12.2 - w1 * 0.50, to)], cuff)
+    disc(g, CX + k * 12.2, to + 2.4, 3.3, 'm')
+    return fin(g)
 
 def seam(g, sh=10.4, wa=8.2, hm=11.4, ch='q'):
     """A dark line down the torso edge. Pauldrons, sleeves and swept
@@ -153,7 +174,6 @@ def fauld(g, n=3, top=None, w=10.6, ch='A', trim='C'):
 def body(step):
     g = legs(step)
     shell(g)
-    arms(g)
     # Neck: about half the width of the skull, and mostly hidden under
     # the jaw. Six pixels was a stalk; twelve was a tree trunk.
     poly(g, [(CX - 4.6, HEAD_Y + 4), (CX + 4.6, HEAD_Y + 4),
@@ -238,6 +258,27 @@ def gripArm():
     line_on(g, CX + 13.4, WAIST + 2.8, CX + 19.4, WAIST + 2.8, 'u', 'm', 0.9)
     return fin(g)
 
+def gripArmL():
+    """His left forearm, come across and closed on the shield's strap.
+       Drawn over the shield and under the body, the same way the right
+       arm is drawn over whatever he carries. The body layer hangs this
+       arm straight down, and a straight arm beside a shield reads as a
+       shield floating at his side rather than one he is holding.
+
+       Reach and build mirror the right arm exactly, lifted a little so
+       the fist lands near the middle of the shield's back rather than
+       down on its rim."""
+    g = blank()
+    taper(g, CX - 10, SH_Y + 1, CX - 16, WAIST - 2, 8, 7, 'A')
+    g = model(g)
+    disc(g, CX - 16.5, WAIST + 0.5, 4.0, 'm')
+    # knuckles, closed across the strap
+    poly(g, [(CX - 19.0, WAIST - 3.0), (CX - 15.0, WAIST - 1.6),
+             (CX - 14.6, WAIST + 1.2), (CX - 18.6, WAIST - 0.2)], 'm')
+    line_on(g, CX - 19.6, WAIST - 0.6, CX - 13.2, WAIST - 0.6, 'u', 'm', 0.9)
+    line_on(g, CX - 19.4, WAIST + 1.8, CX - 13.4, WAIST + 1.8, 'u', 'm', 0.9)
+    return fin(g)
+
 def hands():
     """Just his hands, drawn OVER whatever he is carrying so his fingers
        close around the grip. Skin only, never the sleeve, because the
@@ -273,13 +314,33 @@ def stick():
         poly(g, [(50.4 + k*1.4, 11), (50.4 + k*5.2, 3), (50.4 + k*3.0, 10)], 'C')
     return fin(model(g))
 
+def hatcrown(g, apex_y, base_y=None, bw=10.2, ch='A'):
+    """The crown of a hat, shaped to the head under it. Drawn as a plain
+       cone from the brim to the point, the skull was wider than the hat
+       for the first several rows above the brim and its corners stuck
+       out either side of it."""
+    base_y = HEAD_Y + 1.0 if base_y is None else base_y
+    side = []
+    for (y, f) in ((base_y, 1.00), (HEAD_Y - 2.5, 0.97), (HEAD_Y - 6.0, 0.84),
+                   (HEAD_Y - 9.5, 0.58), (apex_y + 1.4, 0.20)):
+        side.append((y, bw * f))
+    pts  = [(CX + w, y) for (y, w) in side]
+    pts += [(CX + 1.1, apex_y), (CX - 1.1, apex_y)]
+    pts += [(CX - w, y) for (y, w) in reversed(side)]
+    poly(g, pts, ch)
+
 def hat():
     g = blank()
-    poly(g, [(CX, 0), (CX + 10, HEAD_Y - 1), (CX - 10, HEAD_Y - 1)], 'A')
-    ellipse(g, CX, HEAD_Y + 1, 16, 4.4, 'A')
+    hatcrown(g, HEAD_Y - 13.0, HEAD_Y + 1.0, 10.4)
+    ellipse(g, CX, HEAD_Y + 2.0, 14.6, 4.0, 'A')
     g = model(g)
-    poly(g, [(CX - 9, HEAD_Y - 5), (CX + 9, HEAD_Y - 5), (CX + 10, HEAD_Y - 1), (CX - 10, HEAD_Y - 1)], 'C')
-    stud(g, CX + 6, HEAD_Y - 3, 1.9)
+    cut(g, CX + 3.6, HEAD_Y - 9.0, CX + 6.4, HEAD_Y + 0.4, 1.1)
+    edgelight(g, CX - 2.6, HEAD_Y - 10.0, CX - 6.2, HEAD_Y + 0.4, 1.3, 2)
+    poly(g, [(CX - 9.8, HEAD_Y - 3.4), (CX + 9.8, HEAD_Y - 3.4),
+             (CX + 10.4, HEAD_Y + 0.6), (CX - 10.4, HEAD_Y + 0.6)], 'C')
+    line_on(g, CX - 10.0, HEAD_Y - 2.7, CX + 10.0, HEAD_Y - 2.7, 'Z', 'C', 0.9)
+    stud(g, CX + 6, HEAD_Y - 1.4, 1.9)
+    edgelight(g, CX - 15.6, HEAD_Y + 1.0, CX + 15.6, HEAD_Y + 1.0, 1.1, 2)
     return fin(g)
 
 # ---------------------------------------------------------------- heads
@@ -394,23 +455,22 @@ def H_brim():
     """A travelling hat: a real cone with volume in it, over a brim that
        no longer spans half the sprite."""
     g = blank()
-    poly(g, [(CX - 1.2, HEAD_Y - 13.4), (CX + 2.4, HEAD_Y - 12.8),
-             (CX + 7.6, HEAD_Y + 0.5), (CX - 7.6, HEAD_Y + 0.5)], 'A')
-    ellipse(g, CX, HEAD_Y + 2.4, 11.6, 3.4, 'A')
+    hatcrown(g, HEAD_Y - 12.6, HEAD_Y + 0.8, 10.2)
+    ellipse(g, CX, HEAD_Y + 2.4, 12.6, 3.4, 'A')
     g = model(g)
     # the cone's lit side and the crease down its shaded side
-    edgelight(g, CX - 1.8, HEAD_Y - 11.6, CX - 5.0, HEAD_Y - 0.5, 1.3, 2)
-    cut(g, CX + 3.2, HEAD_Y - 10, CX + 6.0, HEAD_Y - 0.5, 1.1)
+    edgelight(g, CX - 2.2, HEAD_Y - 10.4, CX - 6.4, HEAD_Y - 0.5, 1.3, 2)
+    cut(g, CX + 3.4, HEAD_Y - 9.4, CX + 6.8, HEAD_Y - 0.5, 1.1)
     # a band with a buckle, and the brim's own lit edge
-    poly(g, [(CX - 7.4, HEAD_Y - 3.6), (CX + 7.4, HEAD_Y - 3.6),
-             (CX + 8.0, HEAD_Y + 0.4), (CX - 8.0, HEAD_Y + 0.4)], 'C')
-    line_on(g, CX - 7.6, HEAD_Y - 2.9, CX + 7.6, HEAD_Y - 2.9, 'Z', 'C', 0.9)
-    line_on(g, CX - 7.9, HEAD_Y - 0.2, CX + 7.9, HEAD_Y - 0.2, 'x', 'C', 0.9)
+    poly(g, [(CX - 9.6, HEAD_Y - 3.6), (CX + 9.6, HEAD_Y - 3.6),
+             (CX + 10.2, HEAD_Y + 0.4), (CX - 10.2, HEAD_Y + 0.4)], 'C')
+    line_on(g, CX - 9.8, HEAD_Y - 2.9, CX + 9.8, HEAD_Y - 2.9, 'Z', 'C', 0.9)
+    line_on(g, CX - 10.1, HEAD_Y - 0.2, CX + 10.1, HEAD_Y - 0.2, 'x', 'C', 0.9)
     poly(g, [(CX + 3.4, HEAD_Y - 4.6), (CX + 6.6, HEAD_Y - 4.6),
              (CX + 6.6, HEAD_Y + 1.2), (CX + 3.4, HEAD_Y + 1.2)], 'G')
     put(g, CX + 5, HEAD_Y - 1.8, 'x')
-    edgelight(g, CX - 11.0, HEAD_Y + 1.4, CX + 11.0, HEAD_Y + 1.4, 1.1, 2)
-    shift_line(g, CX - 10.6, HEAD_Y + 4.0, CX + 10.6, HEAD_Y + 4.0, -2, 1.3)
+    edgelight(g, CX - 12.0, HEAD_Y + 1.4, CX + 12.0, HEAD_Y + 1.4, 1.1, 2)
+    shift_line(g, CX - 11.6, HEAD_Y + 4.0, CX + 11.6, HEAD_Y + 4.0, -2, 1.3)
     return fin(g)
 
 def H_barbute():
@@ -453,7 +513,6 @@ def B_cuirass():
     """Fluted plate: pauldrons that break the shoulder line, a plackart
        lapped over the breast, a belt, and a tasseted fauld."""
     g = blank()
-    sleeves(g)
     shoulder(g, -1, w=8.2, h=12.0, plates=3)
     shoulder(g,  1, w=7.0, h=10.5, plates=2)
     shell(g, 'A', 9.0, 7.0, 9.8)
@@ -475,7 +534,6 @@ def B_scale():
     """Mail: a scale field over a padded gambeson, with a collar, a
        sash, and a brass-edged hem."""
     g = blank()
-    sleeves(g)
     shoulder(g, -1, w=6.8, h=10.0, plates=2)
     shoulder(g,  1, w=7.4, h=11.0, plates=3)
     shell(g, 'A', 9.0, 7.2, 10.0)
@@ -500,7 +558,6 @@ def B_robe():
     """Cloth: a narrow body under a long open overrobe, sleeves that
        flare at the cuff, a sash, and a trimmed stole down the front."""
     g = blank()
-    sleeves(g, 'A', HEM - 6, 8.4, 7.2, None)
     for k, w, c in ((-1, 13.2, 5.5), (1, 12.4, 5.0)):
         poly(g, [(CX + k * 9.4, SH_Y - 1), (CX + k * w, SH_Y + 7),
                  (CX + k * (w - 2.0), WAIST), (CX + k * (w - 0.5), HEM - 1),
@@ -535,7 +592,6 @@ def B_banded():
     """Lamellar: horizontal bands the whole way down, held by vertical
        leather, with shoulder caps and a studded belt."""
     g = blank()
-    sleeves(g)
     shoulder(g, -1, w=7.6, h=11.0, plates=3)
     shoulder(g,  1, w=7.6, h=11.0, plates=3)
     shell(g, 'A', 9.0, 7.0, 9.8)
@@ -561,7 +617,6 @@ def B_carapace():
     g = blank()
     # swept back plates, longer on his left, which stops it reading as
     # a symmetrical machined thing
-    sleeves(g)
     for k, w, h in ((-1, 14.4, 10), (1, 12.8, 8)):
         poly(g, [(CX + k * 9, SH_Y - 3), (CX + k * w, SH_Y + h),
                  (CX + k * (w - 2.5), WAIST + 2), (CX + k * 9, HEM - 2)], 'A')
@@ -681,5 +736,9 @@ SHAPES = [body(0), body(1), body(2), hat()]
 SHAPES += [f() for f in (H_hood, H_horned, H_great, H_crown, H_brim, H_barbute, H_cap)]
 SHAPES += [f() for f in (B_cuirass, B_scale, B_robe, B_banded, B_carapace)]
 SHAPES += [F_trail(), F_greaves(), F_sandals(), F_cuffed()]
-SHAPES += [stick(), hands(), H_crown_grand(), gripArm()]
+SHAPES += [stick(), hands(), H_crown_grand(), gripArm(), gripArmL()]
+# 25-26 bare arms, 27-28 sleeved, 29-30 the robe's long sleeve
+SHAPES += [arm(1), arm(-1)]
+SHAPES += [sleeve(1), sleeve(-1)]
+SHAPES += [sleeve(1, 'A', HEM - 6, 8.4, 7.2, None), sleeve(-1, 'A', HEM - 6, 8.4, 7.2, None)]
 P.setsize(96)
