@@ -8681,10 +8681,14 @@ let healthToday=0, healthOK=false;
   /* Trek has a score of its own, so the game's stops rather than
      playing underneath it. The preference is untouched. */
   try{ if(typeof musicStop==='function') musicStop(); }catch(e){}
+  /* Trek holds the screen awake while it is counting; it only does so
+     while it is the thing you are looking at. */
+  try{ const w=frame.contentWindow; if(w&&w.trekWake) w.trekWake(); }catch(e){}
  };
  const close=()=>{
   wrap.classList.remove('open'); wrap.setAttribute('aria-hidden','true');
   try{ if(typeof musicStart==='function') musicStart(); }catch(e){}
+  try{ const w=frame.contentWindow; if(w&&w.trekSleep) w.trekSleep(); }catch(e){}
  };
  bar.addEventListener('click',open);
  if(back) back.addEventListener('click',close);

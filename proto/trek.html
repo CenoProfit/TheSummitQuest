@@ -57,6 +57,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  text-shadow:1px 1px 0 rgba(0,0,0,.7);white-space:nowrap}
 .steps span{font-size:9px;letter-spacing:1px;color:var(--dim);white-space:nowrap}
 .steps i{color:var(--gold);font-family:var(--pix);font-size:8px;font-style:normal}
+/* lit while the screen is being held awake for the walk */
+.wakedot{width:6px;height:6px;flex:0 0 auto;background:var(--edge);align-self:center}
+.wakedot.on{background:var(--xp);box-shadow:0 0 5px rgba(116,232,79,.8)}
 .statstrip{display:flex;gap:6px;flex:1 0 100%;order:3;
  justify-content:space-between;min-width:0}
 .sc{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim);
@@ -341,7 +344,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="track"><div class="fill" id="fill"></div></div>
     <div class="track vtrack" id="vtrack"><div class="vfill" id="vfill"></div></div>
     <div class="botrow">
-      <div class="steps"><b id="today">0</b><span>STEPS &middot; DAY <i id="day">1</i></span></div>
+      <div class="steps"><b id="today">0</b><span>STEPS &middot; DAY <i id="day">1</i></span><span class="wakedot" id="wakedot" title="screen held awake"></span></div>
       <div class="statstrip" id="statstrip"></div>
       <button class="kitstrip" id="kitstrip" title="open the pack"></button>
     </div>
@@ -3673,17 +3676,62 @@ function stepsLive(on){
  document.getElementById('stepask').classList.toggle('on',!on);
  measureBtm();                    /* the prompt changes the frame height */
 }
+/* ---- keeping the screen on ----
+   A web page gets no accelerometer once the screen sleeps, which on a
+   phone in a pocket is about twenty seconds. Without this the web
+   pedometer counts the walk from the front door to the gate and then
+   stops, which is worse than not offering it. The Wake Lock is asked
+   for at the same moment as motion and dropped the moment Trek is put
+   away, so it is only ever held while you are actually walking with
+   this screen open. It is the one thing that makes the browser build
+   usable for a walk; the native build does not need it, because
+   Health is counting whether the phone is awake or not. */
+let wakeLock=null;
+function paintWake(){
+ const d=document.getElementById('wakedot');
+ if(d) d.className='wakedot'+(wakeLock?' on':'');
+}
+async function holdScreen(){
+ try{
+  if(!('wakeLock' in navigator)) return false;
+  if(wakeLock) return true;
+  wakeLock=await navigator.wakeLock.request('screen');
+  /* the browser drops it on its own when the tab is hidden */
+  wakeLock.addEventListener('release',()=>{ wakeLock=null; paintWake(); });
+  paintWake(); return true;
+ }catch(e){ wakeLock=null; paintWake(); return false; }
+}
+function dropScreen(){
+ try{ if(wakeLock) wakeLock.release(); }catch(e){}
+ wakeLock=null; paintWake();
+}
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden) return;
+ if(PED.live&&PED.attached) holdScreen();
+});
+/* the host calls these when Trek is opened and closed */
+window.trekSleep=dropScreen;
+window.trekWake=()=>{ if(PED.live&&PED.attached) holdScreen(); };
+
+function askText(t){
+ const b=document.getElementById('stepask'); if(b) b.textContent=t;
+}
 function startMotion(){
  const D=window.DeviceMotionEvent;
- if(!D){ stepsLive(false); return false; }
+ if(!D){ stepsLive(false); askText('THIS BROWSER CANNOT COUNT STEPS'); return false; }
  /* Attaching a listener is not the same as receiving anything. A
     desktop browser has DeviceMotionEvent and never fires it, and
     saying "counting" there would be a lie; the prompt stays up until
     a real reading lands. */
- const go=()=>{ addEventListener('devicemotion',pedTick); PED.attached=true; };
+ const go=()=>{
+  addEventListener('devicemotion',pedTick); PED.attached=true;
+  holdScreen();
+ };
  if(typeof D.requestPermission==='function'){
-  D.requestPermission().then(r=>{ if(r==='granted') go(); else stepsLive(false); })
-                       .catch(()=>stepsLive(false));
+  D.requestPermission().then(r=>{
+   if(r==='granted') go();
+   else { stepsLive(false); askText('MOTION BLOCKED · ALLOW IT IN SETTINGS'); }
+  }).catch(()=>{ stepsLive(false); askText('TAP TO COUNT YOUR STEPS'); });
  }else go();
  return true;
 }
@@ -3998,7 +4046,12 @@ setMus(musOn);
 /* iOS will not start audio without a gesture, so the first touch
    anywhere is the one that does it */
 for(const ev of ['pointerdown','keydown'])
- addEventListener(ev,function once(){ removeEventListener(ev,once); musStart(); },{passive:true});
+ addEventListener(ev,function once(){
+  removeEventListener(ev,once); musStart();
+  /* iOS refuses motion without a gesture, so the load time attempt
+     fails there; this is the first chance to ask properly */
+  if(!PED.live&&!hostFn()) startMotion();
+ },{passive:true});
 
 /* ---------- loop ---------- */
 let last=performance.now();
