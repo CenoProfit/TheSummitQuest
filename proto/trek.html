@@ -96,7 +96,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  font-size:8px;letter-spacing:2px;background:var(--solid2);color:var(--gold);
  border:2px solid var(--gold);cursor:pointer}
 .stepask.on{display:block}
+/* .dev{display:flex} is a class and [hidden] is the UA's attribute
+   rule, so the class won and the prototype buttons were showing in the
+   real game whatever the flag said. This has to be spelled out. */
 .dev{margin-top:8px;display:flex;gap:6px}
+.dev[hidden]{display:none}
 .btn{font-family:var(--pix);font-size:7px;letter-spacing:1px;padding:8px 7px;flex:1;
  background:var(--solid2);color:var(--ink);border:2px solid var(--edge2);cursor:pointer;
  box-shadow:2px 2px 0 rgba(0,0,0,.6)}
@@ -3079,10 +3083,15 @@ function paint(now,dt){
      .height rather than .h, so passing it straight through made every
      dimension NaN and the blit loop ran zero times in silence. */
   const P=bossPix(B,isEnc,pxH);
+  /* Blitted at the level's own size. Building a filtered copy and then
+     letting drawBill rescale it by a few percent put the point sampler
+     back in the path and the grain with it, which is the same reason
+     the trees are drawn one for one. */
+  const bscale=P.h>=bossArt(B,isEnc).height ? pxH/P.h : 1;
   let fog=Math.min(0.66,Math.max(0,(dd-180)/900));
   const edge=(dd-BD*0.82)/(BD*0.18);
   if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.90;
-  drawBill(P,sx,sy,pxH/P.h,dd,fog,HZC,Math.max(2,dd*0.02));
+  drawBill(P,sx,sy,bscale,dd,fog,HZC,Math.max(2,dd*0.02));
  })();
 
  /* the terrain and everything standing in it go down in one blit */
@@ -3135,28 +3144,34 @@ function paint(now,dt){
  /* He is a 64 pixel sprite now. Drawn at the old 35-odd pixels he
     read worse than the 14 pixel version did, because downscaling
     detailed pixel art just muddies it. He stands taller. */
- {const CHAR=2.05;
-  /* pick the depth that puts his feet where we want them on screen, rather
-     than fixing the depth and hoping: on a short window a fixed depth lands
-     him below the frame */
-  const dd=Math.max(34,EYE*FOC/(0.62*(H-hzY)));
-  const sc=FOC/dd;
-  const wy=camY-dd, cx=trailX(wy);
-  const sx=W*0.5+(cx-camX)*sc;
-  /* His feet go where the trail is a few units ahead, which on flat
-     ground is about 62 percent of the way from the horizon to the
-     bottom. Now that the path climbs over things, the ground ahead can
-     be a long way below the camera on a descent and a long way above
-     it on a climb, so the band is clamped: coming off a summit he was
-     being drawn underneath the bottom frame. */
-  /* The band has to clear the bottom frame, and the companion lands
-     about 0.62 of his own height below his feet, so the floor is set
-     from the frame's measured height rather than from a fraction that
-     stops being true the moment the bar changes size. */
+ {const CHAR=1.84;
+  const dd0=Math.max(34,EYE*FOC/(0.62*(H-hzY)));
+  const sc=FOC/dd0;
+  /* The band still has to clear the bottom frame, and the companion
+     lands about 0.62 of his own height below his feet, so the floor is
+     measured from the frame rather than assumed. */
   const floor=H-BTMH-Math.max(6,H*0.012);
-  const hi=Math.min(hzY+0.64*(H-hzY), floor-11*sc*CHAR*0.62);
+  const hi=Math.min(hzY+0.70*(H-hzY), floor-11*sc*CHAR*0.62);
   const lo=Math.min(hzY+0.42*(H-hzY), hi-1);
-  const rawSy=hzY+(camZ-hAt(cx,wy))*sc;
+  const want=Math.min(hzY+0.66*(H-hzY), hi);
+  /* Rather than drawing him at a fixed distance and clamping whatever
+     screen position that gives, which lifted him off the ground on
+     anything but the flat, the DISTANCE is chosen so the trail under
+     his feet lands where he should be. On a descent that stands him a
+     little further back up the slope, on it, instead of hanging in the
+     air above it. Height along the trail is not monotonic in distance,
+     so this scans rather than bisects. */
+  const syAt=d=>{ const w=camY-d; return hzY+(camZ-hAt(trailX(w),w))*(FOC/d); };
+  let dd=dd0, bestE=Infinity;
+  for(let k=0;k<22;k++){
+   const d=dd0*(0.45+k*0.085);
+   const e=Math.abs(syAt(d)-want);
+   if(e<bestE){ bestE=e; dd=d; }
+  }
+  const scP=FOC/dd;
+  const wy=camY-dd, cx=trailX(wy);
+  const sx=W*0.5+(cx-camX)*scP;
+  const rawSy=syAt(dd);
   const sy=Math.max(lo,Math.min(hi,rawSy));
   /* How far the clamp moved him. Anything that walks with him moves
      the same amount, or it keeps its own honest position while he is
@@ -3839,8 +3854,10 @@ function encRows(i){
    and nothing is ever enlarged, because enlarging pixel art is the one
    case where the hard nearest neighbour step is the right answer. */
 const BPIX=new Map();
-const bbucket=h=> h<24?Math.max(4,Math.round(h/2)*2)
-                : h<80?Math.round(h/4)*4 : Math.round(h/8)*8;
+/* Fine steps, because the level is blitted one for one and the size
+   therefore steps rather than slides; coarse steps would be visible. */
+const bbucket=h=> h<32?Math.max(4,Math.round(h/2)*2)
+                : h<96?Math.round(h/3)*3 : Math.round(h/4)*4;
 function bossPix(B,isEnc,pxH){
  const src=bossArt(B,isEnc);
  const want=bbucket(Math.round(pxH));
@@ -4260,6 +4277,17 @@ function encTick(n,before,after){
  if(Math.random()>0.22) return;
  enc={k:(Math.random()*ENC.length)|0, m:after+0.10+Math.random()*0.15,
       side:Math.random()<0.5?-1:1};
+}
+/* Watching for arrival has to happen every frame, not only when steps
+   come in. encTick only runs from advance(), so between batches the
+   camera glided past the encounter with nothing looking, and the box
+   turned up on the next batch, by which point you had gone by it. This
+   fires the moment the thing is level with you on screen, which is
+   when it looks like it should. */
+function encWatch(){
+ if(!enc||anim) return;
+ if(camWY()-(-enc.m*RPM) >= 70) return;
+ resolveEnc();
 }
 function resolveEnc(){
  const E=ENC[enc.k];
@@ -4757,6 +4785,7 @@ let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
  if(mBus) musMode(S.fight?'fight':'walk');
+ encWatch();
  try{ step(dt,now); paint(now,dt); bannerTick(now); toastTick(now);
       /* whatever is left of the frame goes into baking what is coming */
       bakeBudget(Math.max(2,9-(performance.now()-now))); }
