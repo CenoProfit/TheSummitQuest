@@ -3039,8 +3039,14 @@ function paint(now,dt){
       closes from there, so drawing the approach any nearer than that
       put the thing in your face for the mile and a half before it and
       then jumped it backwards when the fight began. */
+   /* Measured from your real mileage, not from the camera, because
+      the fight triggers on real mileage: ENGAGE is 330 units, and the
+      fight then draws it at 330 and closes. Mixing the two frames left
+      a gap where the approach had already stopped drawing and the
+      fight had not started, which is the thing that looked like the
+      boss blinking out. */
    const nb=nextBoss(miles());
-   if(nb){ const d2=camY-(-nb.m*RPM); if(d2>330){ B=BOSS[nb.b]; dd=d2; } }
+   if(nb){ const d2=(nb.m-miles())*RPM; if(d2>330){ B=BOSS[nb.b]; dd=d2; } }
   }
   /* Its own range, not the scenery's. Computing the haze against DOBJ
      while drawing out to half again as far faded every approaching boss
@@ -3233,7 +3239,22 @@ function step(dt,now){
  /* The mountain keeps coming while you watch. The mile count underneath
     is still only ever your real steps. */
  surge=Math.max(0,surge-dt*.00070);
+ /* Drift is the camera running a little ahead of your real mileage so
+    the world keeps moving while you watch. It used to only ever grow,
+    with nothing to pull it back, so after a minute of looking at the
+    screen the camera was hundreds of units past where your steps had
+    taken you. Everything in the world is drawn against camY and keyed
+    off real miles, so the whole scene slid out of step with the mile
+    count: landmark signs went by before their chest fired, and a boss
+    came up the trail, passed, and vanished with no fight, because the
+    fight triggers on steps and the picture had left them behind.
+
+    It is eased back now. Steps still shove it forward, which is the
+    part that reads as walking, and it settles to a couple of dozen
+    units instead of running away. */
  drift+=(15+surge*620)*dt/1000;
+ drift-=drift*Math.min(1,dt*0.00055);
+ if(drift>150) drift=150;
  if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/900);
  walkPhase+=dt/330*(1+surge*4.5);
  const camY=camWY(), camX=trailX(camY);
