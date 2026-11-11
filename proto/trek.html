@@ -1248,7 +1248,17 @@ let shownMi=miles(), drift=0, surge=0, walkPhase=0;
 const cv=document.getElementById('scene');
 const ctx=cv.getContext('2d');
 let W=0,H=0,terCan=null,terCtx=null,terImg=null,terBuf=null,YB=null;
-function HZN(){return Math.round(H*0.345);}
+/* The horizon, and with it the whole camera, pitches DOWN into a
+   descent. It used to be nailed at 0.345 of the screen whatever the
+   ground was doing, so coming off a summit the trail dived out of the
+   bottom of the frame and there was nowhere on screen to stand the
+   walker: the footing solver had to send him hundreds of units out to
+   find trail at the right height, and he arrived there the wrong size
+   for the ground he was on. Tilt the view down instead, the way you
+   would your head, and the falling trail stays in the frame. */
+let pitch=0;
+function HZN0(){return Math.round(H*0.345);}          /* before the tilt */
+function HZN(){return Math.round(Math.max(H*0.10,H*0.345-pitch));}
 function resize(){
  const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
  /* A wide window used to get chunkier pixels rather than a wider ray
@@ -2938,7 +2948,7 @@ function spawn(now,alp,camX,camY){
  const side=Math.random()<.5?-1:1;
  const d=120+Math.random()*220;
  const n=1+((Math.random()*3)|0);            // they travel in loose groups
- const hzY=HZN();
+ const hzY=HZN0();
  for(let i=0;i<n;i++){
   const wx=camX+side*(70+Math.random()*120)+i*(8+Math.random()*14);
   const wy=camY-d+i*(10+Math.random()*22);
@@ -3172,7 +3182,8 @@ function paint(now,dt){
  for(const A of fauna){
   const dd=camY-A.wy; if(dd<DNEAR||dd>DOBJ) continue;
   const sc=FOC/dd, sx=W*0.5+(A.wx-camX)*sc;
-  const sy=A.ty;                              // held in the sky band
+  const sy=A.ty-pitch;        // held in the sky band, and rides the tilt
+  if(sy<-30) continue;        // tilted up out of the frame
   if(sx<-40||sx>W+40) continue;
   const F=FAUNA[A.type];
   const per=135;
@@ -3229,8 +3240,8 @@ function paint(now,dt){
      where a sprite drawn at a fixed height reads as a giant on ground
      that far away. Four is where those two stop fighting. */
   let dd=dd0, bestE=Infinity;
-  for(let k=0;k<44;k++){
-   const d=dd0*(0.45+k*0.1292);
+  for(let k=0;k<26;k++){
+   const d=dd0*(0.45+k*0.082);
    const e=Math.abs(syAt(d)-want);
    if(e<bestE){ bestE=e; dd=d; }
   }
@@ -3253,24 +3264,13 @@ function paint(now,dt){
      the same amount, or it keeps its own honest position while he is
      held and the two drift into each other. */
   const slide=sy-rawSy;
-  /* Sized by where he is ACTUALLY standing, not by the nominal
-     distance. Coming off a summit his feet only reach the trail from
-     a long way back, and drawn at the near size out there he read as
-     a giant hanging over the valley: planted, but the wrong size for
-     the ground he was planted on, which is what "high off the ground
-     and grows" was. Clamped so he never balloons when the solver
-     brings him in close, and never shrinks past being the thing you
-     are watching. */
-  /* Sizing him straight off dd made him breathe: the distance that
-     puts his feet on the trail is routinely 1.5x the nominal one even
-     on ordinary ground, so he spent normal walking at two thirds size.
-     So there is a dead zone. Out to 2.5x nominal he is simply his own
-     size, which covers everything but the summits, and only past that
-     does he come down, by at most a bit under half at the very end of
-     the solver's reach. */
-  const FAR0=dd0*2.5, FAR1=dd0*6;
-  const far=Math.max(0,Math.min(1,(dd-FAR0)/(FAR1-FAR0)));
-  const pxH=Math.max(26,11*sc*CHAR*(1-0.45*far));
+  /* Constant, and it stays constant. Scaling this by the solved
+     distance made him flicker: climberAt turns image smoothing on
+     below 64 pixels, so a height wandering either side of 64 swapped
+     the sprite between crisp and blurred every frame, which is what
+     read as glitching between big and small and as his boots going
+     still. The descent problem belongs to the camera, not to him. */
+  const pxH=Math.max(26,11*sc*CHAR);
   const bob=Math.sin(walkPhase*Math.PI*0.5)*pxH*0.030;
   g.fillStyle='rgba(10,16,30,.34)';
   g.fillRect(Math.round(sx-pxH*0.19),Math.round(sy-pxH*0.025),
@@ -3373,12 +3373,26 @@ function step(dt,now){
  if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/900);
  walkPhase+=dt/330*(1+surge*4.5);
  const camY=camWY(), camX=trailX(camY);
+ /* How far the trail drops over the next stretch, as a gradient. The
+    tilt that puts that stretch level in the frame is the gradient
+    times the focal length; downhill only, capped so the sky never
+    leaves the top of the screen, and eased because the ground is
+    noisy and an un-eased pitch judders. */
+ {const LOOK=150, aY=camY-LOOK;
+  const drop=(terrainH(camX,camY)-terrainH(trailX(aY),aY))/LOOK;
+  const FOCp=Math.max(H*FOCV,W*0.62);
+  const tgt=Math.max(0,Math.min(H*0.235,drop*FOCp*0.80));
+  pitch+=(tgt-pitch)*Math.min(1,dt*0.0035);}
  const alp=alpineAt(Math.max(0,shownMi));
  if(now>nextSpawn) spawn(now,alp,camX,camY);
  for(const A of fauna){
   A.wx+=A.vx*dt/1000; A.wy+=A.vy*dt/1000;
   A.ty+=A.vty*dt/1000;                        // a slow rise and fall
-  const lo=HZN()*0.44, hi=HZN()*0.95;
+  /* Measured against the UNTILTED horizon. Taken from the tilted one
+     the band collapsed as the camera pitched into a descent, from 59
+     pixels of sky down to about 22, and every bird in the air snapped
+     into that strip at once. */
+  const lo=HZN0()*0.44, hi=HZN0()*0.95;
   if(A.ty<lo){A.ty=lo; A.vty=Math.abs(A.vty);}
   if(A.ty>hi){A.ty=hi; A.vty=-Math.abs(A.vty);}
  }
