@@ -8631,28 +8631,33 @@ window.addEventListener('hashchange',()=>location.reload());
 let healthToday=0, healthOK=false;
 (async()=>{
  const C=window.Capacitor;
- const Health=C&&C.Plugins&&C.Plugins.Health;
- if(!Health) return;
+ /* registerPlugin('HealthPlugin') is the name the native side answers
+    to, so that is what Capacitor hangs on Plugins. There is no web
+    implementation, which is why this whole block is a no-op in a
+    browser and Trek keeps its pedometer there. */
+ const H=C&&C.Plugins&&C.Plugins.HealthPlugin;
+ if(!H) return;
  try{
-  const av=await Health.isHealthAvailable();
+  const av=await H.isHealthAvailable();
   if(!av||!av.available) return;
-  const perms={permissions:['READ_STEPS']};
-  let st=await Health.checkHealthPermissions(perms).catch(()=>null);
-  if(!st||!(st.permissions||[]).length||st.permissions[0]!=='granted')
-   st=await Health.requestHealthPermissions(perms).catch(()=>null);
+  const req={permissions:['READ_STEPS']};
+  /* checkHealthPermissions is Android only and iOS cannot report what
+     was granted anyway, so this just asks and carries on. A refusal
+     shows up as a query that returns nothing, and Trek falls back. */
+  await H.requestHealthPermissions(req).catch(()=>{});
   const pull=async()=>{
    const now=new Date(), from=new Date(now); from.setHours(0,0,0,0);
-   const r=await Health.queryAggregated({
+   const r=await H.queryAggregated({
     startDate:from.toISOString(), endDate:now.toISOString(),
     dataType:'steps', bucket:'day'});
-   const rows=(r&&(r.aggregatedData||r.data))||[];
+   const rows=(r&&r.aggregatedData)||[];
    let n=0; for(const q of rows) n+=(q.value||0);
    healthToday=Math.round(n); healthOK=true;
   };
   await pull();
   setInterval(()=>{ pull().catch(()=>{}); },45000);
-  /* re-read the moment the app comes back, which is when the interesting
-     walking has usually just happened */
+  /* and again the moment the app comes back, which is when the
+     interesting walking has just happened */
   document.addEventListener('visibilitychange',()=>{
    if(!document.hidden) pull().catch(()=>{});
   });
