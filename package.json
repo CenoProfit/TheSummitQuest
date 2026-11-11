@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "description": "Summit: a location-based hiking RPG.",
   "scripts": {
-    "build": "rm -rf www && mkdir -p www && cp index.html www/index.html && cp privacy.html www/privacy.html && cp proto/trek.html www/trek.html",
+    "build": "rm -rf www && mkdir -p www && cp index.html www/index.html && cp privacy.html www/privacy.html && cp proto/trek.html www/trek.html && node tools/checkgame.js",
     "sync": "npm run build && npx cap sync",
     "ios": "npm run sync && npx cap open ios",
     "android": "npm run sync && npx cap open android",
-    "serve": "npx --yes http-server www -p 8801 -c-1"
+    "serve": "npx --yes http-server www -p 8801 -c-1",
+    "mkdev": "node tools/mkdev.js",
+    "dev": "node tools/mkdev.js && npx --yes http-server proto -p 8842 -c-1"
   },
   "repository": {
     "type": "git",
