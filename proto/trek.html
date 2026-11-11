@@ -1258,7 +1258,7 @@ let W=0,H=0,terCan=null,terCtx=null,terImg=null,terBuf=null,YB=null;
    would your head, and the falling trail stays in the frame. */
 let pitch=0;
 function HZN0(){return Math.round(H*0.345);}          /* before the tilt */
-function HZN(){return Math.round(Math.max(H*0.10,H*0.345-pitch));}
+function HZN(){return Math.round(Math.max(H*0.07,H*0.345-pitch));}
 function resize(){
  const w=cv.clientWidth||innerWidth, h=cv.clientHeight||innerHeight;
  /* A wide window used to get chunkier pixels rather than a wider ray
@@ -1360,11 +1360,21 @@ function crossH(wx,wy){
   if(hash((k*22697)|0)>0.62) continue;
   const cy=k*CROSS+(hash((k*3119)|0)-0.5)*3000;
   const cx=trailX(cy)+(hash((k*7349)|0)-0.5)*130;
-  const R=430+hash((k*5557)|0)*250;
+  /* Width follows height, so the steepest part of the climb is the
+     same whatever size the mountain is.
+     The profile is cos(d*PI/2)^1.7, whose steepest point is at
+     1.517/R of its height, so a 240 unit cone on the old 430 radius
+     was a 85% grade: not a trail, a cliff. The walker could not be
+     stood on it and no sane amount of camera tilt could hold it in
+     frame, which is what all the floating and the washed out distance
+     came from. 5.9 puts the worst of it at about 26%, which is a
+     steep eastern mile and still walkable. */
+  const hgt=115+hash((k*8681)|0)*125;
+  const R=hgt*5.9+hash((k*5557)|0)*220;
   const dx=wx-cx, dy=wy-cy, d=Math.sqrt(dx*dx+dy*dy)/R;
   if(d>=1) continue;
   const f=Math.pow(Math.cos(d*Math.PI*0.5),1.7);
-  v+=f*(115+hash((k*8681)|0)*125);
+  v+=f*hgt;
  }
  return v;
 }
@@ -2566,6 +2576,16 @@ function bootFX(ctx,item,x,y,span,t,f,lamp,over){
  ctx.restore();
 }
 function climberAt(g,cx,footY,pxH,f,lamp){
+ /* Snapped to a whole-number shrink of the 64 pixel art, and point
+    sampled. Asking for an arbitrary height turned bilinear smoothing
+    on, and on a wide window the walker comes out around 38 pixels
+    tall inside a buffer that is then blown up five times: the 64
+    pixel sprite was being blurred into 38 and the blur magnified, so
+    he looked soft and the three walk frames differed only in a smear,
+    which is why his boots looked still. 64 into 32 is exact and
+    stays sharp. The whole scene is point sampled; he was the one
+    thing that was not. */
+ pxH=pxH>=64?Math.round(pxH/64)*64:64/Math.max(1,Math.round(64/pxH));
  const c=heroCanvas(f), sc=pxH/64, dw=64*sc;
  const x=cx-dw*0.5, y=footY-pxH;
  const eq=S.eq||{};
@@ -2588,7 +2608,7 @@ function climberAt(g,cx,footY,pxH,f,lamp){
   drawHalo(g,hdg,x+dw*HEAD_A[0],y+pxH*HEAD_A[1],pxH*0.30,performance.now());
  /* carried first, because they are on the far side of him */
  const sleeve=eq.body&&BYID[eq.body]?BYID[eq.body]:HERO_PAL;
- const gripOn=i=>{ g.imageSmoothingEnabled = pxH<64;
+ const gripOn=i=>{ g.imageSmoothingEnabled=false;
   g.drawImage(heroLayer(i,sleeve),Math.round(x),Math.round(y),
               Math.round(dw),Math.round(pxH));
   g.imageSmoothingEnabled=false; };
@@ -2606,7 +2626,7 @@ function climberAt(g,cx,footY,pxH,f,lamp){
  /* under the boots, so the light reads as coming off them and pooling
     on the ground rather than being painted over the leather */
  if(ftg&&auraOf(ftg)) bootFX(g,ftg,x,y,pxH,performance.now(),f,lamp,0);
- g.imageSmoothingEnabled = pxH<64;
+ g.imageSmoothingEnabled=false;
  g.drawImage(c,Math.round(x),Math.round(y),Math.round(dw),Math.round(pxH));
  g.imageSmoothingEnabled=false;
  const bdg=eq.body&&BYID[eq.body]?BYID[eq.body]:null;
@@ -3373,15 +3393,26 @@ function step(dt,now){
  if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/900);
  walkPhase+=dt/330*(1+surge*4.5);
  const camY=camWY(), camX=trailX(camY);
- /* How far the trail drops over the next stretch, as a gradient. The
-    tilt that puts that stretch level in the frame is the gradient
-    times the focal length; downhill only, capped so the sky never
-    leaves the top of the screen, and eased because the ground is
-    noisy and an un-eased pitch judders. */
- {const LOOK=150, aY=camY-LOOK;
-  const drop=(terrainH(camX,camY)-terrainH(trailX(aY),aY))/LOOK;
-  const FOCp=Math.max(H*FOCV,W*0.62);
-  const tgt=Math.max(0,Math.min(H*0.235,drop*FOCp*0.80));
+ /* Exactly as much tilt as it takes to bring the walker's own patch
+    of trail back to where he belongs on screen, and no more.
+    The first try took the gradient ahead and multiplied it by the
+    focal length. That is the right physics and the wrong control: FOC
+    is max(H*FOCV, W*0.62), so on a wide window it is three times what
+    it is on a narrow one, and the same hillside asked for three times
+    the tilt and pinned the view at the cap. The whole screen became
+    far-off ground and the haze ate it.
+    So ask the question that actually matters instead: where would the
+    trail under his feet land if the camera were level, and how far is
+    that from where he should be? Pitching by p moves the ground down
+    the frame by p and the mark he should stand on by 0.34p, so it
+    closes the gap at 0.66 per pixel. Flat ground answers zero by
+    construction, whatever the window. */
+ {const hz0=HZN0(), FOCp=Math.max(H*FOCV,W*0.62);
+  const d0=Math.max(34,EYE*FOCp/(0.62*(H-hz0)));
+  const wy0=camY-d0, camZ0=terrainH(camX,camY)+EYE;
+  const sy0=hz0+(camZ0-terrainH(trailX(wy0),wy0))*(FOCp/d0);
+  const gap=sy0-(hz0+0.66*(H-hz0));
+  const tgt=Math.max(0,Math.min(H*0.26,gap/0.66));
   pitch+=(tgt-pitch)*Math.min(1,dt*0.0035);}
  const alp=alpineAt(Math.max(0,shownMi));
  if(now>nextSpawn) spawn(now,alp,camX,camY);
