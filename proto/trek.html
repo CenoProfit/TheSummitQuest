@@ -27,12 +27,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  background-image:
   repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
-.top{padding:8px 162px 8px 11px}
+.top{padding:8px 196px 8px 11px}
 .trailname{font-family:var(--pix);font-size:8px;letter-spacing:2px;color:var(--gold);
  text-shadow:2px 2px 0 rgba(0,0,0,.7);
  /* the button is anchored to the bottom of the frame, so the top line
     can have the width back that the padding reserves for it */
- margin-right:-151px}
+ margin-right:-185px}
 .mile{font-family:var(--pix);font-size:17px;margin:7px 0 3px;letter-spacing:1px;
  white-space:nowrap;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
 .mile small{font-size:8px;color:var(--dim);letter-spacing:2px}
@@ -88,6 +88,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .topbtns .btn{flex:0 0 auto;width:auto;padding:8px 9px}
 .packbtn{color:var(--gold);border-color:var(--gold);background:rgba(60,46,12,.70)}
 .jrnbtn{color:var(--ink);border-color:var(--edge2);background:rgba(26,38,54,.78)}
+.musbtn{color:var(--gold);border-color:var(--edge2);background:rgba(26,38,54,.78);
+ font-size:11px;padding:7px 8px}
+.musbtn.off{color:var(--dim);opacity:.7}
 #pack{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
  background:
   radial-gradient(130% 80% at 50% 0%,rgba(46,62,88,.55),transparent 70%),
@@ -319,6 +322,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <div class="mile"><span id="mile">0.0</span> <small>MI</small></div>
     <div class="biome"><span id="biome">Georgia hardwood</span><span class="bpct"><span id="pct">0.0</span>% TO KATAHDIN</span></div>
     <div class="topbtns">
+      <button class="btn musbtn" id="musbtn" title="music">&#9834;</button>
       <button class="btn jrnbtn" id="jopen">JOURNAL</button>
       <button class="btn packbtn" id="packopen">PACK</button>
     </div>
@@ -1974,8 +1978,15 @@ function measureBtm(){
  if(!el||!cv.clientHeight||!H) return;
  BTMH=el.getBoundingClientRect().height*(H/cv.clientHeight);
 }
-let ZB=null;
-function ensureBufs(){ if(!ZB||ZB.length!==W*H) ZB=new Float32Array(W*H); }
+let ZB=null, TOPY=null;
+function ensureBufs(){
+ if(!ZB||ZB.length!==W*H) ZB=new Float32Array(W*H);
+ /* The topmost painted row per column, terrain and billboards both.
+    The night wash follows this instead of the horizon row, because a
+    flat rectangle from the horizon down drew a hard line across every
+    ridge and tree that stood above it. */
+ if(!TOPY||TOPY.length!==W) TOPY=new Int32Array(W);
+}
 
 /* Sprites are rasterised into the same buffer the terrain is, so a tree
    is occluded by the ridge in front of it and occludes the one behind.
@@ -2177,6 +2188,7 @@ function drawBill(S,sx,sy,scale,d,fog,hz3,bias){
    const r=((s&255)*nf+r0)|0, g2=(((s>>>8)&255)*nf+g0)|0, b=(((s>>>16)&255)*nf+b0)|0;
    terBuf[i]=0xff000000|(b<<16)|(g2<<8)|r;
    ZB[i]=d;
+   if(py<TOPY[px2]) TOPY[px2]=py;
   }
  }
 }
@@ -2328,6 +2340,8 @@ function paint(now,dt){
      elsewhere, by baking tiles off the frame instead. */
   d+=dz; dz*=1.0085;
  }
+
+ for(let x=0;x<W;x++) TOPY[x]=YB[x];
 
  /* ---- scenery, far to near, straight into the same buffer ---- */
  const DOBJ=460, DTOWER=980;
@@ -2570,7 +2584,25 @@ function paint(now,dt){
 
  /* ---- the hour, and the air ---- */
  if(S2.dark>0.02){
-  g.fillStyle='rgba(16,26,60,'+(S2.dark*0.46).toFixed(3)+')'; g.fillRect(0,hzY,W,H-hzY);}
+  /* Down each column from whatever the topmost painted pixel is, so
+     the wash ends on the skyline rather than on a horizontal line
+     drawn through it. A short fade at the top of each column keeps
+     the edge from reading as a cut. */
+  const a=S2.dark*0.46;
+  g.fillStyle='rgba(16,26,60,'+a.toFixed(3)+')';
+  for(let x=0;x<W;x++){
+   const y=TOPY[x];
+   if(y>=H) continue;
+   g.fillRect(x,Math.max(0,y+2),1,H-Math.max(0,y+2));
+  }
+  /* the two rows at the skyline itself, at half, so it feathers */
+  g.fillStyle='rgba(16,26,60,'+(a*0.5).toFixed(3)+')';
+  for(let x=0;x<W;x++){
+   const y=TOPY[x];
+   if(y>=H) continue;
+   g.fillRect(x,Math.max(0,y),1,Math.min(2,H-Math.max(0,y)));
+  }
+ }
  if(S2.warm>0.02&&S2.day){
   g.fillStyle='rgba(255,150,80,'+(S2.warm*0.16).toFixed(3)+')'; g.fillRect(0,0,W,H);}
  const vw=Math.round(W*0.13);
@@ -3620,7 +3652,7 @@ function endFight(won){
 
    iOS needs DeviceMotionEvent.requestPermission() from a tap, which is
    what the prompt in the bottom bar is for. */
-const PED={lo:0,armed:false,last:0,live:false};
+const PED={lo:0,armed:false,last:0,live:false,attached:false};
 function pedTick(e){
  const a=e.accelerationIncludingGravity||e.acceleration;
  if(!a||a.x==null) return;
@@ -3648,7 +3680,7 @@ function startMotion(){
     desktop browser has DeviceMotionEvent and never fires it, and
     saying "counting" there would be a lie; the prompt stays up until
     a real reading lands. */
- const go=()=>{ addEventListener('devicemotion',pedTick); };
+ const go=()=>{ addEventListener('devicemotion',pedTick); PED.attached=true; };
  if(typeof D.requestPermission==='function'){
   D.requestPermission().then(r=>{ if(r==='granted') go(); else stepsLive(false); })
                        .catch(()=>stepsLive(false));
@@ -3657,11 +3689,26 @@ function startMotion(){
 }
 document.getElementById('stepask').onclick=startMotion;
 
-/* a native shell can hand us the real daily total instead */
+/* A native shell can hand us the real daily total instead, and that is
+   the one that counts while the phone is in a pocket. Trek runs in a
+   frame inside the game, so the function may be set on this window or
+   on the parent; both are the same origin. The moment a real source
+   appears the pedometer is detached, because two sources counting the
+   same walk would double it. */
 let hostLast=null;
+function hostFn(){
+ if(typeof window.trekSteps==='function') return window.trekSteps;
+ try{
+  if(window.parent&&window.parent!==window&&
+     typeof window.parent.trekSteps==='function') return window.parent.trekSteps;
+ }catch(e){}
+ return null;
+}
 function hostPoll(){
- if(typeof window.trekSteps!=='function') return;
- const t=window.trekSteps();
+ const fn=hostFn();
+ if(!fn) return;
+ if(PED.attached){ removeEventListener('devicemotion',pedTick); PED.attached=false; }
+ const t=fn();
  if(typeof t!=='number'||!isFinite(t)) return;
  if(hostLast===null){ hostLast=t; stepsLive(true); return; }
  if(t>hostLast){ addSteps(t-hostLast); }
@@ -3750,11 +3797,215 @@ document.getElementById('bok').onclick=()=>{
  else if(chestQ.length&&!anim) setTimeout(startChest,320);
 };
 
+/* ===================================================================
+   MUSIC
+
+   Written rather than recorded, for the same reason everything else
+   here is: a loop long enough not to notice is a file too big to ship,
+   and a short one is worse than silence by the third mile.
+
+   D dorian, which is the mode most walking music lands in: minor
+   enough to have weather in it, with a major sixth that keeps it from
+   turning into a lament. The vamp is i - VII - IV - i, open fifths in
+   the bass and no third underneath, so it reads as country rather than
+   as a chord chart.
+
+   Two modes. The walk is a pad, a low fifth, a plucked eighth note
+   figure and a shaker; a phrase wanders over the top every other bar
+   and the phrase is picked from the mile you are on, so it keeps
+   moving without ever repeating on a schedule you can hear. A fight
+   drops the pad, doubles the pulse, puts the flattened second in the
+   bass and hits two and four.
+   =================================================================== */
+const MKEY='sq_trek_music';
+let musOn=true;
+try{ musOn=(localStorage.getItem(MKEY)||'on')==='on'; }catch(e){}
+let AC=null,mBus=null,mLP=null,mWet=null,mWalk=null,mFight=null;
+let mTimer=null,mNext=0,mBar=0,mMode='walk';
+const MLEVEL=0.21;
+function actx(){
+ try{ return AC=AC||new (window.AudioContext||window.webkitAudioContext)(); }
+ catch(e){ return null; }
+}
+/* a cheap impulse response: noise under an exponential decay */
+function makeIR(ac,sec,decay){
+ const n=Math.floor(ac.sampleRate*sec), b=ac.createBuffer(2,n,ac.sampleRate);
+ for(let c=0;c<2;c++){ const d=b.getChannelData(c);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay); }
+ return b;
+}
+function musInit(){
+ const ac=actx(); if(!ac||mBus) return ac;
+ mBus=ac.createGain(); mBus.gain.value=musOn?MLEVEL:0.0001;
+ mLP=ac.createBiquadFilter(); mLP.type='lowpass'; mLP.frequency.value=2400;
+ const rv=ac.createConvolver(); rv.buffer=makeIR(ac,2.6,2.2);
+ mWet=ac.createGain(); mWet.gain.value=0.42;
+ mBus.connect(mLP); mLP.connect(ac.destination);
+ mLP.connect(mWet); mWet.connect(rv); rv.connect(ac.destination);
+ mWalk=ac.createGain(); mWalk.gain.value=1; mWalk.connect(mBus);
+ mFight=ac.createGain(); mFight.gain.value=0; mFight.connect(mBus);
+ return ac;
+}
+const MROOT=146.83;                       /* D3 */
+const MSC=[0,2,3,5,7,9,10];               /* dorian */
+function mf(deg,oct){
+ const i=((deg%7)+7)%7, o=(oct||0)+Math.floor(deg/7);
+ return MROOT*Math.pow(2,(MSC[i]+12*o)/12);
+}
+function mvoice(ac,to,type,f,t,len,vel,cut,det){
+ const o=ac.createOscillator(), g=ac.createGain();
+ o.type=type; o.frequency.value=f; if(det) o.detune.value=det;
+ let tail=g;
+ if(cut){ const lp=ac.createBiquadFilter(); lp.type='lowpass';
+          lp.frequency.value=cut; lp.Q.value=0.7;
+          o.connect(lp); lp.connect(g); }
+ else o.connect(g);
+ g.connect(to);
+ g.gain.setValueAtTime(0.0001,t);
+ g.gain.exponentialRampToValueAtTime(Math.max(0.0002,vel),t+Math.min(0.09,len*0.18));
+ g.gain.exponentialRampToValueAtTime(0.0001,t+len);
+ o.start(t); o.stop(t+len+0.04);
+ return tail;
+}
+function mpad(ac,to,f,t,len,vel){
+ for(const d of [-6,6]){
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type='sine'; o.frequency.value=f; o.detune.value=d;
+  o.connect(g); g.connect(to);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vel,t+len*0.35);
+  g.gain.setValueAtTime(vel,t+len*0.62);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+len);
+  o.start(t); o.stop(t+len+0.05);
+ }
+}
+let MNOISE=null;
+function mperc(ac,to,t,vel,hi,len){
+ if(!MNOISE){
+  const n=Math.floor(ac.sampleRate*0.5);
+  MNOISE=ac.createBuffer(1,n,ac.sampleRate);
+  const d=MNOISE.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+ }
+ const sN=ac.createBufferSource(); sN.buffer=MNOISE; sN.loop=true;
+ const bp=ac.createBiquadFilter(); bp.type='bandpass';
+ bp.frequency.value=hi; bp.Q.value=1.1;
+ const g=ac.createGain();
+ sN.connect(bp); bp.connect(g); g.connect(to);
+ g.gain.setValueAtTime(0.0001,t);
+ g.gain.exponentialRampToValueAtTime(vel,t+0.004);
+ g.gain.exponentialRampToValueAtTime(0.0001,t+len);
+ sN.start(t); sN.stop(t+len+0.02);
+}
+const MPROG=[0,6,3,0];                    /* i  VII  IV  i */
+function walkBar(ac,t){
+ const beat=0.52, bar=beat*4, k=mBar%4, r=MPROG[k];
+ const to=mWalk;
+ /* the fifth underneath, no third: it is a drone, not a chord */
+ mvoice(ac,to,'triangle',mf(r,-1),t,bar*0.98,0.17,420);
+ mvoice(ac,to,'sine',mf(r+4,-1),t,bar*0.98,0.085,380);
+ /* the pad */
+ for(const d of [r,r+2,r+4]) mpad(ac,to,mf(d,0),t,bar*1.02,0.040);
+ /* the eighth note figure, which is the walking in it */
+ const fig=[0,2,4,2,5,4,2,0];
+ for(let i=0;i<8;i++){
+  const n=r+fig[i];
+  mvoice(ac,to,'triangle',mf(n,1),t+i*beat*0.5,0.34,
+         i%2?0.055:0.082,1700,(i%3)*3-3);
+ }
+ /* shaker on the offbeats, a soft thump on one */
+ for(let i=0;i<8;i++) if(i%2) mperc(ac,to,t+i*beat*0.5,0.022,5200,0.055);
+ mperc(ac,to,t,0.055,120,0.16);
+ if(k===2) mperc(ac,to,t+beat*2,0.040,140,0.14);
+ /* a phrase over the top every other bar, chosen by where you are */
+ if(k%2===1){
+  const seed=((miles()*7)|0)+mBar*3;
+  const SHAPE=[[0,2,4,7],[7,4,2,0],[0,4,2,5],[4,5,7,4],[2,4,5,7],[7,5,4,2]];
+  const sh=SHAPE[seed%SHAPE.length];
+  for(let i=0;i<sh.length;i++)
+   mvoice(ac,to,'sine',mf(r+sh[i],1),t+beat*(1.0+i*0.5),0.46,0.055,2600);
+ }
+ return bar;
+}
+function fightBar(ac,t){
+ const beat=0.40, bar=beat*4, k=mBar%4;
+ const to=mFight;
+ const r=[0,0,1,6][k];                    /* the flat second on three */
+ mvoice(ac,to,'sawtooth',mf(r,-1),t,bar*0.98,0.085,260);
+ for(let i=0;i<8;i++)
+  mvoice(ac,to,'square',mf(r,0),t+i*beat*0.5,0.16,i%2?0.028:0.050,900);
+ mvoice(ac,to,'triangle',mf(r+4,0),t,bar*0.5,0.055,1200);
+ mvoice(ac,to,'triangle',mf(r+2,0),t+bar*0.5,bar*0.45,0.050,1200);
+ mperc(ac,to,t,0.075,110,0.17);
+ mperc(ac,to,t+beat,0.070,1900,0.10);
+ mperc(ac,to,t+beat*2,0.060,110,0.15);
+ mperc(ac,to,t+beat*3,0.075,1900,0.11);
+ return bar;
+}
+function musMode(m){
+ if(mMode===m) return;
+ mMode=m;
+ if(!mBus||!AC) return;
+ const t=AC.currentTime;
+ for(const [n,v] of [[mWalk,m==='walk'?1:0],[mFight,m==='fight'?1:0]]){
+  n.gain.cancelScheduledValues(t);
+  n.gain.setValueAtTime(n.gain.value,t);
+  n.gain.linearRampToValueAtTime(v,t+(v?0.30:0.55));
+ }
+ mLP.frequency.cancelScheduledValues(t);
+ mLP.frequency.setTargetAtTime(m==='fight'?3600:2400,t,0.3);
+ mWet.gain.cancelScheduledValues(t);
+ mWet.gain.setTargetAtTime(m==='fight'?0.16:0.42,t,0.3);
+}
+function schedBar(){
+ const ac=actx(); if(!ac) return;
+ const len=mMode==='fight'?fightBar(ac,mNext):walkBar(ac,mNext);
+ mNext+=len; mBar++;
+ mTimer=setTimeout(schedBar,Math.max(40,(mNext-ac.currentTime-0.45)*1000));
+}
+function musBegin(ac){
+ if(mTimer) return;
+ mBus.gain.cancelScheduledValues(ac.currentTime);
+ mBus.gain.setValueAtTime(Math.max(0.0001,mBus.gain.value),ac.currentTime);
+ mBus.gain.exponentialRampToValueAtTime(MLEVEL,ac.currentTime+2.0);
+ mNext=ac.currentTime+0.3; schedBar();
+}
+/* resume() is asynchronous: the state is still suspended when it
+   returns, so one gesture only works if you wait on the promise */
+function musStart(){
+ if(!musOn||mTimer) return;
+ const ac=musInit(); if(!ac) return;
+ if(ac.state==='running'){ musBegin(ac); return; }
+ const p=ac.resume();
+ if(p&&p.then) p.then(()=>{ if(ac.state==='running') musBegin(ac); }).catch(()=>{});
+}
+function musStop(){
+ clearTimeout(mTimer); mTimer=null;
+ if(!mBus||!AC) return;
+ mBus.gain.cancelScheduledValues(AC.currentTime);
+ mBus.gain.setValueAtTime(Math.max(0.0001,mBus.gain.value),AC.currentTime);
+ mBus.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+1.2);
+}
+function setMus(on){
+ musOn=on;
+ try{ localStorage.setItem(MKEY,on?'on':'off'); }catch(e){}
+ const b=document.getElementById('musbtn');
+ if(b){ b.classList.toggle('off',!on); b.textContent=on?'♪':'♪̸'; }
+ on?musStart():musStop();
+}
+document.getElementById('musbtn').onclick=()=>setMus(!musOn);
+setMus(musOn);
+/* iOS will not start audio without a gesture, so the first touch
+   anywhere is the one that does it */
+for(const ev of ['pointerdown','keydown'])
+ addEventListener(ev,function once(){ removeEventListener(ev,once); musStart(); },{passive:true});
+
 /* ---------- loop ---------- */
 let last=performance.now();
 let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
+ if(mBus) musMode(S.fight?'fight':'walk');
  try{ step(dt,now); paint(now,dt); bannerTick(now); toastTick(now);
       /* whatever is left of the frame goes into baking what is coming */
       bakeBudget(Math.max(2,9-(performance.now()-now))); }
@@ -4185,7 +4436,7 @@ wizApply(); drawPack();
 /* a native shell may already be handing us steps; otherwise ask */
 stepsLive(false);
 hostPoll();
-if(typeof window.trekSteps!=='function') startMotion();
+if(!hostFn()) startMotion();
 setInterval(hostPoll,1500);
 resize(); hud(); measureBtm();
 addEventListener('resize',()=>{resize(); measureBtm();});

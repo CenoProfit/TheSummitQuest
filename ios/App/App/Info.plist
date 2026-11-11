@@ -26,6 +26,12 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Summit Quest reads your step count so Trek Mode can walk the Appalachian Trail with the steps you already take. It is only ever read, never written or shared.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Summit Quest does not write to Health. This permission is requested only because the Health framework asks for both.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Summit Quest counts your steps from motion when Health is unavailable, so Trek Mode can move you up the trail.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Summit lets you attach a photo to a hike you have logged. Photos are stored on your device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -8617,6 +8617,49 @@ window.addEventListener('hashchange',()=>location.reload());
    every sample panel is built from the game's own CSS classes with worked
    example content. That also means the panels cannot drift out of date the way
    captured screenshots would. */
+/* ---- Apple Health / Health Connect ----
+   Trek asks this window for the day's step total and falls back to its
+   own motion pedometer when there is nothing here to ask. The
+   pedometer is a real count but it only runs while the screen is awake,
+   because a web page gets no accelerometer in the background; Health
+   is what makes "the steps you take anyway" actually true.
+
+   Everything here is guarded: on the web build there is no Capacitor
+   and no plugin, nothing is defined, and Trek keeps the pedometer.
+   Needs `npm install capacitor-health` and a cap sync, plus HealthKit
+   turned on for the target in Xcode. The Info.plist strings are in. */
+let healthToday=0, healthOK=false;
+(async()=>{
+ const C=window.Capacitor;
+ const Health=C&&C.Plugins&&C.Plugins.Health;
+ if(!Health) return;
+ try{
+  const av=await Health.isHealthAvailable();
+  if(!av||!av.available) return;
+  const perms={permissions:['READ_STEPS']};
+  let st=await Health.checkHealthPermissions(perms).catch(()=>null);
+  if(!st||!(st.permissions||[]).length||st.permissions[0]!=='granted')
+   st=await Health.requestHealthPermissions(perms).catch(()=>null);
+  const pull=async()=>{
+   const now=new Date(), from=new Date(now); from.setHours(0,0,0,0);
+   const r=await Health.queryAggregated({
+    startDate:from.toISOString(), endDate:now.toISOString(),
+    dataType:'steps', bucket:'day'});
+   const rows=(r&&(r.aggregatedData||r.data))||[];
+   let n=0; for(const q of rows) n+=(q.value||0);
+   healthToday=Math.round(n); healthOK=true;
+  };
+  await pull();
+  setInterval(()=>{ pull().catch(()=>{}); },45000);
+  /* re-read the moment the app comes back, which is when the interesting
+     walking has usually just happened */
+  document.addEventListener('visibilitychange',()=>{
+   if(!document.hidden) pull().catch(()=>{});
+  });
+  window.trekSteps=()=>healthToday;
+ }catch(e){}
+})();
+
 /* ---- trek mode ----
    The frame's src is set on the first open, not up front: Trek is its
    own half megabyte document and there is no reason to parse it for
@@ -8630,9 +8673,13 @@ window.addEventListener('hashchange',()=>location.reload());
  const open=()=>{
   if(!frame.getAttribute('src')) frame.setAttribute('src','trek.html');
   wrap.classList.add('open'); wrap.setAttribute('aria-hidden','false');
+  /* Trek has a score of its own, so the game's stops rather than
+     playing underneath it. The preference is untouched. */
+  try{ if(typeof musicStop==='function') musicStop(); }catch(e){}
  };
  const close=()=>{
   wrap.classList.remove('open'); wrap.setAttribute('aria-hidden','true');
+  try{ if(typeof musicStart==='function') musicStart(); }catch(e){}
  };
  bar.addEventListener('click',open);
  if(back) back.addEventListener('click',close);
