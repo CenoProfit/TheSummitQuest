@@ -1444,6 +1444,11 @@ const TQ=[];
    gradient until the ground flattens out under it. Whatever tiles that
    trace crosses paint it, so it is continuous across tile seams for
    free, and the march shades and occludes it like any other ground. */
+/* Nothing standing in the world is drawn nearer than this. A doe is
+   already 275 pixels tall here and twice that ten units closer, so it
+   is the point at which a billboard stops being a thing in the
+   distance and becomes a wall. The encounter box is timed off it. */
+const BILL_NEAR=40;
 const FGRID=150;              /* one possible fall per cell this size */
 const FLEN=88, FSTEPS=44;     /* how far it runs, and in how many steps */
 function fallsNear(ox,oy){
@@ -1464,12 +1469,27 @@ function fallsNear(ox,oy){
    const ax=(terrainH(x+1.5,y)-terrainH(x-1.5,y))/3;
    const ay=(terrainH(x,y+1.5)-terrainH(x,y-1.5))/3;
    const m=Math.hypot(ax,ay);
-   if(m<0.26) break;                              /* the ground levels off */
+   /* 0.26 is a slope you can walk up. A chute that kept running down
+      to it left the valley floor wearing a wide flat sheet of water,
+      widest exactly where it was flattest, with tree crowns hanging
+      over it: the grey slab with a white edge. Measured over ninety
+      falls, the steep part runs out around 0.8 and everything below
+      that is the sheet. Stopping there keeps about seven in ten falls
+      at a median of thirty one steps. */
+   if(m<0.80) break;                              /* the ground levels off */
    const st=FLEN/FSTEPS;
-   x-=ax/m*st; y-=ay/m*st;
+   /* Straight down the gradient is a ruled line, and on a big even
+      face that is exactly what it drew: a pale band of constant width
+      at a constant angle, which reads as something drawn on the
+      mountain rather than water coming off it. A little lateral
+      wander each step, off the same hash so it is stable per fall,
+      and it falls like water instead. */
+   const pxn=-ay/m, pyn=ax/m;
+   const wob=(hash((Math.round(sx)*13+Math.round(sy)*7+k*101)|0)-0.5)*0.95;
+   x-=ax/m*st-pxn*wob*st; y-=ay/m*st-pyn*wob*st;
    pts.push(x,y);
   }
-  if(pts.length<28) continue;                     /* fewer than 14 steps */
+  if(pts.length<16) continue;                     /* fewer than 8 steps */
   out.push(pts);
  }
  return out;
@@ -1485,7 +1505,14 @@ function rasterFall(FL,ox,oy,pts){
      because that is where the valley wall is, so a fall is always seen
      from across the valley rather than from underneath. Five pixels of
      water at 700 units away is nothing. */
-  const nx=-dy/L, ny=dx/L, w=3.6+t*5.8, foam=t>0.84;
+  /* and it narrows as the ground eases rather than fanning out, which
+     is the other half of why the tail read as a slab. */
+  const sax=(terrainH(x0+1.5,y0)-terrainH(x0-1.5,y0))/3;
+  const say=(terrainH(x0,y0+1.5)-terrainH(x0,y0-1.5))/3;
+  const narrow=Math.max(0.38,Math.min(1,(Math.hypot(sax,say)-0.55)/1.05));
+  /* and it pinches and spreads along its length, for the same reason */
+  const wv=0.72+0.5*(Math.sin(k*0.83+x0*0.05)*0.5+0.5);
+  const nx=-dy/L, ny=dx/L, w=(3.4+t*4.8)*narrow*wv, foam=t>0.84;
   const steps=Math.max(1,Math.ceil(L*2));
   for(let sI=0;sI<=steps;sI++){
    const u=sI/steps, px=x0+dx*u, py=y0+dy*u;
@@ -1493,8 +1520,12 @@ function rasterFall(FL,ox,oy,pts){
     const i=Math.round(px+nx*o)-ox, j=Math.round(py+ny*o)-oy;
     if(i<0||i>=TILE||j<0||j>=TILE) continue;
     const lat=1-Math.abs(o)/w;
-    const v=foam?128+Math.min(127,Math.round(lat*127))
-                :1+Math.min(126,Math.round(lat*126));
+    /* foam at the foot, and wherever the chute narrows hard enough to
+      break: a single white patch at the bottom and nowhere else was
+      the other half of the ribbon look. */
+   const brk=foam||(wv<0.86&&lat>0.52);
+   const v=brk?128+Math.min(127,Math.round(lat*127))
+              :1+Math.min(126,Math.round(lat*126));
     const kk=j*TILE+i; if(v>FL[kk]) FL[kk]=v;
    }
   }
@@ -3042,10 +3073,16 @@ function paint(now,dt){
     thing you walk through. Out of a fight the next one stands on its
     own mileage and you watch it come. */
  (function(){
-  let B=null, dd=0, isEnc=0, side=1;
-  if(S.fight){ B=BOSS[S.fight.b]; dd=70+260*S.fight.close; }
-  else if(enc){ B=ENC[enc.k]; isEnc=1; side=enc.side;
-                dd=camY-(-enc.m*RPM); }
+  /* Two things can be in front of you at once: whatever is barring the
+     trail, and an encounter standing off it. This used to be one slot
+     with the boss taking it, which did not show while an encounter
+     lasted only the last few steps, but now that its box rides the
+     approach the overlap is common enough to see: the box was up with
+     nothing beside the trail to look at. Both are collected and drawn
+     far to near, so the nearer one lies over the further. */
+  const items=[];
+  if(S.fight){ items.push({B:BOSS[S.fight.b], dd:70+260*S.fight.close,
+                           isEnc:0, side:1}); }
   else{
    /* Only while it is still far off. A fight picks it up at 330 and
       closes from there, so drawing the approach any nearer than that
@@ -3058,13 +3095,20 @@ function paint(now,dt){
       fight had not started, which is the thing that looked like the
       boss blinking out. */
    const nb=nextBoss(miles());
-   if(nb){ const d2=(nb.m-miles())*RPM; if(d2>330){ B=BOSS[nb.b]; dd=d2; } }
+   if(nb){ const d2=(nb.m-miles())*RPM;
+           if(d2>330) items.push({B:BOSS[nb.b], dd:d2, isEnc:0, side:1}); }
   }
+  if(enc) items.push({B:ENC[enc.k], dd:camY-(-enc.m*RPM),
+                      isEnc:1, side:enc.side});
+  items.sort((a,b)=>b.dd-a.dd);
+  for(const it of items) one(it.B,it.dd,it.isEnc,it.side);
+
+  function one(B,dd,isEnc,side){
   /* Its own range, not the scenery's. Computing the haze against DOBJ
      while drawing out to half again as far faded every approaching boss
      to nothing well before you could see it. */
   const BD=900;
-  if(!B||dd<40||dd>BD) return;
+  if(dd<BILL_NEAR||dd>BD) return;
   const sc=FOC/dd;
   /* an encounter stands off the tread, on one side or the other */
   const wx=trailX(camY-dd)+(isEnc?side*13:(B.air?26:8));
@@ -3093,6 +3137,7 @@ function paint(now,dt){
   const edge=(dd-BD*0.82)/(BD*0.18);
   if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.90;
   drawBill(P,sx,sy,bscale,dd,fog,HZC,Math.max(2,dd*0.02));
+  }
  })();
 
  /* the terrain and everything standing in it go down in one blit */
@@ -4297,8 +4342,17 @@ function encTick(n,before,after){
    Showing is also what collects it. Noticing the thing is the whole
    point of an encounter, which is why it is never saved: walk with the
    phone in your pocket and the frame loop is not running to see it. */
-const ENC_SHOW=700;   /* they are laid 260 to 650 units out, so: on sight */
-const ENC_GONE=36;    /* the draw stops at 40, so this is off the screen */
+/* About twenty steps of warning. A step is RPM/SPM, near enough 1.24
+   units, so twenty of them is twenty five units on top of the distance
+   at which the sprite stops being drawn.
+
+   Twenty five units on its own would be too late rather than early:
+   nothing is drawn nearer than BILL_NEAR, so an encounter is already
+   off the screen by then. Going up at BILL_NEAR+25 puts the box on
+   screen for the last twenty steps the creature is visible, and takes
+   it down as the creature goes. */
+const ENC_SHOW=BILL_NEAR+25;
+const ENC_GONE=BILL_NEAR;
 function encWatch(){
  if(!enc) return;
  const dd=camWY()-(-enc.m*RPM);
