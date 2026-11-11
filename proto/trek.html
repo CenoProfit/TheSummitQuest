@@ -389,6 +389,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
       <button class="kitstrip" id="kitstrip" title="open the pack"></button>
     </div>
     <button class="stepask" id="stepask">TAP TO COUNT YOUR STEPS</button>
+    <div class="dev" id="devrow" hidden>
+      <button class="btn" id="b100">+100</button>
+      <button class="btn" id="b1k">+1,000</button>
+      <button class="btn" id="b5k">+5,000</button>
+      <button class="btn" id="bday">NEXT DAY</button>
+      <button class="btn" id="brst">RESET</button>
+    </div>
   </div>
 </div>
 
@@ -3071,7 +3078,7 @@ function paint(now,dt){
   /* pixOf, not the canvas: drawBill scales by S.h, and a canvas has
      .height rather than .h, so passing it straight through made every
      dimension NaN and the blit loop ran zero times in silence. */
-  const P=pixOf((isEnc?'enc#':'boss#')+B.p,bossArt(B,isEnc));
+  const P=bossPix(B,isEnc,pxH);
   let fog=Math.min(0.66,Math.max(0,(dd-180)/900));
   const edge=(dd-BD*0.82)/(BD*0.18);
   if(edge>0) fog=fog+(1-fog)*Math.min(1,edge)*0.90;
@@ -3822,6 +3829,33 @@ function encRows(i){
  r=[]; for(let y=0;y<n;y++) r.push(flat.slice(y*n,(y+1)*n));
  BROW.set(k,r); return r;
 }
+/* A boss is 128 pixels of hand drawn detail and it is almost always
+   drawn smaller than that. drawBill walks its source with an integer
+   step, so at 90 pixels it was simply throwing away three rows in ten:
+   the fine work went first, the edges crawled as the distance changed,
+   and the thing arrived looking cheap. The trees hit exactly this and
+   were given filtered levels; so are these. One filtered copy per size
+   bucket, built on a canvas where the browser can do a real downscale,
+   and nothing is ever enlarged, because enlarging pixel art is the one
+   case where the hard nearest neighbour step is the right answer. */
+const BPIX=new Map();
+const bbucket=h=> h<24?Math.max(4,Math.round(h/2)*2)
+                : h<80?Math.round(h/4)*4 : Math.round(h/8)*8;
+function bossPix(B,isEnc,pxH){
+ const src=bossArt(B,isEnc);
+ const want=bbucket(Math.round(pxH));
+ if(want>=src.height) return pixOf((isEnc?'enc#':'boss#')+B.p,src);
+ const key=(isEnc?'ep':'bp')+B.p+'@'+want;
+ const hit=BPIX.get(key); if(hit) return hit;
+ const c=document.createElement('canvas');
+ c.height=want; c.width=Math.max(1,Math.round(src.width*want/src.height));
+ const q=c.getContext('2d');
+ q.imageSmoothingEnabled=true; q.imageSmoothingQuality='high';
+ q.drawImage(src,0,0,c.width,c.height);
+ const P=pixOf(key,c);
+ if(BPIX.size>80) BPIX.clear();
+ BPIX.set(key,P); return P;
+}
 function bossArt(B,isEnc){
  const hit=BART.get(B.n); if(hit) return hit;
  let c;
@@ -4399,6 +4433,7 @@ function hostFn(){
  return null;
 }
 function hostPoll(){
+ if(DEVMODE) return;
  const fn=hostFn();
  if(!fn) return;
  if(PED.attached){ removeEventListener('devicemotion',pedTick); PED.attached=false; }
@@ -4421,6 +4456,23 @@ function rollDay(){
 
 /* a way in for the console and for the host, deliberately not a button */
 window.trekPush=n=>addSteps(Math.max(0,n|0));
+
+/* ---- dev controls, behind ?dev=1 ----
+   A laptop has no accelerometer and no Health, so there is no way to
+   walk the thing at a desk. These are the old prototype buttons, shown
+   only when the flag is in the URL, so they cannot appear in the app:
+   nothing in the game ever links to trek.html with a query string. */
+const DEVMODE=new URLSearchParams(location.search).get('dev')==='1';
+if(DEVMODE){
+ const row=document.getElementById('devrow');
+ row.hidden=false;
+ document.getElementById('b100').onclick=()=>addSteps(100);
+ document.getElementById('b1k').onclick=()=>addSteps(1000);
+ document.getElementById('b5k').onclick=()=>addSteps(5000);
+ document.getElementById('bday').onclick=()=>{
+  S.day=(S.day|0)+1; S.today=0; S.dk=dayKey(); save(); addSteps(3000+((Math.random()*6000)|0)); };
+ document.getElementById('brst').onclick=resetTrek;
+}
 
 function resetTrek(){
  S={steps:0,today:0,day:1,dk:dayKey(),opened:[],log:[],stones:0,bm:0,beat:{},fight:null,
@@ -5173,9 +5225,11 @@ prune();
 if(!S.dk) S.dk=dayKey();
 wizApply(); drawPack();
 /* a native shell may already be handing us steps; otherwise ask */
-stepsLive(false);
+/* in dev mode the buttons are the step source, so the bar should not
+   nag for motion a laptop is never going to send */
+stepsLive(DEVMODE);
 hostPoll();
-if(!hostFn()) startMotion();
+if(!DEVMODE&&!hostFn()) startMotion();
 setInterval(hostPoll,1500);
 resize(); hud(); measureBtm();
 addEventListener('resize',()=>{resize(); measureBtm();});
