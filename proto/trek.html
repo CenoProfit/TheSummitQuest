@@ -2585,7 +2585,14 @@ function climberAt(g,cx,footY,pxH,f,lamp){
     which is why his boots looked still. 64 into 32 is exact and
     stays sharp. The whole scene is point sampled; he was the one
     thing that was not. */
- pxH=pxH>=64?Math.round(pxH/64)*64:64/Math.max(1,Math.round(64/pxH));
+ /* The nearest whole step, but it may only round UP by a quarter.
+    Plain rounding took 96 pixels to 128 and drew him at twice his
+    size, which is the character suddenly becoming enormous; snapping
+    down only fixed that and cost a third of him, 32 pixels to 21.
+    The guard keeps the near fit and refuses the big leap. */
+ {const dn=pxH>=64?Math.floor(pxH/64)*64:64/Math.ceil(64/pxH);
+  const up=pxH>=64?Math.ceil(pxH/64)*64:64/Math.max(1,Math.floor(64/pxH));
+  pxH=(up<=pxH*1.25)?up:dn;}
  const c=heroCanvas(f), sc=pxH/64, dw=64*sc;
  const x=cx-dw*0.5, y=footY-pxH;
  const eq=S.eq||{};
@@ -3229,11 +3236,16 @@ function paint(now,dt){
  {const CHAR=1.72;
   const dd0=Math.max(34,EYE*FOC/(0.62*(H-hzY)));
   const sc=FOC/dd0;
+  /* His SIZE comes off the untilted horizon, never the tilted one.
+     Tilting a camera moves what you can see; it does not resize it.
+     Taken off hzY his height grew with the pitch, 67 pixels on the
+     flat to 96 at full tilt, so he swelled on every descent. */
+  const scS=FOC/Math.max(34,EYE*FOC/(0.62*(H-HZN0())));
   /* The band still has to clear the bottom frame, and the companion
      lands about 0.62 of his own height below his feet, so the floor is
      measured from the frame rather than assumed. */
   const floor=H-BTMH-Math.max(6,H*0.012);
-  const hi=Math.min(hzY+0.70*(H-hzY), floor-11*sc*CHAR*0.62);
+  const hi=Math.min(hzY+0.70*(H-hzY), floor-11*scS*CHAR*0.62);
   const lo=Math.min(hzY+0.42*(H-hzY), hi-1);
   const want=Math.min(hzY+0.66*(H-hzY), hi);
   /* Rather than drawing him at a fixed distance and clamping whatever
@@ -3290,7 +3302,7 @@ function paint(now,dt){
      the sprite between crisp and blurred every frame, which is what
      read as glitching between big and small and as his boots going
      still. The descent problem belongs to the camera, not to him. */
-  const pxH=Math.max(26,11*sc*CHAR);
+  const pxH=Math.max(26,11*scS*CHAR);
   const bob=Math.sin(walkPhase*Math.PI*0.5)*pxH*0.030;
   g.fillStyle='rgba(10,16,30,.34)';
   g.fillRect(Math.round(sx-pxH*0.19),Math.round(sy-pxH*0.025),
