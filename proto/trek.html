@@ -28,11 +28,28 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px)}
 .top{padding:8px 196px 8px 11px}
+/* The trail name IS the trail picker, and it used to be styled as a
+   heading sitting beside three things that obviously were buttons, so
+   the eye learned "bordered means tappable" and then skipped straight
+   past it. It wears the same chrome as the others now, with the
+   chevron in its own segment behind a divider so it reads as a
+   dropdown rather than as a title with a mark after it. */
 .trailname{font-family:var(--pix);font-size:8px;letter-spacing:2px;color:var(--gold);
+ display:inline-flex;align-items:stretch;gap:0;width:auto;flex:0 0 auto;
+ padding:0;text-align:left;
  text-shadow:2px 2px 0 rgba(0,0,0,.7);
- /* the button is anchored to the bottom of the frame, so the top line
-    can have the width back that the padding reserves for it */
+ /* the buttons are anchored to the bottom of the frame, so the top line
+    can have the width back that the padding reserves for them */
  margin-right:-185px}
+.trailname>span:first-child{padding:5px 8px}
+.tchev{display:flex;align-items:center;padding:0 8px;color:var(--gold);
+ border-left:2px solid var(--gold);background:rgba(245,198,81,.22);
+ font-size:10px;line-height:1}
+/* The picker button is taller than the bare text it replaced, which on
+   a 320 pixel screen pushed the percent line down into the buttons
+   anchored at the bottom of the frame. Everything on that line gives
+   back a point or two below 360. */
+}
 .mile{font-family:var(--pix);font-size:17px;margin:7px 0 3px;letter-spacing:1px;
  white-space:nowrap;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
 .mile small{font-size:8px;color:var(--dim);letter-spacing:2px}
@@ -314,10 +331,29 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .jg{font-family:var(--pix);font-size:7px;letter-spacing:1px;line-height:2;
  color:var(--dim);margin-top:9px}
 .jempty{font-size:11px;line-height:1.75;color:var(--dim);padding:8px 2px}
-.trailname{cursor:pointer;position:relative;z-index:3}
+/* These have to live after .btn or they lose to it: both selectors are
+   one class, so it comes down to source order and .btn is further down
+   the sheet than the first .trailname block. */
+.trailname{cursor:pointer;position:relative;z-index:3;
+ background:rgba(60,46,12,.72);border-color:var(--gold);
+ box-shadow:2px 2px 0 rgba(0,0,0,.6)}
+.trailname:active{transform:translate(2px,2px);box-shadow:none}
 .tgo{margin-top:11px;width:100%}
 .tgo[disabled]{opacity:.55;cursor:default}
 .jrow.tcur{border-color:var(--gold)}
+/* Below 360 there is simply not room for three buttons pinned to the
+   bottom right AND a column of text beside them: the text was running
+   underneath them whatever was trimmed. They drop into the flow on
+   their own row instead, which costs a few pixels of height and
+   removes every overlap. */
+@media(max-width:360px){
+ .top{padding-right:11px}
+ .trailname{font-size:7px;letter-spacing:1px;margin-right:0}
+ .trailname>span:first-child{padding:4px 6px}
+ .tchev{font-size:9px;padding:0 6px}
+ .topbtns{position:static;margin-top:7px;gap:5px;justify-content:flex-end}
+ .topbtns .btn{padding:7px 7px}
+ .bpct{font-size:7px}
 </style>
 </head>
 <body>
@@ -325,7 +361,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 
 <div class="wrap">
   <div class="frame top">
-    <div class="trailname" id="tname">★ APPALACHIAN TRAIL · NOBO ▾</div>
+    <button class="btn trailname" id="tname"><span id="tnametext">★ APPALACHIAN TRAIL · NOBO</span><span class="tchev">▾</span></button>
     <div class="mile"><span id="mile">0.0</span> <small>MI</small></div>
     <div class="biome"><span id="biome">Georgia hardwood</span><span class="bpct"><span id="pct">0.0</span>% TO <span id="endname">KATAHDIN</span></span></div>
     <div class="topbtns">
@@ -5073,7 +5109,7 @@ document.getElementById('jclose').onclick=()=>jrn.classList.remove('open');
    anything: the one you leave keeps its mile, its journal and whatever
    was barring it, and is there when you come back. */
 const trl=document.getElementById('trails');
-document.getElementById('tname').textContent='\u2605 '+TR.head+' \u25be';
+document.getElementById('tnametext').textContent='\u2605 '+TR.head;
 document.getElementById('endname').textContent=TR.end;
 function drawTrails(){
  const G=document.getElementById('tlist'); G.innerHTML='';
