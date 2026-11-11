@@ -4098,11 +4098,35 @@ function startChest(){
  setTimeout(()=>document.getElementById('clore').classList.add('show'),950);
  requestAnimationFrame(fxFrame);
 }
+/* How often each rarity comes up, by the tier of the place you found
+   it. Rows are tiers 0 to 4, columns COMMON to LEGENDARY, in parts per
+   thousand.
+
+   This was a single roll with four thresholds, which had two faults.
+   The top of it was unreachable: the best tier on any trail is 4, the
+   tilt is 0.085 a tier, so the legendary cut at 1.34 needed a random
+   number above 1.0. Five legendary pieces and three legendary pets
+   have never dropped for anybody. And the rest came too easily, a
+   fifth of the chests at a tier 4 landmark holding a mythic.
+
+   A table instead of thresholds because the odds are then the thing
+   you read and edit, rather than something you solve for. */
+const RARW=[[640,280, 70,  9, 1],
+            [560,310,110, 18, 2],
+            [470,330,160, 36, 4],
+            [395,342,195, 60, 8],
+            [315,335,245, 90,15]];
+function rollRar(tier){
+ const w=RARW[Math.max(0,Math.min(RARW.length-1,tier|0))];
+ let s=0; for(const x of w) s+=x;
+ let r=Math.random()*s;
+ for(let i=0;i<w.length;i++){ r-=w[i]; if(r<0) return i; }
+ return 0;
+}
 /* The mile you are at tilts the roll. It does not guarantee anything,
    and a legendary can fall out of the first chest on Springer. */
 function roll(tier){
- const r=Math.random()+tier*0.085;
- let rar=r>1.34?4:r>1.14?3:r>0.88?2:r>0.52?1:0;
+ let rar=rollRar(tier);
  /* about one chest in six holds a companion instead of a piece of kit */
  const pet=Math.random()<0.17;
  const pool=GEAR.filter(g=>(g[1]==='pet')===pet);
