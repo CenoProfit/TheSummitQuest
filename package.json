@@ -28,7 +28,8 @@
     "@capacitor/core": "^8.5.0",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/geolocation": "^8.2.2",
-    "@capacitor/ios": "^8.5.0"
+    "@capacitor/ios": "^8.5.0",
+    "capacitor-health": "^8.4.0"
   },
   "private": true
 }
