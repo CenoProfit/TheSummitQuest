@@ -394,6 +394,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     </div>
     <button class="stepask" id="stepask">TAP TO COUNT YOUR STEPS</button>
     <div class="dev" id="devrow" hidden>
+      <button class="btn" id="b10">+10</button>
       <button class="btn" id="b100">+100</button>
       <button class="btn" id="b1k">+1,000</button>
       <button class="btn" id="b5k">+5,000</button>
@@ -3320,27 +3321,35 @@ const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
 const BOSS=[
  {n:'THE BLOOD MOUNTAIN WARDEN', p:0, m:'ash',  gm:'moss',   from:2, tier:2,
   air:0, hp:180, atk:9, sz:1.00,
+  v:'The stones went back to being a pile.',
   w:'The stone shelter on the summit got up. Every block the CCC set, walking.'},
  {n:'THE LAUREL HELL',           p:1, m:'moss', gm:'wood',   from:0,  tier:1,
   air:0, hp:100, atk:6, sz:0.94,
+  v:'The branches let go. The trail is open again.',
   w:'A rhododendron thicket closed over the trail and never opened again.'},
  {n:'THE BLY GAP OAK',           p:2, m:'moss', gm:'wood',   from:24, tier:6,
   air:0, hp:540, atk:27, sz:1.10,
+  v:'It settled back into the ground and let you pass.',
   w:'The most photographed tree on the trail has had enough of being looked at.'},
  {n:'THE NANTAHALA HOARFROST',   p:3, m:'frost',gm:'silver', from:40, tier:7,
   air:0, hp:630,atk:33, sz:1.04,
+  v:'It came apart into ice and went quiet.',
   w:'Rime kept accreting on the high balsams until one of them stood up.'},
  {n:'THE GORGE LEVIATHAN',       p:4, m:'sea',  gm:'jade',   from:15, tier:5,
   air:0, hp:440, atk:22, sz:1.06,
+  v:'It went back under. The water settled.',
   w:'What is under the water at Three Forks when the water is high.'},
  {n:'THE STORM OVER TRAY',       p:5, m:'storm',gm:'ash',    from:10, tier:4,
   air:1, hp:350, atk:18, sz:1.16,
+  v:'The cloud broke up and drifted off the ridge.',
   w:'An afternoon thunderhead that has been following the ridge since Unicoi.'},
  {n:'THE RIDGE WYRM',            p:6, m:'obsid',gm:'blood',  from:60, tier:8,
   air:1, hp:750,atk:39, sz:1.02,
+  v:'It climbed into the wind and did not come back.',
   w:'It keeps to the thermals over the Nantahalas and comes down for a reason.'},
  {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   from:6, tier:3,
   air:1, hp:260, atk:13, sz:0.98,
+  v:'It lifted off and left you the trail.',
   w:'A vulture that has been on this ridge long enough to feel it is owed.'}];
 if(TR.boss) TR.boss.forEach((x,i)=>{ BOSS[i].n=x[0]; BOSS[i].w=x[1]; });
 
@@ -4266,10 +4275,7 @@ function advance(n){
    the app with one pending and you walked past it. */
 let enc=null, encWalk=0;
 function encTick(n,before,after){
- if(enc){
-  if(after>=enc.m) resolveEnc();
-  return;
- }
+ if(enc) return;   /* encWatch owns a live encounter from here */
  if(S.fight) return;
  encWalk+=n;
  if(encWalk<300) return;
@@ -4278,15 +4284,35 @@ function encTick(n,before,after){
  enc={k:(Math.random()*ENC.length)|0, m:after+0.10+Math.random()*0.15,
       side:Math.random()<0.5?-1:1};
 }
-/* Watching for arrival has to happen every frame, not only when steps
-   come in. encTick only runs from advance(), so between batches the
-   camera glided past the encounter with nothing looking, and the box
-   turned up on the next batch, by which point you had gone by it. This
-   fires the moment the thing is level with you on screen, which is
-   when it looks like it should. */
+/* The life of an encounter, watched every frame rather than only when
+   steps come in, because between step batches the camera still glides.
+
+   The box used to fire at 70 units out. The sprite is drawn from 900
+   units down to 40, so 70 is the last moment before it leaves the
+   screen: you watched the thing come the whole way in silence and then
+   got told about it as it went by. Now the box goes up while it is
+   still ahead of you and comes down once it is behind you, so the
+   words and the picture are on screen together.
+
+   Showing is also what collects it. Noticing the thing is the whole
+   point of an encounter, which is why it is never saved: walk with the
+   phone in your pocket and the frame loop is not running to see it. */
+const ENC_SHOW=700;   /* they are laid 260 to 650 units out, so: on sight */
+const ENC_GONE=36;    /* the draw stops at 40, so this is off the screen */
 function encWatch(){
- if(!enc||anim) return;
- if(camWY()-(-enc.m*RPM) >= 70) return;
+ if(!enc) return;
+ const dd=camWY()-(-enc.m*RPM);
+ /* Behind you now, and this has to come first and ignore whether it
+    was ever shown. A card over the screen holds anim, and an encounter
+    that went by underneath one was left standing at a negative
+    distance forever; encTick will not lay a new one while an old one
+    is alive, so a single missed encounter was the last encounter of
+    the save. Walking past one unnoticed is the intent, but it has to
+    be cleared on the way past like any other. */
+ if(dd<ENC_GONE){ enc=null; return; }
+ if(enc.seen) return;
+ if(anim||dd>ENC_SHOW) return;
+ enc.seen=true;
  resolveEnc();
 }
 function resolveEnc(){
@@ -4296,7 +4322,7 @@ function resolveEnc(){
  S.log=S.log||[];
  S.log.push({e:1,k:enc.k,day:S.day,m:Math.round(enc.m*100)/100,st:gain});
  toast(E,gain);
- enc=null; save();
+ save();
 }
 
 /* ---- the fight ---- */
@@ -4494,6 +4520,7 @@ const DEVMODE=new URLSearchParams(location.search).get('dev')==='1';
 if(DEVMODE){
  const row=document.getElementById('devrow');
  row.hidden=false;
+ document.getElementById('b10').onclick=()=>addSteps(10);
  document.getElementById('b100').onclick=()=>addSteps(100);
  document.getElementById('b1k').onclick=()=>addSteps(1000);
  document.getElementById('b5k').onclick=()=>addSteps(5000);
@@ -4506,6 +4533,7 @@ function resetTrek(){
  S={steps:0,today:0,day:1,dk:dayKey(),opened:[],log:[],stones:0,bm:0,beat:{},fight:null,
     own:{},eq:{},cur:CUR,tr:{},done:{}}; chestQ=[]; fightQ=[]; banner=null; anim=null;
  bend.classList.remove('open'); enc=null; encWalk=0;
+ document.getElementById('etoast').classList.remove('on'); toastT=0; toastMin=0;
  shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();
 }
 window.trekReset=resetTrek;
@@ -4514,7 +4542,7 @@ window.trekReset=resetTrek;
    Encounters happen often enough that a full screen card for each one
    would be a tax on walking. A strip over the bottom frame, four
    seconds, no button. */
-let toastT=0;
+let toastT=0, toastMin=0;
 function toast(E,gain){
  const el=document.getElementById('etoast');
  const c=document.getElementById('etart'), A=bossArt(E,1);
@@ -4523,11 +4551,16 @@ function toast(E,gain){
  document.getElementById('etn').textContent=E.n;
  document.getElementById('etw').textContent=E.w;
  document.getElementById('ets').textContent='▲ '+gain;
- el.classList.add('on'); toastT=performance.now()+4200;
+ el.classList.add('on');
+ /* a floor, not a deadline: the dev buttons can put a whole approach
+    through in one frame, and the box still has to be readable. */
+ toastT=1; toastMin=performance.now()+2200;
 }
 function toastTick(now){
- if(toastT && now>toastT){ document.getElementById('etoast').classList.remove('on');
-                           toastT=0; }
+ if(!toastT || now<toastMin) return;
+ if(enc) return;                      /* still ahead of you or alongside */
+ document.getElementById('etoast').classList.remove('on');
+ toastT=0;
 }
 
 /* ---------- the banner and the card ---------- */
@@ -4554,9 +4587,7 @@ function showFightEnd(){
  res.style.color=r.won?'#74e84f':'#8695a8';
  document.getElementById('bname').textContent=B.n;
  document.getElementById('bflav').textContent=
-  r.won? B.w
-       : 'You ran out of road before it ran out of fight. The miles still '
-        +'count; they always do.';
+  r.won? (B.v||B.w) : 'It got away. Your steps still counted.';
  const g=r.i?BYID[r.i]:null;
  document.getElementById('bgain').innerHTML=
   (r.won?((g?'TOOK \u00b7 <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()
@@ -5007,7 +5038,7 @@ function drawJournal(){
    h+='</div><div class="jm">MILE '+en.m.toFixed(1)+' &middot; '
      +(en.won?'KILLED':'GOT AWAY')+' &middot; '
      +Math.round(en.steps||0).toLocaleString()+' STEPS</div>';
-   h+='<div class="jw">'+(en.won?B.w:'It outlasted you. The miles still counted.')
+   h+='<div class="jw">'+(en.won?B.w:'It got away. Your steps still counted.')
      +'</div>';
    if(en.won) h+='<div class="jg">'
      +(g?'TOOK &middot; <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()+'</b>'
