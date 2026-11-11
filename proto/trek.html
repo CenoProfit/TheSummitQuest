@@ -290,13 +290,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  color:var(--dim);margin-bottom:16px}
 
 /* ---- journal ---- */
-#journal{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
+#journal,#trails{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;
  background:
   radial-gradient(130% 80% at 50% 0%,rgba(46,62,88,.55),transparent 70%),
   linear-gradient(180deg,#0a111b 0%,#070c14 60%,#05080e 100%);
  padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
-#journal.open{display:flex}
-#journal::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+#journal.open,#trails.open{display:flex}
+#journal::before,#trails::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
  background:repeating-linear-gradient(0deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px)}
 .jsum{font-size:11px;line-height:1.75;color:#9fb0c2;border:2px solid var(--edge);
  background:rgba(0,0,0,.22);padding:9px 12px;margin-bottom:10px;flex:none}
@@ -314,6 +314,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .jg{font-family:var(--pix);font-size:7px;letter-spacing:1px;line-height:2;
  color:var(--dim);margin-top:9px}
 .jempty{font-size:11px;line-height:1.75;color:var(--dim);padding:8px 2px}
+.trailname{cursor:pointer;position:relative;z-index:3}
+.tgo{margin-top:11px;width:100%}
+.tgo[disabled]{opacity:.55;cursor:default}
+.jrow.tcur{border-color:var(--gold)}
 </style>
 </head>
 <body>
@@ -321,9 +325,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 
 <div class="wrap">
   <div class="frame top">
-    <div class="trailname">★ APPALACHIAN TRAIL · NOBO</div>
+    <div class="trailname" id="tname">★ APPALACHIAN TRAIL · NOBO ▾</div>
     <div class="mile"><span id="mile">0.0</span> <small>MI</small></div>
-    <div class="biome"><span id="biome">Georgia hardwood</span><span class="bpct"><span id="pct">0.0</span>% TO KATAHDIN</span></div>
+    <div class="biome"><span id="biome">Georgia hardwood</span><span class="bpct"><span id="pct">0.0</span>% TO <span id="endname">KATAHDIN</span></span></div>
     <div class="topbtns">
       <button class="btn musbtn" id="musbtn" title="music">&#9834;</button>
       <button class="btn jrnbtn" id="jopen">JOURNAL</button>
@@ -390,6 +394,16 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   <div class="jlist" id="jlist"></div>
 </div>
 
+<div id="trails">
+  <div class="pbar">
+    <span class="ptitle">★ THE TRAILS</span>
+    <span class="pcount" id="tcount"></span>
+    <button class="btn pclose" id="tclose">✕</button>
+  </div>
+  <div class="jsum" id="tsum"></div>
+  <div class="jlist" id="tlist"></div>
+</div>
+
 <div id="pack">
   <div class="pbar">
     <span class="ptitle">★ THE PACK</span>
@@ -447,13 +461,11 @@ function hash(n){let t=(n|0)+0x6D2B79F5|0;t=Math.imul(t^t>>>15,1|t);
  t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;}
 
 /* ---------- the trail, northbound from Springer ---------- */
-const AT_TOTAL=2197;                 /* Springer to Katahdin, near enough */
-const pctAT=mi=>(mi/AT_TOTAL*100).toFixed(1);
 /* Elevations are in feet. `w` is one line about the place, shown when you
    reach it and kept in the journal afterwards. The summits and gaps are
    the figures the guides print; the shelter elevations are close rather
    than surveyed. */
-const TRAIL=[
+const AT_PTS=[
  {m:  0.0,n:'SPRINGER MOUNTAIN',      k:'summit', t:3,a:.18,e:3782,
   w:'Southern terminus. A bronze plaque set in bare rock, and a register in the stone beside it.'},
  {m:  2.8,n:'STOVER CREEK SHELTER',   k:'shelter',t:0,e:2870,
@@ -498,7 +510,7 @@ const TRAIL=[
   w:'US 64. Hitch into Franklin, the first trail town in North Carolina.'}];
 
 /* ---------- biomes, a keyframed ramp by mile ---------- */
-const BIOMES=[
+const AT_BIO=[
  {m:  0,n:'Georgia hardwood',      sky:['#2c6cb4','#aed8f0'],mtn:'#5d7fa2',fst:'#2f5c3a',
   gnd:'#527f3c',gn2:'#467134',pth:'#8f6e41',cnp:'#3f7d36',trk:'#4c3722',fer:'#63a043',rck:'#857f74'},
  {m: 22,n:'Laurel ridge',          sky:['#2a68b0','#a6d2ec'],mtn:'#57799c',fst:'#2b5536',
@@ -513,6 +525,551 @@ const BIOMES=[
   gnd:'#36612b',gn2:'#2d5325',pth:'#715437',cnp:'#245c2c',trk:'#352618',fer:'#448030',rck:'#6d6a62'},
  {m: 99,n:'Nantahala high country',sky:['#1b529a','#85b9de'],mtn:'#3e5c82',fst:'#193d26',
   gnd:'#315a28',gn2:'#294d22',pth:'#6b4f33',cnp:'#1f5628',trk:'#312317',fer:'#3e7a2c',rck:'#67645c'}];
+
+/* ===================================================================
+   THE TRAILS
+
+   One walker, several trails. Each trail is a short table of authored
+   rows and the pipeline below turns it into the landmark list the rest
+   of the file reads as TRAIL:
+
+     [mile, NAME, kind, tier, elevation ft, one line about it, alpine]
+
+   kind is one of summit, shelter, water, gap, town, border, mark.
+
+   What is authored is the places that have a name and a reason. What is
+   generated is everything else: a mark every hundred miles, a halfway
+   mark, and unnamed waypoints wherever two authored places are more
+   than nine miles apart, so there is always something inside a day's
+   walk. A generated waypoint never borrows a real name and never claims
+   an elevation.
+
+   Mileages and elevations are written from knowledge, not from a
+   guide. On the AT and PCT they should be within a few miles of what
+   the current guides print. On the CDT, the North Country and the
+   Mountains-to-Sea they are placed by state and by order and can be
+   off by tens of miles: the order is right, the decimals are not to be
+   trusted. Correct a row here and everything downstream follows.
+   =================================================================== */
+const AT_MORE=[
+ [113.9,'SILER BALD','summit',2,5216,"A grassy bald a short climb off the trail, with the Nantahalas laid out all the way round.",.5],
+ [120.2,'WAYAH BALD','summit',3,5342,"A stone tower the CCC built in 1937. On a clear day the Smokies are the far wall.",.4],
+ [131.0,'WESSER BALD','summit',2,4627,"The old fire tower has a deck now. Fontana Lake is the silver thing to the north."],
+ [137.1,'NANTAHALA OUTDOOR CENTER','town',3,1723,"The trail crosses the river on a footbridge between kayakers. Everything from here is up."],
+ [145.3,'CHEOAH BALD','summit',3,5062,"Three thousand feet above the river you left this morning."],
+ [166.3,'FONTANA DAM','town',4,1700,"The tallest dam in the East, and the trail walks across the top of it into the Smokies."],
+ [183.3,'SPENCE FIELD','shelter',1,4915,"A grassy bald gone to serviceberry. The first real Smokies ridge walking."],
+ [184.5,'ROCKY TOP','summit',3,5441,"Yes, that one. Names scratched in the rock go back before the park.",.6],
+ [200.1,'KUWOHI','summit',4,6643,"Clingmans Dome on the older maps. The highest point on the whole trail, and it comes at mile two hundred.",.5],
+ [207.7,'NEWFOUND GAP','gap',3,5046,"US 441, a parking lot full of people, and the spot where Roosevelt dedicated the park."],
+ [211.8,'CHARLIES BUNION','summit',3,5565,"A bare knuckle of rock left by a fire and a flood in the 1920s.",.8],
+ [223.0,'TRICORNER KNOB','shelter',2,5920,"The most remote shelter in the Smokies, deep in the spruce and fir."],
+ [239.3,'DAVENPORT GAP','gap',2,1975,"The north edge of the park. No more permit, no more shelter rules."],
+ [254.6,'MAX PATCH','summit',4,4629,"A mown bald with the whole horizon. People plan their miles to be here at sunset.",.9],
+ [275.0,'HOT SPRINGS','town',4,1326,"The trail is the main street sidewalk, with the AT symbol set in the concrete."],
+ [319.5,'SAMS GAP','gap',1,3760,"Under I-26. The loudest quarter mile in North Carolina."],
+ [326.0,'BIG BALD','summit',3,5516,"Open on every side. In spring there are bird banders up here with nets.",.9],
+ [344.0,'NOLICHUCKY RIVER','town',3,1700,"Erwin, Tennessee. The trail crosses the river and climbs straight back out of the gorge."],
+ [357.0,'UNAKA MOUNTAIN','summit',2,5180,"A dark red spruce forest on top that feels like it belongs in Maine."],
+ [378.6,'ROAN HIGH KNOB','shelter',4,6285,"The highest shelter on the Appalachian Trail, an old fire warden cabin in the firs."],
+ [380.0,'CARVERS GAP','gap',2,5512,"The start of the Roan balds. Miles of open grass on the state line.",.6],
+ [388.0,'HUMP MOUNTAIN','summit',3,5587,"The last and biggest of the balds. You can see the trail on it for an hour before you get there.",1.0],
+ [395.0,'US 19E','town',1,2880,"Roan Mountain, Tennessee. North Carolina is finally behind you for good."],
+ [420.0,'LAUREL FALLS','water',3,2120,"The trail drops into the gorge on stone steps and passes right under the falls."],
+ [430.0,'WATAUGA DAM','water',2,1915,"An earth dam the trail walks across. Bears have this lakeshore mostly to themselves."],
+ [467.5,'TENNESSEE VIRGINIA LINE','border',4,3300,"A small sign in the woods. Virginia is a quarter of the whole trail."],
+ [471.0,'DAMASCUS','town',4,1928,"Trail Town USA. The AT goes down the main street and under the welcome arch."],
+ [489.0,'WHITETOP MOUNTAIN','summit',2,5080,"Buzzard Rock, on the shoulder of the second highest mountain in Virginia.",.6],
+ [496.0,'THOMAS KNOB SHELTER','shelter',3,5400,"Half a mile from the top of Mount Rogers, the highest ground in Virginia."],
+ [499.5,'GRAYSON HIGHLANDS','summit',4,4900,"Wild ponies on open rock and grass. They will lick the salt off your pack straps.",.9],
+ [534.0,'PARTNERSHIP SHELTER','shelter',2,3360,"A shelter with a shower, beside a visitor center with a phone that pizza places answer."],
+ [545.0,'ATKINS','town',1,2420,"Under I-81, past a restored one room schoolhouse and out across open pasture."],
+ [570.0,'CHESTNUT KNOB','shelter',3,4409,"A stone hut on the rim of Burkes Garden, a valley shaped like a bowl."],
+ [592.0,'BLAND','town',1,2900,"Over I-77. Long dry ridges on both sides of it."],
+ [610.0,'DISMAL FALLS','water',2,2320,"Not dismal. A wide ledge fall with a swimming hole under it."],
+ [637.0,'PEARISBURG','town',3,1600,"Down to the New River, which is one of the oldest rivers on earth."],
+ [696.0,'AUDIE MURPHY MONUMENT','mark',2,3100,"A stone on Brush Mountain near where the most decorated soldier of the war went down in a plane."],
+ [702.0,'DRAGONS TOOTH','summit',3,3020,"A fin of rock stood on end. The descent north of it uses iron rungs.",.5],
+ [714.0,'MCAFEE KNOB','summit',4,3197,"The most photographed spot on the trail. A ledge hung out over the Catawba Valley.",.6],
+ [719.5,'TINKER CLIFFS','summit',3,3000,"Half a mile of cliff edge, with McAfee Knob behind you looking small.",.4],
+ [730.0,'DALEVILLE','town',2,1350,"A town day. A third of the trail is done."],
+ [771.0,'APPLE ORCHARD MOUNTAIN','summit',3,4225,"The highest ground until New Hampshire. Just past the top the trail goes under the Guillotine, a boulder wedged overhead."],
+ [787.0,'JAMES RIVER FOOT BRIDGE','water',3,680,"The longest footbridge on the trail, named for a man actually called Foot."],
+ [830.0,'THE PRIEST','summit',3,4063,"The shelter register here is for confessions. Then four thousand feet down to the Tye River."],
+ [840.0,'THREE RIDGES','summit',2,3970,"And three thousand feet back up the other side."],
+ [864.0,'ROCKFISH GAP','town',3,1900,"Waynesboro, and the south gate of Shenandoah."],
+ [885.0,'BLACKROCK','summit',2,3092,"A heap of broken quartzite the trail circles instead of climbing.",.3],
+ [926.0,'BIG MEADOWS','town',2,3500,"A lodge, a wayside, and blackberry milkshakes. Deer that do not move for you."],
+ [936.0,'STONY MAN','summit',3,3837,"The highest point of the trail in Shenandoah, over the cliffs above Skyland.",.3],
+ [943.0,'THORNTON GAP','gap',1,2307,"US 211. Marys Rock is the climb on the other side."],
+ [972.0,'FRONT ROYAL','town',2,950,"US 522 and the end of the park. The grade stops being kind here."],
+ [990.0,'THE ROLLER COASTER','gap',3,900,"Thirteen and a half miles of tightly packed ups and downs, with a sign to warn you."],
+ [1003.0,'BEARS DEN','shelter',2,1350,"A stone lodge turned hostel, with a rock overlook out back."],
+ [1026.0,'HARPERS FERRY','town',4,250,"The psychological halfway point. The ATC takes your photo and gives you a number."],
+ [1029.0,'WEVERTON CLIFFS','summit',1,780,"A last look down at the Potomac."],
+ [1043.0,'WASHINGTON MONUMENT','summit',2,1550,"The first one, a stone tower the people of Boonsboro built in 1827."],
+ [1067.0,'MASON DIXON LINE','border',4,1250,"Pen Mar. Maryland took four days. Pennsylvania will take longer."],
+ [1105.0,'PINE GROVE FURNACE','town',4,850,"Home of the half gallon challenge: a tub of ice cream, eaten in one sitting, to mark the midpoint."],
+ [1124.0,'BOILING SPRINGS','town',2,500,"A spring fed lake in the middle of town, then flat farm fields across the Cumberland Valley."],
+ [1150.0,'DUNCANNON','town',3,385,"Down to the Susquehanna, the widest river the trail crosses."],
+ [1196.0,'THE 501 SHELTER','shelter',1,1460,"Four walls, a skylight, and pizza delivery. The rocks have begun."],
+ [1220.0,'PORT CLINTON','town',2,400,"A steep drop to the Schuylkill and a pavilion in town where hikers may sleep."],
+ [1228.0,'THE PINNACLE','summit',3,1615,"The best view in Pennsylvania, and a cairn field as big as a house.",.3],
+ [1262.0,'LEHIGH GAP','gap',3,380,"A hand over hand scramble up a slope that zinc smelting stripped bare."],
+ [1298.0,'DELAWARE WATER GAP','border',4,350,"Across the river on the interstate bridge into New Jersey. The rocks ease, slowly."],
+ [1303.0,'SUNFISH POND','water',2,1380,"A glacial pond on top of the ridge, the first of them going north."],
+ [1340.0,'HIGH POINT','summit',3,1680,"The top of New Jersey has an obelisk on it that you can see for two days."],
+ [1353.0,'POCHUCK BOARDWALK','water',2,400,"A mile of boardwalk and a suspension bridge over a marsh."],
+ [1360.0,'STAIRWAY TO HEAVEN','summit',2,1340,"Stone steps up Wawayanda Mountain to Pinwheel Vista."],
+ [1387.0,'THE LEMON SQUEEZER','gap',3,1150,"A crack in the rock in Harriman narrower than your pack."],
+ [1406.0,'BEAR MOUNTAIN','summit',4,1305,"The first section of the AT ever built, in 1923. You can see Manhattan from the tower."],
+ [1408.0,'BEAR MOUNTAIN BRIDGE','water',3,124,"The lowest point on the whole trail is in the zoo, by the bear den. Then the Hudson."],
+ [1452.0,'THE DOVER OAK','mark',2,650,"The largest oak on the trail, more than twenty feet around."],
+ [1470.0,'KENT','town',2,380,"Connecticut. The trail follows the Housatonic for its longest flat river walk."],
+ [1508.0,'BEAR MOUNTAIN, CONNECTICUT','summit',2,2316,"The highest summit in Connecticut, with a stone pile on top that was once a tower.",.3],
+ [1509.5,'SAGES RAVINE','border',3,1340,"A cold brook in a hemlock gorge. Massachusetts starts somewhere in it."],
+ [1550.0,'UPPER GOOSE POND','shelter',3,1500,"A cabin on a pond with a caretaker who makes pancakes."],
+ [1574.0,'DALTON','town',1,1200,"The trail walks through the neighborhood, past front porches."],
+ [1591.0,'MOUNT GREYLOCK','summit',4,3491,"The top of Massachusetts, with a war memorial tower and a lodge. The first taste of the north.",.4],
+ [1599.0,'VERMONT LINE','border',4,2330,"The Long Trail starts here and shares the tread for a hundred miles."],
+ [1640.0,'STRATTON MOUNTAIN','summit',4,3936,"Where Benton MacKaye, up a tree, first pictured a trail the length of the Appalachians."],
+ [1654.0,'MANCHESTER CENTER','town',2,1840,"VT 11 and 30. A long hitch for a town day."],
+ [1699.0,'KILLINGTON PEAK','summit',3,3900,"The trail passes just under the summit at Cooper Lodge. Seventeen hundred miles."],
+ [1708.0,'MAINE JUNCTION','mark',3,2250,"The Long Trail goes on to Canada. You turn right, for Maine."],
+ [1751.0,'HANOVER','town',4,400,"Across the Connecticut River into New Hampshire, straight through the Dartmouth green."],
+ [1774.0,'SMARTS MOUNTAIN','summit',2,3237,"A fire tower and a warden cabin. The Whites are on the horizon now."],
+ [1801.0,'MOUNT MOOSILAUKE','summit',4,4802,"The first time above treeline. Everything changes here.",1.0],
+ [1824.0,'FRANCONIA NOTCH','gap',2,1450,"Under the parkway and up toward the ridge."],
+ [1830.0,'MOUNT LAFAYETTE','summit',4,5260,"Franconia Ridge, two miles of knife edge in the sky.",1.0],
+ [1853.0,'CRAWFORD NOTCH','gap',2,1277,"US 302. The Presidentials start on the far side."],
+ [1864.0,'LAKES OF THE CLOUDS','shelter',3,5012,"A stone hut in the saddle below Washington, with a basement room called the Dungeon.",1.0],
+ [1866.0,'MOUNT WASHINGTON','summit',4,6288,"The worst weather in America, and a cog railway and a snack bar. Both are true.",1.0],
+ [1872.0,'MADISON SPRING HUT','shelter',2,4800,"The end of twelve miles above the trees.",.9],
+ [1880.0,'PINKHAM NOTCH','gap',2,2050,"NH 16. Wildcat goes straight up from the parking lot."],
+ [1901.0,'GORHAM','town',2,780,"US 2. The last town in New Hampshire."],
+ [1918.0,'MAINE LINE','border',4,2970,"A blue sign nailed to a tree. One state left."],
+ [1925.0,'MAHOOSUC NOTCH','gap',4,2150,"The hardest mile on the trail. Boulders the size of cars, with ice under them in July."],
+ [1933.0,'GRAFTON NOTCH','gap',1,1495,"ME 26. Baldpate next."],
+ [1978.0,'SADDLEBACK MOUNTAIN','summit',3,4120,"Three miles in the open above Rangeley.",.9],
+ [2017.0,'AVERY PEAK','summit',3,4090,"The Bigelows. Named for the man who actually got the trail built.",.9],
+ [2046.0,'KENNEBEC RIVER','water',4,490,"The only ferry on the trail. A canoe with a white blaze painted on the floor."],
+ [2083.0,'MONSON','town',3,1215,"The last town. A sign north of here tells you to carry ten days of food."],
+ [2113.0,'GULF HAGAS','water',2,650,"A slate gorge beside the trail, deep in the Hundred Mile Wilderness."],
+ [2126.0,'WHITE CAP MOUNTAIN','summit',4,3654,"The first clear sight of Katahdin, seventy trail miles away.",.7],
+ [2176.0,'RAINBOW LEDGES','summit',2,1517,"Katahdin again, and now it fills the sky."],
+ [2182.0,'ABOL BRIDGE','town',3,590,"The end of the wilderness. A camp store, and the mountain standing over the river."],
+ [2192.0,'KATAHDIN STREAM','shelter',3,1070,"The Birches. One night left. People do not sleep much."],
+ [2197.0,'KATAHDIN','summit',4,5269,"Baxter Peak. The sign. There is nothing north of here.",1.0]];
+
+const PCT_PTS=[
+ [0,'SOUTHERN TERMINUS','mark',3,2915,"Five wooden posts beside the border wall at Campo. Canada is the other end."],
+ [20.0,'LAKE MORENA','town',1,3065,"The first day ends here for most people, with a malt at the store."],
+ [41.5,'MOUNT LAGUNA','town',2,5980,"Pines, suddenly. The desert floor is a mile straight down to the east."],
+ [77.0,'SCISSORS CROSSING','gap',2,2250,"A highway underpass with a water cache, and a hitch to Julian for pie."],
+ [106.2,'EAGLE ROCK','mark',3,3500,"A pile of boulders in a meadow that is, unmistakably, an eagle."],
+ [109.5,'WARNER SPRINGS','town',2,3040,"A community center that looks after hikers."],
+ [151.8,'PARADISE VALLEY CAFE','town',2,4900,"A mile off the trail on Highway 74. The burger is a tradition."],
+ [179.4,'SADDLE JUNCTION','gap',3,8100,"Idyllwild is down the Devils Slide. San Jacinto is up.",.3],
+ [190.5,'FULLER RIDGE','summit',3,7750,"The north face of San Jacinto. Snow lingers here after the desert has forgotten it.",.5],
+ [209.5,'SAN GORGONIO PASS','gap',3,1340,"Under Interstate 10, among the wind turbines. Seven thousand feet below where you were yesterday."],
+ [266.0,'BIG BEAR','town',2,6830,"Highway 18. A cool pine town above the Mojave."],
+ [307.9,'DEEP CREEK HOT SPRINGS','water',3,3530,"Warm pools beside a cold creek in a desert canyon."],
+ [342.0,'CAJON PASS','town',3,3000,"Interstate 15, the freight trains, and a sign that points to McDonalds, 0.4 miles."],
+ [377.9,'MOUNT BADEN-POWELL','summit',4,9399,"Forty switchbacks to the top, past limber pines fifteen hundred years old.",.8],
+ [454.5,'AGUA DULCE','town',2,2530,"The trail walks through Vasquez Rocks and then down the main street."],
+ [517.6,'THE AQUEDUCT','mark',3,3040,"Miles on top of the pipe that waters Los Angeles, across the floor of the Mojave. Most people do it at night."],
+ [566.5,'TEHACHAPI PASS','town',2,3800,"Highway 58 and more wind turbines than you can count."],
+ [652.0,'WALKER PASS','gap',2,5246,"Highway 178. The last of the desert is fifty miles long."],
+ [702.2,'KENNEDY MEADOWS','town',4,6020,"Everyone on the porch applauds when you walk up. The Sierra starts tomorrow."],
+ [750.2,'COTTONWOOD PASS','gap',2,11160,"Chicken Spring Lake is just past it, the first alpine lake.",.8],
+ [766.3,'CRABTREE MEADOW','shelter',3,10330,"The turn for Mount Whitney, the highest ground in the lower forty eight, eight miles off the trail.",.6],
+ [779.5,'FORESTER PASS','summit',4,13153,"The highest point on the Pacific Crest Trail. The approach is cut into a wall and crosses one snow chute.",1.0],
+ [791.0,'GLEN PASS','summit',3,11926,"A narrow crest and a long way down to Rae Lakes.",1.0],
+ [793.5,'RAE LAKES','water',3,10540,"Three lakes in a chain under Fin Dome and the Painted Lady.",.7],
+ [807.1,'PINCHOT PASS','summit',3,12130,"Red rock and tarns.",1.0],
+ [816.9,'MATHER PASS','summit',3,12100,"The Palisades on one side and the Golden Staircase waiting on the other.",1.0],
+ [838.6,'MUIR PASS','summit',4,11955,"A stone hut shaped like a beehive on top, built in 1930 for anyone caught in a storm.",1.0],
+ [850.9,'EVOLUTION CREEK','water',3,9200,"The ford everyone asks about. In a big snow year it comes to the waist."],
+ [865.6,'SELDEN PASS','summit',2,10900,"Marie Lake below it, full of islands.",.9],
+ [884.0,'SILVER PASS','summit',2,10900,"The last of the high passes for a while.",.9],
+ [906.6,'REDS MEADOW','town',2,7700,"Devils Postpile is next door, a cliff of basalt columns like stacked pencils."],
+ [923.0,'THOUSAND ISLAND LAKE','water',3,9830,"Banner Peak standing in the water.",.6],
+ [929.5,'DONOHUE PASS','summit',3,11056,"Into Yosemite.",1.0],
+ [942.5,'TUOLUMNE MEADOWS','town',3,8600,"A store in a tent, a grill, and the John Muir Trail leaving for the Valley."],
+ [1016.9,'SONORA PASS','gap',3,9620,"The end of the High Sierra. Volcanic ridges, open and windy.",.8],
+ [1076.6,'CARSON PASS','gap',2,8580,"Volunteers in the cabin hand out fruit."],
+ [1090.8,'ECHO LAKE','town',2,7400,"South Lake Tahoe is down the road. Desolation Wilderness is across the water."],
+ [1153.4,'DONNER PASS','gap',3,7090,"Under Interstate 80 through a tunnel. The party that named the pass wintered at the lake below."],
+ [1195.4,'SIERRA CITY','town',2,4570,"A gold rush town under the Sierra Buttes."],
+ [1286.8,'BELDEN','town',2,2310,"The Feather River. The climb out of the canyon is close to a vertical mile."],
+ [1331.0,'CHESTER','town',2,5050,"Highway 36. The midpoint monument is a few miles back, a concrete post in the woods."],
+ [1350.0,'DRAKESBAD','water',2,5700,"Lassen country. Boiling springs and a lake that steams."],
+ [1375.0,'HAT CREEK RIM','summit',3,4900,"Thirty miles of lava rim with no water and Shasta on the horizon the whole time.",.3],
+ [1411.0,'BURNEY FALLS','water',3,2950,"The water comes out of the middle of the cliff as well as over the top."],
+ [1501.0,'CASTLE CRAGS','gap',3,2130,"Interstate 5, and granite spires straight above it."],
+ [1599.7,'ETNA SUMMIT','gap',2,5960,"A quiet road into a small town with a brewery."],
+ [1655.9,'SEIAD VALLEY','town',3,1370,"The State of Jefferson. A cafe with a pancake challenge almost nobody finishes."],
+ [1691.7,'OREGON LINE','border',4,6000,"A register nailed to a tree. California took seventeen hundred miles."],
+ [1718.0,'ASHLAND','town',3,4240,"Interstate 5 again. Oregon is flat and fast and people try to cross it in two weeks."],
+ [1820.9,'CRATER LAKE','water',4,7100,"The rim trail. The deepest lake in the country, and a blue that looks wrong.",.4],
+ [1852.0,'OREGON HIGH POINT','summit',2,7560,"The highest the trail gets in Oregon or Washington, under Mount Thielsen.",.5],
+ [1906.0,'SHELTER COVE','town',2,4800,"Willamette Pass, and a resort on Odell Lake."],
+ [1984.0,'MCKENZIE PASS','gap',3,5300,"Miles of black lava that eat shoes, with an observatory built out of it."],
+ [1998.0,'SANTIAM PASS','gap',1,4800,"Highway 20. Three Fingered Jack ahead."],
+ [2028.0,'JEFFERSON PARK','water',3,5900,"Meadows and ponds at the foot of Mount Jefferson.",.4],
+ [2097.0,'TIMBERLINE LODGE','town',4,5950,"A WPA lodge on the side of Mount Hood, famous for its breakfast.",.5],
+ [2147.0,'BRIDGE OF THE GODS','border',4,180,"Cascade Locks. The lowest point on the trail, on a steel grate over the Columbia, into Washington."],
+ [2229.0,'MOUNT ADAMS','summit',2,6100,"The trail rounds the west side through lava and huckleberries.",.4],
+ [2277.0,'THE KNIFE EDGE','summit',4,7100,"Goat Rocks. A spine of rock with Rainier in front of you and air on both sides.",1.0],
+ [2295.0,'WHITE PASS','town',2,4400,"Highway 12, and a store that holds your box."],
+ [2323.0,'CHINOOK PASS','gap',2,5430,"Under a log footbridge at the edge of Mount Rainier National Park."],
+ [2393.0,'SNOQUALMIE PASS','town',3,3000,"Interstate 90. The last easy miles are behind you."],
+ [2464.0,'STEVENS PASS','town',2,4050,"Highway 2. Glacier Peak Wilderness next, the most remote stretch in Washington."],
+ [2540.0,'SUIATTLE RIVER','water',2,2300,"Old growth cedar, and a bridge built miles downstream after a flood took the old one."],
+ [2572.0,'STEHEKIN','town',4,1600,"A town with no road to it. A bus to the bakery."],
+ [2591.0,'RAINY PASS','gap',2,4850,"Highway 20, the last road."],
+ [2622.0,'HARTS PASS','gap',2,6200,"A dirt road and a ranger cabin. Thirty miles left.",.5],
+ [2653.0,'NORTHERN TERMINUS','mark',4,4250,"Monument 78, in a clear cut that runs along the border. Canada is where you are standing.",.3]];
+
+const CDT_PTS=[
+ [0,'CRAZY COOK','mark',3,4340,"A concrete monument in the bootheel of New Mexico, at the end of a three hour dirt road."],
+ [84,'LORDSBURG','town',2,4250,"The first town, after four days of water caches."],
+ [161,'SILVER CITY','town',2,5900,"A mining town turned art town. The Gila is next."],
+ [204,'GILA RIVER','water',4,4600,"The trail is the river. People cross it two hundred times."],
+ [240,'GILA CLIFF DWELLINGS','mark',3,5700,"Rooms built into caves seven hundred years ago, a short walk from the hot springs."],
+ [415,'PIE TOWN','town',4,7800,"It is called that because of the pie. The Toaster House has taken in hikers for decades."],
+ [525,'GRANTS','town',2,6460,"Old Route 66, at the foot of the lava beds."],
+ [545,'MOUNT TAYLOR','summit',3,11301,"The sacred mountain of the south, one of four that bound the Navajo homeland.",.6],
+ [630,'CUBA','town',2,6900,"Mesa country ends here and the mountains begin."],
+ [650,'SAN PEDRO PARKS','water',2,10500,"Wet meadows at ten thousand feet, the first green in weeks."],
+ [690,'GHOST RANCH','town',3,6500,"Red and yellow cliffs that Georgia O'Keeffe painted for forty years."],
+ [780,'COLORADO LINE','border',4,10000,"A sign on a fence. The San Juans are right there, and usually still under snow."],
+ [783,'CUMBRES PASS','gap',2,10022,"A narrow gauge steam train still crosses here."],
+ [865,'WOLF CREEK PASS','gap',3,10857,"Highway 160. More snow falls here than anywhere else in Colorado."],
+ [915,'THE WINDOW','summit',3,12850,"A square notch in a wall of rock in the Weminuche, visible for a day in each direction.",1.0],
+ [950,'STONY PASS','gap',2,12590,"An old wagon road down to Silverton. The headwaters of the Rio Grande are below you.",1.0],
+ [975,'SPRING CREEK PASS','gap',1,10898,"A hitch to Lake City."],
+ [990,'SAN LUIS PEAK','summit',3,14014,"A fourteen thousand foot summit a mile off the trail. Most people take it.",1.0],
+ [1090,'MONARCH PASS','gap',3,11312,"Highway 50. A gift shop on the Divide that holds hiker boxes."],
+ [1150,'COTTONWOOD PASS','gap',2,12126,"The Collegiate West, days at a time above the trees.",1.0],
+ [1190,'TWIN LAKES','town',2,9200,"A general store under Mount Elbert, the highest peak in the Rockies."],
+ [1235,'TENNESSEE PASS','gap',2,10424,"Where the Tenth Mountain Division trained for the war."],
+ [1275,'BRECKENRIDGE','town',2,9200,"A free bus between ski towns."],
+ [1320,'GRAYS PEAK','summit',4,14278,"The highest point on the Continental Divide Trail, and on any National Scenic Trail.",1.0],
+ [1350,'BERTHOUD PASS','gap',2,11307,"Highway 40, and a warming hut."],
+ [1365,'JAMES PEAK','summit',2,13300,"Open tundra, and Denver visible on the plains at night.",1.0],
+ [1420,'GRAND LAKE','town',3,8370,"The headwaters of the Colorado River and the edge of Rocky Mountain National Park."],
+ [1470,'PARKVIEW MOUNTAIN','summit',3,12296,"A lookout hut on a bald summit, and the last time above twelve thousand feet.",1.0],
+ [1520,'RABBIT EARS PASS','gap',2,9426,"Steamboat Springs is down the hill."],
+ [1585,'WYOMING LINE','border',4,9000,"A small sign in the lodgepoles. Colorado took eight hundred miles."],
+ [1605,'BATTLE PASS','gap',1,9955,"Encampment is the town, down in the valley."],
+ [1690,'RAWLINS','town',2,6800,"Interstate 80. The Great Divide Basin starts at the edge of town."],
+ [1750,'THE GREAT DIVIDE BASIN','mark',4,7000,"Water that falls here reaches neither ocean. A hundred and twenty miles of sage, antelope and wind."],
+ [1810,'SOUTH PASS CITY','town',3,7800,"A preserved gold town at the gap the Oregon Trail wagons used to cross the Divide."],
+ [1850,'CIRQUE OF THE TOWERS','summit',4,10800,"A ring of granite spires in the Wind River Range.",1.0],
+ [1930,'GREEN RIVER LAKES','water',3,7960,"Squaretop Mountain standing over the water. The north end of the Winds."],
+ [1990,'TOGWOTEE PASS','gap',2,9658,"The Tetons in the west. Grizzly country from here on."],
+ [2030,'PARTING OF THE WATERS','water',4,8150,"A creek splits in two on the Divide. One half goes to the Atlantic and the other to the Pacific."],
+ [2075,'HEART LAKE','water',2,7450,"Yellowstone, by the back door."],
+ [2105,'OLD FAITHFUL','town',4,7350,"The trail goes right past it, on the boardwalk, with the crowd."],
+ [2130,'IDAHO LINE','border',3,8000,"From here most of the way to the Bitterroots the trail is the state line."],
+ [2240,'LIMA','town',2,6260,"Interstate 15. Fences, cattle, and the Divide as a grassy roller coaster."],
+ [2340,'BANNOCK PASS','gap',1,7681,"A hitch to Leadore, population about a hundred."],
+ [2365,'LEMHI PASS','gap',4,7373,"Where Lewis and Clark crossed the Divide in 1805 and saw more mountains instead of an ocean."],
+ [2470,'CHIEF JOSEPH PASS','gap',2,7241,"Highway 43. The Big Hole battlefield is in the valley below."],
+ [2520,'ANACONDA PINTLER','summit',3,9200,"Larches that go gold in September, if you are late enough to see it.",.7],
+ [2590,'ANACONDA','town',2,5300,"A smelter stack taller than the Washington Monument."],
+ [2660,'MACDONALD PASS','gap',1,6320,"Helena is down the east side."],
+ [2720,'ROGERS PASS','gap',2,5610,"The coldest temperature ever recorded in the lower forty eight was taken here."],
+ [2800,'THE CHINESE WALL','summit',4,8000,"The Bob Marshall. A thousand foot limestone cliff that is the Divide itself, miles long.",.8],
+ [2890,'MARIAS PASS','gap',3,5216,"East Glacier. The lowest crossing of the Divide for hundreds of miles, and the edge of the park."],
+ [2905,'TWO MEDICINE','water',2,5160,"A lake under Rising Wolf Mountain."],
+ [2925,'TRIPLE DIVIDE PASS','summit',4,7397,"Below the one peak on the continent that drains to three oceans.",1.0],
+ [2975,'MANY GLACIER','town',3,4900,"A Swiss style hotel on a lake. Bears on the hillsides."],
+ [3028,'WATERTON LAKE','mark',4,4200,"The border is a cut line through the trees and an obelisk on the shore. Canada.",.2]];
+
+const NCT_PTS=[
+ [0,'LAKE SAKAKAWEA','mark',3,1850,"The western terminus, in a state park on a reservoir of the Missouri. Vermont is the other end."],
+ [150,'LONETREE','water',1,1600,"Prairie potholes and the headwaters of the Sheyenne River. More ducks than people."],
+ [380,'SHEYENNE GRASSLAND','mark',3,1050,"Tallgrass prairie on sand hills, the trail marked by posts across open pasture."],
+ [440,'FORT ABERCROMBIE','town',1,930,"The first army post in what became North Dakota, on the Red River."],
+ [470,'MINNESOTA LINE','border',4,900,"Across the Red River of the North, which runs to Hudson Bay."],
+ [560,'MAPLEWOOD','water',2,1400,"The prairie gives out here and the hardwood hills start."],
+ [720,'ITASCA','water',4,1475,"The Mississippi leaves this lake as a stream you can cross on stepping stones."],
+ [800,'CHIPPEWA FOREST','shelter',2,1350,"Red pine and lakes, and bald eagles nesting thicker than almost anywhere else in the lower forty eight."],
+ [1010,'THE KEKEKABIC','gap',3,1700,"A rough trail through the Boundary Waters, where the only other traffic is canoes."],
+ [1070,'BORDER ROUTE','summit',3,1900,"Cliff tops looking across long narrow lakes into Canada.",.3],
+ [1130,'GRAND MARAIS','town',3,620,"A harbor town on Lake Superior. The Superior Hiking Trail runs the ridge above the shore from here."],
+ [1230,'TETTEGOUCHE','water',3,1100,"Waterfalls and palisades. The lake is always on your left, the size of a sea."],
+ [1300,'DULUTH','town',3,700,"The trail runs the length of the city along the hillside over the harbor."],
+ [1320,'WISCONSIN LINE','border',4,1100,"South of the St. Louis River."],
+ [1380,'BRULE PORTAGE','mark',3,1050,"A carrying place between the Brule and the St. Croix, with stones naming the explorers who used it."],
+ [1480,'COPPER FALLS','water',3,1100,"The Bad River drops through a black lava gorge."],
+ [1530,'MICHIGAN LINE','border',4,1500,"Into the Upper Peninsula, and the longest state on the trail."],
+ [1580,'PORCUPINE MOUNTAINS','summit',4,1958,"Lake of the Clouds from the escarpment, and the largest old growth hardwood forest left in the Midwest.",.4],
+ [1790,'MARQUETTE','town',2,620,"Ore docks and Lake Superior again."],
+ [1860,'PICTURED ROCKS','summit',4,800,"Forty miles of the trail on painted sandstone cliffs over the lake.",.3],
+ [1960,'TAHQUAMENON FALLS','water',3,700,"Two hundred feet wide and the color of root beer, from the tannin in the cedar swamps."],
+ [2030,'MACKINAC BRIDGE','mark',4,580,"Five miles across the straits. It is open to walkers one morning a year, on Labor Day."],
+ [2130,'JORDAN RIVER','water',2,750,"Cold clear water in a deep valley. Deadmans Hill looks down on it."],
+ [2280,'MANISTEE RIVER','water',3,800,"High bluffs along the river, the most walked stretch in the Lower Peninsula."],
+ [2450,'LOWELL','town',3,640,"The headquarters of the North Country Trail Association, about halfway."],
+ [2680,'OHIO LINE','border',4,850,"The trail turns south and makes a great loop around the state on the Buckeye Trail."],
+ [2760,'MIAMI AND ERIE CANAL','water',2,800,"A towpath beside locks that have not lifted a boat in a century."],
+ [2950,'DAYTON','town',1,740,"The southwest corner of the loop."],
+ [3120,'SHAWNEE FOREST','summit',2,1100,"The Little Smokies of Ohio. The hills are real."],
+ [3270,'OLD MANS CAVE','water',4,900,"Hocking Hills. A sandstone gorge with a recess cave a hermit lived in."],
+ [3550,'ZOAR','town',2,890,"A village founded by German separatists, on the Ohio and Erie Canal."],
+ [3730,'PENNSYLVANIA LINE','border',4,1000,"A thousand miles of Ohio is done."],
+ [3770,'MCCONNELLS MILL','water',3,1000,"Slippery Rock Creek in a gorge full of boulders, with a covered bridge and a grist mill."],
+ [3850,'COOK FOREST','shelter',3,1300,"White pine and hemlock three hundred years old, among the tallest trees in the Northeast."],
+ [3950,'ALLEGHENY FOREST','shelter',2,1800,"A hundred miles of the trail through the only national forest in Pennsylvania."],
+ [4020,'NEW YORK LINE','border',4,1500,"Into Allegany State Park."],
+ [4170,'LETCHWORTH','water',3,1100,"The Genesee River in a gorge hundreds of feet deep, with three waterfalls."],
+ [4300,'WATKINS GLEN','water',4,500,"Nineteen waterfalls in two miles, and the path goes behind some of them."],
+ [4500,'ROME','town',2,450,"The old Erie Canal towpath, and the carry between the Mohawk and the lakes."],
+ [4610,'WEST CANADA LAKES','water',3,2400,"The Adirondacks. About as far from a road as you can get in New York."],
+ [4730,'CROWN POINT','border',4,100,"Across Lake Champlain on the bridge, beside the ruins of a French fort and a British one."],
+ [4760,'MIDDLEBURY','town',2,400,"A college town at the foot of the Green Mountains."],
+ [4800,'MAINE JUNCTION','mark',4,2250,"The eastern terminus, where the trail meets the Long Trail and the Appalachian Trail. You could keep going."]];
+
+const MST_PTS=[
+ [0,'KUWOHI','summit',4,6643,"The western end, on the observation tower at the top of the Smokies. The sea is the other end.",.5],
+ [40,'OCONALUFTEE','town',2,2020,"Cherokee. Elk graze the fields by the visitor center in the evening."],
+ [62,'WATERROCK KNOB','summit',3,6292,"The Blue Ridge Parkway begins its long run with you.",.6],
+ [85,'RICHLAND BALSAM','summit',2,6053,"The highest point on the Parkway, in a spruce fir forest that smells like Christmas."],
+ [95,'DEVILS COURTHOUSE','summit',3,5720,"A bare rock summit. Cherokee stories put a giant in the cave underneath.",.6],
+ [115,'MOUNT PISGAH','summit',3,5721,"The Vanderbilts once owned everything you can see from here."],
+ [150,'ASHEVILLE','town',3,2200,"The Folk Art Center. The trail skirts the city through the woods."],
+ [170,'CRAGGY GARDENS','summit',3,5640,"Rhododendron balds that go purple in June.",.7],
+ [185,'MOUNT MITCHELL','summit',4,6684,"The highest ground east of the Mississippi.",.6],
+ [260,'LINVILLE GORGE','summit',4,3900,"Table Rock and Shortoff, on the rim of one of the deepest gorges in the East.",.6],
+ [300,'GRANDFATHER MOUNTAIN','summit',4,4400,"The Tanawha Trail, under the Linn Cove Viaduct and across the boulder fields.",.5],
+ [320,'BLOWING ROCK','town',2,3600,"Carriage roads around the Cone manor."],
+ [380,'DOUGHTON PARK','summit',2,3700,"Open pasture on the edge of the escarpment.",.5],
+ [400,'STONE MOUNTAIN','summit',3,2305,"A granite dome with a waterfall sliding down its side. The trail leaves the mountains here.",.4],
+ [450,'PILOT MOUNTAIN','summit',4,2421,"A knob of quartzite standing alone over the Piedmont. You have been able to see it for days.",.3],
+ [470,'HANGING ROCK','summit',3,2579,"The Sauratown Mountains, an island range a long way from any other.",.3],
+ [540,'GREENSBORO LAKES','water',1,750,"Watershed trails along one reservoir after another."],
+ [590,'HAW RIVER','water',2,500,"Old mill dams and mill towns."],
+ [640,'ENO RIVER','water',3,400,"Durham. A quiet river with fords, a swinging bridge and a mill still standing."],
+ [700,'FALLS LAKE','water',3,260,"Sixty miles of footpath along the south shore of the reservoir."],
+ [740,'NEUSE RIVER GREENWAY','water',2,180,"Raleigh. Paved, flat, and thirty miles long."],
+ [830,'BENTONVILLE','mark',3,150,"The largest battle fought in North Carolina, in the last weeks of the Civil War."],
+ [910,'HOLLY SHELTER','water',2,40,"Pocosin and longleaf pine. Venus flytraps grow wild here and almost nowhere else."],
+ [950,'SURF CITY','town',2,10,"The first sight of the ocean, and miles on the beach."],
+ [1010,'THE NEUSIOK','shelter',3,20,"The Croatan forest. Cypress swamp on boardwalks."],
+ [1060,'CEDAR ISLAND','mark',3,5,"The end of the road. A two hour ferry to Ocracoke."],
+ [1085,'OCRACOKE','town',3,5,"A village Blackbeard knew, and a herd of ponies that has been on the island for centuries."],
+ [1120,'CAPE HATTERAS LIGHT','mark',4,10,"The tallest brick lighthouse in the country, moved half a mile inland in 1999 to save it from the sea."],
+ [1150,'PEA ISLAND','water',2,5,"A wildlife refuge on a strip of sand between the ocean and the sound."],
+ [1175,'JOCKEYS RIDGE','summit',4,80,"The tallest living sand dune on the Atlantic coast. Climb it, and you are done.",.2]];
+
+/* ---------- palettes ----------
+   sky top, sky horizon, far mountains, forest, ground, ground 2, path,
+   canopy, trunk, fern, rock. A trailing 'fir' makes the trees conifers. */
+const BPAL={
+ hard:  '2c6cb4 aed8f0 5d7fa2 2f5c3a 527f3c 467134 8f6e41 3f7d36 4c3722 63a043 857f74',
+ bald:  '3376bc bcdff2 6c8aa8 4a5a44 7a7a58 6e7150 9c8a66 5a6646 5c4e38 8a8a58 a39d92',
+ spruce:'235ea6 96c6e6 4a6c92 20472e 3d6a30 345c2a 7a5c35 2a6630 3b2a1a 4c8a38 737066 fir',
+ balsam:'1b529a 85b9de 3e5c82 193d26 315a28 294d22 6b4f33 1f5628 312317 3e7a2c 67645c fir',
+ farm:  '3a7cc0 c2e2f4 6a8cac 3a6a3c 6a9a48 5c8a40 9a7a4a 4a8a3c 50391f 7ab04c 8a8478',
+ rocks: '2e6aae a8d0ea 5a7898 33543a 55724a 4a6642 80705a 3f6e3a 46362a 5c8a48 8e8a84',
+ north: '2a64ac a4cee8 52749a 244a34 44703a 3a6232 7c6040 2f6a38 3a2c20 54903e 7a766e fir',
+ alpine:'3f80c4 cfe6f4 7a92ac 55604e 86866c 787a62 a39a82 5e6a4c 5a5040 8c8c62 b0aca4 fir',
+ desert:'4a8cd0 ecdcb8 a08a78 8a7a50 c2a070 b08e60 d4b888 7a8048 6a5030 a09850 b89c80',
+ chap:  '4084c8 dcd8c0 8a8478 5c6840 9a8c58 8a7c4c bca070 5e7040 5c4428 889048 a8988a',
+ sierra:'3878c0 c4e0f4 7088a8 2c5038 6a7a50 5c6c46 a09070 2e6034 4a3420 6a8a44 b4b0a8 fir',
+ lava:  '2e6cb4 b0d4ec 5a6f8c 1f4530 4a5440 3e4838 6a5c50 245a30 30241a 4a7a38 4c4844 fir',
+ rain:  '2a609c 9cc0d8 46647e 163c28 2c5a2c 244c26 5e4a34 1a5228 2c2016 3a7a30 66686a fir',
+ basin: '4a88cc e4dcc4 9a8e84 7a7c58 a89c6c 988c5e c0a67c 78845a 5e4c34 98a060 a4988a',
+ tundra:'3c7cc4 cce4f4 7890ac 4c5a48 808a54 72804c 9c8e6c 4a6440 4e4030 909c58 a8a49c fir',
+ prairie:'4688cc dce8f0 8aa0b0 6a8048 a8a858 98984e a88c58 6a8a44 5a4628 b0b060 98907c',
+ lake:  '2c68b0 a8d0ec 4c7098 204838 3e6a3c 345c34 74583c 286438 34281c 4c8840 80746c fir',
+ coast: '4c90d4 e8e4d0 8cb0c8 6a8858 d0c090 c0b080 e0d0a8 5e8850 5c4a30 a0b068 c8c0b0',
+ swamp: '3472b4 b8d8e8 5c8098 2c5034 4e7440 426636 8a7a58 34703a 44341f 5c9444 807868',
+ pied:  '3070b8 b4daf0 6282a2 315e3a 587f3e 4a7136 936f44 437d38 4e3823 66a045 878074'};
+
+/* ---------- the trails themselves ----------
+   `boss` renames the eight things that bar the trail so they belong to
+   the country you are walking through. Same sprites, same numbers. */
+const TRAILS={
+ at:{name:'APPALACHIAN TRAIL',head:'APPALACHIAN TRAIL · NOBO',short:'Appalachian Trail',
+  from:'SPRINGER MOUNTAIN, GEORGIA',to:'KATAHDIN, MAINE',end:'KATAHDIN',endn:'Katahdin',total:2197,
+  pitch:'The green tunnel. Fourteen states of ridge, shelter and trail town, ending on a mountain in Maine.',
+  pts:AT_PTS.concat(AT_MORE),
+  bio:AT_BIO.concat([
+   [137,'Nantahala gorge','hard'],[166,'Smokies spruce fir','balsam'],[240,'Pisgah hardwood','hard'],
+   [254,'Max Patch bald','bald'],[262,'French Broad hardwood','hard'],[376,'Roan highlands','bald'],
+   [396,'Tennessee hardwood','hard'],[490,'Grayson Highlands','bald'],[506,'Virginia ridge','hard'],
+   [545,'Great Valley pasture','farm'],[562,'Virginia ridge','hard'],[864,'Shenandoah','hard'],
+   [975,'Northern Virginia','farm'],[1026,'Maryland ridge','hard'],[1100,'Cumberland Valley','farm'],
+   [1150,'Pennsylvania rocks','rocks'],[1300,'Kittatinny ridge','rocks'],[1370,'Hudson Highlands','hard'],
+   [1460,'Berkshire hardwood','hard'],[1600,'Green Mountains','north'],[1751,'New Hampshire woods','north'],
+   [1800,'White Mountains','spruce'],[1828,'Franconia Ridge','alpine'],[1838,'White Mountains','spruce'],
+   [1862,'Presidential Range','alpine'],[1876,'Carter Range','spruce'],[1918,'Maine woods','spruce'],
+   [2084,'Hundred Mile Wilderness','balsam'],[2190,'Katahdin woods','balsam'],[2196,'Katahdin tableland','alpine']])},
+ pct:{name:'PACIFIC CREST TRAIL',head:'PACIFIC CREST TRAIL · NOBO',short:'Pacific Crest Trail',
+  from:'CAMPO, CALIFORNIA',to:'THE CANADIAN BORDER',end:'CANADA',endn:'Canada',total:2653,
+  pitch:'Mexico to Canada. Seven hundred miles of desert, then the High Sierra, then volcano after volcano.',
+  pts:PCT_PTS,
+  bio:[[0,'Border chaparral','chap'],[42,'Laguna pines','sierra'],[60,'Anza-Borrego desert','desert'],
+   [110,'San Jacinto foothills','chap'],[175,'San Jacinto high country','sierra'],[205,'San Gorgonio desert','desert'],
+   [240,'San Bernardino pines','sierra'],[300,'Mojave rim','chap'],[370,'San Gabriel crest','sierra'],
+   [400,'Sierra Pelona chaparral','chap'],[515,'Mojave desert','desert'],[570,'Tehachapi','chap'],
+   [700,'Kern Plateau','sierra'],[760,'High Sierra','alpine'],[945,'Yosemite granite','sierra'],
+   [1017,'Volcanic Sierra','tundra'],[1090,'Tahoe crest','sierra'],[1340,'Lassen volcanic','lava'],
+   [1375,'Hat Creek Rim','chap'],[1420,'Shasta forest','sierra'],[1700,'Oregon fir','lava'],
+   [1830,'Cascade lakes','rain'],[1980,'Lava fields','lava'],[2000,'Mount Jefferson forest','rain'],
+   [2270,'Goat Rocks','alpine'],[2300,'Cascade fir','rain'],[2500,'North Cascades','alpine'],
+   [2560,'Stehekin valley','rain'],[2600,'Pasayten high country','tundra']],
+  boss:[['THE FORESTER CAIRN',"The cairn at the top of the highest pass on the trail got up. Every stone a hiker ever added, walking."],
+   ['THE CHAPARRAL',"Manzanita and chamise closed over the tread and never opened again."],
+   ['THE LIMBER PINE',"Fifteen hundred years on Baden-Powell and it has had enough of being looked at."],
+   ['THE SIERRA RIME',"Ice kept building on the whitebark pines at the pass until one of them stood up."],
+   ['THE EVOLUTION LEVIATHAN',"What is under the ford at Evolution Creek in a big snow year."],
+   ['THE STORM OVER WHITNEY',"An afternoon thunderhead that has been following the crest since Forester."],
+   ['THE CREST WYRM',"It keeps to the thermals over the Cascades and comes down for a reason."],
+   ['THE TEHACHAPI CROWN',"A vulture that has been turning over the wind farms long enough to feel it is owed."]]},
+ cdt:{name:'CONTINENTAL DIVIDE TRAIL',head:'CONTINENTAL DIVIDE · NOBO',short:'Continental Divide Trail',
+  from:'CRAZY COOK, NEW MEXICO',to:'WATERTON LAKE, MONTANA',end:'CANADA',endn:'Canada',total:3028,
+  pitch:'The spine of the Rockies. The longest, highest and loneliest of the Triple Crown.',
+  pts:CDT_PTS,
+  bio:[[0,'Chihuahuan desert','desert'],[160,'Gila pine','sierra'],[260,'Plains of San Agustin','basin'],
+   [540,'Mount Taylor','sierra'],[560,'Mesa country','desert'],[640,'San Pedro Parks','tundra'],
+   [670,'Red rock','desert'],[720,'Carson forest','sierra'],[780,'South San Juans','alpine'],
+   [1000,'Cochetopa Hills','sierra'],[1090,'Collegiate Peaks','alpine'],[1200,'Sawatch forest','sierra'],
+   [1300,'Front Range tundra','tundra'],[1380,'Never Summer forest','spruce'],[1600,'Sierra Madre','sierra'],
+   [1690,'Great Divide Basin','basin'],[1815,'Wind River Range','alpine'],[1940,'Absaroka forest','spruce'],
+   [2060,'Yellowstone plateau','sierra'],[2140,'Centennial grassland','prairie'],[2380,'Beaverhead crest','tundra'],
+   [2480,'Pintler larch','spruce'],[2600,'Montana lodgepole','sierra'],[2760,'Bob Marshall','spruce'],
+   [2890,'Glacier','alpine']],
+  boss:[['THE DIVIDE CAIRN',"A marker cairn on the open Divide got up. Nobody was near enough to see it happen."],
+   ['THE WILLOW HELL',"A willow thicket in a high basin closed over the route and never opened again."],
+   ['THE BRISTLECONE',"It was old when the cliff dwellings were built, and it is tired of holding still."],
+   ['THE SAN JUAN CORNICE',"Snow kept loading the lee side of the ridge until part of it stood up."],
+   ['THE GILA LEVIATHAN',"What is under the water on the two hundredth crossing, when the river is high."],
+   ['THE STORM OVER GRAYS',"An afternoon thunderhead that finds you above treeline every day at two."],
+   ['THE DIVIDE WYRM',"It keeps to the thermals over the Winds and comes down for a reason."],
+   ['THE BASIN CROWN',"A vulture that has been over the Great Divide Basin long enough to feel it is owed."]]},
+ nct:{name:'NORTH COUNTRY TRAIL',head:'NORTH COUNTRY TRAIL · EAST',short:'North Country Trail',
+  from:'LAKE SAKAKAWEA, NORTH DAKOTA',to:'MAINE JUNCTION, VERMONT',end:'VERMONT',endn:'Vermont',total:4800,
+  pitch:'The longest National Scenic Trail there is. Prairie, the Superior shore, canal towpaths and the Adirondacks.',
+  pts:NCT_PTS,
+  bio:[[0,'Missouri Coteau prairie','prairie'],[470,'Red River valley','farm'],[540,'Minnesota lake country','north'],
+   [1000,'Boundary Waters','lake'],[1320,'Wisconsin northwoods','north'],[1530,'Upper Peninsula','lake'],
+   [2040,'Michigan pine','north'],[2450,'Michigan farmland','farm'],[2680,'Ohio canal country','farm'],
+   [3050,'Ohio hill country','hard'],[3600,'Ohio farmland','farm'],[3730,'Allegheny plateau','north'],
+   [4020,'Finger Lakes','hard'],[4400,'Mohawk valley','farm'],[4520,'Adirondacks','spruce'],
+   [4730,'Champlain valley','farm'],[4765,'Green Mountains','north']],
+  boss:[['THE SAWTOOTH WARDEN',"A stone fire ring on the ridge over Superior got up, hearth and all."],
+   ['THE ALDER HELL',"A tag alder swamp closed over the trail and never opened again."],
+   ['THE WHITE PINE',"The loggers missed one, and it remembers the rest."],
+   ['THE LAKE EFFECT',"Snow came in off Superior for a week until some of it stood up."],
+   ['THE SUPERIOR LEVIATHAN',"What is under the water off the Pictured Rocks. The lake does not give things back."],
+   ['THE STORM OFF THE LAKE',"A squall line that has been following the shore since Grand Marais."],
+   ['THE PORCUPINE WYRM',"It keeps to the wind over the escarpment and comes down for a reason."],
+   ['THE PRAIRIE CROWN',"A vulture that has been over the grassland long enough to feel it is owed."]]},
+ mst:{name:'MOUNTAINS-TO-SEA TRAIL',head:'MOUNTAINS-TO-SEA · EAST',short:'Mountains-to-Sea Trail',
+  from:'KUWOHI, GREAT SMOKY MOUNTAINS',to:'JOCKEYS RIDGE, OUTER BANKS',end:'THE SEA',endn:'the sea',total:1175,
+  pitch:'All of North Carolina, from the highest tower in the Smokies to the tallest dune on the coast.',
+  pts:MST_PTS,
+  bio:[[0,'Smokies spruce fir','balsam'],[30,'Cherokee hardwood','hard'],[60,'Balsam range','balsam'],
+   [120,'Pisgah hardwood','hard'],[165,'Craggy balds','bald'],[180,'Black Mountain spruce','balsam'],
+   [200,'Blue Ridge hardwood','hard'],[400,'Foothills','pied'],[480,'Piedmont','pied'],
+   [760,'Coastal plain','swamp'],[945,'Barrier beach','coast'],[960,'Croatan pocosin','swamp'],
+   [1065,'Outer Banks','coast']],
+  boss:[['THE MITCHELL WARDEN',"The stone tower on the highest summit in the East got up and came down the ridge."],
+   ['THE LAUREL HELL',"A rhododendron thicket closed over the trail and never opened again."],
+   ['THE LIVE OAK',"Three hundred years of leaning away from the wind, and now it leans toward you."],
+   ['THE BLACK MOUNTAIN HOARFROST',"Rime kept accreting on the high firs until one of them stood up."],
+   ['THE NEUSE LEVIATHAN',"What is under the water where the river goes wide and brown below Raleigh."],
+   ['THE NOREASTER',"A storm that has been working up the Outer Banks since Hatteras."],
+   ['THE LINVILLE WYRM',"It keeps to the updraft over the gorge and comes down for a reason."],
+   ['THE CARRION CROWN',"A vulture that has been on this ridge long enough to feel it is owed."]]}};
+const TORDER=['at','pct','cdt','nct','mst'];
+
+/* Which trail is under your feet is decided before anything else is
+   built, because the landmark list, the biome ramp and the boss schedule
+   are all made once from it. Changing trail saves and reloads. The key
+   here is the save key, spelled out because KEY is declared further on. */
+const CUR=(()=>{ let id=null;
+ try{ id=new URLSearchParams(location.search).get('trail'); }catch(e){}
+ if(!id||!TRAILS[id]){
+  try{ id=(JSON.parse(localStorage.getItem('sq_trek_proto4'))||{}).cur; }catch(e){} }
+ return id&&TRAILS[id]?id:'at'; })();
+const TR=TRAILS[CUR];
+const TOTAL=TR.total;
+const pctEnd=mi=>(Math.min(TOTAL,mi)/TOTAL*100).toFixed(1);
+
+/* ---------- the pipeline ---------- */
+const _ONES=['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN','ELEVEN',
+ 'TWELVE','THIRTEEN','FOURTEEN','FIFTEEN','SIXTEEN','SEVENTEEN','EIGHTEEN','NINETEEN'];
+const _TENS=['','','TWENTY','THIRTY','FORTY'];
+function hundredsName(m){
+ const h=m/100;
+ if(h%10===0) return _ONES[h/10]+' THOUSAND';
+ if(h<20) return _ONES[h]+' HUNDRED';
+ return _TENS[Math.floor(h/10)]+' '+_ONES[h%10]+' HUNDRED';
+}
+/* Waypoints with no name of their own. Deliberately generic: none of
+   these is a claim about a real place. */
+const FILL=[
+ ['A SPRING BELOW THE TRAIL','water',"A pipe driven into the bank and a cold trickle. You fill everything you carry."],
+ ['A RIDGE CAMP','shelter',"A flat spot with a fire ring somebody keeps tidy."],
+ ['AN UNNAMED GAP','gap',"A low place in the ridge with no sign and no road. The wind uses it."],
+ ['A CREEK CROSSING','water',"Stepping stones, most of them where you want them."],
+ ['AN OLD ROAD BED','gap',"The trail borrows a grade somebody cut a century ago and gives it back a mile later."],
+ ['A TENT SITE','shelter',"Room for two tents, and a line already hung for the food bag."],
+ ['A CAIRN','gap',"A stack of stones where the tread goes faint. You add one."],
+ ['A FOOTBRIDGE','water',"Two logs and a cable handrail, built by people you will never meet."],
+ ['A REGISTER BOX','shelter',"A notebook in a metal box. Everyone ahead of you has signed it."],
+ ['A TRAIL JUNCTION','gap',"A post with the mileage cut into it, and one arm pointing your way."],
+ ['A QUIET STRETCH','gap',"Nothing here has a name. It is most of what a trail is."],
+ ['A LUNCH ROCK','gap',"Flat, in the sun, and exactly where you were going to stop anyway."]];
+function buildTrail(T){
+ const L=T.pts.map(r=>{
+  if(!Array.isArray(r)) return r;
+  const o={m:r[0],n:r[1],k:r[2],t:r[3],e:r[4],w:r[5]}; if(r[6]) o.a=r[6]; return o; });
+ const has=m=>L.some(x=>Math.abs(x.m-m)<0.05);
+ for(let m=100;m<T.total-20;m+=100){
+  if(has(m)) continue;
+  const nm=hundredsName(m);
+  L.push({m:m,n:nm+' MILES',k:'mark',t:m%500===0?4:3,
+   w:nm.charAt(0)+nm.slice(1).toLowerCase()+' down. '
+     +Math.round(T.total-m).toLocaleString()+' to go.'});
+ }
+ const half=Math.round(T.total*5)/10;
+ if(!has(half)) L.push({m:half,n:'HALFWAY',k:'mark',t:4,
+  w:'Half of the '+T.short+' is behind you. The other half is the same length and will not feel like it.'});
+ L.sort((a,b)=>a.m-b.m);
+ const out=[];
+ for(let i=0;i<L.length;i++){
+  out.push(L[i]);
+  if(i===L.length-1) break;
+  const a=L[i].m, gap=L[i+1].m-a;
+  if(gap<=9) continue;
+  const n=Math.ceil(gap/7)-1;
+  for(let j=1;j<=n;j++){
+   const m=Math.round((a+gap*j/(n+1))*10)/10;
+   const h=hash(Math.round(m*10)+T.total), F=FILL[Math.floor(h*FILL.length)];
+   out.push({m:m,n:F[0],k:F[1],t:hash(Math.round(m*10)+7)<0.6?0:1,w:F[2],gen:1});
+  }
+ }
+ return out;
+}
+function buildBiomes(T){
+ return T.bio.map(b=>{
+  if(!Array.isArray(b)) return b;
+  const c=BPAL[b[2]].split(' ');
+  const o={m:b[0],n:b[1],sky:['#'+c[0],'#'+c[1]]};
+  ['mtn','fst','gnd','gn2','pth','cnp','trk','fer','rck'].forEach((k,i)=>o[k]='#'+c[i+2]);
+  if(c[11]) o.tree=c[11];
+  return o; });
+}
+const TRAIL=buildTrail(TR);
+const BIOMES=buildBiomes(TR);
+
 const BK=['mtn','fst','gnd','gn2','pth','cnp','trk','fer','rck'];
 function biomeAt(mi){
  let a=BIOMES[0],b=BIOMES[0];
@@ -607,6 +1164,23 @@ const KEY='sq_trek_proto4';
 let S={steps:0,today:0,day:1,opened:[],log:[],stones:0,bm:0,beat:{},fight:null,own:{},eq:{}};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+/* ---- one save, several trails ----
+   Mileage, the places reached, the journal and any fight in progress
+   belong to a trail. The pack, the stones and the day count belong to
+   the walker and go wherever he goes. The live fields on S are always
+   the current trail's; the others wait in S.tr under their id. */
+const TRF=['steps','opened','log','bm','fight'];
+S.cur=S.cur&&TRAILS[S.cur]?S.cur:'at'; S.tr=S.tr||{}; S.done=S.done||{};
+function stashTrail(){ const o={}; for(const k of TRF) o[k]=S[k]; S.tr[S.cur]=o; }
+function loadTrail(id){ const o=S.tr[id]||{};
+ S.steps=o.steps||0; S.opened=o.opened||[]; S.log=o.log||[];
+ S.bm=o.bm||0; S.fight=o.fight||null; delete S.tr[id]; S.cur=id; }
+if(S.cur!==CUR){ stashTrail(); loadTrail(CUR); }
+function walkTrail(id){
+ if(!TRAILS[id]||id===S.cur) return;
+ stashTrail(); loadTrail(id); save();
+ location.replace(location.pathname);
+}
 /* the outfit slot was retired; a save made before that still names its
    pieces, so forget anything the table no longer knows about */
 function prune(){
@@ -2689,6 +3263,7 @@ const BOSS=[
  {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   from:6, tier:3,
   air:1, hp:260, atk:13, sz:0.98,
   w:'A vulture that has been on this ridge long enough to feel it is owed.'}];
+if(TR.boss) TR.boss.forEach((x,i)=>{ BOSS[i].n=x[0]; BOSS[i].w=x[1]; });
 
 /* ---------- things you can walk straight past ----------
    Unlike a boss, an encounter is not scheduled and is not saved. It
@@ -2722,7 +3297,7 @@ function _seedrnd(seed){ let x=seed>>>0;
    chest never land on the same step. */
 const BSCHED=(()=>{
  const r=_seedrnd(0x5EED17), out=[]; let m=1.1, last=-1;
- while(m<260){
+ while(m<TOTAL-3){
   let elig=[]; for(let i=0;i<BOSS.length;i++) if(BOSS[i].from<=m) elig.push(i);
   elig.sort((a,b)=>BOSS[a].tier-BOSS[b].tier);
   /* never the same thing twice running, as long as there is a choice */
@@ -2748,6 +3323,13 @@ const BSCHED=(()=>{
  }
  return out;
 })();
+/* A fight begins when the thing is this close, not when you are standing
+   on its mile. The approach is drawn down to 330 units and the fight
+   holds it at 330 and closes from there, so the two have to meet. They
+   did not: the fight waited for the mile itself, and for the last 270
+   steps of every approach the boss was simply not drawn. It grew out of
+   the haze, vanished, and came back later as a fight. */
+const ENGAGE=330/RPM;
 function nextBoss(mi){ for(const B of BSCHED) if(B.m>mi) return B; return null; }
 
 /* ---- how a fight goes ----
@@ -3233,7 +3815,7 @@ function startChest(){
  document.getElementById('clm').innerHTML=
   '<span class="clmn">'+L.n+'</span><span class="clmm">MILE '+L.m.toFixed(1)
   +(L.e?' &middot; '+L.e.toLocaleString()+' FT':'')
-  +' &middot; '+pctAT(L.m)+'% TO KATAHDIN</span>';
+  +' &middot; '+pctEnd(L.m)+'% TO '+TR.end+'</span>';
  document.getElementById('clore').textContent=L.w||'';
  document.getElementById('crar').textContent=R[0];
  document.getElementById('crar').style.color=R[1];
@@ -3502,7 +4084,7 @@ function hud(){
  drawKit(); drawStatStrip(); measureBtm();
  const mi=miles();
  document.getElementById('mile').textContent=mi.toFixed(1);
- document.getElementById('pct').textContent=pctAT(mi);
+ document.getElementById('pct').textContent=pctEnd(mi);
  document.getElementById('biome').textContent=biomeAt(mi).name;
  document.getElementById('today').textContent=S.today.toLocaleString();
  document.getElementById('day').textContent=S.day;
@@ -3529,8 +4111,8 @@ function hud(){
   document.getElementById('fill').style.width=
    Math.max(0,Math.min(100,((mi-prev.m)/Math.max(.01,next.m-prev.m))*100)).toFixed(1)+'%';
  }else{
-  document.getElementById('nextname').textContent='TRAIL END (PROTOTYPE)';
-  document.getElementById('nextdist').textContent='—';
+  document.getElementById('nextname').textContent='THRU HIKE COMPLETE';
+  document.getElementById('nextdist').textContent='PICK A TRAIL \u25b2';
   document.getElementById('fill').style.width='100%';
  }
 }
@@ -3546,7 +4128,14 @@ function addSteps(n){
  if(fightQ.length && !anim) setTimeout(showFightEnd,900);
 }
 function advance(n){
- const before=miles(); S.steps+=n; S.today+=n; const after=miles();
+ const before=miles();
+ /* a trail has an end; steps past it still count toward the day */
+ const cap=Math.ceil(TOTAL*SPM), all=n;
+ n=Math.min(n,Math.max(0,cap-S.steps));
+ S.today+=all;
+ if(n<=0){ S.fight=null; save(); hud(); return; }
+ S.steps+=n; const after=miles();
+ if(S.steps>=cap && !S.done[CUR]) S.done[CUR]=S.day;
  /* Springer sits at mile 0, so `L.m>before` never caught it on the first
     steps of a save and the southern terminus was the one place you could
     never reach. From a standing start the mile you are on counts. */
@@ -3556,7 +4145,7 @@ function advance(n){
  if(S.fight) fightTick(n);
  else{
   S.bm=S.bm||0;
-  const nb=BSCHED.find(x=>x.m>S.bm && x.m<=after);
+  const nb=BSCHED.find(x=>x.m>S.bm && x.m-ENGAGE<=after);
   if(nb){ S.bm=nb.m; startFight(nb); }
  }
  encTick(n,before,after);
@@ -3778,7 +4367,7 @@ window.trekPush=n=>addSteps(Math.max(0,n|0));
 
 function resetTrek(){
  S={steps:0,today:0,day:1,dk:dayKey(),opened:[],log:[],stones:0,bm:0,beat:{},fight:null,
-    own:{},eq:{}}; chestQ=[]; fightQ=[]; banner=null; anim=null;
+    own:{},eq:{},cur:CUR,tr:{},done:{}}; chestQ=[]; fightQ=[]; banner=null; anim=null;
  bend.classList.remove('open'); enc=null; encWalk=0;
  shownMi=0; drift=0; wizApply(); save(); hud(); drawPack();
 }
@@ -4246,8 +4835,8 @@ function drawJournal(){
              .filter(L=>L&&L.e).sort((a,b)=>b.e-a.e)[0];
  document.getElementById('jsum').innerHTML=
   log.length
-   ? ('Furthest point mile '+far.toFixed(1)+', '+pctAT(far)
-      +' percent of the way to Katahdin.'
+   ? ('Furthest point mile '+far.toFixed(1)+', '+pctEnd(far)
+      +' percent of the way to '+TR.endn+'.'
       +(hi?' Highest ground so far is '+hi.n+' at '+hi.e.toLocaleString()+' feet.':'')
       +(kills?' '+kills+(kills===1?' thing':' things')+' put down on the way.':'')
       +(met?' '+met+' met and let be.':''))
@@ -4295,7 +4884,7 @@ function drawJournal(){
   if(en.day) h+='<span class="jd">DAY '+en.day+'</span>';
   h+='</div><div class="jm">MILE '+L.m.toFixed(1)
     +(L.e?' &middot; '+L.e.toLocaleString()+' FT':'')
-    +' &middot; '+pctAT(L.m)+'% TO KATAHDIN</div>';
+    +' &middot; '+pctEnd(L.m)+'% TO '+TR.end+'</div>';
   if(L.w) h+='<div class="jw">'+L.w+'</div>';
   if(g) h+='<div class="jg">FOUND &middot; <b style="color:'+RAR[g[2]][1]+'">'
           +g[0].toUpperCase()+'</b></div>';
@@ -4478,6 +5067,46 @@ document.getElementById('pclose').onclick=()=>pack.classList.remove('open');
 const jrn=document.getElementById('journal');
 document.getElementById('jopen').onclick=()=>{drawJournal(); jrn.classList.add('open');};
 document.getElementById('jclose').onclick=()=>jrn.classList.remove('open');
+
+/* ---- the trails ----
+   Steps go to one trail at a time. Picking another one does not cost
+   anything: the one you leave keeps its mile, its journal and whatever
+   was barring it, and is there when you come back. */
+const trl=document.getElementById('trails');
+document.getElementById('tname').textContent='\u2605 '+TR.head+' \u25be';
+document.getElementById('endname').textContent=TR.end;
+function drawTrails(){
+ const G=document.getElementById('tlist'); G.innerHTML='';
+ const crown=['at','pct','cdt'].filter(id=>S.done[id]).length;
+ document.getElementById('tcount').textContent=
+  TORDER.filter(id=>S.done[id]).length+' / '+TORDER.length+' WALKED';
+ document.getElementById('tsum').innerHTML=
+  'Your steps go to one trail at a time. Each trail keeps its own mileage and journal. '
+  +'Your pack, your stones and your gear come with you.'
+  +(crown===3?' <b style="color:var(--gold)">\u2605 TRIPLE CROWN.</b>'
+    :' The Appalachian, the Pacific Crest and the Continental Divide together are the '
+     +'Triple Crown: '+crown+' of 3 walked.');
+ for(const id of TORDER){
+  const T=TRAILS[id], here=id===S.cur, st=here?S:(S.tr[id]||{});
+  const mi=Math.min(T.total,(st.steps||0)/SPM);
+  const d=document.createElement('div'); d.className='jrow'+(here?' tcur':'');
+  d.innerHTML='<div class="jhead"><span class="jn">'+T.name+'</span>'
+   +'<span class="jd">'+T.total.toLocaleString()+' MI</span></div>'
+   +'<div class="jm">'+T.from+' TO '+T.to+'</div>'
+   +'<div class="jw">'+T.pitch+'</div>'
+   +'<div class="jg">'+(S.done[id]?'<b style="color:var(--gold)">\u2605 THRU HIKED</b> &middot; ':'')
+   +(mi>0?'MILE '+mi.toFixed(1)+' &middot; '+(mi/T.total*100).toFixed(1)+'%':'NOT STARTED')+'</div>';
+  const b=document.createElement('button'); b.className='btn tgo';
+  if(here){ b.textContent='YOU ARE HERE'; b.disabled=true; }
+  else{ b.textContent=mi>0?'PICK IT BACK UP \u25b6':'START WALKING \u25b6';
+        b.onclick=()=>walkTrail(id); }
+  d.appendChild(b); G.appendChild(d);
+ }
+}
+document.getElementById('tname').onclick=()=>{drawTrails(); trl.classList.add('open');};
+document.getElementById('nextdist').onclick=()=>{
+ if(miles()>=TOTAL){drawTrails(); trl.classList.add('open');} };
+document.getElementById('tclose').onclick=()=>trl.classList.remove('open');
 
 /* the strips are keyed on a signature, so a forced redraw needs it cleared */
 const _eq0=equip;
