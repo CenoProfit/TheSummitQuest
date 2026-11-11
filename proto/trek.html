@@ -1449,6 +1449,10 @@ const TQ=[];
    is the point at which a billboard stops being a thing in the
    distance and becomes a wall. The encounter box is timed off it. */
 const BILL_NEAR=40;
+/* Where the walker stands, in units ahead of the camera. Written by
+   the draw each frame; around 90, but it moves with the ground
+   because his distance is chosen to put his feet on the trail. */
+let walkDD=90;
 const FGRID=150;              /* one possible fall per cell this size */
 const FLEN=88, FSTEPS=44;     /* how far it runs, and in how many steps */
 function fallsNear(ox,oy){
@@ -3214,6 +3218,16 @@ function paint(now,dt){
    const e=Math.abs(syAt(d)-want);
    if(e<bestE){ bestE=e; dd=d; }
   }
+  /* How far ahead of the CAMERA he is standing. The camera is well
+     behind him, so this is not a constant and it is not zero: it is
+     the distance at which something is level with him. The encounter
+     box is timed off it. */
+  /* Eased, because the scan picks from 22 discrete distances and so
+     the raw value hops between adjacent buckets by 8 units a frame
+     without the walker having moved. Fed to the box timing raw, that
+     jitter ate most of the lead: the box fired 3 steps ahead instead
+     of 8, and a hop the wrong way could have put it behind him. */
+  walkDD+=(dd-walkDD)*0.18;
   const scP=FOC/dd;
   const wy=camY-dd, cx=trailX(wy);
   const sx=W*0.5+(cx-camX)*scP;
@@ -4342,17 +4356,16 @@ function encTick(n,before,after){
    Showing is also what collects it. Noticing the thing is the whole
    point of an encounter, which is why it is never saved: walk with the
    phone in your pocket and the frame loop is not running to see it. */
-/* About twenty steps of warning. A step is RPM/SPM, near enough 1.24
-   units, so twenty of them is twenty five units on top of the distance
-   at which the sprite stops being drawn.
-
-   Twenty five units on its own would be too late rather than early:
-   nothing is drawn nearer than BILL_NEAR, so an encounter is already
-   off the screen by then. Going up at BILL_NEAR+25 puts the box on
-   screen for the last twenty steps the creature is visible, and takes
-   it down as the creature goes. */
-const ENC_SHOW=BILL_NEAR+25;
+/* A few steps before he draws level with it.
+   Distances here are from the CAMERA, and the camera trails the
+   walker by walkDD, about 90 units. Timing the box off the camera put
+   it up at 65, which is 25 units behind him: the creature had already
+   gone by before the box appeared, which is what it looked like.
+   Level with him is walkDD, so the box goes up a short lead ahead of
+   that and comes down when the creature leaves the screen. */
+const ENC_LEAD=10;    /* about eight steps of warning */
 const ENC_GONE=BILL_NEAR;
+const encShowAt=()=> walkDD+ENC_LEAD;
 function encWatch(){
  if(!enc) return;
  const dd=camWY()-(-enc.m*RPM);
@@ -4365,7 +4378,13 @@ function encWatch(){
     be cleared on the way past like any other. */
  if(dd<ENC_GONE){ enc=null; return; }
  if(enc.seen) return;
- if(anim||dd>ENC_SHOW) return;
+ /* Not gated on anim any more. A landmark card holds anim, cards are
+    common, and while one was up the box was suppressed: you dismissed
+    it, and the creature had gone by with nothing ever shown, or the
+    box arrived behind it. That is most of what "the message appears
+    after it has passed" was. The box is a strip along the top, not a
+    modal, so it has no reason to wait for a card. */
+ if(dd>encShowAt()) return;
  enc.seen=true;
  resolveEnc();
 }
