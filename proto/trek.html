@@ -3468,36 +3468,36 @@ const RAR=[['COMMON','#9fb0c2'],['UNCOMMON','#74e84f'],['RARE','#5aa9f0'],
    vigour and the thing gets away. Losing costs you nothing you had,
    which is the whole point, because the steps were real. */
 const BOSS=[
- {n:'THE BLOOD MOUNTAIN WARDEN', p:0, m:'ash',  gm:'moss',   from:2, tier:2,
-  air:0, hp:180, atk:9, sz:1.00,
+ {n:'THE BLOOD MOUNTAIN WARDEN', p:0, m:'ash',  gm:'moss',   at:0.0009, tier:2,
+  air:0, hp:387, atk:56, sz:1.00,
   v:'The stones went back to being a pile.',
   w:'The stone shelter on the summit got up. Every block the CCC set, walking.'},
- {n:'THE LAUREL HELL',           p:1, m:'moss', gm:'wood',   from:0,  tier:1,
-  air:0, hp:100, atk:6, sz:0.94,
+ {n:'THE LAUREL HELL',           p:1, m:'moss', gm:'wood',   at:0,  tier:1,
+  air:0, hp:280, atk:43, sz:0.94,
   v:'The branches let go. The trail is open again.',
   w:'A rhododendron thicket closed over the trail and never opened again.'},
- {n:'THE BLY GAP OAK',           p:2, m:'moss', gm:'wood',   from:24, tier:6,
-  air:0, hp:540, atk:27, sz:1.10,
+ {n:'THE BLY GAP OAK',           p:2, m:'moss', gm:'wood',   at:0.0159, tier:6,
+  air:0, hp:707, atk:110, sz:1.10,
   v:'It settled back into the ground and let you pass.',
   w:'The most photographed tree on the trail has had enough of being looked at.'},
- {n:'THE NANTAHALA HOARFROST',   p:3, m:'frost',gm:'silver', from:40, tier:7,
-  air:0, hp:630,atk:33, sz:1.04,
+ {n:'THE NANTAHALA HOARFROST',   p:3, m:'frost',gm:'silver', at:0.0220, tier:7,
+  air:0, hp:770, atk:125, sz:1.04,
   v:'It came apart into ice and went quiet.',
   w:'Rime kept accreting on the high balsams until one of them stood up.'},
- {n:'THE GORGE LEVIATHAN',       p:4, m:'sea',  gm:'jade',   from:15, tier:5,
-  air:0, hp:440, atk:22, sz:1.06,
+ {n:'THE GORGE LEVIATHAN',       p:4, m:'sea',  gm:'jade',   at:0.0107, tier:5,
+  air:0, hp:632, atk:97, sz:1.06,
   v:'It went back under. The water settled.',
   w:'What is under the water at Three Forks when the water is high.'},
- {n:'THE STORM OVER TRAY',       p:5, m:'storm',gm:'ash',    from:10, tier:4,
-  air:1, hp:350, atk:18, sz:1.16,
+ {n:'THE STORM OVER TRAY',       p:5, m:'storm',gm:'ash',    at:0.0064, tier:4,
+  air:1, hp:557, atk:86, sz:1.16,
   v:'The cloud broke up and drifted off the ridge.',
   w:'An afternoon thunderhead that has been following the ridge since Unicoi.'},
- {n:'THE RIDGE WYRM',            p:6, m:'obsid',gm:'blood',  from:60, tier:8,
-  air:1, hp:750,atk:39, sz:1.02,
+ {n:'THE RIDGE WYRM',            p:6, m:'obsid',gm:'blood',  at:0.0290, tier:8,
+  air:1, hp:847, atk:139, sz:1.02,
   v:'It climbed into the wind and did not come back.',
   w:'It keeps to the thermals over the Nantahalas and comes down for a reason.'},
- {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   from:6, tier:3,
-  air:1, hp:260, atk:13, sz:0.98,
+ {n:'THE CARRION CROWN',         p:7, m:'ash',  gm:'bone',   at:0.0031, tier:3,
+  air:1, hp:473, atk:70, sz:0.98,
   v:'It lifted off and left you the trail.',
   w:'A vulture that has been on this ridge long enough to feel it is owed.'}];
 if(TR.boss) TR.boss.forEach((x,i)=>{ BOSS[i].n=x[0]; BOSS[i].w=x[1]; });
@@ -3535,7 +3535,8 @@ function _seedrnd(seed){ let x=seed>>>0;
 const BSCHED=(()=>{
  const r=_seedrnd(0x5EED17), out=[]; let m=1.1, last=-1;
  while(m<TOTAL-3){
-  let elig=[]; for(let i=0;i<BOSS.length;i++) if(BOSS[i].from<=m) elig.push(i);
+  let elig=[]; for(let i=0;i<BOSS.length;i++) if(BOSS[i].at*TOTAL<=m) elig.push(i);
+  if(!elig.length) elig=[BOSS.findIndex(B=>B.tier===1)];
   elig.sort((a,b)=>BOSS[a].tier-BOSS[b].tier);
   /* never the same thing twice running, as long as there is a choice */
   if(elig.length>1) elig=elig.filter(i=>i!==last);
@@ -3543,15 +3544,21 @@ const BSCHED=(()=>{
      come down. Without this the tier gate and the gear curve rise
      together and nothing ever gets away from you: 73 fights in the
      first 110 miles, 73 wins. This is where the losses live. */
-  if(r()<0.16){
+  if(r()<0.30){
    const ceil=Math.max.apply(null,elig.map(i=>BOSS[i].tier));
    const over=BOSS.map((b,i)=>i).filter(i=>BOSS[i].tier>ceil)
                   .sort((a,b)=>BOSS[a].tier-BOSS[b].tier).slice(0,2);
    if(over.length) elig=over;
   }
-  /* weighted to the strongest thing that lives this far up the trail */
-  const k=Math.min(elig.length-1,
-                   Math.floor(elig.length*(0.42+r()*0.70)));
+  /* Weighted to the strongest thing that lives this far up the trail,
+     but weighted, not sliced. The old form indexed into the eligible
+     list by a fraction of its length, so once the whole roster was
+     unlocked the bottom three of it could not come up at all: three of
+     the eight were only ever seen in the first eighty miles. */
+  let W=0; const w=elig.map((_,j)=>{
+   const v=Math.exp(1.4*j/Math.max(1,elig.length-1)); W+=v; return v; });
+  let rr=r()*W, k=0;
+  for(;k<w.length-1;k++){ rr-=w[k]; if(rr<0) break; }
   last=elig[k];
   let mm=m, guard=0;
   while(guard++<6 && TRAIL.some(L=>Math.abs(L.m-mm)<0.30)) mm+=0.40;
@@ -3572,31 +3579,43 @@ function nextBoss(mi){ for(const B of BSCHED) if(B.m>mi) return B; return null; 
 /* ---- how a fight goes ----
    Damage is quoted per hundred steps because that is the unit a walker
    thinks in, and divided down at the point of use. */
-function myDPS(t){ return (t.atk*0.55+t.mag*0.45)*(1+t.spd/100); }
-function myVigour(t){ return 80+t.def*6; }
+/* The constants here are the whole difficulty curve. Small ones mean
+   the margin in a fight goes as the CUBE of what you are wearing, so
+   the game flips from losing everything to winning everything over
+   about eighty points of gear with no middle to it. Bigger ones mean
+   kit still matters and still runs out of road: a starting walker
+   takes about a third of his fights, a half dressed one about half,
+   and the best kit in the game about nine in ten. */
+function myDPS(t){ return 30+(t.atk*0.55+t.mag*0.45)*(1+t.spd/210); }
+function myVigour(t){ return 400+t.def*5.6; }
 /* Eight creatures have to cover 2,197 miles, so the same creature is
    bigger the further north you meet it. Without this the roster tops
    out around mile 25 and nothing ever gets away again: 79 fights in the
    first 110 miles, one loss. Both curves flatten, because a full set of
    legendaries is only about twice a starting walker and an uncapped
    ramp would mean losing every fight in Virginia. */
-/* Tuned by sweeping both divisors and averaging eight runs each, because
-   a single run is noisy: one early loss changes the gear curve and every
-   fight after it. These give about 11 percent of fights getting away,
-   12/7/19 percent across the first, second and third hundred miles. */
-function bossHP(B,mi){ return B.hp*(1+Math.min(2.6,mi/280)); }
-function bossATK(B,mi){ return B.atk*(1+Math.min(1.8,mi/320)); }
-function bossDPS(B,t,mi){ return bossATK(B,mi)*100/(40+t.def); }
+/* Tuned over 30 simulated thru hikes against a target curve: a third
+   of fights won on starting kit, about half at half a set, seven in
+   ten at three quarters, and nine in ten on a full one. The Wyrm is
+   the far end of it at three in four with the best kit in the game and
+   nothing at all without. */
+/* Nearly flat on purpose. The old curve multiplied a boss by 3.6 over
+   the first 730 miles while the gear curve was finished by mile 70, so
+   the walk got harder every mile after that and the last thousand of
+   them were unwinnable. WHICH creature turned up is the difficulty
+   now, and the schedule above is what decides that. */
+function bossHP(B,mi){ return B.hp*(1+Math.min(0.65,mi/2300)); }
+function bossATK(B,mi){ return B.atk*(1+Math.min(1.2,mi/3500)); }
+function bossDPS(B,t,mi){ return bossATK(B,mi)*100/(92+t.def); }
 /* which body slot each category fills */
 /* ---------- the cairn ----------
    A piece you already own is left at the cairn and you take a stone for
    it. Stones claim a specific piece you have never found.
 
-   The roll cannot produce a legendary. r is Math.random()+tier*0.085, so
-   the best a tier 4 landmark can reach is 1.34 and legendary needs more
-   than that. That is deliberate now rather than accidental: the eight
-   legendaries are what the cairn is for, and the only pieces in the game
-   you get by choosing them instead of by luck.
+   The roll reaches a legendary only in the last third of the trail,
+   and rarely there. The eight of them are still what the cairn is for:
+   the only pieces in the game you get by choosing them instead of by
+   waiting for one to turn up.
 
    Rates are set against a full trail, not the prototype's 21 landmarks:
    about 420 chests, roughly 300 of them duplicates, which comes to about
@@ -4070,7 +4089,7 @@ let anim=null, chestQ=[];
 
 function startChest(){
  if(!chestQ.length) return;
- const L=chestQ[0], d=roll(L.t), R=RAR[d[2]];
+ const L=chestQ[0], d=roll(L.t,L.m), R=RAR[d[2]];
  const isNew=grant(d);
  anim={L,d,R,t0:performance.now(),done:false,sp:[]};
  const box=document.getElementById('chest');
@@ -4111,22 +4130,34 @@ function startChest(){
 
    A table instead of thresholds because the odds are then the thing
    you read and edit, rather than something you solve for. */
-const RARW=[[640,280, 70,  9, 1],
-            [560,310,110, 18, 2],
-            [470,330,160, 36, 4],
-            [395,342,195, 60, 8],
-            [315,335,245, 90,15]];
-function rollRar(tier){
- const w=RARW[Math.max(0,Math.min(RARW.length-1,tier|0))];
+/* Row 0 is a chest on Springer Mountain and row 7 is one in Maine. A
+   table indexed on the landmark alone finished the gear curve by mile
+   70 and left two thousand miles of nothing left to find. */
+const RARW=[[900,100,  0,  0, 0],
+            [780,215,  5,  0, 0],
+            [640,320, 40,  0, 0],
+            [500,370,125,  5, 0],
+            [380,380,220, 20, 0],
+            [280,350,310, 58, 2],
+            [200,300,370,120,10],
+            [140,250,400,180,30]];
+function rollRar(tier,mi){
+ const p=Math.min(1,Math.max(0,(mi||0)/TOTAL));
+ const lv=Math.max(0,Math.min(RARW.length-1,
+                   (tier|0)*0.43+Math.pow(p,1.10)*9.8));
+ const a=Math.floor(lv), b=Math.min(RARW.length-1,a+1), f=lv-a;
+ const w=RARW[a].map((x,i)=>x*(1-f)+RARW[b][i]*f);
  let s=0; for(const x of w) s+=x;
  let r=Math.random()*s;
  for(let i=0;i<w.length;i++){ r-=w[i]; if(r<0) return i; }
  return 0;
 }
-/* The mile you are at tilts the roll. It does not guarantee anything,
-   and a legendary can fall out of the first chest on Springer. */
-function roll(tier){
- let rar=rollRar(tier);
+/* The mile you are at tilts the roll, and it tilts it hard: nothing
+   above rare exists in the first few hundred miles, and the
+   legendaries are a Maine problem. The cairn is still the only place
+   you CHOOSE one instead of waiting for it. */
+function roll(tier,mi){
+ let rar=rollRar(tier,mi);
  /* about one chest in six holds a companion instead of a piece of kit */
  const pet=Math.random()<0.17;
  const pool=GEAR.filter(g=>(g[1]==='pet')===pet);
@@ -4516,13 +4547,20 @@ function resolveEnc(){
 let fightQ=[], banner=null;
 function startFight(sch){
  const B=BOSS[sch.b], v=myVigour(loadout()), hp=bossHP(B,sch.m);
- S.fight={b:sch.b,m:sch.m,hp:hp,hp0:hp,vig:v,vig0:v,steps:0,close:1};
+ /* How it goes is not settled by the kit alone. Both sides are linear
+    in steps, so without a swing here the same walker meeting the same
+    thing loses to it every single time, and that is eight hundred
+    steps spent on a foregone conclusion. One roll per FIGHT, not per
+    tick, or it averages itself back out to nothing. */
+ const sw=()=>1+(Math.random()-0.5)*0.45;
+ S.fight={b:sch.b,m:sch.m,hp:hp,hp0:hp,vig:v,vig0:v,steps:0,close:1,
+          f1:sw(),f2:sw()};
  banner={b:sch.b,t0:performance.now()};
  save();
 }
 function fightTick(n){
  const F=S.fight, B=BOSS[F.b], t=loadout();
- const my=myDPS(t)/100, th=bossDPS(B,t,F.m)/100;
+ const my=myDPS(t)/100*(F.f1||1), th=bossDPS(B,t,F.m)/100*(F.f2||1);
  /* Both sides are linear in steps, so the exact step it ends on can be
     solved for. Stepping the chunk and then testing reported every fight
     as a round multiple of the chunk size. */
@@ -4549,7 +4587,7 @@ function endFight(won){
      the cairn on its own, so bosses still feed it, at the rate
      everything else does. */
   if(Math.random()<0.40){
-   got=roll(Math.min(4,1+Math.round(B.tier*0.55)));
+   got=roll(Math.min(4,1+Math.round(B.tier*0.55)),F.m);
    const before=stones(); grant(got); gain=stones()-before;
   }
  }
