@@ -3402,7 +3402,24 @@ function step(dt,now){
  drift+=(15+surge*620)*dt/1000;
  drift-=drift*Math.min(1,dt*0.00055);
  if(drift>150) drift=150;
- if(Math.abs(d)>0.0004) shownMi+=d*Math.min(1,dt/900);
+ if(Math.abs(d)>0.0004){
+  const was=shownMi;
+  shownMi+=d*Math.min(1,dt/900);
+  /* On a big catch up the walker covers a good part of a mile a frame,
+     enough to step right over a landmark and leave its sign behind him
+     before the chest is checked. If this frame would carry him past the
+     next waiting chest, he stops level with it instead, and chestWatch
+     opens it on the next frame. Only when he was short of it to begin
+     with, so a chest held back by a fight card never freezes the view.
+     While a chest is open it is chestQ[0], and the one to stop at is the
+     one after it: he keeps walking under the card, and used to be past
+     the next sign by the time it closed. */
+  const nxC=chestQ[anim?1:0];
+  if(nxC){
+   const stop=(nxC.m*RPM-drift-walkDD)/RPM;
+   if(was<=stop&&shownMi>stop) shownMi=stop;
+  }
+ }
  walkPhase+=dt/330*(1+surge*4.5);
  const camY=camWY(), camX=trailX(camY);
  /* Exactly as much tilt as it takes to bring the walker's own patch
@@ -4087,8 +4104,26 @@ const fx=document.getElementById('fx'), fg=fx.getContext('2d');
 const fxh=document.getElementById('fxhi'), hg=fxh.getContext('2d');
 let anim=null, chestQ=[];
 
+/* The chest opens as he walks past the sign, not on a timer.
+   It is queued off real steps in advance(), but the picture eases
+   toward real mileage behind that, so a fixed delay fired it whenever
+   the clock said: on a big catch up he was still miles short of the
+   landmark, and on a small one the sign had already gone off the
+   bottom of the screen. Level with the walker is walkDD in front of
+   the camera, the same yardstick the encounter box uses. */
+/* +2: walkDD and drift both settle a hair between the step that stops
+   him at the sign and the next frame's check, and without the slack he
+   stood at the sign for a few frames before it opened */
+function chestReached(L){ return camWY()-rowOfMile(L.m)<=walkDD+2; }
+function chestWatch(){
+ if(!chestQ.length||anim||bend.classList.contains('open')) return;
+ if(chestReached(chestQ[0])) startChest();
+}
 function startChest(){
- if(!chestQ.length) return;
+ if(!chestQ.length||anim) return;
+ /* the old timed callers still land here; too early and the watch
+    in the frame loop picks it up when he gets there */
+ if(!chestReached(chestQ[0])) return;
  const L=chestQ[0], d=roll(L.t,L.m), R=RAR[d[2]];
  const isNew=grant(d);
  anim={L,d,R,t0:performance.now(),done:false,sp:[]};
@@ -4445,7 +4480,6 @@ function hud(){
 function addSteps(n){
  n=Math.max(0,n|0);
  while(n>0){ const take=Math.min(n,120); advance(take); n-=take; }
- if(chestQ.length && !anim) setTimeout(startChest,1100);
  if(fightQ.length && !anim) setTimeout(showFightEnd,900);
 }
 function advance(n){
@@ -5041,7 +5075,7 @@ let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
  if(mBus) musMode(S.fight?'fight':'walk');
- encWatch();
+ encWatch(); chestWatch();
  try{ step(dt,now); paint(now,dt); bannerTick(now); toastTick(now);
       /* whatever is left of the frame goes into baking what is coming */
       bakeBudget(Math.max(2,9-(performance.now()-now))); }
