@@ -1472,7 +1472,7 @@ const BILL_NEAR=40;
 /* Where the walker stands, in units ahead of the camera. Written by
    the draw each frame; around 90, but it moves with the ground
    because his distance is chosen to put his feet on the trail. */
-let walkDD=90;
+let walkDD=90, walkAt=90;  /* walkAt: where he is drawn this frame, unsmoothed */
 const FGRID=150;              /* one possible fall per cell this size */
 const FLEN=88, FSTEPS=44;     /* how far it runs, and in how many steps */
 function fallsNear(ox,oy){
@@ -2732,6 +2732,24 @@ function _shrink(S,h2){
  }
  return {w:w2,h:h2,px:out};
 }
+/* Fill single pixel pinholes: a see-through pixel with solid canopy on
+   all four sides. The tree art leaves a dozen or so of these in every
+   canopy and _shrink carries them down to every size, and on screen
+   they are the light speckles in the forest where the ground behind
+   shows through. A pinhole is never meant, so it is filled with the
+   average of its four neighbours. Silhouettes are left alone. */
+function _plug(S){
+ const {w,h,px}=S, so=i=>(px[i]>>>24)>=128, fill=[];
+ for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+  const i=y*w+x;
+  if(so(i)||!so(i-1)||!so(i+1)||!so(i-w)||!so(i+w)) continue;
+  let r=0,g2=0,b=0;
+  for(const j of [i-1,i+1,i-w,i+w]){const c=px[j]; r+=c&255; g2+=(c>>>8)&255; b+=(c>>>16)&255;}
+  fill.push(i,0xff000000|((b>>2)<<16)|((g2>>2)<<8)|(r>>2));
+ }
+ for(let k=0;k<fill.length;k+=2) px[fill[k]]=fill[k+1];
+ return S;
+}
 const MIP=new Map();
 function treePix(spc,hgt,B,tint,blaze,vr){
  const key='T'+spc+tint+(blaze?1:0)+vr;
@@ -2740,9 +2758,9 @@ function treePix(spc,hgt,B,tint,blaze,vr){
  const hb=Math.min(CANON,tbucket(hgt));
  let S=M.get(hb); if(S) return S;
  let base=M.get(CANON);
- if(!base){ base=pixOf(key+'|b',treeSprite(spc,CANON,B,[0,0,0],0,tint,blaze,vr));
+ if(!base){ base=_plug(pixOf(key+'|b',treeSprite(spc,CANON,B,[0,0,0],0,tint,blaze,vr)));
             M.set(CANON,base); }
- S=(hb>=CANON)?base:_shrink(base,hb);
+ S=(hb>=CANON)?base:_plug(_shrink(base,hb));
  M.set(hb,S); return S;
 }
 /* ---- the fire tower ----
@@ -3295,7 +3313,7 @@ function paint(now,dt){
   /* How far the clamp moved him. Anything that walks with him moves
      the same amount, or it keeps its own honest position while he is
      held and the two drift into each other. */
-  const slide=sy-rawSy;
+  const slide=sy-rawSy; walkAt=dd;
   /* Constant, and it stays constant. Scaling this by the solved
      distance made him flicker: climberAt turns image smoothing on
      below 64 pixels, so a height wandering either side of 64 swapped
@@ -3416,7 +3434,7 @@ function step(dt,now){
      the next sign by the time it closed. */
   const nxC=chestQ[anim?1:0];
   if(nxC){
-   const stop=(nxC.m*RPM-drift-walkDD)/RPM;
+   const stop=(nxC.m*RPM-drift-walkAt)/RPM;
    if(was<=stop&&shownMi>stop) shownMi=stop;
   }
  }
@@ -4114,10 +4132,24 @@ let anim=null, chestQ=[];
 /* +2: walkDD and drift both settle a hair between the step that stops
    him at the sign and the next frame's check, and without the slack he
    stood at the sign for a few frames before it opened */
-function chestReached(L){ return camWY()-rowOfMile(L.m)<=walkDD+2; }
+/* walkAt, not walkDD: walkDD is eased for the encounter box, and on
+   hilly ground it ran up to a hundred units off where he is actually
+   drawn, so the sign could be well ahead of or behind him when the bar
+   filled. This is the distance he is drawn at. */
+function chestReached(L){ return camWY()-rowOfMile(L.m)<=walkAt+2; }
 function chestWatch(){
  if(!chestQ.length||anim||bend.classList.contains('open')) return;
- if(chestReached(chestQ[0])) startChest();
+ const L=chestQ[0];
+ if(!chestReached(L)) return;
+ /* The distance he is drawn at hops a little from frame to frame, so
+    he can land a few dozen units past the sign on the frame he is
+    stopped at it. Pull the view back by that much, so the frame under
+    the opening chest has the sign level with him. Only a frame's worth:
+    anything more means he walked past it on purpose (a fight card was
+    up), and snapping back a long way would be a jump. */
+ const over=walkAt-(camWY()-rowOfMile(L.m));
+ if(over>2&&over<400) shownMi-=over/RPM;
+ startChest();
 }
 function startChest(){
  if(!chestQ.length||anim) return;
@@ -4459,18 +4491,50 @@ function hud(){
   return;
  }
  nn.style.color=''; fl.style.background='';
+ _nbKey=''; nextBar();
+}
+/* The bar to the next landmark runs off where the walker is on screen,
+   not off the step count. Steps land in a lump and the walker eases
+   after them, so a bar on real miles hit the landmark and flipped to
+   the next one the moment you tapped, and the chest then opened a
+   couple of seconds later when he actually got there, which read as
+   the chest being late. Called every frame; it only touches the DOM
+   when something it shows has changed. The mile count up top is still
+   your real steps. */
+let _nbKey='';
+function walkerMi(){ return Math.max(0,Math.min(miles(),(progress()+walkAt)/RPM)); }
+function nextBar(){
+ if(S.fight) return;
+ const mi=walkerMi();
  let prev={m:0}, next=null;
  for(const L of TRAIL){ if(L.m<=mi) prev=L; else {next=L;break;} }
- if(next){
-  document.getElementById('nextname').textContent=next.n;
-  document.getElementById('nextdist').textContent=(next.m-mi).toFixed(1)+' MI';
-  document.getElementById('fill').style.width=
-   Math.max(0,Math.min(100,((mi-prev.m)/Math.max(.01,next.m-prev.m))*100)).toFixed(1)+'%';
- }else{
-  document.getElementById('nextname').textContent='THRU HIKE COMPLETE';
-  document.getElementById('nextdist').textContent='PICK A TRAIL \u25b2';
+ const name=next?next.n:'THRU HIKE COMPLETE';
+ /* Rounded UP, and in feet for the last tenth of a mile. Rounded to the
+    nearest tenth it read 0.0 MI from about a hundred steps out, so the
+    bar said you were there several taps before the chest could open.
+    Now it reaches zero on the step the chest opens. */
+ const rem=next?Math.max(0,next.m-mi):0;
+ const dist=!next?'PICK A TRAIL \u25b2'
+  :rem>=0.1?(Math.ceil(rem*10)/10).toFixed(1)+' MI'
+  :Math.max(10,Math.ceil(rem*5280/10)*10)+' FT';
+ /* held just short of full until he is there, so a full bar always
+    means the chest is opening */
+ const pct=next?Math.max(0,Math.min(98.5,((mi-prev.m)/Math.max(.01,next.m-prev.m))*100)).toFixed(1)+'%':'100%';
+ /* The landmark you are standing at, chest open or waiting behind a
+    fight card: the bar is full and says so. This is the only time it
+    is full, so the end of the bar and the chest are the same moment. */
+ const at=anim?anim.L:(chestQ.length&&chestReached(chestQ[0])?chestQ[0]:null);
+ const key=at?at.n+'|HERE|100%':name+'|'+dist+'|'+pct;
+ if(key===_nbKey) return; _nbKey=key;
+ if(at){
+  document.getElementById('nextname').textContent=at.n;
+  document.getElementById('nextdist').textContent='HERE';
   document.getElementById('fill').style.width='100%';
+  return;
  }
+ document.getElementById('nextname').textContent=name;
+ document.getElementById('nextdist').textContent=dist;
+ document.getElementById('fill').style.width=pct;
 }
 /* ---- walking ----
    Steps arrive in one lump after a day away, so they are fed through in
@@ -5075,7 +5139,7 @@ let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
  if(mBus) musMode(S.fight?'fight':'walk');
- encWatch(); chestWatch();
+ encWatch(); chestWatch(); nextBar();
  try{ step(dt,now); paint(now,dt); bannerTick(now); toastTick(now);
       /* whatever is left of the frame goes into baking what is coming */
       bakeBudget(Math.max(2,9-(performance.now()-now))); }
