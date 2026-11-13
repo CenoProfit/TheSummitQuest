@@ -1306,6 +1306,7 @@ function sqDailyQuote(){
     <div style="text-align:center;padding:0 0 12px">
       <button class="opt-i on mus-toggle mus-standalone" id="musBtnW">MUSIC: ON</button>
       <button class="opt-i mus-standalone theme-toggle" id="themeBtnW">THEME: DARK</button>
+      <button class="opt-i mus-standalone" id="tutBtnW">TUTORIAL</button>
     </div>
   </div>
 </div>
@@ -9038,6 +9039,9 @@ let healthToday=0, healthOK=false;
 
 const TUT_MARK=(()=>{const m=document.querySelector('.splashmark');
  return m?m.getAttribute('src'):'';})();
+/* counted, not typed: the page said 482 places long after it was 460 */
+const TUT_N=(()=>{ try{ return {r:RIDS.length,
+ q:RIDS.reduce((s,id)=>s+REGIONS[id].quests.length,0)}; }catch(e){ return {r:11,q:460}; } })();
 const TUT_PAGES=[
 {h:'',html:`
  <div class="tut-open">
@@ -9062,7 +9066,7 @@ const TUT_PAGES=[
    <span style="font-size:24px;line-height:1">🗺</span>
    <div>
     <div style="font-family:var(--pix);font-size:10px;letter-spacing:2px;color:var(--gold);line-height:1.6">THE HIKING MAP</div>
-    <p class="tut-p" style="margin:7px 0 0">482 real places. You clear one by
+    <p class="tut-p" style="margin:7px 0 0">${TUT_N.q} real places. You clear one by
      <b>standing there</b>, and the phone checks. Asks for a day.</p>
    </div>
   </div>
@@ -9072,8 +9076,8 @@ const TUT_PAGES=[
    <span style="font-size:24px;line-height:1">🥾</span>
    <div>
     <div style="font-family:var(--pix);font-size:10px;letter-spacing:2px;color:var(--gold);line-height:1.6">TREK MODE</div>
-    <p class="tut-p" style="margin:7px 0 0">The 2,197 miles of the Appalachian Trail,
-     walked with <b>your daily step count</b>. Asks for nothing extra.</p>
+    <p class="tut-p" style="margin:7px 0 0">Five long trails, the Appalachian Trail
+     first, walked with <b>your daily step count</b>. Asks for nothing extra.</p>
    </div>
   </div>
  </div>
@@ -9090,7 +9094,7 @@ const TUT_PAGES=[
    <div style="font-size:11px;color:var(--dim)">26/61 cleared · 940 XP · 5 badges · 2/7 bosses</div>
   </div>
  </div>
- <div class="tut-cap">Eleven regions. Each keeps its own rank and cleared list.
+ <div class="tut-cap">${TUT_N.r} regions. Each keeps its own rank and cleared list.
   Search by state, range or town.</div>`},
 {h:'2 · READ THE MAP',html:`
  <p class="tut-p">Every pin is a real place. The colour is the kind of outing.</p>
@@ -9187,7 +9191,8 @@ const TUT_PAGES=[
  </div>
  <p class="tut-p"><b>REGIONS</b> goes back to the country map. Nothing is lost by
   leaving.</p>
- <div class="tut-cap">⚙ OPTIONS, beside FILTER, holds time of day, labels and your save.</div>`},
+ <div class="tut-cap">⚙ OPTIONS, beside FILTER, holds time of day, labels, the
+  <b>THEME</b> and your save.</div>`},
 {h:'9 · MAKE YOUR CLIMBER',html:`
  <p class="tut-p"><b>☰ MENU → 🧗 CLIMBERS</b>. Pick a name and one of five climbers.</p>
  <div class="tut-shot">
@@ -9219,6 +9224,36 @@ const TUT_PAGES=[
    background-size:16px 16px;background-position:0 0,8px 8px"></canvas>
  </div>
  <p class="tut-p">The background is transparent, so it sits <b>over your own photo</b>.</p>`},
+{h:'11 · WALK A LONG TRAIL',html:`
+ <p class="tut-p">Tap <b>TREK MODE</b> on the region screen. Your steps walk you along a
+  real long trail, about 2,100 to the mile.</p>
+ <div class="tut-shot">
+  <div style="font-family:var(--pix);font-size:8px;letter-spacing:1px;line-height:2.3;color:var(--dim)">
+   <div style="color:var(--gold)">★ APPALACHIAN TRAIL · 2,197 MI</div>
+   <div>PACIFIC CREST TRAIL · 2,653 MI</div>
+   <div>CONTINENTAL DIVIDE · 3,028 MI</div>
+   <div>NORTH COUNTRY TRAIL · 4,800 MI</div>
+   <div>MOUNTAINS-TO-SEA · 1,175 MI</div>
+  </div>
+ </div>
+ <p class="tut-p">Tap the trail name at the top to switch. Each trail keeps its own
+  miles; your pack comes with you.</p>`},
+{h:'12 · CHESTS, GEAR, TRAIL BOSSES',html:`
+ <p class="tut-p">The bar counts down to the next landmark. When it fills, you are
+  there, and a chest opens.</p>
+ <div class="tut-shot">
+  <div class="tut-row" style="justify-content:space-between;margin-bottom:8px">
+   <span style="font-family:var(--pix);font-size:9px;color:var(--gold)">A TENT SITE</span>
+   <span style="font-family:var(--pix);font-size:9px;color:var(--ink)">250 FT</span>
+  </div>
+  <div class="tut-bar"><i style="width:94%"></i></div>
+ </div>
+ <p class="tut-p">What you find goes in the <b>PACK</b>. ATK, DEF, SPD and MAG decide how
+  a fight with a trail boss goes. A piece you already own becomes stones, and stones
+  claim one you have never found.</p>
+ <div class="tut-cap">A boss that gets away costs nothing; your steps still count. The
+  <b>JOURNAL</b> keeps every landmark and fight, and the ☼ button in its corner switches
+  between the dark and bright themes.</div>`},
 {h:'',html:`
  <div class="tut-final">
   <img alt="Summit Quest" src="${TUT_MARK}">
@@ -9448,6 +9483,9 @@ function paintSplashMap(){
        if(w&&w.trekTheme) w.trekTheme(t); }catch(e){}
  }
  for(const b of document.querySelectorAll('.theme-toggle')) b.onclick=()=>set(isL()?'dark':'light');
+ /* the region picker's way back into the tutorial, beside music and theme */
+ const tw=document.getElementById('tutBtnW');
+ if(tw) tw.onclick=()=>{ if(window.openTutorial) window.openTutorial(true); };
  addEventListener('storage',e=>{ if(e.key===THKEY&&e.newValue) apply(e.newValue); });
  apply(isL()?'light':'dark');
 })();
