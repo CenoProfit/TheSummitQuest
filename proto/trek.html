@@ -55,7 +55,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .mile small{font-size:8px;color:var(--dim);letter-spacing:2px}
 .biome{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
  gap:4px 10px;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
-.bpct{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--gold);
+.bpct{font-family:var(--pix);font-size:8px;letter-spacing:0;color:var(--gold);
  white-space:nowrap;flex:none}
 .btm{margin-top:auto;padding:8px 11px 9px}
 .nextrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:7px}
@@ -79,7 +79,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .wakedot.on{background:var(--xp);box-shadow:0 0 5px rgba(116,232,79,.8)}
 .statstrip{display:flex;gap:6px;flex:1 0 100%;order:3;
  justify-content:space-between;min-width:0}
-.sc{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim);
+.sc{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--dim);
  white-space:nowrap}
 .sc b{font-weight:normal;font-size:9px}
 /* the kit, six slots, tap to open the pack */
@@ -101,7 +101,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
    real game whatever the flag said. This has to be spelled out. */
 .dev{margin-top:8px;display:flex;gap:6px}
 .dev[hidden]{display:none}
-.btn{font-family:var(--pix);font-size:7px;letter-spacing:1px;padding:8px 7px;flex:1;
+.btn{font-family:var(--pix);font-size:8px;letter-spacing:1px;padding:8px 7px;flex:1;
  background:var(--solid2);color:var(--ink);border:2px solid var(--edge2);cursor:pointer;
  box-shadow:2px 2px 0 rgba(0,0,0,.6)}
 .btn:active{transform:translate(2px,2px);box-shadow:none}
@@ -131,13 +131,29 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .ptitle{font-family:var(--pix);font-size:11px;letter-spacing:3px;color:var(--gold);flex:1;
  text-shadow:2px 2px 0 rgba(0,0,0,.8)}
 .pcount{font-family:var(--pix);font-size:8px;color:var(--dim);letter-spacing:1px}
-.pstones{font-family:var(--pix);font-size:8px;color:var(--gold);letter-spacing:1px;
- white-space:nowrap;flex:none}
+/* The stones used to be a small number in the corner of the header with
+   nothing saying what it counted. They are a block of their own now,
+   under the stats: the count large, the word under it, and one line on
+   what they are for. */
+.pstones{flex:none;display:flex;align-items:center;gap:11px;padding:8px 10px;
+ border:2px solid var(--gold);background:rgba(60,46,12,.42)}
+.pstn{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none;min-width:64px}
+.pstn b{font-family:var(--pix);font-size:16px;font-weight:normal;color:var(--gold);
+ letter-spacing:1px;white-space:nowrap;text-shadow:2px 2px 0 rgba(0,0,0,.6)}
+.pstn span{font-family:var(--pix);font-size:8px;letter-spacing:2px;color:var(--gold)}
+.psth{font-size:11px;line-height:1.55;color:var(--dim)}
+/* in the tall column on a wide screen: the count on one line over the note */
+@media(min-width:561px){
+ .pstones{flex-direction:column;align-items:stretch;gap:7px;text-align:center}
+ .pstn{flex-direction:row;justify-content:center;align-items:baseline;gap:8px}
+}
+html[data-theme=light] .pstones{background:#f7e9c4}
+html[data-theme=light] .pstn b{text-shadow:none}
 .pclose{flex:0 0 auto;width:auto;padding:7px 11px}
 .pbody{flex:1;display:flex;gap:14px;min-height:0}
 
 /* the left column: a paper doll with the slots either side of it */
-.pleft{flex:0 0 212px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.pleft{flex:0 0 266px;display:flex;flex-direction:column;gap:10px;min-height:0}
 .doll{position:relative;flex:0 0 auto;border:2px solid var(--edge2);
  background:
   radial-gradient(70% 55% at 50% 38%,rgba(120,160,210,.16),transparent 70%),
@@ -147,7 +163,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .doll canvas{image-rendering:pixelated;filter:drop-shadow(0 4px 0 rgba(0,0,0,.45))}
 .dollbase{position:absolute;left:18%;right:18%;bottom:9px;height:6px;border-radius:50%;
  background:radial-gradient(50% 100% at 50% 50%,rgba(0,0,0,.55),transparent 70%)}
-.slots{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;min-height:0}
+.slots{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;overflow-y:auto;min-height:0;min-width:0}
 .pslot{display:flex;align-items:center;gap:7px;border:2px solid #243246;
  background:linear-gradient(180deg,rgba(26,38,54,.75),rgba(14,22,33,.75));
  padding:5px 6px;cursor:pointer;min-height:40px;position:relative}
@@ -158,23 +174,23 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .statbar{display:grid;grid-template-columns:1fr 1fr;gap:5px;flex:none;margin-top:2px}
 .stat{display:flex;justify-content:space-between;align-items:baseline;gap:6px;
  border:2px solid #243246;background:rgba(0,0,0,.26);padding:5px 7px;
- font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim)}
+ font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--dim)}
 .stat b{font-size:10px;font-weight:normal}
 /* the same four numbers on one line, for a single piece */
 .srow{display:flex;flex-wrap:wrap;gap:4px 9px;margin-top:7px;
- font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim)}
+ font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--dim)}
 .srow span b{font-weight:normal;font-size:9px}
 .pslot canvas{flex:0 0 auto;image-rendering:pixelated}
 .pslotxt{font-size:9px;line-height:1.3;letter-spacing:.5px;overflow:hidden;min-width:0}
-.pslotxt b{display:block;font-family:var(--pix);font-size:6px;color:#6d7d92;
- letter-spacing:1px;margin-bottom:3px}
+.pslotxt b{display:block;font-family:var(--pix);font-size:8px;color:#6d7d92;
+ letter-spacing:0;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pslotxt span{color:var(--ink);word-break:break-word;display:block;
  overflow:hidden;text-overflow:ellipsis}
 
 /* the right column: tabs, grid, and the piece you are looking at */
 .pright{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 .ptabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
-.ptab{font-family:var(--pix);font-size:6px;letter-spacing:1px;padding:7px 7px;
+.ptab{font-family:var(--pix);font-size:8px;letter-spacing:1px;padding:7px 7px;
  background:linear-gradient(180deg,#1b2736,#121a26);border:2px solid #243246;
  color:#73839a;cursor:pointer}
 .ptab.on{border-color:var(--gold);color:var(--gold);
@@ -201,7 +217,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 @keyframes ember{0%,100%{box-shadow:0 0 12px rgba(var(--au),.22),inset 0 0 8px rgba(var(--au),.12)}
  50%{box-shadow:0 0 22px rgba(var(--au),.44),inset 0 0 15px rgba(var(--au),.24)}}
 .cell.sel{outline:2px solid #8fb6e8;outline-offset:1px}
-.cell .dup{position:absolute;right:2px;bottom:1px;font-family:var(--pix);font-size:6px;
+.cell .dup{position:absolute;right:2px;bottom:1px;font-family:var(--pix);font-size:8px;
  color:var(--ink);text-shadow:1px 1px 0 #000;z-index:2}
 .pdetail{margin-top:9px;border:2px solid #243246;
  background:linear-gradient(180deg,rgba(26,38,54,.72),rgba(10,16,25,.72));
@@ -215,8 +231,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .dtxt{flex:1;min-width:0;line-height:1.6}
 .dtxt b{font-family:var(--pix);font-size:9px;letter-spacing:1px;display:block;
  margin-bottom:6px;text-shadow:2px 2px 0 rgba(0,0,0,.7)}
-.rr{font-family:var(--pix);font-size:6px;letter-spacing:1px}
-.wearbtn{display:block;margin-top:10px;font-family:var(--pix);font-size:7px;letter-spacing:1px;
+.rr{font-family:var(--pix);font-size:8px;letter-spacing:1px}
+.wearbtn{display:block;margin-top:10px;font-family:var(--pix);font-size:8px;letter-spacing:1px;
  padding:8px 12px;background:var(--solid2);color:var(--ink);
  border:2px solid var(--edge2);cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.6)}
 .wearbtn.on{border-color:var(--gold);color:var(--gold)}
@@ -229,10 +245,25 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  .pleft{flex:0 0 auto;flex-direction:row;flex-wrap:wrap;gap:8px}
  .statbar{flex:1 0 100%;grid-template-columns:repeat(4,1fr)}
  .doll{flex:0 0 132px;height:132px}
- .slots{flex:1;grid-template-columns:1fr 1fr}
+ .slots{flex:1;min-width:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ /* full rows when the column wraps; in the tall desktop column a
+    100 percent basis meant 100 percent of the height, and the stones
+    and the share button pushed everything else out of the pack */
+ .pstones,.kshare{flex:1 0 100%}
  .pgrid{grid-template-columns:repeat(auto-fill,60px);gap:5px}
  .cell{width:60px;height:60px}
  .dart{width:84px;height:84px}
+}
+/* On a phone the slot names, at 8px, did not fit two to a row beside
+   the doll: COMPANION needs 72 pixels and had 57. The slots take the
+   full width under the doll instead, and the four numbers sit beside
+   the doll in a square, where there was empty space before. */
+@media(max-width:440px){
+ .statbar{flex:1 1 0;order:1;grid-template-columns:1fr 1fr;align-content:center;margin-top:0}
+ .doll{order:0}
+ .slots{flex:1 0 100%;order:2}
+ .pstones{order:3}
+ .kshare{order:4}
 }
 
 /* ---- chest ---- */
@@ -247,7 +278,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  margin-bottom:12px;opacity:0;transition:opacity .5s}
 .clmn{display:block;font-size:13px;line-height:1.5;color:var(--gold);letter-spacing:3px;
  text-shadow:2px 2px 0 rgba(0,0,0,.8)}
-.clmm{display:block;font-size:7px;letter-spacing:2px;line-height:2.1;margin-top:9px}
+.clmm{display:block;font-size:8px;letter-spacing:2px;line-height:2.1;margin-top:9px}
 .clore{font-size:12px;line-height:1.8;color:#bac6d4;max-width:430px;
  margin:0 auto 16px;opacity:0;transition:opacity .6s}
 .cdiv{width:54px;height:2px;background:var(--edge2);margin:0 auto 16px;
@@ -294,11 +325,35 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 #bbanner.on{opacity:1;transform:none}
 .bbname{display:block;font-family:var(--pix);font-size:11px;letter-spacing:3px;
  color:#ffb49a;text-shadow:2px 2px 0 rgba(0,0,0,.8);line-height:1.7}
-.bbsub{display:block;margin-top:7px;font-family:var(--pix);font-size:7px;
+.bbsub{display:block;margin-top:7px;font-family:var(--pix);font-size:8px;
  letter-spacing:3px;color:#e0806a}
-#bend{position:fixed;inset:0;z-index:32;display:none;align-items:center;
+#bend,#pick{position:fixed;inset:0;z-index:32;display:none;align-items:center;
  justify-content:center;padding:18px;background:rgba(3,6,11,.93)}
-#bend.open{display:flex}
+#bend.open,#pick.open{display:flex}
+/* ---- the kit card ---- */
+.kshare{flex:none;margin-top:2px;color:var(--gold);border-color:var(--gold);padding:10px 8px}
+#shview{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;
+ justify-content:center;gap:12px;padding:16px;background:rgba(3,6,11,.94)}
+#shview.open{display:flex}
+#shview canvas{max-width:100%;max-height:62vh;width:auto;height:auto;image-rendering:pixelated;
+ background:#20242c;background-image:linear-gradient(45deg,#2c313a 25%,transparent 25%,transparent 75%,#2c313a 75%),
+ linear-gradient(45deg,#2c313a 25%,transparent 25%,transparent 75%,#2c313a 75%);
+ background-size:16px 16px;background-position:0 0,8px 8px}
+#shview .pbtns{width:100%;max-width:420px}
+.shhint{font-size:11px;line-height:1.7;color:var(--dim);text-align:center;max-width:420px}
+html[data-theme=light] #shview{background:rgba(242,237,226,.96)}
+/* the choice card: the fight card's layout with two ways out */
+#pick .bres{color:var(--gold);text-shadow:2px 2px 0 rgba(0,0,0,.8);line-height:1.7;font-size:11px}
+#part{width:150px;height:150px;image-rendering:pixelated;
+ filter:drop-shadow(0 5px 0 rgba(0,0,0,.5))}
+#part.none{display:none}
+.podds{font-family:var(--pix);font-size:9px;letter-spacing:2px;margin:2px 0 12px}
+.pways{display:flex;flex-direction:column;gap:7px;margin:0 auto 16px;max-width:360px;
+ text-align:left;font-size:11px;line-height:1.6;color:var(--dim)}
+.pways b{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--ink);font-weight:normal}
+.pbtns{display:flex;gap:8px}
+.pbtns .btn{padding:12px 6px;font-size:8px}
+.pbtns .pgo{color:var(--gold);border-color:var(--gold)}
 .bcard{width:100%;max-width:420px;text-align:center}
 #bart{width:168px;height:168px;image-rendering:pixelated;
  filter:drop-shadow(0 5px 0 rgba(0,0,0,.5))}
@@ -328,11 +383,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .jrow.jmet{border-color:#2f4a63;background:rgba(10,26,40,.30)}
 .jhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .jn{font-family:var(--pix);font-size:9px;letter-spacing:2px;color:var(--gold);line-height:1.75}
-.jd{font-family:var(--pix);font-size:7px;letter-spacing:1px;color:var(--dim);flex:none}
-.jm{font-family:var(--pix);font-size:7px;letter-spacing:1px;line-height:2.1;
+.jd{font-family:var(--pix);font-size:8px;letter-spacing:1px;color:var(--dim);flex:none}
+.jm{font-family:var(--pix);font-size:8px;letter-spacing:1px;line-height:2.1;
  color:var(--dim);margin-top:7px}
 .jw{font-size:11px;line-height:1.75;color:#bac6d4;margin-top:8px}
-.jg{font-family:var(--pix);font-size:7px;letter-spacing:1px;line-height:2;
+.jg{font-family:var(--pix);font-size:8px;letter-spacing:1px;line-height:2;
  color:var(--dim);margin-top:9px}
 .jempty{font-size:11px;line-height:1.75;color:var(--dim);padding:8px 2px}
 /* These have to live after .btn or they lose to it: both selectors are
@@ -345,19 +400,19 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
 .tgo{margin-top:11px;width:100%}
 .tgo[disabled]{opacity:.55;cursor:default}
 .jrow.tcur{border-color:var(--gold)}
-/* Below 360 there is simply not room for three buttons pinned to the
+/* Below 370 (360 before the small type went to 8px) there is simply not room for three buttons pinned to the
    bottom right AND a column of text beside them: the text was running
    underneath them whatever was trimmed. They drop into the flow on
    their own row instead, which costs a few pixels of height and
    removes every overlap. */
-@media(max-width:360px){
+@media(max-width:370px){
  .top{padding-right:11px}
- .trailname{font-size:7px;letter-spacing:1px;margin-right:0}
+ .trailname{font-size:8px;letter-spacing:1px;margin-right:0}
  .trailname>span:first-child{padding:4px 6px}
  .tchev{font-size:9px;padding:0 6px}
  .topbtns{position:static;margin-top:7px;gap:5px;justify-content:flex-end}
  .topbtns .btn{padding:7px 7px}
- .bpct{font-size:7px}
+ .bpct{font-size:8px}
 </style>
 <style id="themes">
 /* ---- bright theme ----
@@ -433,7 +488,9 @@ html[data-theme=light] #bbanner{background:rgba(252,236,230,.95);border-color:#c
  box-shadow:0 0 0 2px rgba(251,248,241,.6),4px 4px 0 2px rgba(60,48,28,.16)}
 html[data-theme=light] .bbname{color:#a63d24}
 html[data-theme=light] .bbsub{color:#c25a40}
-html[data-theme=light] #bend{background:rgba(242,237,226,.95)}
+html[data-theme=light] :is(#bend,#pick){background:rgba(242,237,226,.95)}
+html[data-theme=light] #pick .bres{text-shadow:none}
+html[data-theme=light] #part{filter:drop-shadow(0 5px 0 rgba(60,48,28,.2))}
 html[data-theme=light] #bart{filter:drop-shadow(0 5px 0 rgba(60,48,28,.2))}
 html[data-theme=light] :is(.jsum,.jrow){background:rgba(255,255,255,.5)}
 html[data-theme=light] .jrow.jwon{border-color:#d9a596;background:rgba(250,228,220,.6)}
@@ -520,6 +577,28 @@ try{ if(localStorage.getItem('sq_trek_theme')==='light') document.documentElemen
     <button class="btn" id="bok">KEEP WALKING ▶</button>
   </div>
 </div>
+<div id="shview">
+  <canvas id="shcard"></canvas>
+  <div class="pbtns">
+    <button class="btn" id="shclose">CLOSE</button>
+    <button class="btn pgo" id="shsave">SAVE IMAGE &#9650;</button>
+  </div>
+  <div class="shhint" id="shhint">Transparent PNG, 1080 &times; 1350. Lay it over a photo from your walk.</div>
+</div>
+<div id="pick">
+  <div class="bcard">
+    <canvas id="part"></canvas>
+    <div class="bres" id="pres"></div>
+    <div class="bname" id="pname"></div>
+    <div class="bflav" id="pflav"></div>
+    <div class="podds" id="podds"></div>
+    <div class="pways" id="pways"></div>
+    <div class="pbtns">
+      <button class="btn" id="pno"></button>
+      <button class="btn pgo" id="pyes"></button>
+    </div>
+  </div>
+</div>
 
 <div id="journal">
   <div class="pbar">
@@ -547,7 +626,6 @@ try{ if(localStorage.getItem('sq_trek_theme')==='light') document.documentElemen
   <div class="pbar">
     <span class="ptitle">★ THE PACK</span>
     <span class="pcount" id="pcount">0 / 115</span>
-    <span class="pstones" id="pstones">&#9650; 0</span>
     <button class="btn pclose thmbtn" title="theme">&#9788;</button>
     <button class="btn pclose" id="pclose">✕</button>
   </div>
@@ -556,6 +634,11 @@ try{ if(localStorage.getItem('sq_trek_theme')==='light') document.documentElemen
       <div class="doll"><canvas id="doll"></canvas><div class="dollbase"></div></div>
       <div class="slots" id="pleft"></div>
       <div class="statbar" id="statbar"></div>
+      <div class="pstones" id="pstonebox">
+        <div class="pstn"><b id="pstones">0</b><span>STONES</span></div>
+        <div class="psth">A piece you already own turns into stones. Tap one you have never found and CLAIM it with them.</div>
+      </div>
+      <button class="btn kshare" id="kshare">SHARE YOUR KIT &#9650;</button>
     </div>
     <div class="pright">
       <div class="ptabs" id="ptabs"></div>
@@ -1317,12 +1400,14 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
    belong to a trail. The pack, the stones and the day count belong to
    the walker and go wherever he goes. The live fields on S are always
    the current trail's; the others wait in S.tr under their id. */
-const TRF=['steps','opened','log','bm','fight'];
+const TRF=['steps','opened','log','bm','fight','pend','det','held','fk','spq'];
 S.cur=S.cur&&TRAILS[S.cur]?S.cur:'at'; S.tr=S.tr||{}; S.done=S.done||{};
 function stashTrail(){ const o={}; for(const k of TRF) o[k]=S[k]; S.tr[S.cur]=o; }
 function loadTrail(id){ const o=S.tr[id]||{};
  S.steps=o.steps||0; S.opened=o.opened||[]; S.log=o.log||[];
- S.bm=o.bm||0; S.fight=o.fight||null; delete S.tr[id]; S.cur=id; }
+ S.bm=o.bm||0; S.fight=o.fight||null;
+ S.pend=o.pend||null; S.det=o.det||null; S.held=o.held||0; S.fk=o.fk||[]; S.spq=o.spq||[];
+ delete S.tr[id]; S.cur=id; }
 if(S.cur!==CUR){ stashTrail(); loadTrail(CUR); }
 function walkTrail(id){
  if(!TRAILS[id]||id===S.cur) return;
@@ -2239,18 +2324,96 @@ function heroLayer(i,rec){
    P[o]=col[0];P[o+1]=col[1];P[o+2]=col[2];P[o+3]=255;}}
  q.putImageData(img,0,0); HLAY.set(key,c); return c;
 }
-function heroSig(f){
+function heroSig(f,front){
  const eq=S.eq||{};
- return f+'|'+(S.plain?'p':'-')+'|'+SLOTS.map(k=>eq[k]||'-').join(',');
+ return f+(front?'F':'')+'|'+(S.plain?'p':'-')+'|'+SLOTS.map(k=>eq[k]||'-').join(',');
+}
+/* ---- his face ----
+   The sprite is a back view: the head is all hair down to the collar.
+   The pack shows him turned round to face you, which is the same body
+   with a face painted in, in his own skin tones, before the hat or helm
+   goes on over it.
+
+   Where the face sits depends on what is on his head. The wizard hat's
+   brim comes down to row 18, so a face drawn where his eyes would be
+   bare-headed was entirely under it; under a brim the eyes go just
+   below the brim and the chin runs into the neck, which is what a hat
+   pulled down does to a face seen from the front. A closed helm that
+   covers the middle of his face covers it, and no face is drawn. All
+   cells are sprite pixels, centred on x 32 like the head. */
+const FACE_ROWS=[            /* offset from the eye row, half width, cells */
+ [-1,7,'..gg.....gg..'], [0,7,'..oo.....oo..'], [1,7,''], [2,6,'.....u.....'],
+ [3,6,'....uuu....'], [4,4,'.......']];
+/* From behind, a hood or a horned helm covers his whole head, but from
+   the front it is open round the face. These shapes get the face cut
+   back in over the helm, eyes on the row given. The barbute and the
+   great helm are closed; from the front they show their slits. */
+const HELM_OPEN={0:14,1:15,6:14,8:14};
+const HELM_SLIT={5:'T',2:'bar'};
+function headgearBottom(){
+ const eq=S.eq||{}, hd=eq.head&&BYID[eq.head]?BYID[eq.head]:null;
+ const L=hd?HELMLAY[hd[3]]:(S.plain?-1:3);
+ if(L<0) return -1;
+ const r=heroRows(L); let b=-1;
+ for(let y=0;y<64;y++){ const row=r[y];
+  for(let x=29;x<=35;x++) if(row[x]!=='.'){ b=y; break; } }
+ return b;
+}
+function facePx(q){
+ const T=tones(HERO_PAL);
+ return (x,y,k)=>{const c=T[k];
+  q.fillStyle='rgb('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+')'; q.fillRect(x,y,1,1);};
+}
+/* the face itself, eyes on row E, skin filled up to row `top` */
+function paintFace(q,E,top,framed){
+ const px=facePx(q);
+ if(framed) for(let x=26;x<=38;x++) px(x,E-2,'o');
+ for(const [dy,hw,cells] of FACE_ROWS){
+  const y=E+dy; if(y<top) continue;
+  px(32-hw-1,y,'o'); px(32+hw+1,y,'o');
+  for(let x=32-hw;x<=32+hw;x++){
+   const ch=cells[x-(32-hw+1)]||'.';     /* cells are the inside, edge to edge */
+   px(x,y,(x===32-hw||x===32+hw)?'u':(ch==='.'?'m':ch));
+  }
+ }
+ for(let y=top;y<E-1;y++){ px(32-8,y,'o'); px(32+8,y,'o');
+  for(let x=32-7;x<=32+7;x++) px(x,y,(x===25||x===39)?'u':'m'); }
+}
+/* before the headgear: bare-headed, or under a brim */
+function heroFace(q){
+ const eq=S.eq||{}, hd=eq.head&&BYID[eq.head]?BYID[eq.head]:null;
+ if(hd&&(HELM_OPEN[hd[3]]!=null||HELM_SLIT[hd[3]])) return;
+ const hb=headgearBottom();
+ /* Bare-headed his eyes sit at row 14. Under a brim they go on the row
+    just below it; the robe starts at row 24, so a brim lower than 19
+    leaves no room for a chin. */
+ const E=Math.max(14,hb+1);
+ if(E>19) return;
+ paintFace(q,E,Math.max(12,hb+1),false);
+}
+/* after the headgear: the face opening or the slits */
+function heroFaceOver(q){
+ const eq=S.eq||{}, hd=eq.head&&BYID[eq.head]?BYID[eq.head]:null;
+ if(!hd) return;
+ const sh=hd[3];
+ if(HELM_OPEN[sh]!=null){ paintFace(q,HELM_OPEN[sh],HELM_OPEN[sh]-1,true); return; }
+ const px=facePx(q);
+ if(HELM_SLIT[sh]==='T'){
+  for(let x=27;x<=37;x++) px(x,15,'o');
+  for(let y=16;y<=21;y++){ px(31,y,'o'); px(32,y,'o'); px(33,y,'o'); }
+ }else if(HELM_SLIT[sh]==='bar'){
+  for(let x=26;x<=38;x++){ px(x,15,'o'); if(x%3===2) px(x,19,'o'); }
+ }
 }
 const HELMLAY=[4,5,6,7,8,9,10,22,31];
-function heroCanvas(f){
- const sig=heroSig(f);
+function heroCanvas(f,front){
+ const sig=heroSig(f,front);
  const hit=HCOMP.get(sig); if(hit) return hit;
  const c=document.createElement('canvas'); c.width=64; c.height=64;
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
  const eq=S.eq||{}, get=k=>eq[k]&&BYID[eq[k]]?BYID[eq[k]]:null;
  q.drawImage(heroLayer(f%3,HERO_PAL),0,0);
+ if(front) heroFace(q);
  /* The arms are layers of their own so the side that is holding
     something can be left off. The right one always is: it is either
     closed on a weapon, which climberAt draws, or on his own walking
@@ -2284,6 +2447,7 @@ function heroCanvas(f){
     arithmetic with an exception bolted onto it */
  if(hd) q.drawImage(heroLayer(HELMLAY[hd[3]],hd),0,0);
  else if(!S.plain) q.drawImage(heroLayer(3,HERO_PAL),0,0);
+ if(front) heroFaceOver(q);
  HCOMP.set(sig,c);
  if(HCOMP.size>40) HCOMP.delete(HCOMP.keys().next().value);
  return c;
@@ -3254,7 +3418,9 @@ function paint(now,dt){
       fight had not started, which is the thing that looked like the
       boss blinking out. */
    const nb=nextBoss(miles());
-   if(nb){ const d2=(nb.m-miles())*RPM;
+   if(S.pend&&S.pend.k==='boss')
+    items.push({B:BOSS[S.pend.b], dd:Math.max(331,(S.pend.m-miles())*RPM), isEnc:0, side:1});
+   else if(nb&&!(S.det&&S.det.k==='skirt')){ const d2=(nb.m-miles())*RPM;
            if(d2>330) items.push({B:BOSS[nb.b], dd:d2, isEnc:0, side:1}); }
   }
   if(enc) items.push({B:ENC[enc.k], dd:camY-(-enc.m*RPM),
@@ -4230,6 +4396,10 @@ function blitGear(ctx2,g,alt,x,y,size){
 const fx=document.getElementById('fx'), fg=fx.getContext('2d');
 const fxh=document.getElementById('fxhi'), hg=fxh.getContext('2d');
 let anim=null, chestQ=[];
+/* A side trail's chest is earned by the time it is queued, so it is
+   kept in the save until it opens: closing the app on the walk back
+   must not cost you what you walked half a mile for. */
+for(const sp of (S.spq||[])) chestQ.push(sp);
 
 /* The chest opens as he walks past the sign, not on a timer.
    It is queued off real steps in advance(), but the picture eases
@@ -4265,16 +4435,24 @@ function startChest(){
  /* the old timed callers still land here; too early and the watch
     in the frame loop picks it up when he gets there */
  if(!chestReached(chestQ[0])) return;
- const L=chestQ[0], d=roll(L.t,L.m), R=RAR[d[2]];
+ const L=chestQ[0];
+ let d=roll(L.t,L.m);
+ /* a side trail is half a mile you chose to walk: its chest is rolled
+    twice at a higher tier and keeps the rarer of the two */
+ if(L.spur){ const d2=roll(L.t,L.m); if(d2[2]>d[2]) d=d2; }
+ const R=RAR[d[2]];
  const isNew=grant(d);
  anim={L,d,R,t0:performance.now(),done:false,sp:[]};
  const box=document.getElementById('chest');
  box.classList.add('open');
  S.log=S.log||[];
- if(!S.log.some(e=>e.m===L.m)) S.log.push({m:L.m,day:S.day,i:d.id});
+ if(L.spur){ S.log.push({m:L.m,day:S.day,i:d.id,sp:1,n:L.n,w:L.w});
+  S.spq=(S.spq||[]).filter(x=>x.m!==L.m); }
+ else if(!S.log.some(e=>e.m===L.m&&!e.sp&&!e.f&&!e.e)) S.log.push({m:L.m,day:S.day,i:d.id});
  save();
  document.getElementById('clm').innerHTML=
-  '<span class="clmn">'+L.n+'</span><span class="clmm">MILE '+L.m.toFixed(1)
+  '<span class="clmn">'+L.n+'</span><span class="clmm">'
+  +(L.spur?'OFF '+L.from+' &middot; ':'')+'MILE '+L.m.toFixed(1)
   +(L.e?' &middot; '+L.e.toLocaleString()+' FT':'')
   +' &middot; '+pctEnd(L.m)+'% TO '+TR.end+'</span>';
  document.getElementById('clore').textContent=L.w||'';
@@ -4614,6 +4792,17 @@ let _nbKey='';
 function walkerMi(){ return Math.max(0,Math.min(miles(),(progress()+walkAt)/RPM)); }
 function nextBar(){
  if(S.fight) return;
+ if(S.det){
+  const D=S.det, ft=Math.max(10,Math.ceil(D.left/SPM*5280/10)*10);
+  const name=D.k==='spur'?D.n:'AROUND '+BOSS[D.b].n;
+  const pct=((1-D.left/D.tot)*100).toFixed(1)+'%';
+  const key='D|'+name+'|'+ft+'|'+pct;
+  if(key===_nbKey) return; _nbKey=key;
+  document.getElementById('nextname').textContent=name;
+  document.getElementById('nextdist').textContent=ft+' FT';
+  document.getElementById('fill').style.width=pct;
+  return;
+ }
  const mi=walkerMi();
  let prev={m:0}, next=null;
  for(const L of TRAIL){ if(L.m<=mi) prev=L; else {next=L;break;} }
@@ -4650,18 +4839,92 @@ function nextBar(){
    chunks: a 20,000 step catch up has to be able to reach a landmark,
    finish a fight, and meet the next thing, in that order, rather than
    resolving all of it against the mile you happened to land on. */
+/* A choice stops the walk. Steps that come in while a card is waiting
+   are banked in S.held, not lost, and walked the moment you answer, so
+   a day of steps landing on a boss still all count. */
 function addSteps(n){
  n=Math.max(0,n|0);
- while(n>0){ const take=Math.min(n,120); advance(take); n-=take; }
+ if(S.pend){ S.held=(S.held|0)+n; save(); hud(); return; }
+ let guard=0;
+ while(n>0&&guard++<5000){
+  const used=advance(Math.min(n,120)); n-=used;
+  if(S.pend){ S.held=(S.held|0)+n; n=0; save(); break; }
+  if(used<=0) break;
+ }
  if(fightQ.length && !anim) setTimeout(showFightEnd,900);
 }
+/* ---- choices on the trail ----
+   Two of them. A boss coming into view asks PUSH or SKIRT, and a
+   landmark with a fork asks whether to take the side trail. Skirting
+   and the side trail are both a detour: steps that count toward the day
+   but do not move you along the trail, held in S.det until walked off. */
+const SKIRT_ST=Math.round(0.2*SPM), SPUR_ST=Math.round(0.5*SPM);
+const SPURS=[
+ ['A SIDE TRAIL TO A SPRING',"Cold water out of a pipe in the rock. Somebody left a tin cup on a nail."],
+ ['A LEDGE OVERLOOK',"Ten minutes off the trail and the whole valley opens up under you."],
+ ['AN OLD CHIMNEY',"All that is left of a homestead. The daffodils still come up around it every spring."],
+ ['A HIDDEN CASCADE',"You hear it a long time before you see it, and it is bigger than it sounded."],
+ ['A FIRE TOWER',"Sixty steps of open stairs, and the cab at the top is unlocked."],
+ ['A ROCK SHELTER',"An overhang deep enough to keep the rain off, and soot on the ceiling older than the trail."],
+ ['A BEAVER POND',"Dead trees standing in still water, and a lodge in the middle of it."],
+ ['A BOULDER CAVE',"A gap between two rocks the size of houses, cold air coming up out of it."]];
+/* Some named places have a fork, chosen by the place itself so everyone
+   meets the same ones. Not the filler waypoints, not the mile markers,
+   not either end. */
+function isFork(L){
+ return !!L && !L.gen && L.k!=='mark' && L.m>0 && L.m<TOTAL-1
+  && hash(Math.round(L.m*10)+4211)<0.34;
+}
+function spurAt(L){
+ const sp=SPURS[Math.floor(hash(Math.round(L.m*10)+977)*SPURS.length)];
+ return {m:L.m, n:sp[0], w:sp[1], k:L.k, t:Math.min(4,(L.t|0)+2), e:0, spur:1, from:L.n};
+}
+/* The chance of winning, from the same numbers the fight uses: each
+   side's damage is swung by up to 22.5 percent either way, once a fight,
+   and you win when your swing beats the ratio below. */
+function winOdds(b,m){
+ const B=BOSS[b], t=loadout();
+ const k=(bossHP(B,m)*bossDPS(B,t,m))/(myVigour(t)*myDPS(t));
+ let w=0; const N=24;
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+  const f1=0.775+0.45*(i+.5)/N, f2=0.775+0.45*(j+.5)/N;
+  if(f1/f2>=k) w++; }
+ return w/(N*N);
+}
+function lossCost(B){ return Math.max(1,Math.min(5,Math.round(B.tier*0.6))); }
 function advance(n){
+ /* a detour eats steps first: they count for the day, not the trail */
+ if(S.det){
+  const d=Math.min(n,S.det.left);
+  S.det.left-=d; S.today+=d;
+  surge=Math.min(.55,surge+d/22000);
+  if(S.det.left<=0) endDetour();
+  save(); hud(); return d;
+ }
  const before=miles();
  /* a trail has an end; steps past it still count toward the day */
  const cap=Math.ceil(TOTAL*SPM), all=n;
  n=Math.min(n,Math.max(0,cap-S.steps));
- S.today+=all;
- if(n<=0){ S.fight=null; save(); hud(); return; }
+ if(n<=0){ S.fight=null; S.today+=all; save(); hud(); return all; }
+ /* stop short at the next thing that asks a question */
+ let stop=null;
+ if(!S.fight){
+  S.bm=S.bm||0;
+  const nb=BSCHED.find(x=>x.m>S.bm);
+  if(nb){ const at=Math.ceil((nb.m-ENGAGE)*SPM);
+          if(at<=S.steps+n){ n=Math.max(0,at-S.steps); stop={k:'boss',b:nb.b,m:nb.m}; } }
+ }
+ S.fk=S.fk||[];
+ for(const L of TRAIL){
+  if(L.m<before-1e-9) continue;
+  const at=Math.ceil(L.m*SPM);
+  if(at>S.steps+n) break;
+  if(isFork(L)&&S.fk.indexOf(L.m)<0&&(L.m>before||S.steps===0)){
+   if(S.fight){ S.fk.push(L.m); continue; }    /* no side trips mid fight */
+   n=Math.max(0,at-S.steps); stop={k:'fork',m:L.m}; break;
+  }
+ }
+ S.today+=n;
  S.steps+=n; const after=miles();
  if(S.steps>=cap && !S.done[CUR]) S.done[CUR]=S.day;
  /* Springer sits at mile 0, so `L.m>before` never caught it on the first
@@ -4671,14 +4934,39 @@ function advance(n){
   if(L.m<=after && (L.m>before || (before===0 && L.m===0))
      && S.opened.indexOf(L.m)<0){S.opened.push(L.m);chestQ.push(L);}
  if(S.fight) fightTick(n);
- else{
-  S.bm=S.bm||0;
-  const nb=BSCHED.find(x=>x.m>S.bm && x.m-ENGAGE<=after);
-  if(nb){ S.bm=nb.m; startFight(nb); }
+ if(stop){
+  if(stop.k==='boss') S.bm=stop.m; else S.fk.push(stop.m);
+  S.pend=stop;
  }
  encTick(n,before,after);
  surge=Math.min(.55,surge+n/22000);
  save(); hud();
+ return n;
+}
+function endDetour(){
+ const D=S.det; S.det=null;
+ if(D.k==='spur'){ const L=TRAIL.find(t=>t.m===D.m);
+  if(L){ const sp=spurAt(L); chestQ.push(sp); (S.spq=S.spq||[]).push(sp); } }
+}
+/* answering the card: the banked steps are walked straight after */
+function choose(go){
+ const P=S.pend; if(!P) return;
+ S.pend=null;
+ S.log=S.log||[];
+ if(P.k==='boss'){
+  if(go) startFight({b:P.b,m:P.m});
+  else{
+   S.det={k:'skirt',left:SKIRT_ST,tot:SKIRT_ST,b:P.b,m:P.m};
+   S.log.push({f:1,sk:1,b:P.b,day:S.day,m:P.m,won:0,steps:SKIRT_ST});
+  }
+ }else if(go){
+  const L=TRAIL.find(t=>t.m===P.m);
+  S.det={k:'spur',left:SPUR_ST,tot:SPUR_ST,m:P.m,n:L?spurAt(L).n:'A SIDE TRAIL'};
+ }
+ pick.classList.remove('open');
+ save(); hud();
+ const h=S.held|0; S.held=0;
+ if(h>0) addSteps(h);
 }
 
 /* ---- what is up ahead ----
@@ -4798,10 +5086,14 @@ function endFight(won){
    const before=stones(); grant(got); gain=stones()-before;
   }
  }
+ /* Losing costs a few stones now. While it cost nothing, pushing on
+    was always right and skirting was only ever a way to walk further. */
+ let lost=0;
+ if(!won){ lost=Math.min(stones(),lossCost(B)); S.stones=stones()-lost; }
  S.log=S.log||[];
- S.log.push({f:1,b:F.b,day:S.day,m:F.m,won:won?1:0,st:gain,
+ S.log.push({f:1,b:F.b,day:S.day,m:F.m,won:won?1:0,st:gain,lost:lost,
              i:got?got.id:null,steps:Math.round(F.steps)});
- fightQ.push({b:F.b,won:won,st:gain,i:got?got.id:null,steps:Math.round(F.steps)});
+ fightQ.push({b:F.b,won:won,st:gain,lost:lost,i:got?got.id:null,steps:Math.round(F.steps)});
  save();
 }
 /* ---------- where the steps come from ----------
@@ -5019,7 +5311,9 @@ function showFightEnd(){
  res.style.color=tc(r.won?'#74e84f':'#8695a8');
  document.getElementById('bname').textContent=B.n;
  document.getElementById('bflav').textContent=
-  r.won? (B.v||B.w) : 'It got away. Your steps still counted.';
+  r.won? (B.v||B.w) : (r.lost?'It got away with '+r.lost+(r.lost===1?' stone':' stones')
+                            +' from your pack. Your steps still counted.'
+                          :'It got away. Your steps still counted.');
  const g=r.i?BYID[r.i]:null;
  document.getElementById('bgain').innerHTML=
   (r.won?((g?'TOOK \u00b7 <b style="color:'+tc(RAR[g[2]][1])+'">'+g[0].toUpperCase()
@@ -5033,6 +5327,52 @@ document.getElementById('bok').onclick=()=>{
  if(fightQ.length) setTimeout(showFightEnd,320);
  else if(chestQ.length&&!anim) setTimeout(startChest,320);
 };
+const pick=document.getElementById('pick');
+function showPick(){
+ const P=S.pend, art=document.getElementById('part');
+ const odds=document.getElementById('podds');
+ if(P.k==='boss'){
+  const B=BOSS[P.b], A=bossArt(B), w=winOdds(P.b,P.m), pc=Math.round(w*100);
+  art.className=''; art.width=A.width; art.height=A.height;
+  const q=art.getContext('2d'); q.imageSmoothingEnabled=false; q.drawImage(A,0,0);
+  document.getElementById('pres').textContent='ON THE TRAIL AHEAD';
+  document.getElementById('pname').textContent=B.n;
+  document.getElementById('pflav').textContent=B.w||'';
+  const lab=w>=0.65?'FAVORED':w>=0.35?'EVEN':'LONG ODDS';
+  odds.textContent=lab+' \u00b7 ABOUT '+pc+'% TO WIN';
+  odds.style.color=tc(w>=0.65?'#74e84f':w>=0.35?'#f5c651':'#f0795a');
+  const c=lossCost(B);
+  document.getElementById('pways').innerHTML=
+   '<div><b>PUSH</b> &nbsp;Fight it with what you are wearing. Win and it may drop gear. Lose and it takes '
+   +c+(c===1?' stone':' stones')+'.</div>'
+   +'<div><b>SKIRT</b> &nbsp;Go around: 0.2 mi of steps that do not move you up the trail. No fight, nothing lost, nothing found.</div>';
+  document.getElementById('pno').textContent='SKIRT';
+  document.getElementById('pyes').textContent='PUSH \u25b6';
+ }else{
+  const L=TRAIL.find(t=>t.m===P.m)||{n:'THE TRAIL',m:P.m,t:0}, sp=spurAt(L);
+  art.className='none';
+  document.getElementById('pres').textContent='A FORK AT '+L.n;
+  document.getElementById('pname').textContent=sp.n;
+  document.getElementById('pflav').textContent=sp.w;
+  odds.textContent='A BETTER CHEST AT THE END'; odds.style.color=tc('#f5c651');
+  document.getElementById('pways').innerHTML=
+   '<div><b>TAKE IT</b> &nbsp;Half a mile of steps there and back that do not move you up the trail. A richer chest waits at the end.</div>'
+   +'<div><b>STAY</b> &nbsp;Keep walking. The trail goes on either way.</div>';
+  document.getElementById('pno').textContent='STAY ON TRAIL';
+  document.getElementById('pyes').textContent='TAKE IT \u25b6';
+ }
+ pick.classList.add('open');
+}
+document.getElementById('pyes').onclick=()=>choose(true);
+document.getElementById('pno').onclick=()=>choose(false);
+/* The card waits for the walker to get there and for anything already
+   on screen (a chest, a fight result) to be dealt with. */
+function pickWatch(){
+ if(!S.pend||pick.classList.contains('open')||anim||chestQ.length
+    ||bend.classList.contains('open')||fightQ.length) return;
+ if(Math.abs(miles()-shownMi)*RPM>40) return;
+ showPick();
+}
 
 /* ===================================================================
    MUSIC
@@ -5266,7 +5606,7 @@ let _errs=0;
 function frame(now){
  const dt=Math.min(60,now-last); last=now;
  if(mBus) musMode(S.fight?'fight':'walk');
- encWatch(); chestWatch(); nextBar();
+ encWatch(); chestWatch(); pickWatch(); nextBar();
  try{ step(dt,now); paint(now,dt); bannerTick(now); toastTick(now);
       /* whatever is left of the frame goes into baking what is coming */
       bakeBudget(Math.max(2,9-(performance.now()-now))); }
@@ -5366,6 +5706,126 @@ function drawSlots(){
  L.appendChild(pl);
  drawDoll();
 }
+/* ---- the kit card ----
+   The same idea as SHARE HIKE in the main game: a transparent PNG to lay
+   over your own photo, ringed type so it reads on any colour. What it
+   shows off is the thing nobody else could see before: what you are
+   wearing, and how far you have walked in it. */
+const KC_W=1080, KC_H=1350;
+function kcText(g,str,x,y,size,col,align){
+ g.font=size+"px 'Press Start 2P'"; g.textAlign=align||'center'; g.textBaseline='top';
+ const r=Math.max(2,Math.round(size/8));
+ g.fillStyle='rgba(0,0,0,.92)';
+ for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++) if(dx||dy) g.fillText(str,x+dx*r,y+dy*r);
+ g.fillStyle=col; g.fillText(str,x,y);
+}
+function kcFit(g,str,size,maxw){
+ for(let z=size;z>=8;z-=2){ g.font=z+"px 'Press Start 2P'"; if(g.measureText(str).width<=maxw) return z; }
+ return 8;
+}
+/* the walker drawn at s canvas pixels per sprite pixel and trimmed to
+   what is actually painted, so he can be centred on what you see */
+function kitFigure(sc){
+ const n=128*sc, c=document.createElement('canvas');
+ AURAK=0.52; try{ _drawDoll(c,n,true); } finally { AURAK=1; }
+ const d=c.getContext('2d').getImageData(0,0,n,n).data;
+ let x0=n,y0=n,x1=-1,y1=-1;
+ /* solid pixels only: an aura's soft glow reaches far past him and
+    sizing on it shrank him to a third of the card */
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++) if(d[(y*n+x)*4+3]>160){
+  if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+ if(x1<0) return {c,x:0,y:0,w:n,h:n};
+ /* a little of the glow is kept round the edge */
+ const m=2*sc; x0=Math.max(0,x0-m); y0=Math.max(0,y0-m);
+ x1=Math.min(n-1,x1+m); y1=Math.min(n-1,y1+m);
+ return {c,x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
+}
+/* He is the picture: as large as fits on the left, nothing cropped,
+   with the four numbers and the best piece in a column beside him
+   rather than stacked underneath, and the whole block centred on the
+   card so there is no dead band anywhere. */
+function buildKitCard(){
+ const c=document.getElementById('shcard'); c.width=KC_W; c.height=KC_H;
+ const g=c.getContext('2d'); g.imageSmoothingEnabled=false; g.clearRect(0,0,KC_W,KC_H);
+ const MID=KC_W/2, GOLD='#f5c651', WHITE='#ffffff';
+ /* the largest whole-pixel scale at which he fits his box */
+ const colW=250, gapX=26, BW=KC_W-80-colW-gapX, BH=880;
+ /* measured once small, since he grows in proportion, then drawn once
+    at the size that fits; stepped down if rounding says otherwise */
+ const f4=kitFigure(4);
+ let sc=Math.max(4,Math.min(14,Math.floor(4*Math.min(BW/f4.w,BH/f4.h))));
+ let F=kitFigure(sc);
+ while(sc>4&&(F.w>BW||F.h>BH)){ sc--; F=kitFigure(sc); }
+ const HEAD=196, GAP=34, FOOT=40;
+ const total=HEAD+F.h+GAP+FOOT;
+ let y=Math.max(40,Math.round((KC_H-total)/2));
+ kcText(g,'SUMMIT QUEST',MID,y,40,GOLD);
+ const tn=TR.name; kcText(g,tn,MID,y+70,kcFit(g,tn,32,960),WHITE);
+ const sub='MILE '+walkerMi().toFixed(1)+' · '+pctEnd(walkerMi())+'% TO '+TR.end;
+ kcText(g,sub,MID,y+124,kcFit(g,sub,24,960),'#cfd8e4');
+ y+=HEAD;
+ /* the figure on the left, the column on the right, both centred on
+    the same middle line */
+ const groupW=F.w+gapX+colW;
+ const fx=Math.round((KC_W-groupW)/2), fy=y;
+ g.drawImage(F.c,F.x,F.y,F.w,F.h,fx,fy,F.w,F.h);
+ const cx=fx+F.w+gapX+colW/2;
+ const t=loadout(), keys=['atk','def','spd','mag'];
+ const worn=Object.values(S.eq||{}).map(id=>BYID[id]).filter(Boolean).sort((a,b)=>b[2]-a[2]);
+ const rowH=96, bestH=worn.length?150:0, colH=keys.length*rowH+bestH;
+ let cy=fy+Math.round((F.h-colH)/2);
+ for(const k of keys){
+  kcText(g,String(t[k]),cx,cy,48,STATCOL[k]);
+  kcText(g,STATNAME[k],cx,cy+58,20,GOLD);
+  cy+=rowH;
+ }
+ if(worn.length){
+  const b=worn[0], nm=b[0].toUpperCase();
+  cy+=18;
+  kcText(g,'BEST PIECE',cx,cy,18,GOLD);
+  /* two lines when the name will not fit one at a readable size */
+  const words=nm.split(' ');
+  let lines=[nm];
+  if(kcFit(g,nm,26,colW)<20&&words.length>1){
+   const h=Math.ceil(words.length/2); lines=[words.slice(0,h).join(' '),words.slice(h).join(' ')]; }
+  const zs=Math.min(...lines.map(l=>kcFit(g,l,26,colW)));
+  lines.forEach((l,i)=>kcText(g,l,cx,cy+34+i*(zs+12),zs,RAR[b[2]][1]));
+  kcText(g,RAR[b[2]][0],cx,cy+34+lines.length*(zs+12)+6,18,RAR[b[2]][1]);
+ }
+ const found=GEAR.filter(x=>owned(x.id)>0).length;
+ const kills=(S.log||[]).filter(e=>e.f&&e.won).length;
+ const foot=found+' / '+GEAR.length+' FOUND'+(kills?' · '+kills+' BEATEN':'')+' · DAY '+S.day;
+ kcText(g,foot,MID,fy+F.h+GAP,kcFit(g,foot,22,960),WHITE);
+ return c;
+}
+async function saveKitCard(c){
+ const name='summit-trek-'+CUR+'-mile-'+Math.round(walkerMi());
+ /* the main game already knows every way a phone can save a picture,
+    the native share sheet included; Trek borrows it when it is inside */
+ try{ if(parent!==window&&typeof parent.saveShareCard==='function')
+       return await parent.saveShareCard(c,name); }catch(e){}
+ const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+ const file=new File([blob],name+'.png',{type:'image/png'});
+ if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
+  try{ await navigator.share({files:[file]}); return 'shared'; }
+  catch(e){ if(e&&e.name==='AbortError') return 'cancelled'; }
+ }
+ const u=URL.createObjectURL(blob), a=document.createElement('a');
+ a.href=u; a.download=name+'.png'; document.body.appendChild(a); a.click(); a.remove();
+ setTimeout(()=>URL.revokeObjectURL(u),20000);
+ return 'downloaded';
+}
+document.getElementById('kshare').onclick=()=>{
+ buildKitCard(); document.getElementById('shview').classList.add('open'); };
+document.getElementById('shclose').onclick=()=>document.getElementById('shview').classList.remove('open');
+document.getElementById('shsave').onclick=async()=>{
+ const b=document.getElementById('shsave'), h=document.getElementById('shhint');
+ b.disabled=true;
+ try{ const how=await saveKitCard(document.getElementById('shcard'));
+      h.textContent=how==='downloaded'?'Saved to your downloads.':how==='cancelled'?'Not saved.':'Sent to the share sheet.'; }
+ catch(e){ h.textContent='Could not save: '+((e&&e.message)||'unknown error'); }
+ b.disabled=false;
+};
 /* the paper doll is the same composite that walks the trail, so what
    you see here is literally what is out there */
 function drawDoll(){
@@ -5373,16 +5833,53 @@ function drawDoll(){
  AURAK=0.52;
  try{ _drawDoll(c); } finally { AURAK=1; }
 }
-function _drawDoll(c){
- const box=c.parentElement.getBoundingClientRect();
- const H=Math.max(96,Math.min(144,Math.round((box.height||150)-26)));
- const d=DPR(), n=Math.round(H*d);
- c.width=n; c.height=n; c.style.width=H+'px'; c.style.height=H+'px';
+/* How much room he takes up with what he is holding, in units of his
+   own sprite, measured once per outfit off a roomy render. A staff or a
+   big shield reaches well past his body, and a frame sized for the body
+   alone cut them off at the edge of the pack's preview. */
+const DBOX=new Map();
+function dollBox(){
+ const key=heroSig(0,true)+'|'+((S.eq||{}).hand||'')+'|'+((S.eq||{}).off||'');
+ const hit=DBOX.get(key); if(hit) return hit;
+ const n=256, c=document.createElement('canvas');
+ AURAK=0.52; try{ _drawDoll(c,n,false,{SP:128,X0:64,Y0:64}); } finally { AURAK=1; }
+ const d=c.getContext('2d').getImageData(0,0,n,n).data;
+ let x0=n,y0=n,x1=-1,y1=-1;
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++) if(d[(y*n+x)*4+3]>160){
+  if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+ const b=x1<0?{x:0,y:0,w:1,h:1}
+  :{x:(x0-64)/128, y:(y0-64)/128, w:(x1-x0+1)/128, h:(y1-y0+1)/128};
+ DBOX.set(key,b); if(DBOX.size>40) DBOX.delete(DBOX.keys().next().value);
+ return b;
+}
+function _drawDoll(c,fixed,roomy,frame){
+ let n;
+ if(fixed){ n=fixed; c.width=n; c.height=n; }
+ else{
+  const box=c.parentElement.getBoundingClientRect();
+  const H=Math.max(96,Math.min(144,Math.round((box.height||150)-26)));
+  n=Math.round(H*DPR());
+  c.width=n; c.height=n; c.style.width=H+'px'; c.style.height=H+'px';
+ }
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false;
  const eq=S.eq||{};
  const off=eq.off&&BYID[eq.off]?BYID[eq.off]:null;
  const hand=eq.hand&&BYID[eq.hand]?BYID[eq.hand]:null;
- const SP=n*0.62, X0=Math.round(n*0.08), Y0=Math.round(n*0.20);
+ /* `roomy` leaves a quarter of the canvas free on every side, so a long
+    weapon or a big shield never runs off it, and makes one sprite pixel
+    a whole number of canvas pixels so the art stays crisp when it is
+    trimmed and placed on the share card */
+ let SP, X0, Y0;
+ if(frame){ SP=frame.SP; X0=frame.X0; Y0=frame.Y0; }
+ else if(roomy){ SP=n*0.5; X0=Math.round(n*0.25); Y0=Math.round(n*0.25); }
+ else{
+  /* the pack's preview: everything he holds in frame, centred across,
+     feet near the bottom where the shadow is, no bigger than he was */
+  const b=dollBox(), room=n*0.90;
+  SP=Math.min(n*0.62, room/b.w, (n*0.86)/b.h);
+  X0=Math.round(n/2-(b.x+b.w/2)*SP);
+  Y0=Math.round(n*0.93-(b.y+b.h)*SP);
+ }
  const hdq=S.eq&&S.eq.head&&BYID[S.eq.head]?BYID[S.eq.head]:null;
  if(hdq&&auraOf(hdq))
   drawHalo(q,hdq,X0+SP*HEAD_A[0],Y0+SP*HEAD_A[1],SP*0.30,performance.now());
@@ -5392,22 +5889,32 @@ function _drawDoll(c){
     layer 24, so the shield floated with no arm behind it. */
  const sleeve=eq.body&&BYID[eq.body]?BYID[eq.body]:HERO_PAL;
  const gripOn=i=>q.drawImage(heroLayer(i,sleeve),X0,Y0,SP,SP);
- if(off){
-  if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,1,performance.now());
-  wield(q,off,SHIELD_A,X0,Y0,SP,1);
-  gripOn(24);
- }
+ /* Turned to face you. Mirrored, so the hand he holds a weapon in is on
+    your left, as it is on anyone facing you. The trail still sees him
+    from behind. The weapon goes over his arm but under his body: it is
+    placed to be mostly hidden by him, and drawn over everything a
+    staff's head crossed his face. The shield hangs on the outside of
+    his forearm, so it goes over all of it. */
+ q.save(); q.translate(2*X0+SP,0); q.scale(-1,1);
+ const ftq=eq.feet&&BYID[eq.feet]?BYID[eq.feet]:null;
+ /* Facing you, what he holds is on the near side of his arms, so the
+    arms go down first and the weapon and the shield over them. */
+ if(hand) gripOn(23);
+ if(off)  gripOn(24);
  if(hand){
   if(auraOf(hand)) drawAura(q,hand,WEAPON_A,X0,Y0,SP,1,performance.now());
   wield(q,hand,WEAPON_A,X0,Y0,SP,1);
-  gripOn(23);
  }
- const ftq=eq.feet&&BYID[eq.feet]?BYID[eq.feet]:null;
  if(ftq&&auraOf(ftq)) bootFX(q,ftq,X0,Y0,SP,performance.now(),0,1,0);
- q.drawImage(heroCanvas(0),X0,Y0,SP,SP);
+ q.drawImage(heroCanvas(0,true),X0,Y0,SP,SP);
  const bdq=eq.body&&BYID[eq.body]?BYID[eq.body]:null;
  if(bdq&&auraOf(bdq)) bodyGlow(q,bdq,X0,Y0,SP,performance.now());
+ if(off){
+  if(auraOf(off)) drawAura(q,off,SHIELD_A,X0,Y0,SP,1,performance.now());
+  wield(q,off,SHIELD_A,X0,Y0,SP,1);
+ }
  if(ftq&&auraOf(ftq)) bootFX(q,ftq,X0,Y0,SP,performance.now(),0,1,1);
+ q.restore();
 }
 function drawTabs(){
  const T=document.getElementById('ptabs'); T.innerHTML='';
@@ -5445,12 +5952,12 @@ function drawGrid(){
 function drawJournal(){
  const G=document.getElementById('jlist'); G.innerHTML='';
  const log=(S.log||[]).slice().sort((a,b)=>a.m-b.m);
- const places=log.filter(e=>!e.f&&!e.e).length, kills=log.filter(e=>e.f&&e.won).length;
+ const places=log.filter(e=>!e.f&&!e.e&&!e.sp).length, kills=log.filter(e=>e.f&&e.won).length;
  const met=log.filter(e=>e.e).length;
  document.getElementById('jcount').textContent=
   places+' / '+TRAIL.length+(kills?'  \u2620 '+kills:'');
  const far=log.length?Math.max.apply(null,log.map(e=>e.m)):0;
- const hi=log.filter(e=>!e.f&&!e.e).map(e=>TRAIL.find(t=>t.m===e.m))
+ const hi=log.filter(e=>!e.f&&!e.e&&!e.sp).map(e=>TRAIL.find(t=>t.m===e.m))
              .filter(L=>L&&L.e).sort((a,b)=>b.e-a.e)[0];
  document.getElementById('jsum').innerHTML=
   log.length
@@ -5486,9 +5993,11 @@ function drawJournal(){
         +tc(en.won?'#ffb49a':'#8695a8')+'">'+B.n+'</span>';
    if(en.day) h+='<span class="jd">DAY '+en.day+'</span>';
    h+='</div><div class="jm">MILE '+en.m.toFixed(1)+' &middot; '
-     +(en.won?'KILLED':'GOT AWAY')+' &middot; '
+     +(en.won?'KILLED':en.sk?'SKIRTED':'GOT AWAY')+' &middot; '
      +Math.round(en.steps||0).toLocaleString()+' STEPS</div>';
-   h+='<div class="jw">'+(en.won?B.w:'It got away. Your steps still counted.')
+   h+='<div class="jw">'+(en.won?B.w:en.sk?'You went the long way round and it never saw you.'
+       :en.lost?'It got away with '+en.lost+(en.lost===1?' stone.':' stones.')
+       :'It got away. Your steps still counted.')
      +'</div>';
    if(en.won) h+='<div class="jg">'
      +(g?'TOOK &middot; <b style="color:'+tc(RAR[g[2]][1])+'">'+g[0].toUpperCase()+'</b>'
@@ -5496,7 +6005,8 @@ function drawJournal(){
      +(en.st?' &middot; \u25b2 '+en.st+' STONES':'')+'</div>';
    d.innerHTML=h; G.appendChild(d); continue;
   }
-  const L=TRAIL.find(t=>t.m===en.m); if(!L) continue;
+  const L=en.sp?Object.assign({},TRAIL.find(t=>t.m===en.m)||{m:en.m},{n:en.n||'A SIDE TRAIL',e:0,w:en.w||''})
+                :TRAIL.find(t=>t.m===en.m); if(!L) continue;
   const g=en.i?BYID[en.i]:null;
   const d=document.createElement('div'); d.className='jrow';
   let h='<div class="jhead"><span class="jn">'+L.n+'</span>';
@@ -5661,7 +6171,7 @@ function drawPack(){
  packStart();
  const tot=GEAR.length, got=GEAR.filter(g=>owned(g.id)).length;
  document.getElementById('pcount').textContent=got+' / '+tot;
- document.getElementById('pstones').textContent='\u25b2 '+stones();
+ document.getElementById('pstones').textContent='\u25b2 '+stones().toLocaleString();
  drawSlots(); drawStats(); drawTabs(); drawGrid(); drawDetail();
 }
 let packTick=null;
