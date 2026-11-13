@@ -359,6 +359,95 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
  .topbtns .btn{padding:7px 7px}
  .bpct{font-size:7px}
 </style>
+<style id="themes">
+/* ---- bright theme ----
+   The dark look is the default. This one swaps the night panels for
+   paper: off white plates, warm grey edges, ink text. The world itself
+   is the same painting either way; only the UI around it changes.
+   Gold and the rarity colours were picked to glow on near black, so
+   they go a few shades deeper here or they wash out on the paper. */
+html[data-theme=light]{
+ --bg:#efe9dc; --solid:#fbf8f1; --solid2:#f6f1e6;
+ --panel:rgba(251,248,241,.84); --panel2:rgba(246,241,230,.76);
+ --edge:#d3c9b4; --edge2:#a99d85; --ink:#2b2f36; --dim:#736d60;
+ --gold:#9c6a08; --xp:#2c8419;
+ color-scheme:light;
+}
+html[data-theme=light] .frame{
+ box-shadow:0 0 0 3px rgba(251,248,241,.55),0 0 0 5px var(--edge2),4px 4px 0 4px rgba(60,48,28,.18);
+ background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.018) 0 1px,transparent 1px 3px)}
+html[data-theme=light] :is(.trailname,.mile,.nextname,.steps b,.ptitle,.clmn,.dtxt b,.bbname,.etn){
+ text-shadow:none}
+html[data-theme=light] :is(.crar,.bres){text-shadow:none}
+html[data-theme=light] .tchev{background:rgba(156,106,8,.12)}
+html[data-theme=light] .track{background-color:#e6dfcf;
+ background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 1px,transparent 1px 3px)}
+html[data-theme=light] .fill{background:linear-gradient(#7fd85c,#3a9e22)}
+html[data-theme=light] .kitstrip{background:rgba(0,0,0,.04)}
+html[data-theme=light] :is(.btn,.wearbtn){box-shadow:2px 2px 0 rgba(60,48,28,.22)}
+html[data-theme=light] .wearbtn.poor:active{box-shadow:2px 2px 0 rgba(60,48,28,.22)}
+html[data-theme=light] :is(.packbtn,.trailname,.wearbtn.buy){background:#f7e9c4}
+html[data-theme=light] :is(.jrnbtn,.musbtn){background:var(--solid)}
+html[data-theme=light] .wakedot.on{box-shadow:0 0 5px rgba(44,132,25,.5)}
+html[data-theme=light] :is(#pack,#journal,#trails){
+ background:radial-gradient(130% 80% at 50% 0%,rgba(255,255,255,.9),transparent 70%),
+  linear-gradient(180deg,#f6f2e9 0%,#efe9dc 60%,#e9e2d3 100%)}
+html[data-theme=light] :is(#pack,#journal,#trails)::before{
+ background:repeating-linear-gradient(0deg,rgba(0,0,0,.018) 0 1px,transparent 1px 3px)}
+html[data-theme=light] .doll{
+ background:radial-gradient(70% 55% at 50% 38%,rgba(255,255,255,.9),transparent 70%),
+  linear-gradient(180deg,#f3eee3,#e6dece);
+ box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)}
+html[data-theme=light] .dollbase{background:radial-gradient(50% 100% at 50% 50%,rgba(60,48,28,.3),transparent 70%)}
+html[data-theme=light] :is(.pslot,.pdetail){border-color:var(--edge);
+ background:linear-gradient(180deg,#fdfbf6,#f2ece0)}
+html[data-theme=light] .pslot.on{box-shadow:inset 0 0 0 1px rgba(156,106,8,.25),0 0 10px rgba(156,106,8,.12)}
+html[data-theme=light] .stat{border-color:var(--edge);background:rgba(255,255,255,.55)}
+html[data-theme=light] .pslotxt b{color:var(--dim)}
+html[data-theme=light] .ptab{background:linear-gradient(180deg,#fdfbf6,#efe8da);
+ border-color:var(--edge);color:var(--dim)}
+html[data-theme=light] .ptab.on{background:linear-gradient(180deg,#fbf0d2,#f2e0b0);
+ border-color:var(--gold);color:var(--gold)}
+html[data-theme=light] .pgrid{border-color:var(--edge);background:rgba(255,255,255,.5);
+ box-shadow:inset 0 2px 8px rgba(60,48,28,.1)}
+html[data-theme=light] .pgrid::-webkit-scrollbar-thumb{background:var(--edge2)}
+html[data-theme=light] .cell{border-color:var(--edge);background:linear-gradient(180deg,#fefcf8,#f1ebdf)}
+html[data-theme=light] .cell::after{background:linear-gradient(160deg,rgba(255,255,255,.5),transparent 45%)}
+html[data-theme=light] .cell.burning{
+ background:radial-gradient(60% 60% at 50% 55%,rgba(var(--au),.28),rgba(255,255,255,0) 72%),
+ linear-gradient(180deg,#fefcf8,#f1ebdf)}
+html[data-theme=light] .cell.eq{box-shadow:inset 0 0 0 2px var(--gold),0 0 12px rgba(156,106,8,.2)}
+html[data-theme=light] .cell.sel{outline-color:#3f74b8}
+html[data-theme=light] .cell .dup{text-shadow:1px 1px 0 #fff}
+html[data-theme=light] .dart{border-color:var(--edge);
+ background:radial-gradient(60% 60% at 42% 36%,rgba(255,255,255,.95),transparent 70%),#efe8da}
+html[data-theme=light] .dq{color:var(--edge)}
+html[data-theme=light] .devnote{color:var(--dim)}
+html[data-theme=light] #chest{background:rgba(242,237,226,.94)}
+html[data-theme=light] .cinfo{background:linear-gradient(rgba(242,237,226,0) 0%,rgba(242,237,226,.94) 16%,rgba(242,237,226,.99) 100%)}
+html[data-theme=light] :is(.clore,.jw){color:var(--ink)}
+html[data-theme=light] :is(.etw,.bflav,.jsum){color:var(--dim)}
+html[data-theme=light] #etoast{background:rgba(251,248,241,.96);
+ box-shadow:0 0 0 2px rgba(251,248,241,.6),3px 3px 0 2px rgba(60,48,28,.16)}
+html[data-theme=light] #bbanner{background:rgba(252,236,230,.95);border-color:#c26a52;
+ box-shadow:0 0 0 2px rgba(251,248,241,.6),4px 4px 0 2px rgba(60,48,28,.16)}
+html[data-theme=light] .bbname{color:#a63d24}
+html[data-theme=light] .bbsub{color:#c25a40}
+html[data-theme=light] #bend{background:rgba(242,237,226,.95)}
+html[data-theme=light] #bart{filter:drop-shadow(0 5px 0 rgba(60,48,28,.2))}
+html[data-theme=light] :is(.jsum,.jrow){background:rgba(255,255,255,.5)}
+html[data-theme=light] .jrow.jwon{border-color:#d9a596;background:rgba(250,228,220,.6)}
+html[data-theme=light] .jrow.jlost{border-color:var(--edge);background:rgba(255,255,255,.35)}
+html[data-theme=light] .jrow.jmet{border-color:#a9c4dc;background:rgba(226,238,248,.6)}
+html[data-theme=light] .jrow.tcur{border-color:var(--gold)}
+/* the switch itself, in the header of each full screen beside the
+   close button, so the change shows on a whole page at once */
+.thmbtn{color:var(--gold);font-size:10px}
+</style>
+<script>
+/* set before first paint so a bright save never flashes dark */
+try{ if(localStorage.getItem('sq_trek_theme')==='light') document.documentElement.dataset.theme='light'; }catch(e){}
+</script>
 </head>
 <body>
 <canvas id="scene"></canvas>
@@ -436,6 +525,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   <div class="pbar">
     <span class="ptitle">★ THE JOURNAL</span>
     <span class="pcount" id="jcount">0 / 21</span>
+    <button class="btn pclose thmbtn" title="theme">&#9788;</button>
     <button class="btn pclose" id="jclose">✕</button>
   </div>
   <div class="jsum" id="jsum"></div>
@@ -446,6 +536,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
   <div class="pbar">
     <span class="ptitle">★ THE TRAILS</span>
     <span class="pcount" id="tcount"></span>
+    <button class="btn pclose thmbtn" title="theme">&#9788;</button>
     <button class="btn pclose" id="tclose">✕</button>
   </div>
   <div class="jsum" id="tsum"></div>
@@ -457,6 +548,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
     <span class="ptitle">★ THE PACK</span>
     <span class="pcount" id="pcount">0 / 115</span>
     <span class="pstones" id="pstones">&#9650; 0</span>
+    <button class="btn pclose thmbtn" title="theme">&#9788;</button>
     <button class="btn pclose" id="pclose">✕</button>
   </div>
   <div class="pbody">
@@ -1208,6 +1300,14 @@ function ridged(x,y){
 }
 
 /* ---------- state ---------- */
+/* Text colours written straight into the markup (rarity, stats, the
+   boss names) were chosen to glow on near black. On the bright theme
+   they go through this and come out a few shades deeper. */
+function isLight(){ return document.documentElement.dataset.theme==='light'; }
+const _TC={'#9fb0c2':'#5c6b7c','#74e84f':'#2c8419','#5aa9f0':'#1d6cbc','#b978f0':'#7a3ec2',
+ '#f5c651':'#9c6a08','#f0c14b':'#9c6a08','#f0795a':'#c2442a','#ffb49a':'#b0432a',
+ '#8695a8':'#736d60','#9fd8ff':'#1d6ca6','#45566e':'#9a917d','#32425a':'#b5ab94','#2b3a50':'#d3c9b4'};
+function tc(c){ return isLight()?(_TC[c]||c):c; }
 const KEY='sq_trek_proto4';
 let S={steps:0,today:0,day:1,opened:[],log:[],stones:0,bm:0,beat:{},fight:null,own:{},eq:{}};
 try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
@@ -3175,14 +3275,23 @@ function paint(now,dt){
   if(sx<-200||sx>W+200) return;
   const gh=terrainH(wx,camY-dd);
   const bob=isEnc?0:Math.sin(now*0.0011+B.tier)*(B.air?5.2:1.1);
-  const h=gh+(!isEnc&&B.air?62+bob*2:0)+bob;
-  const sy=hzY+(camZ-h)*sc;
+  const h=gh+(!isEnc&&B.air?44+bob*2:0)+bob;
+  let sy=hzY+(camZ-h)*sc;
   /* A boss was first given the height of a big tree and came out 31
      pixels tall in the middle of a forest, which is not a boss, it is a
      shrub. These are three or four times a tree on purpose. */
   const worldH=(isEnc?30:(B.air?96:112))*B.sz;
   const pxH=Math.min(H*1.60,worldH*sc);
   if(pxH<6) return;
+  /* A flier 62 units up came in over the top of the screen as it
+     closed, and the top panel hid what was left. It flies lower now,
+     and up close it is held down so its head clears the panel. */
+  if(B.air&&!isEnc){
+   const fr=document.querySelector('.frame.top');
+   const cv=g.canvas.getBoundingClientRect();
+   const lid=fr&&cv.height?(fr.getBoundingClientRect().bottom-cv.top)/cv.height*H+4:H*0.18;
+   if(sy-pxH<lid) sy=lid+pxH;
+  }
   /* pixOf, not the canvas: drawBill scales by S.h, and a canvas has
      .height rather than .h, so passing it straight through made every
      dimension NaN and the blit loop ran zero times in silence. */
@@ -4170,9 +4279,9 @@ function startChest(){
   +' &middot; '+pctEnd(L.m)+'% TO '+TR.end+'</span>';
  document.getElementById('clore').textContent=L.w||'';
  document.getElementById('crar').textContent=R[0];
- document.getElementById('crar').style.color=R[1];
+ document.getElementById('crar').style.color=tc(R[1]);
  document.getElementById('citem').textContent=d[0];
- document.getElementById('citem').style.color=R[1];
+ document.getElementById('citem').style.color=tc(R[1]);
  document.getElementById('ckind').textContent=
   (isNew?'NEW · ':'ALREADY YOURS · +'+STONE_Y[d[2]]+' STONES · ')
   +SLOTNAME[CAT2SLOT[d[1]]];
@@ -4463,7 +4572,7 @@ function drawStatStrip(){
  statSig=sig;
  const S4=document.getElementById('statstrip'); if(!S4) return;
  S4.innerHTML=STATS.map(k=>'<span class="sc">'+STATNAME[k]
-   +' <b style="color:'+STATCOL[k]+'">'+t[k]+'</b></span>').join('');
+   +' <b style="color:'+tc(STATCOL[k])+'">'+t[k]+'</b></span>').join('');
 }
 
 /* ---------- hud ---------- */
@@ -4482,7 +4591,7 @@ function hud(){
  vt.style.display=F?'block':'none';
  if(F){
   const B=BOSS[F.b];
-  nn.textContent=B.n; nn.style.color='#ffb49a';
+  nn.textContent=B.n; nn.style.color=tc('#ffb49a');
   nd.textContent=Math.max(0,Math.ceil(F.hp))+' HP';
   fl.style.background='linear-gradient(#ffb49a,#c0392b)';
   fl.style.width=Math.max(0,Math.min(100,F.hp/F.hp0*100)).toFixed(1)+'%';
@@ -4907,13 +5016,13 @@ function showFightEnd(){
  const q=c.getContext('2d'); q.imageSmoothingEnabled=false; q.drawImage(A,0,0);
  const res=document.getElementById('bres');
  res.textContent=r.won?'\u2620 DOWN':'IT GOT AWAY';
- res.style.color=r.won?'#74e84f':'#8695a8';
+ res.style.color=tc(r.won?'#74e84f':'#8695a8');
  document.getElementById('bname').textContent=B.n;
  document.getElementById('bflav').textContent=
   r.won? (B.v||B.w) : 'It got away. Your steps still counted.';
  const g=r.i?BYID[r.i]:null;
  document.getElementById('bgain').innerHTML=
-  (r.won?((g?'TOOK \u00b7 <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()
+  (r.won?((g?'TOOK \u00b7 <b style="color:'+tc(RAR[g[2]][1])+'">'+g[0].toUpperCase()
                +'</b><br>':'IT CARRIED NOTHING<br>')
           +(r.st?'\u25b2 '+r.st+' STONES AT THE CAIRN<br>':'')):'')
   +Math.round(r.steps).toLocaleString()+' STEPS';
@@ -5123,6 +5232,24 @@ function setMus(on){
 }
 document.getElementById('musbtn').onclick=()=>setMus(!musOn);
 setMus(musOn);
+/* ---- theme ---- dark is the default; the button flips to paper and back */
+const THKEY='sq_trek_theme';
+function setTheme(t){
+ if(t==='light') document.documentElement.dataset.theme='light';
+ else delete document.documentElement.dataset.theme;
+ try{ localStorage.setItem(THKEY,t); }catch(e){}
+ for(const b of document.querySelectorAll('.thmbtn')){
+  b.textContent=t==='light'?'☾':'☼'; b.title=t==='light'?'dark theme':'bright theme'; }
+ /* the HUD bar carries a boss tint written inline; the overlays redraw
+    every time they open, so they pick the new ink up on their own */
+ _nbKey=''; try{ hud(); }catch(e){}
+}
+for(const b of document.querySelectorAll('.thmbtn')) b.onclick=()=>setTheme(isLight()?'dark':'light');
+/* the main game has the same switch; whichever page changes it, the
+   other follows without writing the choice back */
+window.trekTheme=t=>{ setTheme(t); };
+addEventListener('storage',e=>{ if(e.key===THKEY&&e.newValue) setTheme(e.newValue); });
+setTheme(isLight()?'light':'dark');
 /* iOS will not start audio without a gesture, so the first touch
    anywhere is the one that does it */
 for(const ev of ['pointerdown','keydown'])
@@ -5215,9 +5342,9 @@ function drawSlots(){
   const box=document.createElement('div');
   box.style.cssText='width:30px;height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center';
   if(g) box.appendChild(iconCell(g,30));
-  else box.innerHTML='<span style="color:#32425a;font-size:15px">\u00b7</span>';
+  else box.innerHTML='<span style="color:'+tc('#32425a')+';font-size:15px">\u00b7</span>';
   const t=document.createElement('div'); t.className='pslotxt';
-  t.innerHTML='<b>'+SLOTNAME[sl]+'</b><span style="color:'+(g?RAR[g[2]][1]:'#45566e')+'">'
+  t.innerHTML='<b>'+SLOTNAME[sl]+'</b><span style="color:'+tc(g?RAR[g[2]][1]:'#45566e')+'">'
              +(g?g[0]:'empty')+'</span>';
   d.appendChild(box); d.appendChild(t);
   d.onclick=()=>{ if(g){psel=g; drawPack();} };
@@ -5230,9 +5357,9 @@ function drawSlots(){
  const pl=document.createElement('div');
  pl.className='pslot plainrow'+(S.plain?' on':'');
  pl.innerHTML='<div style="width:30px;flex:0 0 30px;text-align:center;color:'
-  +(S.plain?'#f0c14b':'#45566e')+';font-size:15px">'+(S.plain?'\u25c9':'\u25cb')
+  +tc(S.plain?'#f0c14b':'#45566e')+';font-size:15px">'+(S.plain?'\u25c9':'\u25cb')
   +'</div><div class="pslotxt"><b>PLAIN DRESS</b><span style="color:'
-  +(S.plain?'#f0c14b':'#45566e')+'">'
+  +tc(S.plain?'#f0c14b':'#45566e')+'">'
   +(S.plain?'bare headed, empty handed':'his hat and walking staff')
   +'</span></div>';
  pl.onclick=()=>{ S.plain=!S.plain; wizApply(); save(); drawPack(); };
@@ -5344,7 +5471,7 @@ function drawJournal(){
   if(en.e){                                   /* something you met */
    const E=ENC[en.k];
    const d=document.createElement('div'); d.className='jrow jmet';
-   let h='<div class="jhead"><span class="jn" style="color:#9fd8ff">'+E.n+'</span>';
+   let h='<div class="jhead"><span class="jn" style="color:'+tc('#9fd8ff')+'">'+E.n+'</span>';
    if(en.day) h+='<span class="jd">DAY '+en.day+'</span>';
    h+='</div><div class="jm">MILE '+en.m.toFixed(1)+'</div>'
      +'<div class="jw">'+E.w+'</div>'
@@ -5356,7 +5483,7 @@ function drawJournal(){
    const d=document.createElement('div');
    d.className='jrow'+(en.won?' jwon':' jlost');
    let h='<div class="jhead"><span class="jn" style="color:'
-        +(en.won?'#ffb49a':'#8695a8')+'">'+B.n+'</span>';
+        +tc(en.won?'#ffb49a':'#8695a8')+'">'+B.n+'</span>';
    if(en.day) h+='<span class="jd">DAY '+en.day+'</span>';
    h+='</div><div class="jm">MILE '+en.m.toFixed(1)+' &middot; '
      +(en.won?'KILLED':'GOT AWAY')+' &middot; '
@@ -5364,7 +5491,7 @@ function drawJournal(){
    h+='<div class="jw">'+(en.won?B.w:'It got away. Your steps still counted.')
      +'</div>';
    if(en.won) h+='<div class="jg">'
-     +(g?'TOOK &middot; <b style="color:'+RAR[g[2]][1]+'">'+g[0].toUpperCase()+'</b>'
+     +(g?'TOOK &middot; <b style="color:'+tc(RAR[g[2]][1])+'">'+g[0].toUpperCase()+'</b>'
         :'CARRIED NOTHING')
      +(en.st?' &middot; \u25b2 '+en.st+' STONES':'')+'</div>';
    d.innerHTML=h; G.appendChild(d); continue;
@@ -5378,7 +5505,7 @@ function drawJournal(){
     +(L.e?' &middot; '+L.e.toLocaleString()+' FT':'')
     +' &middot; '+pctEnd(L.m)+'% TO '+TR.end+'</div>';
   if(L.w) h+='<div class="jw">'+L.w+'</div>';
-  if(g) h+='<div class="jg">FOUND &middot; <b style="color:'+RAR[g[2]][1]+'">'
+  if(g) h+='<div class="jg">FOUND &middot; <b style="color:'+tc(RAR[g[2]][1])+'">'
           +g[0].toUpperCase()+'</b></div>';
   d.innerHTML=h; G.appendChild(d);
  }
@@ -5486,10 +5613,10 @@ function drawDetail(){
   DART={c:c,g:g,px:px}; paintDart();
   art.appendChild(c);
  }else{ DART=null; art.innerHTML='<span class="dq">?</span>'; }
- art.style.borderColor=has?R[1]:'#2b3a50';
+ art.style.borderColor=has?tc(R[1]):tc('#2b3a50');
  const txt=document.createElement('div'); txt.className='dtxt';
- txt.innerHTML='<b style="color:'+R[1]+'">'+g[0]+'</b>'
-  +'<span class="rr" style="color:'+R[1]+'">'+R[0]+'</span> &nbsp;·&nbsp; '
+ txt.innerHTML='<b style="color:'+tc(R[1])+'">'+g[0]+'</b>'
+  +'<span class="rr" style="color:'+tc(R[1])+'">'+R[0]+'</span> &nbsp;·&nbsp; '
   +SLOTNAME[CAT2SLOT[g[1]]]
   +(has?'<br><span style="color:#5c6a7c">'+(MATNAME[g[6]]||'')
         +(n>1?(MATNAME[g[6]]?' &nbsp;·&nbsp; ':'')+n+' found':'')+'</span>'
@@ -5520,7 +5647,7 @@ function drawStats(){
  const t=loadout();
  for(const k of STATS){
   const d=document.createElement('div'); d.className='stat';
-  d.innerHTML='<span>'+STATNAME[k]+'</span><b style="color:'+STATCOL[k]+'">'+t[k]+'</b>';
+  d.innerHTML='<span>'+STATNAME[k]+'</span><b style="color:'+tc(STATCOL[k])+'">'+t[k]+'</b>';
   B.appendChild(d);
  }
 }
@@ -5528,7 +5655,7 @@ function drawStats(){
 function statRow(g){
  const st=statsOf(g);
  return '<div class="srow">'+STATS.map(k=>'<span>'+STATNAME[k]
-   +' <b style="color:'+STATCOL[k]+'">'+st[k]+'</b></span>').join('')+'</div>';
+   +' <b style="color:'+tc(STATCOL[k])+'">'+st[k]+'</b></span>').join('')+'</div>';
 }
 function drawPack(){
  packStart();
