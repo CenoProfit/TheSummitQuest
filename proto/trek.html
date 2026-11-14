@@ -249,10 +249,32 @@ html[data-theme=light] .pstn b{text-shadow:none}
  /* full rows when the column wraps; in the tall desktop column a
     100 percent basis meant 100 percent of the height, and the stones
     and the share button pushed everything else out of the pack */
- .pstones,.kshare{flex:1 0 100%}
- .pgrid{grid-template-columns:repeat(auto-fill,60px);gap:5px}
+ /* On a phone the items are what you came to see, so everything around
+    them gives up room: the stones shrink to a chip beside a thin share
+    bar on one row, the tabs keep to one line and scroll sideways, and
+    the note at the bottom is short. The grid then gets about a third
+    of the screen instead of a sixth. */
+ #pack{overflow-y:auto}
+ .pstones{flex:0 0 auto;padding:4px 9px;gap:0;border-width:2px}
+ .pstn{flex-direction:row;align-items:baseline;gap:6px;min-width:0}
+ .pstn b{font-size:11px;text-shadow:1px 1px 0 rgba(0,0,0,.6)}
+ .pstn span{font-size:8px;letter-spacing:1px}
+ .psth{display:none}
+ .kshare{flex:1 1 0;margin-top:0;padding:5px 8px;font-size:8px}
+ .slots{gap:5px}
+ .pslot{min-height:34px;padding:3px 6px}
+ .pslot.plainrow{margin-top:0;min-height:28px}
+ .ptabs{flex-wrap:nowrap;overflow-x:auto;margin-bottom:6px;scrollbar-width:none}
+ .ptabs::-webkit-scrollbar{display:none}
+ .ptab{flex:none;padding:6px 7px}
+ .pgrid{grid-template-columns:repeat(auto-fill,60px);gap:5px;padding:7px;min-height:33vh}
  .cell{width:60px;height:60px}
- .dart{width:84px;height:84px}
+ .pdetail{margin-top:6px;min-height:0;padding:6px 8px;gap:9px;font-size:10px}
+ .pdetail .dtxt{line-height:1.45}
+ .dart{width:60px;height:60px;overflow:hidden}
+ .dart canvas{width:100%!important;height:100%!important}
+ .dnote{display:none!important}
+ .wearbtn{margin-top:6px;padding:6px 10px}
 }
 /* On a phone the slot names, at 8px, did not fit two to a row beside
    the doll: COMPANION needs 72 pixels and had 57. The slots take the
@@ -6110,7 +6132,7 @@ function drawDetail(){
  D.innerHTML='';
  if(!psel){D.innerHTML='<div class="dtxt">Nothing here walks for you. '
   +'What you wear decides how a fight on the trail goes, and nothing else.'
-  +'<span style="display:block;margin-top:7px;color:#5c6a7c">'
+  +'<span class="dnote" style="display:block;margin-top:7px;color:#5c6a7c">'
   +'A piece you already own is left at the cairn for stones. Stones claim '
   +'something you have never found.</span></div>'; return;}
  const g=psel, has=owned(g.id), R=RAR[g[2]], n=owned(g.id);
