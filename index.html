@@ -411,9 +411,19 @@ body{margin:0 auto;padding:18px 18px 64px;max-width:1560px;background:var(--bg);
 .splash-block{display:flex;flex-direction:column;align-items:center}
 .splash-sub{font-family:var(--pix);font-size:clamp(13px,1.6vw,22px);letter-spacing:3px;
  color:var(--gold);margin-top:18px;text-shadow:2px 2px 0 rgba(0,0,0,.75)}
-.splash-quote{font-family:var(--body);font-size:clamp(16px,1.6vw,23px);line-height:1.55;
- color:var(--ink);margin-top:16px;max-width:30ch;text-wrap:balance;
- text-shadow:1px 1px 0 rgba(0,0,0,.8)}
+/* the quote sits on its own plate, bold and white with gold marks, so it
+   reads as a line meant for you rather than fine print over the map */
+.splash-quote{position:relative;font-family:var(--body);font-weight:bold;
+ font-size:clamp(18px,1.8vw,26px);line-height:1.5;color:#fff;
+ margin-top:18px;max-width:min(28ch,100%);text-wrap:balance;
+ padding:12px 30px;background:rgba(8,13,20,.82);
+ border:2px solid var(--gold);box-shadow:4px 4px 0 rgba(0,0,0,.6);
+ text-shadow:1px 1px 0 rgba(0,0,0,.9)}
+.splash-quote::before,.splash-quote::after{position:absolute;font-family:var(--pix);
+ font-weight:normal;font-size:22px;line-height:1;color:var(--gold);text-shadow:none}
+.splash-quote::before{content:'\201C';left:8px;top:8px}
+.splash-quote::after{content:'\201D';right:8px;bottom:2px}
+.splash-quote:empty{display:none}
 .splash-tap{font-family:var(--pix);font-size:clamp(19px,2.8vw,40px);line-height:1.7;
  color:var(--gold);letter-spacing:2px;
  text-shadow:3px 3px 0 #7a5308,6px 6px 0 rgba(0,0,0,.7);animation:tapblink 1.15s steps(1,end) infinite}
@@ -1021,7 +1031,8 @@ html[data-theme=light] .clock{color:var(--gold)}
 html[data-theme=light] #splash{background:var(--bg)}
 html[data-theme=light] .splash-scrim{background:radial-gradient(ellipse at center,rgba(245,242,237,0.62) 0%,rgba(245,242,237,0.88) 70%,rgba(245,242,237,0.96) 100%)}
 html[data-theme=light] .splash-sub{color:var(--gold);text-shadow:2px 2px 0 rgba(255,255,255,0.75)}
-html[data-theme=light] .splash-quote{color:var(--ink);text-shadow:1px 1px 0 rgba(255,255,255,0.8)}
+html[data-theme=light] .splash-quote{color:#000000;background:rgba(245,242,237,0.82);border:2px solid var(--gold);box-shadow:4px 4px 0 rgba(60,48,28,0.21);text-shadow:1px 1px 0 rgba(255,255,255,0.9)}
+html[data-theme=light] .splash-quote::before,html[data-theme=light] .splash-quote::after{color:var(--gold);text-shadow:none}
 html[data-theme=light] .splash-tap{color:var(--gold);text-shadow:3px 3px 0 #f7d085,6px 6px 0 rgba(255,255,255,0.7)}
 html[data-theme=light] .loading{background:var(--bg);color:var(--gold)}
 html[data-theme=light] .loading .lbar{border:2px solid var(--edge2);background:#f7f5f1}
@@ -1155,6 +1166,8 @@ html[data-theme=light] [style*="color:#c2cddb"]{color:#242f3d !important}
 html[data-theme=light] [style*="color:#201604"]{color:#f3efe7 !important}
 /* LIGHT-THEME:END */
 /* hand touches the generator cannot know about */
+html[data-theme=light] .splash-quote{color:#2a2116;background:rgba(255,251,240,.94);
+ border-color:#9c6a08;box-shadow:4px 4px 0 rgba(60,48,28,.25);text-shadow:none}
 html[data-theme=light] #trekFrame{background:var(--bg)}
 /* the ridge painting behind the page is drawn for night panels; on
    paper it shows through as a pale wash instead of a dark wall */
